@@ -1,0 +1,508 @@
+{
+  "session_id": "4443c8f6-913b-4722-b32f-0b78c5549bdf",
+  "task": "Search for 'wireless headphones under 2000' on Flipkart, then do the same search on Amazon, compare the top 3 results from both sites, and add the cheapest one with the highest rating to the cart on whichever site has it",
+  "page_context": {
+    "url": "https://www.amazon.in/s?k=wireless+headphones+under+2000&crid=WRS1TE1BGNHG&sprefix=wireless+headphones+under+2000%2Caps%2C229&ref=nb_sb_noss_1",
+    "title": "Amazon.in : wireless headphones under 2000",
+    "metadata": {},
+    "interactive_elements": [
+      {
+        "type": "input",
+        "text": "Search Amazon.in",
+        "selector": "#twotabsearchtextbox",
+        "visible": true,
+        "input_type": "text",
+        "placeholder": "Search Amazon.in"
+      },
+      {
+        "type": "input",
+        "text": "Minimum price",
+        "selector": "#p_36\\/range-slider_slider-item_lower-bound-slider",
+        "visible": true,
+        "input_type": "range",
+        "placeholder": null
+      },
+      {
+        "type": "input",
+        "text": "Maximum price",
+        "selector": "#p_36\\/range-slider_slider-item_upper-bound-slider",
+        "visible": true,
+        "input_type": "range",
+        "placeholder": null
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Get It Today to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Get It Today to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Get It by Tomorrow to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Get It by Tomorrow to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Get It in 2 Days to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Get It in 2 Days to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Free Shipping to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Free Shipping to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter GOBOULT to narrow results",
+        "selector": "a[aria-label=\"Apply the filter GOBOULT to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter boAt to narrow results",
+        "selector": "a[aria-label=\"Apply the filter boAt to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter pTron to narrow results",
+        "selector": "a[aria-label=\"Apply the filter pTron to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Noise to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Noise to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter 4 Stars & Up to narrow results",
+        "selector": "a[aria-label=\"Apply the filter 4 Stars & Up to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Up to \u20b9450",
+        "selector": "#p_36\\/dynamic-picker-0 > span > a[role=\"link\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Buy More, Save More",
+        "selector": "#p_n_deal_type\\/210770213031 > span > a[role=\"link\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Today's Deals",
+        "selector": "#p_n_deal_type\\/26921224031 > span > a[role=\"link\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Made for Amazon to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Made for Amazon to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Top Brands to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Top Brands to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Wired to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Wired to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Wireless to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Wireless to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Bluetooth to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Bluetooth to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Infrared to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Infrared to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Kleer to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Kleer to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter NFC to narrow results",
+        "selector": "a[aria-label=\"Apply the filter NFC to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter RF to narrow results",
+        "selector": "a[aria-label=\"Apply the filter RF to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Wi-Fi to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Wi-Fi to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter In Ear to narrow results",
+        "selector": "a[aria-label=\"Apply the filter In Ear to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Neckband to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Neckband to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter On Ear to narrow results",
+        "selector": "a[aria-label=\"Apply the filter On Ear to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Over Ear to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Over Ear to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter True Wireless to narrow results",
+        "selector": "a[aria-label=\"Apply the filter True Wireless to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Sound Isolation to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Sound Isolation to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Active Noise Cancellation to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Active Noise Cancellation to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter None to narrow results",
+        "selector": "a[aria-label=\"Apply the filter None to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Passive Noise Cancellation to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Passive Noise Cancellation to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Adaptive Noise Cancellation to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Adaptive Noise Cancellation to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Hybrid Noise Cancellation to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Hybrid Noise Cancellation to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Environmental Noise Cancellation to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Environmental Noise Cancellation to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter With Microphone to narrow results",
+        "selector": "a[aria-label=\"Apply the filter With Microphone to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter New to narrow results",
+        "selector": "a[aria-label=\"Apply the filter New to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter With Microphone to narrow results",
+        "selector": "a[aria-label=\"Apply the filter With Microphone to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Tangle Free Cord to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Tangle Free Cord to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Sports & Fitness to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Sports & Fitness to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Detachable to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Detachable to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Tangle Free to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Tangle Free to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Without Cable to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Without Cable to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter App to narrow results",
+        "selector": "a[aria-label=\"Apply the filter App to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Push Button to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Push Button to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Remote to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Remote to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Touch to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Touch to narrow results\"]",
+        "visible": true
+      },
+      {
+        "type": "a",
+        "text": "Apply the filter Voice to narrow results",
+        "selector": "a[aria-label=\"Apply the filter Voice to narrow results\"]",
+        "visible": true
+      }
+    ],
+    "content_blocks": [
+      {
+        "text": "Noise Airwave Max 4 Wireless Over Ear Headphones with 70H Playtime, ENC, 40mm Driver, Low Latency(up to 40ms), Dual Pairing, BT v5.4 (Calm Beige)Noise Airwave Max 4 Wireless Over Ear Headphones with 7\u20263.7 3.7 out of 5 stars. (4.3k)\u20b91,999.00\u20b91,999.00M.R.P: \u20b95,999.00FREE delivery Fri, 5 Jun",
+        "selector": "#anonCarousel5 > ol[role=\"list\"] > li:nth-of-type(3)"
+      },
+      {
+        "text": "SponsoredSponsored You are seeing this ad based on the product\u2019s relevance to your search query.Let us know Noise Two Wireless On Ear Headphones with 50 Hours Playtime, Low Latency(up to 45ms), 4 Play Modes, Dual Pairing, BT v5.3 (Serene Blue) 3.73.7 out of 5 stars (4.6K) Price, product page\u20b91,499\u20b91,499 M.R.P: \u20b94,999M.R.P: \u20b94,999\u20b94,999 (70% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Thu, 4 JunOr fastest delivery Today 6 pm - 10 pmAdd to cart+2 o",
+        "selector": "#\\37 5203c89-4aa8-44d4-aa65-1bcaf899e475"
+      },
+      {
+        "text": "SponsoredSponsored You are seeing this ad based on the product\u2019s relevance to your search query.Let us know GOBOULT Q Over Ear Bluetooth Headphones with 70H Playtime, 40mm Bass Drivers, Zen\u2122 ENC Mic, Type-C Fast Charging, 4 EQ Modes, Made in India, IPX5 Headphones Wireless with mic (Ice Blue) 4.14.1 out of 5 stars (734) 400+ bought in past monthPrice, product page\u20b91,699\u20b91,699 M.R.P: \u20b95,999M.R.P: \u20b95,999\u20b95,999 (72% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FRE",
+        "selector": "#\\32 ea1d2b5-eee1-426d-9eb6-70ec1720cf9f"
+      },
+      {
+        "text": "Amazon's Choicefor \"wireless headphones under 2000\"Boat Rockerz Plus 550, Customizable Earcups, 100H Battery, 50mm Drivers, Dual Pair, Stream Ad Free Music via App Support, Bluetooth Headphones, Wireless Headphone with Mic (Blue Psyche) 4.14.1 out of 5 stars (66.3K) 400+ bought in past monthPrice, product page\u20b91,899\u20b91,899 M.R.P: \u20b94,990M.R.P: \u20b94,990\u20b94,990 (62% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Fri, 5 JunOr fastest delivery Today 6 pm - 1",
+        "selector": "#\\34 08a0c34-3154-4f07-b559-dea2aa7e573c"
+      },
+      {
+        "text": "Best sellerin On-Ear HeadphonesboAt Rockerz 480, RGB LEDs,6 Light Modes, 40mm Drivers,Beast Mode, 60H Battery, ENx Tech, Stream Ad Free Music via App Support, Bluetooth Headphones, Wireless Over Ear Headphone with Mic (Black Sabre) Top Reviewed for Battery life4.14.1 out of 5 stars (3.8K) Price, product page\u20b91,599\u20b91,599 M.R.P: \u20b93,790M.R.P: \u20b93,790\u20b93,790 (58% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Fri, 5 JunOr fastest delivery Today 6 pm - 10 ",
+        "selector": "#\\38 e045ed9-fcd4-4859-b78b-4061665902da"
+      },
+      {
+        "text": "GOBOULT Fluid X Headphones Bluetooth Wireless with 60H Playtime, 40mm Drivers, Zen ENC Mic, Type-C Charging, Combat\u2122 Gaming, BTv 5.4, Headphones Wireless with mic (Polar White) 4.24.2 out of 5 stars (96) 500+ bought in past monthPrice, product page\u20b91,999\u20b91,999 M.R.P: \u20b95,999M.R.P: \u20b95,999\u20b95,999 (67% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Fri, 5 JunAdd to cart",
+        "selector": "#\\37 eff8e50-14e2-4c40-a78d-e44208a082d2"
+      },
+      {
+        "text": "Trending nowSponsored +4 other colors/patternsGOBOULT Fluid X Pro ANC Calling, 70Hrs Battery Life, 40mm Boosted Drivers, Foldable Design Bluetooth & Wired Headset (Sand Beige) 4.24.2 out of 5 stars (96) 500+ bought in past monthPrice, product page\u20b92,399\u20b92,399 M.R.P: \u20b97,999M.R.P: \u20b97,999\u20b97,999 (70% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay I...FREE delivery Fri, 5 JunOr fastest delivery Thu, 4 JunAdd to cart +2 other colors/patternsGOBOULT X Mustang Q Over Ear Bluet",
+        "selector": "div:nth-of-type(1) > div > span:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(9)"
+      },
+      {
+        "text": "+4 other colors/patternsGOBOULT Fluid X Pro ANC Calling, 70Hrs Battery Life, 40mm Boosted Drivers, Foldable Design Bluetooth & Wired Headset (Sand Beige) 4.24.2 out of 5 stars (96) 500+ bought in past monthPrice, product page\u20b92,399\u20b92,399 M.R.P: \u20b97,999M.R.P: \u20b97,999\u20b97,999 (70% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay I...FREE delivery Fri, 5 JunOr fastest delivery Thu, 4 JunAdd to cart +2 other colors/patternsGOBOULT X Mustang Q Over Ear Bluetooth Headphones 70H Pl",
+        "selector": "div:nth-of-type(9) > div > div > div > span:nth-of-type(2)"
+      },
+      {
+        "text": "+2 other colors/patternsGOBOULT X Mustang Q Over Ear Bluetooth Headphones 70H Playtime, 40mm Bass Drivers, Zen ENC Mic, Type-C Fast Charging, 4 EQ Mode, Bluetooth 5.4, AUX Option, IPX5 Wireless Headphones Top Reviewed for Battery life4.04.0 out of 5 stars (1.2K) Price, product page\u20b92,299\u20b92,299 M.R.P: \u20b96,999M.R.P: \u20b96,999\u20b96,999 (67% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay I...FREE delivery Fri, 5 JunOr fastest delivery Today 6 pm - 10 pmAdd to cart",
+        "selector": "li[aria-label=\"2 of 5\"]"
+      },
+      {
+        "text": "+6 other colors/patternsNoise Newly Launched Airwave Max XR Wireless Over-Ear Headphones with 120H Playtime, ANC, HFA Tech, Spatial Audio, Dual Pairing,BT V6.0(Forest Green) 4.14.1 out of 5 stars (415) 300+ bought in past monthPrice, product page\u20b92,999\u20b92,999 M.R.P: \u20b94,999M.R.P: \u20b94,999\u20b94,999 (40% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay I...FREE delivery Fri, 5 JunOr fastest delivery Today 6 pm - 10 pmAdd to cart",
+        "selector": "li[aria-label=\"3 of 5\"]"
+      },
+      {
+        "text": "+6 other colors/patternsBoat Rockerz Plus 550, Customizable Earcups, 100H Battery, 50mm Drivers, Dual Pair, Stream Ad Free Music via App Support, Bluetooth Headphones, Wireless Headphone with Mic (Blue Psyche) 4.14.1 out of 5 stars (66.3K) 400+ bought in past monthPrice, product page\u20b91,899\u20b91,899 M.R.P: \u20b94,990M.R.P: \u20b94,990\u20b94,990 (62% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay I...FREE delivery Fri, 5 JunOr fastest delivery Today 6 pm - 10 pmAdd to cart",
+        "selector": "li[aria-label=\"4 of 5\"]"
+      },
+      {
+        "text": "+2 other colors/patternsNoise Master Buds Max, Sound by Bose Wireless Over-Ear Headphones, Adaptive ANC, LHDC 5.0, Immersive Spatial Audio,Upto 60H Playtime, Fast Pairing, Wear Detection(Titanium) 4.34.3 out of 5 stars (196) 100+ bought in past monthPrice, product page\u20b98,999\u20b98,999 M.R.P: \u20b911,999M.R.P: \u20b911,999\u20b911,999 (25% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay I...FREE delivery Thu, 4 JunOr fastest delivery Tomorrow 8 am - 12 pmAdd to cart",
+        "selector": "li[aria-label=\"5 of 5\"]"
+      },
+      {
+        "text": "Boat Rockerz 421, 60H Battery, Low Latency(40Ms), 40Mm Drivers, ENx Tech, Stream Ad Free Music via App Support, Bluetooth Headphones, Wireless Over Ear Headphone with Mic (Bold Blue) Top Reviewed for Battery life3.93.9 out of 5 stars (2K) 1K+ bought in past monthPrice, product page\u20b91,199\u20b91,199 M.R.P: \u20b92,490M.R.P: \u20b92,490\u20b92,490 (52% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Thu, 4 JunOr fastest delivery Today 6 pm - 10 pmAdd to cart",
+        "selector": "#\\39 c18dad5-a10c-4cb4-a7ef-5be63257913e"
+      },
+      {
+        "text": "GOBOULT Fluid X 60Hrs Playtime, 40mm Boosted Drivers, Foldable Design, ENC Mic, 5.4v Bluetooth & Wired Headset (Electric Black, On the Ear) 4.24.2 out of 5 stars (96) 400+ bought in past monthPrice, product page\u20b91,999\u20b91,999 M.R.P: \u20b95,999M.R.P: \u20b95,999\u20b95,999 (67% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Thu, 4 JunOr fastest delivery Today 6 pm - 10 pmAdd to cart",
+        "selector": "#\\32 fcd98c9-46f9-41f6-969b-c7713c9d298c"
+      },
+      {
+        "text": "Best sellerin Over-Ear HeadphonespTron Studio Evo 70hrs Playtime Wireless Over Ear Headphones with HD Mic, Low-Latency Game/Movie/Music Modes, Punchy Bass, BT5.3, Dual Device Pairing, Voice Assistant & Type-C Fast Charging (Black) 4.14.1 out of 5 stars (1.8K) 4K+ bought in past monthLimited time dealPrice, product page\u20b9798\u20b9798 M.R.P: \u20b93,199M.R.P: \u20b93,199\u20b93,199 (75% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Fri, 5 JunOr fastest delivery Thu, 4 Ju",
+        "selector": "#\\33 f02ebaa-47b2-42c4-a95b-7be7e6332323"
+      },
+      {
+        "text": "SponsoredSponsored You are seeing this ad based on the product\u2019s relevance to your search query.Let us know GOBOULT X Mustang Q Over Ear Bluetooth Headphones 70H Playtime, 40mm Bass Drivers, Zen ENC Mic, Type-C Fast Charging, 4 EQ Mode, Bluetooth 5.4, AUX Option, IPX5 Wireless Headphones Top Reviewed for Battery life4.04.0 out of 5 stars (1.2K) Price, product page\u20b92,299\u20b92,299 M.R.P: \u20b96,999M.R.P: \u20b96,999\u20b96,999 (67% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FRE",
+        "selector": "#c9e8cabf-12e7-47f9-affc-2f391aa9d21a"
+      },
+      {
+        "text": "SponsoredSponsored You are seeing this ad based on the product\u2019s relevance to your search query.Let us know SpinBot Ranger HX300 Wireless Bluetooth Over The Ear Headphones with up to 50ms Low Latency and Flip Boom Mic | 7 Mode RGB Lights | Dedicated Game Mode | Up to 18 Hours of Battery Backup (White) 3.93.9 out of 5 stars (1.2K) 100+ bought in past monthPrice, product page\u20b91,699\u20b91,699 M.R.P: \u20b92,999M.R.P: \u20b92,999\u20b92,999 (43% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay",
+        "selector": "#\\36 cff84bf-a06c-477c-a0f1-04c3b49f3d99"
+      },
+      {
+        "text": "Portronics Muffs M6 Over Ear Wireless Bluetooth Headphone with Upto 40 Hours Playtime, Dual Pairing, 40mm Driver, HD Mic, Bluetooth 5.4V, Foldable Design, Type C Fast Charging (Biege) 4.34.3 out of 5 stars (347) 1K+ bought in past monthPrice, product page\u20b91,149\u20b91,149 M.R.P: \u20b92,499M.R.P: \u20b92,499\u20b92,499 (54% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Thu, 4 JunOr fastest delivery Tomorrow 8 am - 12 pmAdd to cart",
+        "selector": "#d4de3e52-c155-4845-9b36-b5b6aa133e84"
+      },
+      {
+        "text": "Blaupunkt BH31 AudioX Bluetooth Wireless Over Ear Headphones I 40MM Drivers I HD Sound I Soft PU Headband I Media & Volume Control with Built in Mic I TurboVolt Fast Charging I AUX Port (Black) 4.14.1 out of 5 stars (1.2K) 50+ bought in past monthPrice, product page\u20b91,658\u20b91,658 M.R.P: \u20b93,499M.R.P: \u20b93,499\u20b93,499 (53% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Thu, 4 JunOr fastest delivery Tomorrow 8 am - 12 pmAdd to cart",
+        "selector": "#ef3f8cf6-b103-42bd-a231-727c648f1b0f"
+      },
+      {
+        "text": "ZEBRONICS Duke (2026 Upgrade) Wireless Headphone, BT v5.3, Upto 60 hrs Playback, 40mm Drivers, Deep Bass, ENC, Gaming Mode, Dual Pairing, LED Lights, Media/Volume Control, Call Function (Black) 3.83.8 out of 5 stars (16.6K) Price, product page\u20b9959\u20b9959 M.R.P: \u20b91,999M.R.P: \u20b91,999\u20b91,999 (52% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Thu, 4 JunOr fastest delivery Tomorrow 8 am - 12 pmAdd to cart+1",
+        "selector": "#f4d09c88-433d-437a-a927-21fe3b5ea638"
+      },
+      {
+        "text": "ZEBRONICS Envy 2, Wireless Over Ear Headphone, ENC, Upto 65* Hours Playback, Gaming Mode, Dual Pairing, Bluetooth v5.3, AUX, Call Function, Voice Assistant, Foldable Design, Detachable Mic (Black) 3.83.8 out of 5 stars (2.5K) Price, product page\u20b91,699\u20b91,699 M.R.P: \u20b93,299M.R.P: \u20b93,299\u20b93,299 (48% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Thu, 4 JunOr fastest delivery Tomorrow 8 am - 12 pmAdd to cart",
+        "selector": "#cfc2571c-78f1-4338-af57-2a499edbefb6"
+      },
+      {
+        "text": "Boat Rockerz 411, 40Ms Low Latency, 40Hrs Battery, 40Mm Drivers, ENx Tech, Stream Ad Free Music via App Support, Bluetooth Headphones, Wireless Over Ear Headphone with Mic (Bold Blue) Top Reviewed for Battery life4.24.2 out of 5 stars (28.4K) 1K+ bought in past monthPrice, product page\u20b91,199\u20b91,199 M.R.P: \u20b92,999M.R.P: \u20b92,999\u20b92,999 (60% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Fri, 5 JunOr fastest delivery Today 6 pm - 10 pmAdd to cart",
+        "selector": "#\\32 953d49d-42a8-4307-a4d4-d75009608993"
+      },
+      {
+        "text": "Wireless Bluetooth Headphones with Deep Bass Sound, Foldable Design, Comfortable Cushioned Earpads, Built-in Mic for Music & Calls, Average Battery(1-3 Hours) Backup, Stylish Everyday Use 2.82.8 out of 5 stars (8) 300+ bought in past monthPrice, product page\u20b9299\u20b9299 M.R.P: \u20b9999M.R.P: \u20b9999\u20b9999 (70% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Sun, 7 JunAdd to cart",
+        "selector": "#\\39 3aed186-9385-49f9-b787-666cade0cc76"
+      },
+      {
+        "text": "SponsoredSponsored You are seeing this ad based on the product\u2019s relevance to your search query.Let us know GOBOULT Fluid X Pro ANC Calling, 70Hrs Battery Life, 40mm Boosted Drivers, Foldable Design Bluetooth & Wired Headset (Jet Black) 4.24.2 out of 5 stars (96) 300+ bought in past monthPrice, product page\u20b92,299\u20b92,299 M.R.P: \u20b97,999M.R.P: \u20b97,999\u20b97,999 (71% off)Up to 5% back with Amazon Pay ICICI cardUp to 5% back with Amazon Pay ICI...FREE delivery Thu, 4 JunOr fastest delivery Today 6 pm - 10 p",
+        "selector": "#\\37 c8dd154-39eb-44bd-bb67-fee2ddeb2a6e"
+      }
+    ],
+    "headings": [
+      "Skip to",
+      "Keyboard shortcuts",
+      "1-16 of over 60,000 results for \"wireless headphones under 2000\"\n                            \n                        \n                    \n                \n                \n            \n        \n        \n        \n            \n            \n        \n        \n            \n        \n        \n            \n                \n\n\n\n\n\n\n\n    \n        \n    \n        \n    \n        \n    \n        \n    \n        \n    \n    Sort by:\n        \n            Featured\n        \n            Price: Low to High\n        \n            Price: High to Low\n        \n            Avg. Customer Review\n        \n            Newest Arrivals\n        \n            Best Sellers\n        \n    Sort by:Featured\n    <span class=\"a-button a-button-base\"><span class=\"a-button-inner\"><input class=\"a-button-input\" type=\"submit\" value=\"Go\"/><span class=\"a-button-text\" aria-hidden=\"true\">Go</span></span></span>",
+      "1-16 of over 60,000 results for \"wireless headphones under 2000\"",
+      "Results"
+    ],
+    "selected_text": "",
+    "visible_text": "Skip to\nMain content\nResults\nKeyboard shortcuts\nSearch\nalt\n+\n/\nCart\nshift\n+\nalt\n+\nC\nHome\nshift\n+\nalt\n+\nH\nOrders\nshift\n+\nalt\n+\nO\nShow/Hide shortcuts\nshift\n+\nalt\n+\nZ\nTo move between items, use your keyboard's up or down arrows.\n.in\nDelivering to Hyderabad 500058\nUpdate location\nAll\nAll Categories\nAlexa Skills\nAmazon Devices\nAmazon Fashion\nAmazon Fresh\nAmazon Fresh Meat\nAmazon Pharmacy\nAppliances\nApps & Games\nAudible Audiobooks\nBaby\nBeauty\nBooks\nCar & Motorbike\nClothing & Accessories\nCollectibles\nComputers & Accessories\nDeals\nElectronics\nFurniture\nGarden & Outdoors\nGift Cards\nGrocery & Gourmet Foods\nHealth & Personal Care\nHome & Kitchen\nIndustrial & Scientific\nJewellery\nKindle Store\nLuggage & Bags\nLuxury Beauty\nMovies & TV Shows\nMP3 Music\nMusic\nMusical Instruments\nOffice Products\nPet Supplies\nPrime Video\nShoes & Handbags\nSoftware\nSports, Fitness & Outdoors\nSubscribe & Save\nTools & Home Improvement\nToys & Games\nUnder \u20b9500\nVideo Games\nWatches\nEN\nHello, sign in\nAccount & Lists\nReturns\n& Orde"
+  },
+  "prior_steps": [
+    {
+      "action_type": "navigate",
+      "description": "Navigate to Flipkart.",
+      "target_selector": "",
+      "value": "https://www.flipkart.com",
+      "execution_result": "success",
+      "page_analysis": "The user wants to search for 'wireless headphones under 2000' on Flipkart, then on Amazon, compare the top 3 results from both sites, and add the cheapest one with the highest rating to the cart. The current page is blank, so the first step is to navigate to Flipkart.",
+      "page_url": "about:blank",
+      "page_title": "",
+      "page_metadata": {}
+    },
+    {
+      "action_type": "fill",
+      "description": "Fill the search bar with 'wireless headphones under 2000'.",
+      "target_selector": "input[title=\"Search for Products, Brands and More\"]",
+      "value": "wireless headphones under 2000",
+      "execution_result": "success",
+      "page_analysis": "The user wants to search for 'wireless headphones under 2000' on Flipkart, then on Amazon, compare the top 3 results from both sites, and add the cheapest one with the highest rating to the cart. The current page is Flipkart, so the first step is to perform the search here.",
+      "page_url": "https://www.flipkart.com/",
+      "page_title": "Online Shopping Site for Mobiles, Electronics, Furniture, Grocery, Lifestyle, Books & More. Best Offers!",
+      "page_metadata": {
+        "canonical_url": "https://www.flipkart.com/",
+        "og_url": "https://www.flipkart.com",
+        "og_title": "Online Shopping India Mobile, Cameras, Lifestyle & more Online @ Flipkart.com"
+      }
+    },
+    {
+      "action_type": "click",
+      "description": "Click the search button.",
+      "target_selector": "button[aria-label=\"Search for Products, Brands and More\"]",
+      "value": null,
+      "execution_result": "success",
+      "page_analysis": "The user wants to search for 'wireless headphones under 2000' on Flipkart, then on Amazon, compare the top 3 results from both sites, and add the cheapest one with the highest rating to the cart. The current page is Flipkart, so the first step is to perform the search here.",
+      "page_url": "https://www.flipkart.com/",
+      "page_title": "Online Shopping Site for Mobiles, Electronics, Furniture, Grocery, Lifestyle, Books & More. Best Offers!",
+      "page_metadata": {
+        "canonical_url": "https://www.flipkart.com/",
+        "og_url": "https://www.flipkart.com",
+        "og_title": "Online Shopping India Mobile, Cameras, Lifestyle & more Online @ Flipkart.com"
+      }
+    },
+    {
+      "action_type": "navigate",
+      "description": "Navigate to Amazon India.",
+      "target_selector": "",
+      "value": "https://www.amazon.in",
+      "execution_result": "success",
+      "page_analysis": "The task requires searching for 'wireless headphones under 2000' on Flipkart (already done) and Amazon, comparing the top 3 results from both sites, and adding the cheapest one with the highest rating to the cart. I have extracted the top 3 results from Flipkart. The next step is to navigate to Amazon to perform the search there.",
+      "page_url": "https://www.flipkart.com/search?q=wireless%20headphones%20under%202000&otracker=search&otracker1=search&marketplace=FLIPKART&as-show=on&as=off",
+      "page_title": "Wireless Headphones Under 2000- Buy Products Online at Best Price in India - All Categories | Flipkart.com",
+      "page_metadata": {
+        "og_title": "Wireless Headphones Under 2000- Buy Products Online at Best Price in India - All Categories | Flipkart.com",
+        "site_name": "Flipkart.com"
+      }
+    },
+    {
+      "action_type": "fill",
+      "description": "Fill the search bar with 'wireless headphones under 2000'.",
+      "target_selector": "#twotabsearchtextbox",
+      "value": "wireless headphones under 2000",
+      "execution_result": "success",
+      "page_analysis": "The user wants to search for 'wireless headphones under 2000' on Amazon.in. I have already navigated to Amazon.in. The next step is to fill the search bar and click the search button.",
+      "page_url": "https://www.amazon.in/",
+      "page_title": "Online Shopping site in India: Shop Online for Mobiles, Books, Watches, Shoes and More - Amazon.in",
+      "page_metadata": {
+        "canonical_url": "https://www.amazon.in/"
+      }
+    },
+    {
+      "action_type": "click",
+      "description": "Click the search button.",
+      "target_selector": "#nav-search-submit-button",
+      "value": null,
+      "execution_result": "success",
+      "page_analysis": "The user wants to search for 'wireless headphones under 2000' on Amazon.in. I have already navigated to Amazon.in. The next step is to fill the search bar and click the search button.",
+      "page_url": "https://www.amazon.in/",
+      "page_title": "Online Shopping site in India: Shop Online for Mobiles, Books, Watches, Shoes and More - Amazon.in",
+      "page_metadata": {
+        "canonical_url": "https://www.amazon.in/"
+      }
+    }
+  ],
+  "supplemental_context": ""
+}

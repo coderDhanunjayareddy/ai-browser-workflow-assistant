@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "AI Browser Assistant",
+  "version": "0.1.0",
+  "description": "AI-powered browser workflow copilot — suggests and executes actions with your approval.",
+  "permissions": [
+    "activeTab",
+    "sidePanel",
+    "storage",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "action": {
+    "default_title": "Open AI Browser Assistant"
+  },
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "text": "{\n  \"analysis\": \"The user wants to compare wireless headphones under ₹2000 from Flipkart and Amazon and add the cheapest one with the highest rating to the cart. I have already searched on Flipkart and Amazon. I have extracted the top 3 results from both sites. \\n\\nFlipkart Top Results:\\n1. ZEBRONICS Zeb-Thunder: Price ₹699, Rating 4.1\\n2. boAt Rockerz 450: Price ₹1,499, Rating 4.3\\n3. boAt Rockerz 450 Pro: Price ₹1,599, Rating 4.3\\n\\nAmazon Top",
+  "candidates": [
+    {
+      "finish_reason": "FinishReason.MAX_TOKENS",
+      "safety_ratings": []
+    }
+  ]
+}

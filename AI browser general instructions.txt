@@ -1,0 +1,34 @@
+AI browser general instructions
+1.ok but kerp this in mind that i'm building an ideal project/applicatin and for that i'm at testing stage so i'm testimng my application based on some tasks so at right now i'm testing the application using the Task 1 so do the changes as per the generalized and ideal change/modifications don't harcode the process/woekflow which only satisy the Task 1 there are many other tasks on the way so for every task you should hardcoe and modify the worlfow or process build an ideal workfow or process which can satisay all the requirements and always think like an end to end user
+
+mini taks
+1. Open WhatsApp and message Ramu(Nanna) I'm late by 1hr
+2. hey send a message to Naresh Anna that "i'm will be late for an hour"
+
+main tasks
+
+I need you to complete all of the following 10 tasks one after another in this Chrome browser:
+
+TASK 1: Go to YouTube, search for 'React tutorial for beginners', open the top video, copy the video title and channel name, then open Gmail and compose a new email to my friend saying 'Check out this tutorial: [video title] by [channel name]', and also save the video link to a new Google Doc called 'Learning Resources'
+
+TASK 2: Search for 'wireless headphones under 2000' on Flipkart, then do the same search on Amazon, compare the top 3 results from both sites, and add the cheapest one with the highest rating to the cart on whichever site has it
+
+TASK 3: Go to LinkedIn, search for 'React developer jobs in Hyderabad', filter by 'Remote' and 'Entry level', open the top 5 job postings, extract the company name and salary range for each, and create a summary list in a new tab
+
+TASK 4: Book a ticket for the movie 'Jawan' today at 7 PM at PVR Gachibowli Hyderabad, select 2 seats in the middle row, and navigate to the payment page (don't pay)
+
+TASK 5: Go to Instagram profile of 'nasa', download the 3 most recent posts, then open Canva and create a new Instagram story using the first image, add text saying 'Space Alert' at the top, and save it as a draft
+
+TASK 6: Search for 'AI browser assistants news 2026' on Google News, open the top 3 articles, summarize each article in 2 sentences, compile all summaries into one document, and email it to myself with subject 'AI Research Digest'
+
+TASK 7: Go to Zomato, search for 'biryani' near Hitech City Hyderabad, filter by rating 4+, sort by delivery time, open the top restaurant's page, add 2 vegetable biryani to cart, and proceed to checkout page
+
+TASK 8: Search for flights from Hyderabad to Goa on MakeMyTrip for next Friday, find the cheapest direct flight under 5000, then search for hotels in Baga Beach for 2 nights under 3000 per night, and create a Google Doc with flight details and hotel name
+
+TASK 9: Go to GitHub, search for 'React TypeScript starter template', open the top 3 repositories, check their star count and last updated date, copy the installation command from each README, and save them to a new GitHub Gist
+
+TASK 10: Search for 'iPhone 15' on Amazon, note the price, then search on Flipkart and Croma, compare all three prices, check if there's an 'Add to Cart' button available on all sites, and open a new tab with a Google Sheet pre-filled with the comparison table (product, site, price, in-stock status)
+
+Complete all 10 tasks in order and tell me which tasks succeeded and which failed, and at what step each failure occurred.
+
+ 

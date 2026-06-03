@@ -1,0 +1,9 @@
+{
+  "text": "The user wants to compare wireless headphones under 2000 from Flipkart and Amazon, then add the cheapest one with the highest rating to the cart. I have already performed the search on Flipkart and extracted the top 3 results. I have also navigated to Amazon and performed the search.\n\nFlipkart's top 3 results (from RECENT COMPLETED STEPS):\n1.  boAt Rockerz 450: Price ₹1,499, Rating 4.3\n2.  boAt Rockerz 450 Pro: Price ₹1,799, Rating 4.3\n3.  Boult Audio ProBass Anchor: Price ₹1,399, Rating 4.2\n\nAmazon's top results",
+  "candidates": [
+    {
+      "finish_reason": "FinishReason.MAX_TOKENS",
+      "safety_ratings": []
+    }
+  ]
+}

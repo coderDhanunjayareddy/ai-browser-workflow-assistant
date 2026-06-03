@@ -1,0 +1,67 @@
+# IDE / Editor temporary files
+.vscode/
+.idea/
+.claude/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Python virtual environment and cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+ENV/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Compiled/Build directories
+extension/dist/
+dist/
+build/
+out/
+
+# Env / Secrets configuration
+.env
+.env.local
+.env.*.local
+*.env
+backend/.env
+candidate_gemini_keys.txt
+debug_gemini_raw.json
+
+# Browser User Profiles (Very large, contains session data, cookies, secrets)
+chrome-profile/
+playwright-profile/
+
+# Screenshots / temporary test assets
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
