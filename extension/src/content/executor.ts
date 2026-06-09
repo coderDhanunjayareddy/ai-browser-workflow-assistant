@@ -130,6 +130,12 @@ export async function executeAction(action: {
           const pointed = document.elementFromPoint(cx, cy)
           const topEl: HTMLElement = (pointed instanceof HTMLElement ? pointed : null) ?? candidate
 
+          // Force links to open in the same tab to avoid opening multiple tabs automatically
+          const linkEl = candidate.closest('a') ?? topEl.closest('a')
+          if (linkEl && linkEl.getAttribute('target') === '_blank') {
+            linkEl.setAttribute('target', '_self')
+          }
+
           const opts: MouseEventInit & PointerEventInit = {
             bubbles: true, cancelable: true, view: window,
             clientX: cx, clientY: cy, screenX: cx, screenY: cy,
@@ -143,7 +149,7 @@ export async function executeAction(action: {
           topEl.dispatchEvent(new MouseEvent('mouseup',        opts))
           topEl.dispatchEvent(new MouseEvent('click',          opts))
           topEl.click() // belt-and-suspenders for non-React handlers
-          if (topEl !== candidate) {
+          if (topEl !== candidate && !candidate.contains(topEl)) {
             candidate.dispatchEvent(new MouseEvent('click', opts))
             candidate.click()
           }
@@ -406,10 +412,39 @@ export async function executeAction(action: {
       case 'wait': {
         const parsed = Number(value ?? 2000)
         const waitMs = Number.isFinite(parsed)
-          ? Math.max(500, Math.min(parsed, 10_000))
+          ? Math.max(500, Math.min(parsed, 15_000))
           : 2000
-        await new Promise((resolve) => setTimeout(resolve, waitMs))
-        return { success: true, message: `Waited ${waitMs}ms.`, action_id }
+
+        if (target_selector && target_selector !== 'window') {
+          const startTime = Date.now()
+          const maxTimeout = 15_000
+          const el = await waitForElement(target_selector, 1500)
+          if (el) {
+            await new Promise<void>((resolve) => {
+              const interval = setInterval(() => {
+                const currentEl = safeQuery(target_selector!)
+                const isHidden = !currentEl || 
+                  (currentEl instanceof HTMLElement && (
+                    currentEl.offsetParent === null ||
+                    window.getComputedStyle(currentEl).display === 'none' ||
+                    window.getComputedStyle(currentEl).visibility === 'hidden'
+                  ))
+                if (isHidden || (Date.now() - startTime) >= maxTimeout) {
+                  clearInterval(interval)
+                  resolve()
+                }
+              }, 150)
+            })
+            const elapsed = Date.now() - startTime
+            return { success: true, message: `Smart waited for ${target_selector} to disappear (${elapsed}ms).`, action_id }
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, waitMs))
+            return { success: true, message: `Selector ${target_selector} not found within 1500ms. Fallback waited ${waitMs}ms.`, action_id }
+          }
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, waitMs))
+          return { success: true, message: `Waited ${waitMs}ms.`, action_id }
+        }
       }
 
       default:

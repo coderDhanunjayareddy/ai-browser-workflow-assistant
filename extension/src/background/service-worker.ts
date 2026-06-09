@@ -93,15 +93,44 @@ async function waitForActiveTabComplete(tabId: number): Promise<void> {
   })
 }
 
+function isRestrictedUrl(url: string | undefined): boolean {
+  if (!url) return true
+  return (
+    url.startsWith('chrome://') ||
+    url.startsWith('chrome-extension://') ||
+    url.startsWith('about:') ||
+    url.startsWith('edge://') ||
+    url.startsWith('file:///')
+  )
+}
+
+function getMockContext(url: string | undefined, title: string | undefined) {
+  return {
+    url: url || 'about:blank',
+    title: title || 'New Tab',
+    metadata: {},
+    interactive_elements: [],
+    content_blocks: [],
+    headings: [],
+    selected_text: '',
+    visible_text: 'This is a blank browser tab or restricted browser settings page. No webpage is loaded yet. Use the "navigate" action to open a website.',
+    images: []
+  }
+}
+
 async function extractContextWithRetry() {
   let lastError = ''
 
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (!tab?.id) {
-      throw new Error('No active tab found. Click the extension icon while a webpage is open.')
-    }
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (!tab?.id) {
+    throw new Error('No active tab found. Click the extension icon while a webpage is open.')
+  }
 
+  if (isRestrictedUrl(tab.url)) {
+    return getMockContext(tab.url, tab.title)
+  }
+
+  for (let attempt = 0; attempt < 4; attempt++) {
     try {
       await waitForActiveTabComplete(tab.id)
       if (attempt > 0) await sleep(600 * attempt)
@@ -114,6 +143,9 @@ async function extractContextWithRetry() {
       if (context) return context
     } catch (err) {
       lastError = String(err)
+      if (lastError.includes('Cannot access') || lastError.includes('not allowed')) {
+        return getMockContext(tab.url, tab.title)
+      }
       if (!isTransientExtractionError(lastError)) throw err
     }
   }
@@ -130,6 +162,29 @@ async function handleExecuteAction(
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (!tab?.id) { sendResponse({ error: 'No active tab found.' }); return }
+
+    // Intercept navigate action and handle directly from background
+    if (action.action_type === 'navigate') {
+      const url = action.value
+      if (!url) {
+        sendResponse({ error: 'No URL provided for navigate.' })
+        return
+      }
+      if (!url.startsWith('https://') && !url.startsWith('http://')) {
+        sendResponse({ error: `Unsafe URL rejected (must be http/https): ${url}` })
+        return
+      }
+      await chrome.tabs.update(tab.id, { url })
+      sendResponse({
+        result: {
+          success: true,
+          message: `Navigating to: ${url}`,
+          action_id: action.action_id,
+        }
+      })
+      return
+    }
+
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: executeAction,

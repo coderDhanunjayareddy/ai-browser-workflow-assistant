@@ -1,0 +1,10 @@
+{
+  "10": {
+    "name": "TASK 10: iPhone 15 Amazon/Flipkart/Croma Compare + Google Sheet",
+    "status": "SKIPPED_GOOGLE_LOGIN",
+    "reason": "Google Account Login required but skipped per user instruction.",
+    "failure_step": null,
+    "total_steps": 11,
+    "duration_seconds": 159.8
+  }
+}
