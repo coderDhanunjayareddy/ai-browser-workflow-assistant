@@ -14,6 +14,7 @@ const ANALYZE_TIMEOUT_MS = 90_000
 const MAX_DETAILED_PRIOR_STEPS = 30
 const MAX_TOTAL_PRIOR_STEPS = 30
 const MAX_ANALYSIS_SNAPSHOT_CHARS = 1000
+const MAX_REPEATED_INTERACTIVE_ACTIONS = 2
 const RETRYABLE_ANALYZE_STATUSES = new Set([502, 503, 504])
 
 /** Safely convert any thrown value to a readable string. */
@@ -101,6 +102,50 @@ function compactMetadata(metadata?: Record<string, string>): Record<string, stri
   )
 }
 
+function normalizeForCompare(value: string | null | undefined): string {
+  return (value ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+function contextFingerprint(ctx: PageContext | null): string {
+  if (!ctx) return ''
+  return [
+    ctx.url,
+    ctx.title,
+    ctx.headings.slice(0, 5).join('|'),
+    ctx.visible_text.slice(0, 1200),
+    ctx.interactive_elements
+      .slice(0, 60)
+      .map((el) => `${el.type}:${el.selector}:${el.text}:${el.placeholder ?? ''}`)
+      .join('|'),
+    ctx.content_blocks
+      .slice(0, 12)
+      .map((block) => `${block.selector}:${block.text.slice(0, 180)}`)
+      .join('|'),
+  ].map(normalizeForCompare).join('\n')
+}
+
+function actionNeedsObservableProgress(action: SuggestedAction): boolean {
+  if (action.action_type === 'navigate') return true
+  if (action.action_type !== 'click') return false
+  return !/\b(focus|prepare|place (?:the )?cursor|click (?:on )?(?:the )?(?:input|field))\b/i.test(
+    action.description,
+  )
+}
+
+function validateObservableProgress(
+  action: SuggestedAction,
+  before: PageContext | null,
+  after: PageContext,
+): string | null {
+  if (!before || !actionNeedsObservableProgress(action)) return null
+
+  const changed = contextFingerprint(before) !== contextFingerprint(after)
+  const navigated = before.url !== after.url
+  if (navigated || changed) return null
+
+  return `Action reported success, but the page did not visibly change after ${action.action_type}. Retrying from the current page state.`
+}
+
 function buildPriorSteps(completed: CompletedAction[]): PriorStep[] {
   const startDetailedIndex = Math.max(0, completed.length - MAX_DETAILED_PRIOR_STEPS)
   return completed.slice(-MAX_TOTAL_PRIOR_STEPS).map(({ action, result, analysis_snapshot, page_snapshot }, index, visibleSteps) => {
@@ -155,6 +200,13 @@ function actionSignature(action: SuggestedAction): string {
 
 function isRepeatedAction(action: SuggestedAction, completed: CompletedAction[], currentUrl?: string): boolean {
   const signature = actionSignature(action)
+  const matchingFailures = completed.filter(({ action: completedAction, result, page_snapshot }) => {
+    if (result.success || actionSignature(completedAction) !== signature) return false
+    if (currentUrl && page_snapshot?.url && page_snapshot.url !== currentUrl) return false
+    return true
+  })
+  if (matchingFailures.length >= 2) return true
+
   const matchingCompleted = completed.filter(({ action: completedAction, result, page_snapshot }) => {
     if (!result.success || actionSignature(completedAction) !== signature) return false
     if (currentUrl && page_snapshot?.url && page_snapshot.url !== currentUrl) return false
@@ -171,95 +223,13 @@ function isRepeatedAction(action: SuggestedAction, completed: CompletedAction[],
       return true
     })
   }
-  return matchingCompleted.length >= 1
+  return matchingCompleted.length >= MAX_REPEATED_INTERACTIVE_ACTIONS
 }
 
 function nextAllowedActions(actions: SuggestedAction[], completed: CompletedAction[], currentUrl?: string): SuggestedAction[] {
   const nextAction = actions[0]
   if (!nextAction) return []
   return isRepeatedAction(nextAction, completed, currentUrl) ? [] : [nextAction]
-}
-
-function taskRequiresAddToCart(task: string): boolean {
-  return /\b(add|put|place)\b.{0,30}\b(cart|basket|bag)\b/i.test(task)
-}
-
-function completedAddToCart(completed: CompletedAction[]): boolean {
-  return completed.some(({ action, result }) => {
-    if (!result.success || action.action_type !== 'click') return false
-    const text = [
-      action.description,
-      action.reasoning,
-      action.target_selector,
-      action.value ?? '',
-    ].join(' ').toLowerCase()
-    return (
-      /add\s*(to)?\s*(cart|basket|bag)/i.test(text) ||
-      /\b(add-to-cart|addtocart)\b/i.test(text)
-    )
-  })
-}
-
-function isLikelyProductPage(ctx: PageContext, completed: CompletedAction[]): boolean {
-  const currentText = [ctx.url, ctx.title, ctx.visible_text, ...ctx.headings].join(' ').toLowerCase()
-  if (/\b(add\s*(to)?\s*(cart|basket|bag)|buy now|product details|ratings?|reviews?)\b/i.test(currentText)) {
-    return true
-  }
-
-  return completed.slice(-3).some(({ action, result }) => {
-    if (!result.success) return false
-    const text = [action.action_type, action.description, action.reasoning].join(' ').toLowerCase()
-    return /\b(product|details|view)\b/.test(text) && action.action_type === 'click'
-  })
-}
-
-function buildAddToCartRecoveryAction(ctx: PageContext, completed: CompletedAction[]): SuggestedAction | null {
-  const addToCartElement = ctx.interactive_elements.find((el) => {
-    const text = [el.text, el.placeholder, el.selector].join(' ').toLowerCase()
-    return (
-      /add\s*(to)?\s*(cart|basket|bag)/i.test(text) ||
-      /\b(add-to-cart|addtocart)\b/i.test(text)
-    ) && !/\b(view|go to|open)\s*(cart|basket|bag)\b/i.test(text)
-  })
-
-  if (addToCartElement) {
-    return {
-      action_id: crypto.randomUUID(),
-      action_type: 'click',
-      target_selector: addToCartElement.selector,
-      value: null,
-      description: 'Click Add to Cart.',
-      reasoning: 'The original task requires adding the selected product to the cart.',
-      confidence: 0.85,
-      safety_level: 'caution',
-    }
-  }
-
-  if (!isLikelyProductPage(ctx, completed)) return null
-
-  const scrollAction: SuggestedAction = {
-    action_id: crypto.randomUUID(),
-    action_type: 'scroll',
-    target_selector: 'window',
-    value: 'down',
-    description: 'Scroll to find the Add to Cart button.',
-    reasoning: 'The product page is open, but the Add to Cart button is not visible yet.',
-    confidence: 0.6,
-    safety_level: 'safe',
-  }
-  if (!isRepeatedAction(scrollAction, completed, ctx.url)) return scrollAction
-
-  const waitAction: SuggestedAction = {
-    action_id: crypto.randomUUID(),
-    action_type: 'wait',
-    target_selector: 'window',
-    value: '2000',
-    description: 'Wait for the product page controls to finish loading.',
-    reasoning: 'The task still needs Add to Cart, and the product page controls may still be loading.',
-    confidence: 0.5,
-    safety_level: 'safe',
-  }
-  return isRepeatedAction(waitAction, completed, ctx.url) ? null : waitAction
 }
 
 function logEvent(
@@ -371,9 +341,6 @@ export function useWorkflow() {
       }
       const result: AnalyzeResponse = await response.json()
       const allowedActions = nextAllowedActions(result.suggested_actions, [], ctx.url)
-      const cartRecoveryAction = taskRequiresAddToCart(task)
-        ? buildAddToCartRecoveryAction(ctx, [])
-        : null
 
       if (result.clarification_question) {
         const repeatedQuestion = state.userInputs.some((input) =>
@@ -387,11 +354,6 @@ export function useWorkflow() {
           clarificationQuestion: repeatedQuestion
             ? `I already have an answer for "${result.clarification_question}". If it is wrong, provide the corrected value; otherwise click Continue to retry using the saved answer.`
             : result.clarification_question ?? null,
-        }))
-      } else if (allowedActions.length === 0 && cartRecoveryAction) {
-        setState((s) => ({
-          ...s, phase: 'awaiting', analysisText: result.analysis,
-          pendingActions: [cartRecoveryAction], clarificationQuestion: null,
         }))
       } else if (allowedActions.length === 0) {
         setState((s) => ({
@@ -472,10 +434,6 @@ export function useWorkflow() {
       }
       const result: AnalyzeResponse = await response.json()
       const allowedActions = nextAllowedActions(result.suggested_actions, completed, ctx.url)
-      const needsCartCompletion = taskRequiresAddToCart(task) && !completedAddToCart(completed)
-      const cartRecoveryAction = needsCartCompletion
-        ? buildAddToCartRecoveryAction(ctx, completed)
-        : null
 
       if (result.clarification_question) {
         const repeatedQuestion = userInputs.some((input) =>
@@ -490,25 +448,17 @@ export function useWorkflow() {
             ? `I already have an answer for "${result.clarification_question}". If it is wrong, provide the corrected value; otherwise click Continue to retry using the saved answer.`
             : result.clarification_question ?? null,
         }))
-      } else if (allowedActions.length === 0 && cartRecoveryAction) {
-        setState((s) => ({
-          ...s, phase: 'awaiting', pendingActions: [cartRecoveryAction],
-          analysisText: result.analysis, clarificationQuestion: null, error: null,
-        }))
-      } else if (allowedActions.length === 0 && needsCartCompletion) {
-        setState((s) => ({
-          ...s, phase: 'complete', pendingActions: [], analysisText: result.analysis,
-          clarificationQuestion: null,
-          error: 'Stopped because the task still needs Add to Cart, but no Add to Cart control was found after retrying.',
-        }))
       } else if (allowedActions.length === 0) {
         const stoppedRepeat = result.suggested_actions.length > 0
+        const unresolvedFailure = completed.some(({ result: execution }) => !execution.success)
         setState((s) => ({
           ...s, phase: 'complete', pendingActions: [], analysisText: result.analysis,
           clarificationQuestion: null,
           error: stoppedRepeat
             ? 'Stopped because the assistant proposed a repeated browser action instead of making progress.'
-            : null,
+            : unresolvedFailure
+              ? 'Stopped with unresolved failed actions. The task was not completed.'
+              : null,
         }))
       } else {
         setState((s) => ({
@@ -560,17 +510,68 @@ export function useWorkflow() {
       result = { success: false, message: errMsg(err), action_id: action.action_id }
     }
 
+    let pageContextAfterAction = pageContext
+
+    if (result.success) {
+      if (action.action_type === 'navigate') {
+        await sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_TAB_LOAD' })
+      }
+
+      if (
+        action.action_type === 'fill' ||
+        action.action_type === 'click' ||
+        action.action_type === 'wait' ||
+        action.action_type === 'select_option' ||
+        action.action_type === 'choose_date' ||
+        action.action_type === 'keyboard_shortcut'
+      ) {
+        await sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_DOM_SETTLE' })
+      }
+
+      if (actionNeedsObservableProgress(action)) {
+        try {
+          const res = await sendToBackground<{ context?: PageContext; error?: string }>({
+            type: 'EXTRACT_CONTEXT',
+          })
+          if (res.context) {
+            const progressError = validateObservableProgress(action, pageContext, res.context)
+            pageContextAfterAction = res.context
+            setPageContext(res.context)
+            if (progressError) {
+              result = {
+                success: false,
+                message: progressError,
+                action_id: action.action_id,
+              }
+            }
+          } else {
+            result = {
+              success: false,
+              message: `Could not verify page progress after ${action.action_type}: ${res.error ?? 'page read failed'}`,
+              action_id: action.action_id,
+            }
+          }
+        } catch (err) {
+          result = {
+            success: false,
+            message: `Could not verify page progress after ${action.action_type}: ${errMsg(err)}`,
+            action_id: action.action_id,
+          }
+        }
+      }
+    }
+
     const newCompleted: CompletedAction[] = [
       ...completedActions,
       {
         action,
         result,
         analysis_snapshot: analysisText,
-        page_snapshot: pageContext
+        page_snapshot: pageContextAfterAction
           ? {
-              url: pageContext.url,
-              title: pageContext.title,
-              metadata: compactMetadata(pageContext.metadata),
+              url: pageContextAfterAction.url,
+              title: pageContextAfterAction.title,
+              metadata: compactMetadata(pageContextAfterAction.metadata),
             }
           : undefined,
       },
@@ -578,26 +579,12 @@ export function useWorkflow() {
 
     setState((s) => ({ ...s, activeAction: null, completedActions: newCompleted }))
 
-    logEvent(sessionId, 'executed', action, pageContext,
+    logEvent(sessionId, 'executed', action, pageContextAfterAction,
       result.success ? 'success' : result.message)
 
     if (!result.success) {
       await reanalyze(sessionId, task, newCompleted, userInputs)
       return
-    }
-
-    // For navigate actions: wait for the new page to fully load before
-    // re-analyzing — otherwise the extractor sees the old page.
-    if (action.action_type === 'navigate') {
-      await sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_TAB_LOAD' })
-    }
-
-    // For fill, click, and wait actions: wait until the DOM stops mutating before
-    // re-analyzing. This lets search results, chat panels, and other async
-    // UI updates fully render before we extract page context.
-    // MutationObserver-based — adapts to actual network/CPU speed, no fixed timeout.
-    if (action.action_type === 'fill' || action.action_type === 'click' || action.action_type === 'wait') {
-      await sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_DOM_SETTLE' })
     }
 
     // Re-analyze with fresh page context

@@ -1,16 +1,36 @@
 // Shared types across the extension.
 // Populated incrementally as phases are implemented.
 
-export type ActionType = 'click' | 'fill' | 'scroll' | 'navigate' | 'wait'
+export type ActionType =
+  | 'click'
+  | 'fill'
+  | 'scroll'
+  | 'navigate'
+  | 'wait'
+  | 'select_option'
+  | 'choose_date'
+  | 'hover'
+  | 'keyboard_shortcut'
 export type SafetyLevel = 'safe' | 'caution' | 'danger'
 
 export interface InteractiveElement {
+  element_id?: string
   type: string
   text: string
   selector: string
   visible: boolean
   input_type?: string
   placeholder?: string
+  role?: string
+  aria_label?: string
+  accessibility_name?: string
+  state?: Record<string, string | boolean>
+  bounding_box?: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
 }
 
 export interface ContentBlock {

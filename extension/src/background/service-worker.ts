@@ -1,5 +1,7 @@
 import { extractPageContext } from '../content/extractor'
 import { executeAction } from '../content/executor'
+import { extractPageContextV2 } from '../content/extractor_v2'
+import { executeActionV2 } from '../content/executor_v2'
 
 // On install, configure the side panel to open when the user clicks the toolbar icon.
 chrome.runtime.onInstalled.addListener(() => {
@@ -135,10 +137,38 @@ async function extractContextWithRetry() {
       await waitForActiveTabComplete(tab.id)
       if (attempt > 0) await sleep(600 * attempt)
 
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: extractPageContext,
-      })
+      let results
+      try {
+        const [v2Results, v1Results] = await Promise.all([
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: extractPageContextV2,
+          }),
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: extractPageContext,
+          }),
+        ])
+        const v2Context = v2Results[0]?.result
+        const v1Context = v1Results[0]?.result
+        if (v2Context && v1Context) {
+          return {
+            ...v1Context,
+            ...v2Context,
+            metadata: v1Context.metadata,
+            content_blocks: v1Context.content_blocks,
+            images: v1Context.images,
+            visible_text: v1Context.visible_text || v2Context.visible_text,
+          }
+        }
+        results = v2Results
+      } catch (e2) {
+        console.warn('V2 merged extraction failed, falling back to V1:', e2)
+        results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: extractPageContext,
+        })
+      }
       const context = results[0]?.result
       if (context) return context
     } catch (err) {
@@ -154,6 +184,90 @@ async function extractContextWithRetry() {
 }
 
 // ── Action execution ──────────────────────────────────────────────────────────
+
+function clickOnceAndReuseTab(action: {
+  action_id: string
+  target_selector: string | null
+  description?: string
+}): { success: boolean; message: string; action_id: string } {
+  const selector = action.target_selector
+  if (!selector) return { success: false, message: 'No selector provided for click.', action_id: action.action_id }
+
+  let element: Element | null = null
+  try {
+    element = document.querySelector(selector)
+  } catch {
+    return { success: false, message: `Invalid click selector: ${selector}`, action_id: action.action_id }
+  }
+  if (!(element instanceof HTMLElement)) {
+    return { success: false, message: `Click target not found: ${selector}`, action_id: action.action_id }
+  }
+
+  const normalize = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase()
+  const labelOf = (candidate: Element) => normalize(
+    candidate.getAttribute('aria-label') ||
+    candidate.getAttribute('title') ||
+    (candidate instanceof HTMLInputElement ? candidate.value : '') ||
+    candidate.textContent ||
+    '',
+  )
+  const isVisible = (candidate: Element) => {
+    const box = candidate.getBoundingClientRect()
+    const style = window.getComputedStyle(candidate)
+    return box.width > 0 && box.height > 0 && style.visibility !== 'hidden' && style.display !== 'none'
+  }
+  const requestedText = normalize(action.description || '')
+  const namedCandidates = Array.from(document.querySelectorAll(
+    'button, a[href], [role="button"], input[type="submit"], input[type="button"]',
+  ))
+    .filter(isVisible)
+    .map((candidate) => ({ candidate, label: labelOf(candidate) }))
+    .filter(({ label }) => label.length >= 2 && requestedText.includes(label))
+    .sort((a, b) => b.label.length - a.label.length)
+
+  if (namedCandidates.length > 0) {
+    const requested = namedCandidates[0]
+    const targetLabel = labelOf(element)
+    if (targetLabel && !targetLabel.includes(requested.label) && !requested.label.includes(targetLabel)) {
+      element = requested.candidate as HTMLElement
+    }
+  } else {
+    const targetLabel = labelOf(element)
+    const isCompactLabeledControl = targetLabel.length >= 2 && targetLabel.length <= 60 && (
+      element.matches('button, input[type="submit"], input[type="button"], [role="button"]')
+    )
+    if (requestedText && isCompactLabeledControl && !requestedText.includes(targetLabel)) {
+      return {
+        success: false,
+        message: `Refused contradictory click: action requested "${action.description}", selector resolved to "${targetLabel}".`,
+        action_id: action.action_id,
+      }
+    }
+  }
+
+  const clickTarget = element as HTMLElement
+  const rect = clickTarget.getBoundingClientRect()
+  if (rect.width === 0 || rect.height === 0) {
+    return { success: false, message: `Click target is not visible: ${selector}`, action_id: action.action_id }
+  }
+
+  clickTarget.scrollIntoView({ block: 'center', inline: 'center' })
+  const link = clickTarget.closest('a')
+  if (link?.getAttribute('target') === '_blank') link.setAttribute('target', '_self')
+
+  const originalOpen = window.open
+  window.open = ((url?: string | URL) => {
+    if (url) window.location.assign(String(url))
+    return window
+  }) as typeof window.open
+  try {
+    clickTarget.click()
+  } finally {
+    window.setTimeout(() => { window.open = originalOpen }, 1000)
+  }
+
+  return { success: true, message: `Clicked once: ${labelOf(clickTarget) || selector}`, action_id: action.action_id }
+}
 
 async function handleExecuteAction(
   action: { action_id: string; action_type: string; target_selector: string | null; value: string | null; description?: string },
@@ -185,11 +299,39 @@ async function handleExecuteAction(
       return
     }
 
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: executeAction,
-      args: [action],
-    })
+    if (action.action_type === 'click') {
+      const popupSafeResult = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        world: 'MAIN',
+        func: clickOnceAndReuseTab,
+        args: [action],
+      })
+      const result = popupSafeResult[0]?.result
+      if (result?.success) {
+        sendResponse({ result })
+        return
+      }
+    }
+
+    const v2OnlyActions = new Set(['select_option', 'choose_date', 'hover', 'keyboard_shortcut'])
+    const primaryExecutor = v2OnlyActions.has(action.action_type) ? executeActionV2 : executeAction
+    const fallbackExecutor = v2OnlyActions.has(action.action_type) ? executeAction : executeActionV2
+
+    let results
+    try {
+      results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: primaryExecutor,
+        args: [action],
+      })
+    } catch (primaryError) {
+      console.warn('Primary execution failed, trying fallback executor:', primaryError)
+      results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: fallbackExecutor,
+        args: [action],
+      })
+    }
     const result = results[0]?.result
     if (!result) { sendResponse({ error: 'Executor returned empty result.' }); return }
     sendResponse({ result })

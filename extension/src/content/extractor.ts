@@ -13,7 +13,7 @@ export function extractPageContext(): PageContext {
   const INTERACTIVE_SELECTOR = [
     'button',
     'a[href]',
-    'input:not([type="hidden"]):not([type="password"])',
+    'input:not([type="hidden"])',
     'select',
     'textarea',
     '[contenteditable="true"]',        // WhatsApp, Gmail, Notion, etc.

@@ -136,23 +136,8 @@ export async function executeAction(action: {
             linkEl.setAttribute('target', '_self')
           }
 
-          const opts: MouseEventInit & PointerEventInit = {
-            bubbles: true, cancelable: true, view: window,
-            clientX: cx, clientY: cy, screenX: cx, screenY: cy,
-          }
-
           // Full sequence: pointer → mouse → click.
-          topEl.dispatchEvent(new PointerEvent('pointerover',  opts))
-          topEl.dispatchEvent(new PointerEvent('pointerdown',  opts))
-          topEl.dispatchEvent(new MouseEvent('mousedown',      opts))
-          topEl.dispatchEvent(new PointerEvent('pointerup',    opts))
-          topEl.dispatchEvent(new MouseEvent('mouseup',        opts))
-          topEl.dispatchEvent(new MouseEvent('click',          opts))
-          topEl.click() // belt-and-suspenders for non-React handlers
-          if (topEl !== candidate && !candidate.contains(topEl)) {
-            candidate.dispatchEvent(new MouseEvent('click', opts))
-            candidate.click()
-          }
+          topEl.click()
 
           return { success: true, message: `Clicked at (${cx},${cy}): ${resolvedSelector}`, action_id }
         }
@@ -299,7 +284,10 @@ export async function executeAction(action: {
           }
           inputEl.dispatchEvent(new Event('input', { bubbles: true }))
           inputEl.dispatchEvent(new Event('change', { bubbles: true }))
-          return { success: true, message: `Filled "${fillValue}" into: ${resolvedSelector}`, action_id }
+          if (inputEl.value !== fillValue) {
+            return { success: false, message: `Field value was not retained after fill: ${resolvedSelector}`, action_id }
+          }
+          return { success: true, message: `Filled field: ${resolvedSelector}`, action_id }
         }
 
         // Helper: fill a contenteditable element (WhatsApp, Gmail, Notion, etc.)
@@ -317,10 +305,113 @@ export async function executeAction(action: {
           ;(document as any).execCommand('insertText', false, text)
           // Belt-and-suspenders: also fire input event.
           ceEl.dispatchEvent(new Event('input', { bubbles: true }))
-          return { success: true, message: `Filled "${text}" into: ${resolvedSelector}`, action_id }
+          if ((ceEl.textContent || '').trim() !== text.trim()) {
+            return { success: false, message: `Editable value was not retained after fill: ${resolvedSelector}`, action_id }
+          }
+          return { success: true, message: `Filled editable field: ${resolvedSelector}`, action_id }
         }
 
         const fillValue = value ?? ''
+        function isVisibleElement(candidate: Element | null): candidate is HTMLElement {
+          if (!(candidate instanceof HTMLElement)) return false
+          const rect = candidate.getBoundingClientRect()
+          const style = window.getComputedStyle(candidate)
+          return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden'
+        }
+
+        function isTypeableElement(candidate: Element | null): candidate is HTMLInputElement | HTMLTextAreaElement | HTMLElement {
+          if (!isVisibleElement(candidate)) return false
+          if (candidate instanceof HTMLInputElement) {
+            return candidate.type !== 'hidden' && !candidate.readOnly && !candidate.disabled
+          }
+          if (candidate instanceof HTMLTextAreaElement) {
+            return !candidate.readOnly && !candidate.disabled
+          }
+          return candidate.getAttribute('contenteditable') === 'true'
+        }
+
+        function textIncludesValue(candidate: Element, expected: string): boolean {
+          return (candidate.textContent || '')
+            .replace(/\s+/g, ' ')
+            .toLowerCase()
+            .includes(expected.replace(/\s+/g, ' ').toLowerCase())
+        }
+
+        async function fillAutocompleteField(
+          opener: Element,
+          fillValueForAutocomplete: string,
+          resolvedSelector: string,
+        ): Promise<{ success: boolean; message: string; action_id: string } | null> {
+          if (!fillValueForAutocomplete.trim() || !(opener instanceof HTMLElement)) return null
+
+          opener.scrollIntoView({ block: 'center', inline: 'center' })
+          opener.click()
+          await new Promise((resolve) => setTimeout(resolve, 500))
+
+          const active = document.activeElement
+          let input: Element | null = isTypeableElement(active) ? active : null
+
+          if (!input) {
+            const candidates = Array.from(document.querySelectorAll([
+              'input[type="text"]:not([readonly]):not([disabled])',
+              'input[type="search"]:not([readonly]):not([disabled])',
+              'input[role="combobox"]:not([readonly]):not([disabled])',
+              'input[placeholder]:not([readonly]):not([disabled])',
+              '[contenteditable="true"]',
+              '[role="textbox"]',
+              '[role="searchbox"]',
+            ].join(', ')))
+              .filter(isTypeableElement)
+              .filter((candidate) => candidate !== opener)
+
+            input = candidates[candidates.length - 1] ?? null
+          }
+
+          if (!input) return null
+
+          if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
+            fillInput(input, fillValueForAutocomplete, `${resolvedSelector} -> autocomplete input`)
+          } else {
+            fillContentEditable(input as HTMLElement, fillValueForAutocomplete, `${resolvedSelector} -> autocomplete input`)
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 900))
+
+          const options = Array.from(document.querySelectorAll([
+            '[role="option"]',
+            '[role="listitem"]',
+            'li',
+            '[data-testid]',
+            '[class*="suggest"]',
+            '[class*="autosuggest"]',
+            '[class*="react-autosuggest"]',
+            'p',
+            'span',
+            'div',
+          ].join(', ')))
+            .filter(isVisibleElement)
+            .filter((candidate) => candidate !== input && textIncludesValue(candidate, fillValueForAutocomplete))
+            .sort((a, b) => (a.textContent || '').trim().length - (b.textContent || '').trim().length)
+
+          const option = options[0]
+          if (!option) {
+            return {
+              success: false,
+              message: `Typed "${fillValueForAutocomplete}" into autocomplete, but no matching suggestion was visible.`,
+              action_id,
+            }
+          }
+
+          option.scrollIntoView({ block: 'center', inline: 'center' })
+          option.click()
+          await new Promise((resolve) => setTimeout(resolve, 700))
+
+          return {
+            success: true,
+            message: `Selected "${fillValueForAutocomplete}" from autocomplete for: ${resolvedSelector}`,
+            action_id,
+          }
+        }
 
         // Detect CSS class-only selectors — skip wait, go straight to semantic fallback.
         const isClassOnlySelector = /^\.[a-zA-Z_-][\w-]*$/.test(target_selector.trim())
@@ -336,8 +427,59 @@ export async function executeAction(action: {
           if (attrSwap !== target_selector) el = await waitForElement(attrSwap, 2_000)
         }
 
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          const normalize = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase()
+          const fieldSignals = (field: HTMLInputElement | HTMLTextAreaElement) => {
+            const associatedLabel = field.id
+              ? document.querySelector(`label[for="${CSS.escape(field.id)}"]`)?.textContent || ''
+              : ''
+            const wrappingLabel = field.closest('label')?.textContent || ''
+            return [
+              field.getAttribute('aria-label') || '',
+              associatedLabel ||
+              wrappingLabel ||
+              field.name || '',
+              field.getAttribute('autocomplete') || '',
+              ['email', 'password', 'search'].includes(field.type) ? field.type : '',
+              field.placeholder || '',
+            ].map(normalize).filter(Boolean)
+          }
+          const requestedText = normalize(description || '')
+          const signals = fieldSignals(el)
+          const signalMatchesRequest = signals.some((signal) => {
+            if (signal.length <= 60 && requestedText.includes(signal)) return true
+            return signal
+              .split(/[^a-z0-9]+/)
+              .filter((token) => token.length >= 3 && !['input', 'field', 'textbox'].includes(token))
+              .some((token) => requestedText.includes(token))
+          })
+          if (requestedText && signals.length > 0 && !signalMatchesRequest) {
+            return {
+              success: false,
+              message: `Refused contradictory fill: action requested "${description}", target field signals were "${signals.join(', ')}".`,
+              action_id,
+            }
+          }
+        }
+
+        if (el && (
+          el.getAttribute('role') === 'combobox' ||
+          el.hasAttribute('aria-autocomplete') ||
+          (el instanceof HTMLInputElement && Boolean(el.list))
+        )) {
+          const autocompleteResult = await fillAutocompleteField(el, fillValue, target_selector)
+          if (autocompleteResult) return autocompleteResult
+        }
+
         // Primary path: regular input or textarea.
         if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          if (el.readOnly || el.disabled || el.type === 'hidden') {
+            return {
+              success: false,
+              message: `Target is not directly fillable: ${target_selector}. Use the visible picker or autocomplete suggestion instead.`,
+              action_id,
+            }
+          }
           return fillInput(el, fillValue, target_selector)
         }
 
