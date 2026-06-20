@@ -4,7 +4,17 @@ from typing import Literal, Optional
 
 class SuggestedAction(BaseModel):
     action_id: str
-    action_type: Literal['click', 'fill', 'scroll', 'navigate', 'wait']
+    action_type: Literal[
+        'click',
+        'fill',
+        'scroll',
+        'navigate',
+        'wait',
+        'select_option',
+        'choose_date',
+        'hover',
+        'keyboard_shortcut',
+    ]
     target_selector: str
     value: Optional[str] = None
     description: str

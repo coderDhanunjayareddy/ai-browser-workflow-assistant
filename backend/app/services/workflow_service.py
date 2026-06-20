@@ -23,6 +23,8 @@ def log_event(db: Session, request: LogEventRequest) -> LogEventResponse:
         )
         db.add(session)
 
+    from app.budget_engine import BudgetManager
+    BudgetManager(db, request.session_id).enforce()
     action = request.action
     now = datetime.utcnow()
 
@@ -43,6 +45,24 @@ def log_event(db: Session, request: LogEventRequest) -> LogEventResponse:
     db.add(event)
     db.commit()
     db.refresh(event)
+
+    # Route execution results through the WorkflowOrchestrator to run validators
+    if request.event_type == "executed":
+        try:
+            from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
+            orchestrator = WorkflowOrchestrator(request.session_id, db)
+            success = (request.execution_result == "success")
+            orchestrator.process_executed_step(
+                action_type=action.action_type or "",
+                selector=action.target_selector or "",
+                value=action.value or "",
+                success=success,
+                execution_result=request.execution_result or "",
+            )
+        except Exception as e:
+            # Degrade gracefully to preserve V1 logs if V2 orchestration fails
+            import logging
+            logging.getLogger(__name__).error(f"V2 Orchestration validation failed: {e}")
 
     return LogEventResponse(logged=True, event_id=event.id)
 

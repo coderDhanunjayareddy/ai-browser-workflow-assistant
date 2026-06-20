@@ -5,6 +5,8 @@ from app.core.database import get_db
 from app.schemas.history import HistoryResponse
 from app.schemas.workflow import LogEventRequest, LogEventResponse
 from app.services import workflow_service
+from app.services.analytics_service import get_analytics
+from app.schemas.analytics import WorkflowAnalytics
 
 router = APIRouter()
 
@@ -33,3 +35,11 @@ def get_history(
         return workflow_service.get_history(db, limit=limit)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch history: {str(e)}")
+
+
+@router.get("/workflow/{session_id}/analytics", response_model=WorkflowAnalytics)
+def workflow_analytics(session_id: str, db: Session = Depends(get_db)) -> WorkflowAnalytics:
+    try:
+        return get_analytics(db, session_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

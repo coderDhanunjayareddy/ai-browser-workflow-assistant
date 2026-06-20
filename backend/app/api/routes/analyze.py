@@ -1,18 +1,31 @@
 import json
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 from google.genai import errors
 
 from app.core.config import settings
+from app.core.database import get_db
 from app.schemas.request import AnalyzeRequest
 from app.schemas.response import AnalyzeResponse
 from app.services import ai_service, context_service
+from app.budget_engine import BudgetExceededError
 
 router = APIRouter()
 
 
+@router.get("/analyze")
+def analyze_usage() -> dict:
+    return {
+        "endpoint": "/analyze",
+        "method": "POST",
+        "message": "Send a JSON AnalyzeRequest body with session_id, task, and page_context.",
+        "docs": "/docs",
+    }
+
+
 @router.post("/analyze", response_model=AnalyzeResponse)
-def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
+def analyze(request: AnalyzeRequest, db: Session = Depends(get_db)) -> AnalyzeResponse:
     """
     Analyze a page context and task. Returns AI-suggested browser actions.
     Each error case maps to a specific HTTP status so the extension can
@@ -35,12 +48,13 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     print("================================================\n", flush=True)
 
     try:
-        return ai_service.analyze(
-            session_id=request.session_id,
+        from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
+        orchestrator = WorkflowOrchestrator(request.session_id, db)
+        return orchestrator.orchestrate_analysis(
             task=request.task,
             page_context=request.page_context,
             prior_steps=request.prior_steps or [],
-            supplemental_context=request.supplemental_context,
+            supplemental_context=request.supplemental_context or "",
         )
     except errors.APIError as e:
         status_code = e.code or 502
@@ -61,6 +75,16 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
         raise HTTPException(status_code=status_code, detail=detail)
     except json.JSONDecodeError:
         return ai_service.fallback_parse_failure(request.session_id)
+    except BudgetExceededError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={"status": "BUDGET_EXCEEDED", "reason": e.reason, "budget": e.budget.model_dump(mode="json")},
+        )
+    except ai_service.AIProviderError as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail=f"{e.provider} API error: {str(e)}",
+        )
     except ai_service.TransientAIError as e:
         raise HTTPException(
             status_code=503,

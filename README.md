@@ -39,11 +39,14 @@ pip install -r requirements.txt
 copy .env.example .env        # Windows
 # cp .env.example .env        # macOS/Linux
 
-# Add your Gemini API key in backend/.env
-# GEMINI_API_KEY=...
+# Choose an AI provider and add the matching key in backend/.env.
+# For the currently working OpenRouter path:
+# AI_PROVIDER=openrouter
+# OPENROUTER_API_KEY=...
+# OPENROUTER_MODEL=openai/gpt-4o-mini
 
-# Optional: verify the configured Gemini key and model before using the extension
-python check_gemini.py
+# Optional: verify the configured key and model before using the extension
+python check_openrouter.py
 
 # Start the server
 python run.py
@@ -56,11 +59,10 @@ Expected: `{"status":"ok","db":"connected"}`
 
 API docs: http://localhost:8000/docs
 
-If `/analyze` returns `Gemini API access was denied`, run `python check_gemini.py`
-from the `backend` folder. A 403 usually means the key is valid but the Google
-account/project is not allowed to use the configured `GEMINI_MODEL`, or the key
-belongs to a project/account without Gemini API access. The default model is
-`gemini-2.5-flash`.
+If you use Gemini instead, set `AI_PROVIDER=gemini`, configure
+`GEMINI_API_KEY` and `GEMINI_MODEL`, then run `python check_gemini.py`.
+If `/analyze` returns provider access or quota errors, run the matching checker
+from the `backend` folder before using the extension.
 
 ---
 

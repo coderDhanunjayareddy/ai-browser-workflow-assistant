@@ -22,6 +22,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.get("/")
+def root() -> dict:
+    return {
+        "service": "AI Browser Assist API",
+        "health": "/health",
+        "docs": "/docs",
+        "endpoints": {
+            "analyze": "POST /analyze",
+            "workflow_log": "POST /workflow/log",
+            "workflow_history": "GET /workflow/history",
+        },
+    }
+
+
 # Allow requests from Chrome extension pages (side panel, service worker).
 app.add_middleware(
     CORSMiddleware,

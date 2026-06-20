@@ -35,6 +35,14 @@ def format_page_context(ctx: PageContext) -> str:
                 meta.append(f'label="{el.text}"')
             if el.placeholder:
                 meta.append(f'placeholder="{el.placeholder}"')
+            if el.role:
+                meta.append(f'role="{el.role}"')
+            if el.aria_label:
+                meta.append(f'aria-label="{el.aria_label}"')
+            if el.accessibility_name:
+                meta.append(f'accessibility-name="{el.accessibility_name}"')
+            if el.state:
+                meta.append(f"state={el.state}")
 
             # Selector is shown FIRST and clearly separated so the AI copies it directly.
             lines.append(f'{i}. SELECTOR: {el.selector}  ({", ".join(meta)})')
@@ -67,11 +75,12 @@ def format_prior_steps(steps: list[PriorStep]) -> str:
         return ""
 
     lines = [
-        "\nRECENT COMPLETED STEPS:",
-        "These steps already executed. Do NOT repeat them. Continue from the current page state.",
+        "\nRECENT EXECUTED STEPS:",
+        "These steps already ran. Successful steps should not be repeated. Failed steps identify what did not work; recover using the current page state and exact current selectors.",
     ]
     for i, step in enumerate(steps, 1):
-        line = f"{i}. {step.action_type.upper()}: {step.description}"
+        status = "SUCCESS" if step.execution_result.lower().startswith(("success", "clicked", "filled", "navigating", "waited", "scrolled")) else "FAILED"
+        line = f"{i}. {status} {step.action_type.upper()}: {step.description}"
         if step.value:
             line += f' (value: "{step.value}")'
         line += f" → {step.execution_result}"

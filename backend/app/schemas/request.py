@@ -9,6 +9,12 @@ class InteractiveElement(BaseModel):
     visible: bool
     input_type: Optional[str] = None
     placeholder: Optional[str] = None
+    role: Optional[str] = None
+    aria_label: Optional[str] = None
+    accessibility_name: Optional[str] = None
+    state: dict = Field(default_factory=dict)
+    bounding_box: dict = Field(default_factory=dict)
+    element_id: Optional[str] = None
 
 
 class ContentBlock(BaseModel):
@@ -26,6 +32,7 @@ class PageContext(BaseModel):
     selected_text: str
     visible_text: str
     images: list[str] = Field(default_factory=list, max_length=50)
+    screenshot_base64: Optional[str] = None
 
 
 class PriorStep(BaseModel):
