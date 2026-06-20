@@ -1,0 +1,29 @@
+{
+  "graph_id": "whatsapp_message",
+  "nodes": [
+    {
+      "node_id": "open_whatsapp",
+      "description": "Navigate to web.whatsapp.com and wait for main chat listing window to load",
+      "prerequisites": [],
+      "validators": ["verify_chats_loaded"]
+    },
+    {
+      "node_id": "select_chat",
+      "description": "Search for the target contact name in WhatsApp search, and click contact row to open chat",
+      "prerequisites": ["open_whatsapp"],
+      "validators": ["verify_chat_opened"]
+    },
+    {
+      "node_id": "compose_message",
+      "description": "Type the composed text message inside the chat text box",
+      "prerequisites": ["select_chat"],
+      "validators": ["verify_message_composed"]
+    },
+    {
+      "node_id": "send_message",
+      "description": "Click the WhatsApp Send button",
+      "prerequisites": ["compose_message"],
+      "validators": ["verify_message_sent"]
+    }
+  ]
+}

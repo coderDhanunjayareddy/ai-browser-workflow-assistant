@@ -1,0 +1,26 @@
+{
+  "graph_id": "amazon_search",
+  "nodes": [
+    {
+      "node_id": "open_site",
+      "description": "Navigate to Amazon homepage.",
+      "prerequisites": [],
+      "validators": ["verify_amazon_opened"],
+      "status": "active"
+    },
+    {
+      "node_id": "input_search_query",
+      "description": "Enter the product query in the search input box.",
+      "prerequisites": ["open_site"],
+      "validators": ["verify_search_query_entered"],
+      "status": "pending"
+    },
+    {
+      "node_id": "execute_search",
+      "description": "Click search button and wait for search results to load.",
+      "prerequisites": ["input_search_query"],
+      "validators": ["verify_search_results_loaded"],
+      "status": "pending"
+    }
+  ]
+}

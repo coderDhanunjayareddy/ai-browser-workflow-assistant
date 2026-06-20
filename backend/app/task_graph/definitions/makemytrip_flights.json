@@ -1,0 +1,41 @@
+{
+  "graph_id": "makemytrip_flights",
+  "nodes": [
+    {
+      "node_id": "open_site",
+      "description": "Navigate to makemytrip.com and close initial promo popups",
+      "prerequisites": [],
+      "validators": ["verify_site_opened"]
+    },
+    {
+      "node_id": "set_origin",
+      "description": "Click Departure city search input, search for origin city, and select first matching airport option",
+      "prerequisites": ["open_site"],
+      "validators": ["verify_origin_selected"]
+    },
+    {
+      "node_id": "set_destination",
+      "description": "Click Destination city search input, search for arrival city, and select first matching airport option",
+      "prerequisites": ["set_origin"],
+      "validators": ["verify_destination_selected"]
+    },
+    {
+      "node_id": "set_date",
+      "description": "Click Departure Date calendar widget, find the target day and month, and select the target date",
+      "prerequisites": ["set_destination"],
+      "validators": ["verify_date_selected"]
+    },
+    {
+      "node_id": "execute_search",
+      "description": "Click the big Search button and wait for flights page to load",
+      "prerequisites": ["set_date"],
+      "validators": ["verify_search_clicked"]
+    },
+    {
+      "node_id": "extract_flights",
+      "description": "Wait for search loading spinners to disappear and verify flight card listings are visible",
+      "prerequisites": ["execute_search"],
+      "validators": ["verify_flights_loaded"]
+    }
+  ]
+}

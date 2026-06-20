@@ -1,0 +1,129 @@
+import logging
+import json
+import time
+from typing import Any
+
+from sqlalchemy.orm import Session
+
+from app.extraction_v2.grounded_registry import GroundedElementRegistry
+from app.models.db import WorkflowEvent, WorkflowSession
+from app.replay.timeline_service import TimelineService
+from app.state_engine.persistence import StatePersistence
+from app.budget_engine import BudgetManager
+from app.budget_engine.budget_enforcer import enforce_budget
+from app.budget_engine.budget_models import BudgetCheckpoint
+from app.context_compression import ContextCompressor
+from app.services.analytics_service import record_planner_call
+
+logger = logging.getLogger(__name__)
+
+
+class WorkflowOrchestrator:
+    """Domain-neutral coordination for one browser-assistant session."""
+
+    def __init__(self, session_id: str, db: Session):
+        self.session_id = session_id
+        self.db = db
+        self.state_persistence = StatePersistence(db)
+        self.timeline_service = TimelineService(session_id)
+        self.budget_manager = BudgetManager(db, session_id)
+        self.context_compressor = ContextCompressor()
+
+    def orchestrate_analysis(
+        self,
+        task: str,
+        page_context: Any,
+        prior_steps: list,
+        supplemental_context: str,
+    ):
+        """Plan from the task and live page state without selecting a site workflow."""
+        logger.info("Planning next browser action for session %s", self.session_id)
+
+        session = self.db.get(WorkflowSession, self.session_id)
+        if not session:
+            session = WorkflowSession(
+                id=self.session_id,
+                tab_url=page_context.url,
+                tab_title=page_context.title,
+                status="running",
+            )
+            self.db.add(session)
+        else:
+            session.tab_url = page_context.url
+            session.tab_title = page_context.title
+            session.status = "running"
+        self.db.commit()
+
+        registry = GroundedElementRegistry(self.session_id)
+        registry.register_elements([element.dict() for element in page_context.interactive_elements])
+
+        db_state = self.state_persistence.get_state(self.session_id)
+        if not db_state:
+            db_state = self.state_persistence.create_state(self.session_id, {})
+        verified_state = db_state.facts if db_state else {}
+
+        compressed_context = self.context_compressor.compress(
+            task=task,
+            page_context=page_context,
+            verified_facts=verified_state,
+            prior_steps=prior_steps,
+            task_constraints=[supplemental_context] if supplemental_context else [],
+        )
+
+        from app.services import ai_service
+
+        with enforce_budget(self.budget_manager, BudgetCheckpoint.PLANNING):
+            started = time.perf_counter()
+            result = ai_service.analyze(
+                session_id=self.session_id,
+                task=task,
+                page_context=page_context,
+                prior_steps=prior_steps,
+                supplemental_context="",
+                active_node=None,
+                verified_state=verified_state,
+                compressed_context=compressed_context,
+            )
+            latency_ms = int((time.perf_counter() - started) * 1000)
+            # Provider-neutral approximation; exact provider usage can replace this
+            # without changing budget or analytics contracts.
+            token_estimate = ai_service.estimate_tokens(json.dumps(compressed_context))
+            token_estimate += ai_service.estimate_tokens(result.model_dump_json())
+            record_planner_call(self.db, self.session_id, token_estimate, latency_ms)
+            self.budget_manager.consume(tokens=token_estimate)
+            return result
+
+    def process_executed_step(
+        self,
+        action_type: str,
+        selector: str,
+        value: str,
+        success: bool,
+        execution_result: str,
+    ) -> None:
+        """Record execution without applying domain-specific validation or recovery."""
+        logger.info("Recording browser execution result: %s", execution_result)
+
+        self.budget_manager.enforce()
+
+        session = self.db.get(WorkflowSession, self.session_id)
+        if session:
+            session.status = "action_executed" if success else "action_failed"
+            self.db.commit()
+
+        db_state = self.state_persistence.get_state(self.session_id)
+        current_facts = db_state.facts if db_state else {}
+        events_count = self.db.query(WorkflowEvent).filter(
+            WorkflowEvent.session_id == self.session_id
+        ).count()
+        self.timeline_service.record_step(
+            step_number=events_count,
+            action_type=action_type,
+            value_used=f"selector: {selector}, value: {value}",
+            state_before=current_facts,
+            state_after=current_facts,
+            screenshot_before="",
+            screenshot_after="",
+            success=success,
+        )
+        self.budget_manager.consume(steps=1, retries=0 if success else 1)

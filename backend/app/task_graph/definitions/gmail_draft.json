@@ -1,0 +1,33 @@
+{
+  "graph_id": "gmail_draft",
+  "nodes": [
+    {
+      "node_id": "open_site",
+      "description": "Navigate to Gmail app page.",
+      "prerequisites": [],
+      "validators": ["verify_gmail_opened"],
+      "status": "active"
+    },
+    {
+      "node_id": "click_compose",
+      "description": "Click Gmail Compose button to open draft editor modal.",
+      "prerequisites": ["open_site"],
+      "validators": ["verify_compose_window_opened"],
+      "status": "pending"
+    },
+    {
+      "node_id": "input_recipient_and_subject",
+      "description": "Enter the recipient email address and subject line in the inputs.",
+      "prerequisites": ["click_compose"],
+      "validators": ["verify_recipient_subject_entered"],
+      "status": "pending"
+    },
+    {
+      "node_id": "input_body_text",
+      "description": "Type the message body text content inside the text area.",
+      "prerequisites": ["input_recipient_and_subject"],
+      "validators": ["verify_body_text_entered"],
+      "status": "pending"
+    }
+  ]
+}
