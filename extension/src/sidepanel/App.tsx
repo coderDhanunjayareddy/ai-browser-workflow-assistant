@@ -4,7 +4,7 @@ import { useHistory } from './hooks/useHistory'
 import { useSpeechInput } from './hooks/useSpeechInput'
 import type { SuggestedAction, SessionHistory, EventHistory } from '../types'
 
-type Tab = 'workflow' | 'history'
+type Tab = 'workflow' | 'history' | 'analytics'
 
 // ── App shell ────────────────────────────────────────────────────────────────
 
@@ -26,11 +26,13 @@ export default function App() {
           onClick={() => switchTab('workflow')}>Workflow</button>
         <button style={{ ...s.tabBtn, ...(activeTab === 'history' ? s.tabActive : {}) }}
           onClick={() => switchTab('history')}>History</button>
+        <button style={{ ...s.tabBtn, ...(activeTab === 'analytics' ? s.tabActive : {}) }}
+          onClick={() => switchTab('analytics')}>Analytics</button>
       </div>
-      {activeTab === 'workflow'
-        ? <WorkflowPanel {...workflow} />
-        : <HistoryPanel sessions={history.sessions} loading={history.loading}
-            error={history.error} onRefresh={history.fetchHistory} />}
+      {activeTab === 'workflow' && <WorkflowPanel {...workflow} />}
+      {activeTab === 'history' && <HistoryPanel sessions={history.sessions} loading={history.loading}
+        error={history.error} onRefresh={history.fetchHistory} />}
+      {activeTab === 'analytics' && <AnalyticsPanel sessionId={workflow.state.sessionId} />}
     </div>
   )
 }
@@ -449,6 +451,66 @@ function EventRow({ event }: { event: EventHistory }) {
       </div>
     </div>
   )
+}
+
+interface AnalyticsData {
+  status: string
+  budget_usage: Record<string, { used: number; max: number }>
+  token_usage: number
+  recovery_count: number
+  failure_types: Record<string, number>
+  success_rate: number
+  false_success_rate: number
+  workflow_stability_score: number
+  average_completion_time_seconds: number
+  cost_metrics: { planner_calls: number; vision_calls: number; average_tokens_per_step: number }
+}
+
+function AnalyticsPanel({ sessionId }: { sessionId: string }) {
+  const [data, setData] = useState<AnalyticsData | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const refresh = useCallback(() => {
+    setError(null)
+    fetch(`http://localhost:8000/workflow/${sessionId}/analytics`)
+      .then(async response => {
+        if (!response.ok) throw new Error(response.status === 404 ? 'Run a workflow to create analytics.' : `HTTP ${response.status}`)
+        return response.json()
+      })
+      .then(setData)
+      .catch(err => setError(err instanceof Error ? err.message : String(err)))
+  }, [sessionId])
+  useEffect(refresh, [refresh])
+
+  if (error) return <div><p style={s.error}>{error}</p><button style={s.resetBtn} onClick={refresh}>Refresh</button></div>
+  if (!data) return <p style={s.histEmpty}>Loading workflow analytics…</p>
+  const metrics = [
+    ['Token Usage', data.token_usage.toLocaleString()],
+    ['Recovery Count', data.recovery_count],
+    ['Success Rate', `${(data.success_rate * 100).toFixed(1)}%`],
+    ['False Success Rate', `${(data.false_success_rate * 100).toFixed(1)}%`],
+    ['Stability Score', data.workflow_stability_score.toFixed(1)],
+    ['Avg. Step Time', `${data.average_completion_time_seconds.toFixed(1)}s`],
+    ['Planner Calls', data.cost_metrics.planner_calls],
+    ['Vision Calls', data.cost_metrics.vision_calls],
+  ]
+  return <div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <h3 style={{ fontSize: '13px' }}>Workflow Analytics</h3>
+      <button style={s.refreshBtn} onClick={refresh}>↻ Refresh</button>
+    </div>
+    <p style={{ fontSize: '11px', color: '#666' }}>Status: {data.status}</p>
+    {Object.entries(data.budget_usage).map(([name, usage]) => <div key={name} style={{ marginBottom: '8px' }}>
+      <div style={{ fontSize: '11px', display: 'flex', justifyContent: 'space-between' }}><span>{name}</span><span>{Math.round(usage.used)} / {usage.max}</span></div>
+      <progress value={usage.used} max={usage.max} style={{ width: '100%' }} />
+    </div>)}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px', marginTop: '12px' }}>
+      {metrics.map(([label, value]) => <div key={label} style={{ ...s.sessionCard, padding: '8px' }}>
+        <div style={{ fontSize: '10px', color: '#777' }}>{label}</div><strong>{value}</strong>
+      </div>)}
+    </div>
+    <h4 style={{ fontSize: '11px' }}>Failure Types</h4>
+    <pre style={{ fontSize: '10px', whiteSpace: 'pre-wrap' }}>{JSON.stringify(data.failure_types, null, 2)}</pre>
+  </div>
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
