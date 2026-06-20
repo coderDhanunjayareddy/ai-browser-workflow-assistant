@@ -1,0 +1,23 @@
+{
+  "version": "2.2",
+  "last_verified": "2026-06-19T16:22:00Z",
+  "site_build": "mmt-prod-9812a",
+  "site_domain": "makemytrip.com",
+  "critical_fields": [
+    "from_city",
+    "to_city",
+    "departure_date"
+  ],
+  "common_popups": [
+    "login_modal",
+    "promo_popup",
+    "survey_overlay"
+  ],
+  "important_results": [
+    "flight_card"
+  ],
+  "selectors": {
+    "login_modal_close": "span.commonModal__close",
+    "flight_card_container": "[id^='flightCard-']"
+  }
+}

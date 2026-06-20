@@ -1,0 +1,19 @@
+{
+  "version": "2.2",
+  "last_verified": "2026-06-19T16:22:00Z",
+  "site_build": "wa-web-1029b",
+  "site_domain": "web.whatsapp.com",
+  "critical_fields": [
+    "active_chat_contact",
+    "message_content"
+  ],
+  "common_popups": [
+    "update_browser_modal",
+    "sync_chat_progress"
+  ],
+  "important_results": [],
+  "selectors": {
+    "message_textbox": "div[contenteditable='true'][data-tab='10']",
+    "send_button": "span[data-icon='send']"
+  }
+}

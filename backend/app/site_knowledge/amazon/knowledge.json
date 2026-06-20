@@ -1,0 +1,21 @@
+{
+  "version": "2.2",
+  "last_verified": "2026-06-19T17:49:00Z",
+  "site_build": "amazon-prod-001a",
+  "critical_fields": [
+    "search_query"
+  ],
+  "common_popups": [
+    "delivery_location_modal",
+    "cookie_consent"
+  ],
+  "important_results": [
+    "product_card"
+  ],
+  "selectors": {
+    "search_input": "#twotabsearchtextbox",
+    "search_button": "#nav-search-submit-button",
+    "results_container": ".s-result-list",
+    "delivery_location_dismiss": "#nav-main .nav-a"
+  }
+}

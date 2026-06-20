@@ -1,0 +1,24 @@
+{
+  "version": "2.2",
+  "last_verified": "2026-06-19T17:49:00Z",
+  "site_build": "gmail-prod-002b",
+  "critical_fields": [
+    "recipient",
+    "subject",
+    "body"
+  ],
+  "common_popups": [
+    "meet_promo_overlay",
+    "keyboard_shortcuts_modal"
+  ],
+  "important_results": [
+    "draft_status"
+  ],
+  "selectors": {
+    "compose_button": ".T-I-KE",
+    "to_input": "input[people_kit_id]",
+    "subject_input": "input[name='subjectbox']",
+    "body_input": "div[role='textbox'][aria-label='Message Body']",
+    "draft_saved_indicator": "span.bAq"
+  }
+}
