@@ -10,7 +10,16 @@ from app.schemas.analytics import CostMetrics, WorkflowAnalytics
 def record_planner_call(db: Session, session_id: str, tokens: int, latency_ms: int) -> None:
     row = db.get(WorkflowCostMetric, session_id)
     if row is None:
-        row = WorkflowCostMetric(session_id=session_id)
+        # SQLAlchemy column defaults are applied when the INSERT is emitted,
+        # not when the Python object is constructed. Initialize counters here
+        # so the first planner call can be recorded before a flush.
+        row = WorkflowCostMetric(
+            session_id=session_id,
+            planner_calls=0,
+            vision_calls=0,
+            tokens_used=0,
+            planning_latency_ms=0,
+        )
         db.add(row)
     row.planner_calls += 1
     row.tokens_used += max(0, tokens)

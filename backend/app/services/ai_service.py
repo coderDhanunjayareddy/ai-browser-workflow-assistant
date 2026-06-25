@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any
 
 from google import genai
 from google.genai import types
+from google.genai import errors as _genai_errors
 
 from app.core.config import settings
 from app.schemas.request import PageContext, PriorStep
@@ -515,6 +516,64 @@ def fallback_parse_failure(session_id: str) -> AnalyzeResponse:
 
 
 # ── Public interface ──────────────────────────────────────────────────────────
+
+def generate_text(system_prompt: str, user_message: str) -> str:
+    """
+    Call the configured AI provider in text mode and return a raw string.
+    Used by the light assist path (summarization, Q&A).
+    Reuses provider selection, retry loop, and error handling from the existing paths.
+    """
+    provider = selected_provider()
+
+    if provider == "openrouter":
+        return _call_openrouter_chat(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            max_tokens=1024,
+        )
+
+    if provider != "gemini":
+        raise ValueError(f"Unsupported AI_PROVIDER={settings.ai_provider}")
+    if not settings.gemini_api_key:
+        raise ValueError("GEMINI_API_KEY is not configured")
+
+    client = genai.Client(api_key=settings.gemini_api_key)
+    contents = [types.Part.from_text(text=user_message)]
+
+    response = None
+    last_error = None
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model=settings.gemini_model,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0,
+                ),
+            )
+            break
+        except _genai_errors.APIError as exc:
+            status_code = getattr(exc, "code", None) or 502
+            raise AIProviderError(
+                "Gemini", status_code, str(getattr(exc, "message", None) or exc)
+            ) from exc
+        except Exception as exc:
+            last_error = exc
+            transient = is_transient_error(exc)
+            if not transient or attempt == 2:
+                if transient:
+                    raise TransientAIError(str(exc)) from exc
+                raise
+            time.sleep(1.5 * (attempt + 1))
+
+    if response is None:
+        raise last_error or RuntimeError("Gemini did not return a response")
+
+    return response.text or ""
+
 
 def analyze(
     session_id: str,

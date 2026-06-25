@@ -7,6 +7,25 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
+class CognitiveSessionRecord(Base):
+    """
+    Persisted cognitive state for one conversation.
+    Loaded on cache-miss in CognitiveConversationManager; saved after each turn.
+    entities_json / goal_json store serialized dataclass fields as JSON text.
+    """
+    __tablename__ = "cognitive_sessions"
+
+    conversation_id      = Column(String, primary_key=True)
+    turn_count           = Column(Integer, default=0, nullable=False)
+    conversation_summary = Column(Text, default="")
+    active_intent        = Column(String, default="unknown")
+    entities_json        = Column(Text, default="[]")   # JSON list of entity dicts
+    entity_order_json    = Column(Text, default="[]")   # JSON list of entity ids (insertion order)
+    goal_json            = Column(Text, nullable=True)  # JSON goal dict or NULL
+    created_at           = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at           = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 def _new_uuid() -> str:
     return str(uuid.uuid4())
 
@@ -141,3 +160,124 @@ class WorkflowCostMetric(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     session = relationship("WorkflowSession", back_populates="cost_metrics")
+
+
+# ── V4.5 / V4.6 Unified Task Graph ───────────────────────────────────────────
+
+class UnifiedTaskRecord(Base):
+    """
+    Persistence record for a UnifiedTask.
+    V4.6: extended with intelligence_summary_json, restored_at, snapshot_count.
+    Timeline and approval records live in separate tables.
+    """
+    __tablename__ = "unified_tasks"
+
+    task_id                  = Column(String, primary_key=True)
+    conversation_id          = Column(String, nullable=False, index=True)
+    cognitive_session_id     = Column(String, nullable=True)
+    research_session_id      = Column(String, nullable=True)
+    workflow_session_id      = Column(String, nullable=True)
+    original_query           = Column(Text, default="")
+    current_goal             = Column(Text, nullable=True)
+    state                    = Column(String, default="CREATED", nullable=False)
+    approval_state           = Column(String, default="PENDING", nullable=False)
+    entities_json            = Column(Text, default="{}")   # JSON dict
+    execution_plan_json      = Column(Text, nullable=True)  # JSON dict or NULL
+    research_report_json     = Column(Text, nullable=True)  # JSON dict or NULL
+    intelligence_summary_json = Column(Text, nullable=True) # V4.6 JSON dict or NULL
+    snapshot_count           = Column(Integer, default=0, nullable=False)
+    restored_at              = Column(DateTime, nullable=True)
+    created_at               = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at               = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    timeline_records  = relationship("TaskTimelineRecord",  back_populates="task", cascade="all, delete-orphan")
+    approval_records  = relationship("TaskApprovalRecord",  back_populates="task", cascade="all, delete-orphan")
+    snapshot_records  = relationship("TaskSnapshotRecord",  back_populates="task", cascade="all, delete-orphan")
+
+
+class TaskTimelineRecord(Base):
+    """One persisted row per timeline event (V4.6)."""
+    __tablename__ = "unified_task_timeline"
+
+    event_id     = Column(String, primary_key=True)
+    task_id      = Column(String, ForeignKey("unified_tasks.task_id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type   = Column(String, nullable=False)
+    payload_json = Column(Text, default="{}")
+    timestamp    = Column(DateTime, nullable=False)
+    created_at   = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    task = relationship("UnifiedTaskRecord", back_populates="timeline_records")
+
+
+class TaskApprovalRecord(Base):
+    """One persisted row per approval record (V4.6)."""
+    __tablename__ = "unified_task_approvals"
+
+    approval_id     = Column(String, primary_key=True)
+    task_id         = Column(String, ForeignKey("unified_tasks.task_id", ondelete="CASCADE"), nullable=False, index=True)
+    action          = Column(Text, nullable=False)
+    risk_level      = Column(String, nullable=False)
+    status          = Column(String, default="PENDING", nullable=False)
+    resolution_note = Column(Text, default="")
+    created_at      = Column(DateTime, default=datetime.utcnow, nullable=False)
+    resolved_at     = Column(DateTime, nullable=True)
+
+    task = relationship("UnifiedTaskRecord", back_populates="approval_records")
+
+
+class TaskSnapshotRecord(Base):
+    """Snapshot of a task's key context at a lifecycle milestone (V4.6)."""
+    __tablename__ = "unified_task_snapshots"
+
+    snapshot_id  = Column(String, primary_key=True)
+    task_id      = Column(String, ForeignKey("unified_tasks.task_id", ondelete="CASCADE"), nullable=False, index=True)
+    trigger      = Column(String, nullable=False)   # milestone name
+    task_state   = Column(String, nullable=False)
+    context_json = Column(Text, default="{}")
+    created_at   = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    task = relationship("UnifiedTaskRecord", back_populates="snapshot_records")
+
+
+# ── V5.0 Mission Layer ────────────────────────────────────────────────────────
+
+class MissionRecord(Base):
+    """
+    Persistence record for a Mission (V5.0).
+    A mission groups multiple UnifiedTasks into one coherent objective.
+    """
+    __tablename__ = "missions"
+
+    mission_id    = Column(String, primary_key=True)
+    title         = Column(Text, default="")
+    objective     = Column(Text, default="")
+    state         = Column(String, default="CREATED", nullable=False)
+    priority      = Column(Integer, default=3, nullable=False)  # 1=high … 5=low
+    metadata_json = Column(Text, default="{}")
+    created_at    = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at    = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    task_refs = relationship(
+        "MissionTaskRecord",
+        back_populates="mission",
+        cascade="all, delete-orphan",
+        order_by="MissionTaskRecord.position",
+    )
+
+
+class MissionTaskRecord(Base):
+    """
+    Junction table: Mission → Task (V5.0).
+    task_id has no FK to unified_tasks because tasks may exist only in memory
+    (mission_persistence can be enabled independently of unified_task_persistence).
+    """
+    __tablename__ = "mission_tasks"
+
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    mission_id  = Column(String, ForeignKey("missions.mission_id", ondelete="CASCADE"),
+                         nullable=False, index=True)
+    task_id     = Column(String, nullable=False, index=True)
+    position    = Column(Integer, default=0)
+    attached_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    mission = relationship("MissionRecord", back_populates="task_refs")

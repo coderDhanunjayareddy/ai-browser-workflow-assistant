@@ -35,6 +35,7 @@ class WorkflowOrchestrator:
         page_context: Any,
         prior_steps: list,
         supplemental_context: str,
+        handoff_payload: Any = None,
     ):
         """Plan from the task and live page state without selecting a site workflow."""
         logger.info("Planning next browser action for session %s", self.session_id)
@@ -55,12 +56,22 @@ class WorkflowOrchestrator:
         self.db.commit()
 
         registry = GroundedElementRegistry(self.session_id)
-        registry.register_elements([element.dict() for element in page_context.interactive_elements])
+        registry.register_elements([element.model_dump() for element in page_context.interactive_elements])
+
+        # V3.0: bootstrap state facts from cognitive handoff (cold-start only)
+        if handoff_payload is not None:
+            self.state_persistence.bootstrap_from_handoff(self.session_id, handoff_payload)
 
         db_state = self.state_persistence.get_state(self.session_id)
         if not db_state:
             db_state = self.state_persistence.create_state(self.session_id, {})
         verified_state = db_state.facts if db_state else {}
+
+        # V3.0: build cognitive_context for the planner when payload is present
+        cognitive_context: dict | None = None
+        if handoff_payload is not None:
+            from app.cognitive_core.workflow_context import build_cognitive_context
+            cognitive_context = build_cognitive_context(handoff_payload)
 
         compressed_context = self.context_compressor.compress(
             task=task,
@@ -68,6 +79,7 @@ class WorkflowOrchestrator:
             verified_facts=verified_state,
             prior_steps=prior_steps,
             task_constraints=[supplemental_context] if supplemental_context else [],
+            cognitive_context=cognitive_context,
         )
 
         from app.services import ai_service

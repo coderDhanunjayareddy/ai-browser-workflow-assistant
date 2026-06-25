@@ -55,6 +55,7 @@ def analyze(request: AnalyzeRequest, db: Session = Depends(get_db)) -> AnalyzeRe
             page_context=request.page_context,
             prior_steps=request.prior_steps or [],
             supplemental_context=request.supplemental_context or "",
+            handoff_payload=request.handoff_payload,
         )
     except errors.APIError as e:
         status_code = e.code or 502

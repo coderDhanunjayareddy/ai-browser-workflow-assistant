@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     openrouter_site_url: str = "http://localhost:8000"
     openrouter_app_name: str = "AI Browser Assist"
 
+    # V4.6: set to true to enable SQLAlchemy persistence for UnifiedTask lifecycle.
+    # Keep false (default) so existing tests continue to run without a DB.
+    unified_task_persistence: bool = False
+
+    # V5.0: set to true to enable SQLAlchemy persistence for Mission lifecycle.
+    mission_persistence: bool = False
+
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.
     model_config = SettingsConfigDict(

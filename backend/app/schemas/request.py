@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Any, Optional
 
 
 class InteractiveElement(BaseModel):
@@ -54,3 +54,6 @@ class AnalyzeRequest(BaseModel):
     page_context: PageContext
     prior_steps: list[PriorStep] = Field(default_factory=list)
     supplemental_context: str = Field(default="", max_length=3000)
+    # V3.0 Cognitive Memory: enriched handoff context forwarded from AssistResponse.
+    # Typed as Any to avoid a cross-schema import; callers pass WorkflowHandoffPayload.
+    handoff_payload: Optional[Any] = Field(default=None)

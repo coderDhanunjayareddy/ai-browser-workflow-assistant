@@ -44,11 +44,9 @@ class ExtractorV2:
             flights.append(FlightCard(
                 airline="IndiGo",
                 price=4850.0,
+                direct=True,
                 departure_time="06:30",
                 arrival_time="08:15",
-                stops=0,
-                duration="1h 45m",
-                element_id="flightCard-indigo-001"
             ))
         elif "amazon" in url.lower() or "flipkart" in url.lower():
             # Mock extracted product card
@@ -56,8 +54,7 @@ class ExtractorV2:
                 title="Wireless Headphone Noise Cancelling",
                 price=3499.0,
                 rating=4.3,
-                reviews_count=210,
-                element_id="productCard-headphone-001"
+                url=url,
             ))
 
         return SemanticPageModel(flights=flights, products=products)

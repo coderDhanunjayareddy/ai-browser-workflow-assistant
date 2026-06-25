@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 from sqlalchemy.orm import Session
 
 from app.models.db import WorkflowState
@@ -36,6 +36,33 @@ class StatePersistence:
         self.db.refresh(db_state)
         logger.info(f"Initialized verified state facts for session {session_id}")
         return db_state
+
+    def bootstrap_from_handoff(
+        self, session_id: str, handoff_payload: Any
+    ) -> Optional[WorkflowState]:
+        """
+        V3.0: Pre-populate WorkflowState.facts from a WorkflowHandoffPayload.
+        Only applies when state does not yet have any facts (cold start).
+
+        Accepts Any type to avoid circular imports; callers pass
+        app.schemas.assist.WorkflowHandoffPayload.
+        """
+        if handoff_payload is None:
+            return None
+        existing = self.get_state(session_id)
+        if existing and existing.facts:
+            return existing  # already have facts — don't overwrite
+
+        from app.cognitive_core.workflow_context import build_bootstrap_facts
+        bootstrap = build_bootstrap_facts(handoff_payload)
+        if not bootstrap:
+            return existing
+
+        logger.info(
+            "Bootstrapping workflow state for session %s with %d facts from handoff",
+            session_id, len(bootstrap),
+        )
+        return self.save_facts(session_id, bootstrap)
 
     def save_facts(self, session_id: str, facts: Dict[str, Any]) -> WorkflowState:
         """

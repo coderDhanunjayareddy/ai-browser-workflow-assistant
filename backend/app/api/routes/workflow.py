@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.schemas.history import HistoryResponse
 from app.schemas.workflow import LogEventRequest, LogEventResponse
 from app.services import workflow_service
+from app.budget_engine import BudgetExceededError
 from app.services.analytics_service import get_analytics
 from app.schemas.analytics import WorkflowAnalytics
 
@@ -19,6 +20,11 @@ def log_event(request: LogEventRequest, db: Session = Depends(get_db)) -> LogEve
     """
     try:
         return workflow_service.log_event(db, request)
+    except BudgetExceededError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"status": "BUDGET_EXCEEDED", "reason": exc.reason},
+        ) from exc
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to log event: {str(e)}")
 
