@@ -126,9 +126,9 @@ export async function executeAction(action: {
           const cy = Math.round(r.top  + r.height / 2)
 
           // The topmost element at those coordinates is what a real mouse-click would hit.
-          // elementFromPoint can return SVG/non-HTML nodes — fall back to candidate if so.
           const pointed = document.elementFromPoint(cx, cy)
-          const topEl: HTMLElement = (pointed instanceof HTMLElement ? pointed : null) ?? candidate
+          const isDescendant = pointed && (candidate === pointed || candidate.contains(pointed))
+          const topEl: HTMLElement = (pointed instanceof HTMLElement && isDescendant ? pointed : null) ?? candidate
 
           // Force links to open in the same tab to avoid opening multiple tabs automatically
           const linkEl = candidate.closest('a') ?? topEl.closest('a')
@@ -137,6 +137,12 @@ export async function executeAction(action: {
           }
 
           // Full sequence: pointer → mouse → click.
+          const evInit = { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy }
+          topEl.dispatchEvent(new PointerEvent('pointerdown', evInit))
+          topEl.dispatchEvent(new MouseEvent('mousedown', evInit))
+          topEl.focus()
+          topEl.dispatchEvent(new PointerEvent('pointerup', evInit))
+          topEl.dispatchEvent(new MouseEvent('mouseup', evInit))
           topEl.click()
 
           return { success: true, message: `Clicked at (${cx},${cy}): ${resolvedSelector}`, action_id }
@@ -217,8 +223,8 @@ export async function executeAction(action: {
                 el.children.length <= 5 && // leaf-ish elements only
                 (el.textContent || '').trim() === token
               ) {
-                el.click()
-                return { success: true, message: `Clicked by text content match "${token}": ${el.tagName}`, action_id }
+                const res = tryClick(el, `text content match "${token}"`)
+                if (res) return res
               }
               node = walker.nextNode()
             }

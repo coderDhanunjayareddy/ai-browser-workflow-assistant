@@ -1,0 +1,250 @@
+{
+  "scenarios": {
+    "sum_wikipedia": {
+      "label": "sum_wikipedia",
+      "intent": "summarize",
+      "message": "summarize this page",
+      "followups": [
+        "What are the main types of learning in machine learning, and how do they differ from each other?",
+        "Can you explain some specific applications of machine learning in fields like computer vision or medical diagnosis?",
+        "What are some limitations associated with machine learning that practitioners should be aware of?"
+      ],
+      "count": 3,
+      "total_latency_s": 5.94,
+      "latency_ms": 5937,
+      "context_chars": 1029,
+      "trigger_flags": [],
+      "misrouted": []
+    },
+    "sum_github": {
+      "label": "sum_github",
+      "intent": "summarize",
+      "message": "summarize this page",
+      "followups": [
+        "What are some of the key features of FastAPI that contribute to its performance?",
+        "What is the minimum Python version required to use FastAPI?",
+        "How can one install FastAPI using pip?"
+      ],
+      "count": 3,
+      "total_latency_s": 4.73,
+      "latency_ms": 4733,
+      "context_chars": 693,
+      "trigger_flags": [],
+      "misrouted": []
+    },
+    "sum_news": {
+      "label": "sum_news",
+      "intent": "summarize",
+      "message": "summarize this page",
+      "followups": [
+        "What specific features does OpenAI's GPT-4o offer in terms of latency and capability?",
+        "Can you explain what Project Astra entails in Google's recent announcement?"
+      ],
+      "count": 2,
+      "total_latency_s": 6.75,
+      "latency_ms": 6750,
+      "context_chars": 745,
+      "trigger_flags": [],
+      "misrouted": []
+    },
+    "sum_amazon": {
+      "label": "sum_amazon",
+      "intent": "summarize",
+      "message": "summarize this page",
+      "followups": [
+        "What are the key specifications of the M3 Pro chip in the MacBook Pro?",
+        "How long does the battery last on a single charge for this MacBook Pro model?",
+        "What display features does the 14.2-inch Liquid Retina XDR offer?"
+      ],
+      "count": 3,
+      "total_latency_s": 7.59,
+      "latency_ms": 7594,
+      "context_chars": 590,
+      "trigger_flags": [],
+      "misrouted": []
+    },
+    "sum_blog": {
+      "label": "sum_blog",
+      "intent": "summarize",
+      "message": "summarize this page",
+      "followups": [
+        "What are some common causes of slow renders mentioned in the article?",
+        "How does using React.memo impact the performance of a component during rendering?",
+        "What tool is recommended for measuring render performance before making optimizations?"
+      ],
+      "count": 3,
+      "total_latency_s": 5.7,
+      "latency_ms": 5702,
+      "context_chars": 1009,
+      "trigger_flags": [],
+      "misrouted": []
+    },
+    "ask_wikipedia": {
+      "label": "ask_wikipedia",
+      "intent": "ask",
+      "message": "What is machine learning?",
+      "followups": [],
+      "count": 0,
+      "total_latency_s": 1.41,
+      "latency_ms": 1407,
+      "context_chars": 1029,
+      "trigger_flags": [],
+      "misrouted": []
+    },
+    "ask_github": {
+      "label": "ask_github",
+      "intent": "ask",
+      "message": "How do I install this framework?",
+      "followups": [],
+      "count": 0,
+      "total_latency_s": 1.53,
+      "latency_ms": 1530,
+      "context_chars": 693,
+      "trigger_flags": [],
+      "misrouted": []
+    },
+    "ask_news": {
+      "label": "ask_news",
+      "intent": "ask",
+      "message": "What did OpenAI announce?",
+      "followups": [],
+      "count": 0,
+      "total_latency_s": 1.06,
+      "latency_ms": 1062,
+      "context_chars": 745,
+      "trigger_flags": [],
+      "misrouted": []
+    },
+    "ask_amazon": {
+      "label": "ask_amazon",
+      "intent": "ask",
+      "message": "What is the price?",
+      "followups": [],
+      "count": 0,
+      "total_latency_s": 2.08,
+      "latency_ms": 2078,
+      "context_chars": 590,
+      "trigger_flags": [],
+      "misrouted": []
+    },
+    "ask_blog": {
+      "label": "ask_blog",
+      "intent": "ask",
+      "message": "What is the main argument?",
+      "followups": [],
+      "count": 0,
+      "total_latency_s": 2.08,
+      "latency_ms": 2078,
+      "context_chars": 1009,
+      "trigger_flags": [],
+      "misrouted": []
+    }
+  },
+  "grounding_checks": [
+    {
+      "page": "wikipedia",
+      "question": "What are the main types of learning in machine learning, and how do they differ from each other?",
+      "grounded": true,
+      "answer_preview": "The main types of learning in machine learning are supervised learning, unsupervised learning, and r",
+      "latency_s": 1.83
+    },
+    {
+      "page": "wikipedia",
+      "question": "Can you explain some specific applications of machine learning in fields like computer vision or medical diagnosis?",
+      "grounded": true,
+      "answer_preview": "Machine learning has various applications, including in computer vision, natural language processing",
+      "latency_s": 1.62
+    },
+    {
+      "page": "wikipedia",
+      "question": "What are some limitations associated with machine learning that practitioners should be aware of?",
+      "grounded": true,
+      "answer_preview": "Some limitations associated with machine learning that practitioners should be aware of include over",
+      "latency_s": 1.55
+    },
+    {
+      "page": "github",
+      "question": "What are some of the key features of FastAPI that contribute to its performance?",
+      "grounded": true,
+      "answer_preview": "Some key features of FastAPI that contribute to its performance include high performance comparable ",
+      "latency_s": 1.88
+    },
+    {
+      "page": "github",
+      "question": "What is the minimum Python version required to use FastAPI?",
+      "grounded": true,
+      "answer_preview": "The minimum Python version required to use FastAPI is Python 3.8+.",
+      "latency_s": 1.25
+    },
+    {
+      "page": "github",
+      "question": "How can one install FastAPI using pip?",
+      "grounded": true,
+      "answer_preview": "You can install FastAPI using pip by running the command: pip install fastapi.",
+      "latency_s": 1.39
+    },
+    {
+      "page": "news",
+      "question": "What specific features does OpenAI's GPT-4o offer in terms of latency and capability?",
+      "grounded": true,
+      "answer_preview": "OpenAI's GPT-4o offers a latency of 232ms and has real-time multimodal capability.",
+      "latency_s": 1.69
+    },
+    {
+      "page": "news",
+      "question": "Can you explain what Project Astra entails in Google's recent announcement?",
+      "grounded": false,
+      "answer_preview": "I don't see that on this page.",
+      "latency_s": 1.25
+    },
+    {
+      "page": "amazon",
+      "question": "What are the key specifications of the M3 Pro chip in the MacBook Pro?",
+      "grounded": true,
+      "answer_preview": "The M3 Pro chip in the MacBook Pro features an 11-core CPU and a 14-core GPU.",
+      "latency_s": 2.94
+    },
+    {
+      "page": "amazon",
+      "question": "How long does the battery last on a single charge for this MacBook Pro model?",
+      "grounded": true,
+      "answer_preview": "The battery lasts up to 18 hours on a single charge for the Apple MacBook Pro 14-inch with M3 Pro ch",
+      "latency_s": 1.23
+    },
+    {
+      "page": "amazon",
+      "question": "What display features does the 14.2-inch Liquid Retina XDR offer?",
+      "grounded": false,
+      "answer_preview": "I don't see that on this page.",
+      "latency_s": 0.83
+    },
+    {
+      "page": "blog",
+      "question": "What are some common causes of slow renders mentioned in the article?",
+      "grounded": true,
+      "answer_preview": "Some common causes of slow renders mentioned in the article include expensive computations, large DO",
+      "latency_s": 1.3
+    },
+    {
+      "page": "blog",
+      "question": "How does using React.memo impact the performance of a component during rendering?",
+      "grounded": true,
+      "answer_preview": "Using React.memo adds overhead on every parent render, which can impact the performance of a compone",
+      "latency_s": 2.61
+    },
+    {
+      "page": "blog",
+      "question": "What tool is recommended for measuring render performance before making optimizations?",
+      "grounded": true,
+      "answer_preview": "The recommended tool for measuring render performance before making optimizations is the React DevTo",
+      "latency_s": 1.38
+    }
+  ],
+  "summary": {
+    "total_followups": 14,
+    "trigger_flagged": 0,
+    "misrouted": 0,
+    "grounded": 12,
+    "not_found": 2
+  }
+}

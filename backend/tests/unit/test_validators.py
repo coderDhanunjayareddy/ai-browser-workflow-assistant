@@ -12,7 +12,13 @@ def test_mmt_flights_loaded_validator():
     assert res.error_code == "FLIGHTS_LIST_NOT_LOADED"
     
     # Success case: element matches
-    success_context = {"interactive_elements": [{"text": "Filter flights", "selector": "#filter"}]}
+    # A filter control alone can exist before results load. Require both a
+    # flight-results signal and a visible price to avoid false success.
+    success_context = {
+        "interactive_elements": [
+            {"text": "Filter flights - Rs. 4,500", "selector": "#filter"}
+        ]
+    }
     res = validator.validate(success_context)
     assert res.success is True
     assert res.facts_to_add.get("results_loaded") is True

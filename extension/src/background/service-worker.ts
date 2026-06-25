@@ -3,6 +3,26 @@ import { executeAction } from '../content/executor'
 import { extractPageContextV2 } from '../content/extractor_v2'
 import { executeActionV2 } from '../content/executor_v2'
 
+async function getTargetTab(): Promise<chrome.tabs.Tab | undefined> {
+  try {
+    const tabs = await chrome.tabs.query({ active: true })
+    if (tabs && tabs.length > 0) {
+      const targetTab = tabs.find(t => t.url && !t.url.startsWith('chrome-extension://'))
+      if (targetTab) return targetTab
+    }
+  } catch (e) {
+    console.error('Error querying active tabs:', e)
+  }
+  try {
+    const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    return currentTab
+  } catch (e) {
+    console.error('Error querying current window active tab:', e)
+  }
+  return undefined
+}
+
+
 // On install, configure the side panel to open when the user clicks the toolbar icon.
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel
@@ -123,7 +143,7 @@ function getMockContext(url: string | undefined, title: string | undefined) {
 async function extractContextWithRetry() {
   let lastError = ''
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  const tab = await getTargetTab()
   if (!tab?.id) {
     throw new Error('No active tab found. Click the extension icon while a webpage is open.')
   }
@@ -274,7 +294,7 @@ async function handleExecuteAction(
   sendResponse: (response: unknown) => void,
 ) {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    const tab = await getTargetTab()
     if (!tab?.id) { sendResponse({ error: 'No active tab found.' }); return }
 
     // Intercept navigate action and handle directly from background
@@ -352,7 +372,7 @@ async function handleExecuteAction(
 async function handleWaitForTabLoad(sendResponse: (response: unknown) => void) {
   const TIMEOUT_MS = 10_000
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  const tab = await getTargetTab()
   if (!tab?.id) { sendResponse({ ready: true }); return }
 
   // Already loaded.
@@ -386,7 +406,7 @@ async function handleWaitForTabLoad(sendResponse: (response: unknown) => void) {
 
 async function handleWaitForDomSettle(sendResponse: (response: unknown) => void) {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    const tab = await getTargetTab()
     if (!tab?.id) { sendResponse({ ready: true }); return }
     const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 4000))
     const executePromise = chrome.scripting.executeScript({
@@ -461,7 +481,7 @@ function waitForDomSettle(): Promise<void> {
 
 async function handleStartVoiceCapture(language: string, sendResponse: (response: unknown) => void) {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    const tab = await getTargetTab()
     if (!tab?.id) {
       sendResponse({ error: 'No active tab. Navigate to a webpage first.' })
       return

@@ -1,0 +1,103 @@
+{
+  "wikipedia_machine_learning": {
+    "status": "ok",
+    "intent": "summarize",
+    "routed_to": "light",
+    "type": "summary",
+    "latency_s": 4.0,
+    "context_chars": 3832,
+    "response_meta_latency_ms": 4000,
+    "content": "tldr='Machine learning is a field of artificial intelligence focused on developing algorithms that learn from data and generalize to new situations.' key_points=['Machine learning encompasses supervised, unsupervised, and reinforcement learning approaches.', 'Generative artificial intelligence and artificial neural networks are significant applications of machine learning.', 'Applications of machine learning span various fields including computer vision, natural language processing, and medical diagnosis.', 'Challenges in machine learning include small training data, overfitting, poor interpretability, and data bias.'] entities=[] available_actions=['Explore different machine learning approaches', 'Learn about applications of machine learning', 'Understand the limitations and challenges of machine learning']",
+    "suggested_followups": [],
+    "available_actions": [
+      "Explore different machine learning approaches",
+      "Learn about applications of machine learning",
+      "Understand the limitations and challenges of machine learning"
+    ],
+    "handoff": {
+      "available": false,
+      "target": null
+    }
+  },
+  "github_repo_fastapi": {
+    "status": "ok",
+    "intent": "summarize",
+    "routed_to": "light",
+    "type": "summary",
+    "latency_s": 4.09,
+    "context_chars": 2210,
+    "response_meta_latency_ms": 4094,
+    "content": "tldr='FastAPI is a high-performance web framework for building APIs with Python, designed for ease of use and rapid development.' key_points=['FastAPI offers very high performance, comparable to NodeJS and Go.', 'Development speed can increase by 200% to 300% with fewer bugs.', 'It requires Python 3.8+ and includes features like automatic interactive API documentation.', 'FastAPI is widely adopted by companies like Microsoft, Netflix, and Uber.'] entities=[{'label': 'Stars', 'value': '75.4k'}, {'label': 'Forks', 'value': '6.4k'}, {'label': 'License', 'value': 'MIT'}] available_actions=['Install FastAPI using pip', 'Run the example code provided', 'Access interactive API documentation at /docs or /redoc']",
+    "suggested_followups": [],
+    "available_actions": [
+      "Install FastAPI using pip",
+      "Run the example code provided",
+      "Access interactive API documentation at /docs or /redoc"
+    ],
+    "handoff": {
+      "available": false,
+      "target": null
+    }
+  },
+  "news_article_ai": {
+    "status": "ok",
+    "intent": "summarize",
+    "routed_to": "light",
+    "type": "summary",
+    "latency_s": 3.77,
+    "context_chars": 2828,
+    "response_meta_latency_ms": 3766,
+    "content": "tldr='The rivalry between Google and OpenAI intensified as both companies launched significant updates to their AI models.' key_points=['OpenAI introduced GPT-4o, a multimodal model capable of real-time interactions and emotion analysis.', 'Google announced Gemini 1.5 Pro with a 2 million token context window and showcased Project Astra.', 'Both companies aim to transform AI from a tool into a collaborative partner.', 'The new features will be available to free users, indicating a competitive pricing strategy.'] entities=[{'label': 'Author', 'value': 'Nilay Patel'}, {'label': 'Published', 'value': '2024-05-14'}] available_actions=['Read more about GPT-4o', 'Explore Gemini 1.5 Pro features', 'Watch the I/O conference highlights']",
+    "suggested_followups": [],
+    "available_actions": [
+      "Read more about GPT-4o",
+      "Explore Gemini 1.5 Pro features",
+      "Watch the I/O conference highlights"
+    ],
+    "handoff": {
+      "available": false,
+      "target": null
+    }
+  },
+  "amazon_product_laptop": {
+    "status": "ok",
+    "intent": "summarize",
+    "routed_to": "light",
+    "type": "summary",
+    "latency_s": 4.44,
+    "context_chars": 2680,
+    "response_meta_latency_ms": 4437,
+    "content": "tldr='Apple MacBook Pro 14-inch with M3 Pro chip offers high performance and advanced features for $1,799.00.' key_points=['Equipped with M3 Pro chip featuring an 11-core CPU and 14-core GPU.', 'Offers up to 18 hours of battery life and 18GB of unified memory.', 'Features a 14.2-inch Liquid Retina XDR display with 120Hz ProMotion technology.', 'Includes advanced camera and audio capabilities with a 12MP Center Stage camera.'] entities=[{'label': 'Price', 'value': '$1,799.00'}, {'label': 'Rating', 'value': '4.7 out of 5 stars'}, {'label': 'Reviews', 'value': '2,341 ratings'}] available_actions=['Add to cart', 'Buy now', 'View customer reviews', 'Explore frequently bought together items']",
+    "suggested_followups": [],
+    "available_actions": [
+      "Add to cart",
+      "Buy now",
+      "View customer reviews",
+      "Explore frequently bought together items"
+    ],
+    "handoff": {
+      "available": false,
+      "target": null
+    }
+  },
+  "blog_article_react_performance": {
+    "status": "ok",
+    "intent": "summarize",
+    "routed_to": "light",
+    "type": "summary",
+    "latency_s": 4.42,
+    "context_chars": 3370,
+    "response_meta_latency_ms": 4421,
+    "content": "tldr='React developers should prioritize measuring performance issues before applying optimizations like memoization.' key_points=['Many React developers mistakenly use memoization without measuring performance first.', 'A slow-rendering component can negatively impact user experience regardless of its re-render frequency.', 'Common causes of slow renders include expensive computations, large DOM trees, and missing key props.', 'React.memo and useMemo can add overhead and should only be used when they provide a measurable benefit.', 'The recommended approach is to profile first, fix slow renders, and then address re-renders.'] entities=[{'label': 'Author', 'value': 'Kent C. Dodds'}, {'label': 'Published', 'value': 'April 2023'}] available_actions=['Open the React DevTools Profiler', 'Record a user interaction', 'Analyze the flame graph for performance issues']",
+    "suggested_followups": [],
+    "available_actions": [
+      "Open the React DevTools Profiler",
+      "Record a user interaction",
+      "Analyze the flame graph for performance issues"
+    ],
+    "handoff": {
+      "available": false,
+      "target": null
+    }
+  }
+}

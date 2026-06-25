@@ -58,6 +58,10 @@ debug_gemini_raw.json
 # Browser User Profiles (Very large, contains session data, cookies, secrets)
 chrome-profile/
 playwright-profile/
+playwright-profile-*/
+
+# Temporary documents / scratch files
+But.docx
 
 # Screenshots / temporary test assets
 screenshots/

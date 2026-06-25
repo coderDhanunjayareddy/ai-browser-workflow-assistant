@@ -1,0 +1,248 @@
+[
+  {
+    "section": "1_entity_extraction",
+    "label": "response type=not_implemented",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_entity_extraction",
+    "label": "session created",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_entity_extraction",
+    "label": "MacBook Air extracted",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_entity_extraction",
+    "label": "Dell XPS extracted",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_entity_extraction",
+    "label": "entity_order has 2+ entries",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_followup",
+    "label": "follow-up responded with answer",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_followup",
+    "label": "session turn_count=2",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_followup",
+    "label": "MacBook Air still in session",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_followup",
+    "label": "Dell XPS still in session",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_resolution",
+    "label": "ordinal 'first' \u2192 MacBook Air",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_resolution",
+    "label": "ordinal 'second' \u2192 Dell XPS",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_resolution",
+    "label": "proximal 'it' \u2192 most recent (Dell XPS)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_resolution",
+    "label": "name match \u2192 MacBook Air",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_resolution",
+    "label": "empty session \u2192 method=none",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_goal",
+    "label": "goal created on first turn",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_goal",
+    "label": "compare goal text has entity names or 'Compare'",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_goal",
+    "label": "goal status=handed_off (compare\u2192handoff)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_goal",
+    "label": "goal id unchanged across turns",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_goal",
+    "label": "research triggers handed_off status",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_handoff_enrichment",
+    "label": "handoff.available=True",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_handoff_enrichment",
+    "label": "handoff_payload not None",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_handoff_enrichment",
+    "label": "payload.query preserved",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_handoff_enrichment",
+    "label": "payload has entities from turn 1",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_handoff_enrichment",
+    "label": "payload.goal_text not None",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_handoff_enrichment",
+    "label": "payload.goal_status not None",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_handoff_enrichment",
+    "label": "payload.turn_count=2",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_handoff_enrichment",
+    "label": "payload serializable",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "6_latency",
+    "label": "fallback avg < 10ms (no LLM)",
+    "status": "OK",
+    "detail": "0.0ms"
+  },
+  {
+    "section": "6_latency",
+    "label": "ask cognitive overhead < 5ms",
+    "status": "OK",
+    "detail": "0.0ms"
+  },
+  {
+    "section": "6_latency",
+    "label": "research+payload build < 10ms",
+    "status": "OK",
+    "detail": "0.0ms"
+  },
+  {
+    "section": "7_regression",
+    "label": "summarize type=summary",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "summarize handoff.available=False",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "summarize handoff_payload=None",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "summarize followups preserved",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "ask type=answer",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "ask suggested_followups=[] (Option B)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "ask handoff.available=False",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "ask handoff_payload=None",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "research handoff.available=True",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "research handoff.target=workflow",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "7_regression",
+    "label": "research handoff_payload not None (V2.6)",
+    "status": "OK",
+    "detail": ""
+  }
+]

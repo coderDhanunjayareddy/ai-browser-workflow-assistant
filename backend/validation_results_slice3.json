@@ -1,0 +1,248 @@
+[
+  {
+    "section": "1_summarize_regression",
+    "label": "type=summary [github]",
+    "status": "OK",
+    "detail": "got summary"
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "intent=summarize [github]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "has tldr [github]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "followups list [github]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "type=summary [amazon]",
+    "status": "OK",
+    "detail": "got summary"
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "intent=summarize [amazon]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "has tldr [amazon]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "followups list [amazon]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "type=summary [ml]",
+    "status": "OK",
+    "detail": "got summary"
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "intent=summarize [ml]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "has tldr [ml]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_summarize_regression",
+    "label": "followups list [ml]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "type=answer [github]",
+    "status": "OK",
+    "detail": "got answer"
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "intent=ask [github]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "content is string [github]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "followups=[] [github]",
+    "status": "OK",
+    "detail": "got []"
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "type=answer [amazon]",
+    "status": "OK",
+    "detail": "got answer"
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "intent=ask [amazon]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "content is string [amazon]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "followups=[] [amazon]",
+    "status": "OK",
+    "detail": "got []"
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "type=answer [ml]",
+    "status": "OK",
+    "detail": "got answer"
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "intent=ask [ml]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "content is string [ml]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_ask_regression",
+    "label": "followups=[] [ml]",
+    "status": "OK",
+    "detail": "got []"
+  },
+  {
+    "section": "3_multi_turn",
+    "label": "T1 type=summary",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_multi_turn",
+    "label": "T1 has followups",
+    "status": "OK",
+    "detail": "count=3"
+  },
+  {
+    "section": "3_multi_turn",
+    "label": "T2 type=answer",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_multi_turn",
+    "label": "T2 answer contains star count",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_multi_turn",
+    "label": "T3 followup routes to ask",
+    "status": "OK",
+    "detail": "got intent=ask"
+  },
+  {
+    "section": "3_multi_turn",
+    "label": "T3 type=answer",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_multi_turn",
+    "label": "conversation store has 6 turns",
+    "status": "OK",
+    "detail": "got 6 turns"
+  },
+  {
+    "section": "4_isolation",
+    "label": "conv_a has 4 turns",
+    "status": "OK",
+    "detail": "got 4"
+  },
+  {
+    "section": "4_isolation",
+    "label": "conv_b has 2 turns",
+    "status": "OK",
+    "detail": "got 2"
+  },
+  {
+    "section": "4_isolation",
+    "label": "conversations are independent",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_followup_grounding",
+    "label": "grounded: What is the battery life of the Apple MacBook Pro ",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_followup_grounding",
+    "label": "grounded: How many ratings does the Apple MacBook Pro 14-inc",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_followup_grounding",
+    "label": "grounded: What are the specifications of the M3 Pro chip inc",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "5_followup_grounding",
+    "label": "grounding rate >= 50%",
+    "status": "OK",
+    "detail": "3/3 grounded"
+  },
+  {
+    "section": "6_latency",
+    "label": "avg summarize < 8s",
+    "status": "OK",
+    "detail": "5.0s"
+  },
+  {
+    "section": "6_latency",
+    "label": "avg ask < 4s",
+    "status": "OK",
+    "detail": "1.12s"
+  },
+  {
+    "section": "6_latency",
+    "label": "ask faster than summarize (Option B)",
+    "status": "OK",
+    "detail": "ask=1.12s sum=5.0s"
+  }
+]

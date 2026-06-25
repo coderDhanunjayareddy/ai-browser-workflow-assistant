@@ -1,0 +1,254 @@
+[
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.available=True [research]",
+    "status": "OK",
+    "detail": "got True"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.target=workflow [research]",
+    "status": "OK",
+    "detail": "got 'workflow'"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "type=not_implemented [research]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "latency<200ms [research]",
+    "status": "OK",
+    "detail": "0ms"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.available=True [research2]",
+    "status": "OK",
+    "detail": "got True"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.target=workflow [research2]",
+    "status": "OK",
+    "detail": "got 'workflow'"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "type=not_implemented [research2]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "latency<200ms [research2]",
+    "status": "OK",
+    "detail": "0ms"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.available=True [compare]",
+    "status": "OK",
+    "detail": "got True"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.target=workflow [compare]",
+    "status": "OK",
+    "detail": "got 'workflow'"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "type=not_implemented [compare]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "latency<200ms [compare]",
+    "status": "OK",
+    "detail": "0ms"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.available=True [compare2]",
+    "status": "OK",
+    "detail": "got True"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.target=workflow [compare2]",
+    "status": "OK",
+    "detail": "got 'workflow'"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "type=not_implemented [compare2]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "latency<200ms [compare2]",
+    "status": "OK",
+    "detail": "0ms"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.available=True [unknown]",
+    "status": "OK",
+    "detail": "got True"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.target=workflow [unknown]",
+    "status": "OK",
+    "detail": "got 'workflow'"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "type=not_implemented [unknown]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "latency<200ms [unknown]",
+    "status": "OK",
+    "detail": "0ms"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.available=True [unknown2]",
+    "status": "OK",
+    "detail": "got True"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "handoff.target=workflow [unknown2]",
+    "status": "OK",
+    "detail": "got 'workflow'"
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "type=not_implemented [unknown2]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "1_handoff_flag",
+    "label": "latency<200ms [unknown2]",
+    "status": "OK",
+    "detail": "0ms"
+  },
+  {
+    "section": "2_no_handoff",
+    "label": "summarize handoff.available=False",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_no_handoff",
+    "label": "summarize handoff.target=None",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_no_handoff",
+    "label": "ask handoff.available=False",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "2_no_handoff",
+    "label": "ask handoff.target=None",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_integrity",
+    "label": "response type=not_implemented",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_integrity",
+    "label": "routed_to=fallback",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_integrity",
+    "label": "content is non-empty string",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_integrity",
+    "label": "suggested_followups is list",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_integrity",
+    "label": "handoff.available=True",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_integrity",
+    "label": "handoff.target=workflow",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "3_integrity",
+    "label": "meta.latency_ms >= 0",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_regression",
+    "label": "summarize type=summary",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_regression",
+    "label": "summarize intent=summarize",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_regression",
+    "label": "summarize routed_to=light",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_regression",
+    "label": "summarize followups preserved",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_regression",
+    "label": "ask type=answer",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_regression",
+    "label": "ask suggested_followups=[] (Option B)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "section": "4_regression",
+    "label": "ask routed_to=light",
+    "status": "OK",
+    "detail": ""
+  }
+]
