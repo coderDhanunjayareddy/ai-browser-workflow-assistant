@@ -423,6 +423,83 @@ def inspect_mission(mission_id: str):
     except Exception:
         pass
 
+    # V8.0: Approval summary (non-blocking)
+    approval_summary = None
+    try:
+        from app.approvals import queue as _appr_queue
+        approval_summary = _appr_queue.summary_for_mission(mission_id)
+    except Exception:
+        pass
+
+    # V8.5: Governance summary (non-blocking)
+    governance_summary = None
+    try:
+        from app.governance import registry as _gov_reg
+        governance_summary = _gov_reg.summary_for_mission(mission_id)
+    except Exception:
+        pass
+
+    # V8.8: Authorization summary (non-blocking)
+    authorization_summary = None
+    try:
+        from app.authorization import registry as _auth_reg
+        authorization_summary = _auth_reg.summary_for_mission(mission_id)
+    except Exception:
+        pass
+
+    # V8.9: Browser runtime summary (non-blocking)
+    runtime_summary = None
+    try:
+        from app.runtime import registry as _rt_reg
+        from app.runtime import cache as _rt_cache
+        from app.runtime import events as _rt_events
+        rt = _rt_reg.summary_for_mission(mission_id)
+        primary = rt["runtime_ids"][0] if rt.get("runtime_ids") else None
+        runtime_summary = {
+            "active_tab_id":     rt.get("active_tab_id"),
+            "runtime_health": {
+                "total_sessions":  rt.get("total_sessions", 0),
+                "active_sessions": rt.get("active_sessions", 0),
+            },
+            "cache_health": {
+                "has_context": bool(primary and _rt_cache.peek(primary) is not None),
+                "is_fresh":    bool(primary and _rt_cache.is_fresh(primary)),
+                "age_seconds": _rt_cache.age_seconds(primary) if primary else None,
+            },
+            "event_count":       _rt_events.count_for_runtime(primary) if primary else 0,
+            "context_freshness": _rt_cache.age_seconds(primary) if primary else None,
+        }
+    except Exception:
+        pass
+
+    # V9.0: Execution planning summary (non-blocking)
+    execution_planning_summary = None
+    try:
+        from app.execution_planning import registry as _plan_reg
+        ep = _plan_reg.summary_for_mission(mission_id)
+        active_plan = None
+        if ep.get("active_plan_id"):
+            active_plan = _plan_reg.get(ep["active_plan_id"])
+        execution_planning_summary = {
+            "active_plan_id":     ep.get("active_plan_id"),
+            "plan_readiness":     (active_plan.status.value if active_plan else None),
+            "total_plans":        ep.get("total_plans", 0),
+            "ready_plans":        ep.get("ready_plans", 0),
+            "estimated_steps":    (active_plan.estimated_steps if active_plan else 0),
+            "estimated_duration_ms": (active_plan.estimated_duration_ms if active_plan else 0),
+            "rollback_available": (active_plan.rollback_supported if active_plan else False),
+        }
+    except Exception:
+        pass
+
+    # Phase B: Execution gateway summary (non-blocking)
+    execution_gateway_summary = None
+    try:
+        from app.execution_gateway import registry as _gw_reg
+        execution_gateway_summary = _gw_reg.summary_for_mission(mission_id)
+    except Exception:
+        pass
+
     latency_ms = int((time.perf_counter() - t0) * 1000)
 
     return MissionInspectorSchema(
@@ -435,6 +512,12 @@ def inspect_mission(mission_id: str):
         tabs=tabs_section,
         trust=trust_section,
         decisions=decision_summary,
+        approvals=approval_summary,
+        governance=governance_summary,
+        authorization=authorization_summary,
+        runtime=runtime_summary,
+        execution_planning=execution_planning_summary,
+        execution_gateway=execution_gateway_summary,
         from_store=from_store,
         latency_ms=latency_ms,
     )

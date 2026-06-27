@@ -137,6 +137,12 @@ class MissionInspectorSchema(BaseModel):
     tabs:          Optional[dict] = None   # V6.0 tab coordination section
     trust:         Optional[dict] = None   # V6.5 trust evaluation section
     decisions:     Optional[dict] = None   # V7.5 decision summary
+    approvals:     Optional[dict] = None   # V8.0 approval summary
+    governance:    Optional[dict] = None   # V8.5 governance summary
+    authorization: Optional[dict] = None   # V8.8 authorization summary
+    runtime:       Optional[dict] = None   # V8.9 browser runtime summary
+    execution_planning: Optional[dict] = None   # V9.0 execution planning summary
+    execution_gateway:  Optional[dict] = None   # Phase B execution gateway summary
     from_store:    bool = True             # True = in-memory; False = restored from DB
     latency_ms:    int = 0
 
