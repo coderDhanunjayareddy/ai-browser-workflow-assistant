@@ -165,6 +165,194 @@ class PlaywrightAdapter(ExecutionAdapter):
                     message=cls.message or cls.error_type.value,
                 )
 
+    # ── Phase D: adaptive execution path (used only when a Phase D flag is on) ──
+
+    def _execute(self, command: ExecutionCommand, phase: str, fn) -> AdapterResult:
+        if self.phase_d:
+            return self._run_adaptive(command, phase, fn)
+        return self._run(command, phase, fn)
+
+    def _resolve(self, page: Any, params: dict):
+        if self.adaptive:
+            return _adaptive_resolver.resolve_strict(page, params)
+        return self.resolver.resolve(page, params)
+
+    def _strategy_for(self, params: dict):
+        if self.adaptive:
+            return _adaptive_resolver.strategy_for(params)
+        return self.resolver.strategy_for(params)
+
+    def _pre_state(self, session: Any) -> dict:
+        state: dict = {}
+        try:
+            page = session.ensure_page()
+            state["url"] = page.url
+        except Exception:
+            pass
+        return state
+
+    def _tl(self, step_id: str, event: str, order: int, detail: Optional[dict] = None) -> None:
+        if self.timeline is None:
+            return
+        try:
+            self.timeline.record(self.execution_id, step_id, event, order=order, detail=detail or {})
+        except Exception:
+            pass
+
+    def _finish_monitor(self, rec, attempts, outcome, validation, category, strategy, recoveries, screenshots) -> None:
+        if rec is None or self.monitor is None:
+            return
+        try:
+            self.monitor.finish_step(
+                rec, finished_at=time.time(), attempts=attempts, outcome=outcome,
+                validation_result=validation, failure_category=category,
+                locator_strategy=strategy, recovery_used=recoveries, screenshots=screenshots)
+        except Exception:
+            pass
+
+    def _metric(self, fn_name: str, **kw) -> None:
+        if self.metrics is None:
+            return
+        try:
+            getattr(self.metrics, fn_name)(**kw)
+        except Exception:
+            pass
+
+    def _run_adaptive(self, command: ExecutionCommand, phase: str, fn) -> AdapterResult:
+        t0 = time.perf_counter()
+        logs: list[str] = []
+        attempt = 0
+        recoveries_used: list[str] = []
+        last_strategy: Optional[str] = None
+        order = getattr(command, "order", 0)
+        step_id = getattr(command, "step_id", "") or ""
+
+        rec = None
+        if self.monitor is not None:
+            try:
+                rec = self.monitor.start_step(self.execution_id, step_id, order, phase, time.time())
+            except Exception:
+                rec = None
+        self._tl(step_id, "started", order)
+
+        while True:
+            attempt += 1
+            session = None
+            try:
+                session = self.session_manager.get_or_create(self.execution_id, headless=self.headless)
+                pre_state = self._pre_state(session) if self.post_validation else {}
+                details = fn(session, command)
+                action_validation = bool(details.pop("_validation_passed", True))
+                last_strategy = details.get("strategy") or last_strategy
+                self._post_action(phase, session, command, details)
+
+                # First-class post-action validation (validate_after).
+                post_pass = True
+                post_detail = None
+                if self.post_validation:
+                    check = _exec_validation.validate(phase, session, command,
+                                                      pre_state=pre_state, result_details=details)
+                    if check.performed:
+                        post_detail = check.to_dict()
+                        post_pass = check.passed
+                        self._metric("record_validation", passed=check.passed)
+                        self._tl(step_id, "validated", order, {"passed": check.passed, "strategy": check.strategy})
+
+                step_ok = action_validation and post_pass
+
+                # Validation-failure recovery: re-read + retry (bounded by retry_config).
+                if (not step_ok) and self.recovery and retry_engine.should_retry(
+                        attempt, self.retry_config, dispatch_failed=True, validation_failed=False):
+                    val_analysis = _failure_classes.classify_failure(ValueError("validation failed"), phase=phase)
+                    rr = _recovery_engine.recover(val_analysis, session, command)
+                    recoveries_used.extend(rr.actions)
+                    self._metric("record_recovery", succeeded=rr.recovered)
+                    if rr.actions:
+                        self._tl(step_id, "recovered", order, rr.to_dict())
+                    self._tl(step_id, "retried", order, {"reason": "validation"})
+                    logs.append(f"[playwright] {phase} validation retry (attempt {attempt})")
+                    continue
+
+                duration = (time.perf_counter() - t0) * 1000
+                outcome = "completed" if step_ok else "failed"
+                self._tl(step_id, "completed" if step_ok else "failed", order)
+                self._finish_monitor(rec, attempt, outcome, step_ok, None, last_strategy,
+                                     recoveries_used, [])
+                self._metric("record_step", succeeded=step_ok, retries=attempt - 1,
+                             elapsed_ms=duration, locator_strategy=last_strategy)
+                logs.append(f"[playwright] {phase} ok (attempt {attempt})")
+                screenshot = self._safe_screenshot(phase) if command.parameters.get("screenshot") else None
+                return AdapterResult(
+                    success=True,
+                    duration_ms=round(duration, 3),
+                    logs=logs,
+                    output={
+                        "details":           details,
+                        "validation_result": step_ok,
+                        "post_validation":   post_detail,
+                        "screenshot_path":   screenshot,
+                        "attempts":          attempt,
+                        "recoveries":        len(recoveries_used),
+                        "recovery_used":     recoveries_used,
+                        "locator_strategy":  last_strategy,
+                        "phase":             phase,
+                    },
+                    validation_passed=step_ok,
+                    message="ok" if step_ok else "validation mismatch",
+                )
+
+            except Exception as exc:  # noqa: BLE001 — classify, recover, never crash the runner
+                analysis = _failure_classes.classify_failure(exc, phase=phase)
+                category = analysis.category
+                profile = analysis.profile
+                logs.append(f"[playwright] {phase} {category.value} (attempt {attempt})")
+                self._metric("record_failure", category=category.value)
+
+                # Deterministic recovery (bounded) for retryable categories only.
+                if self.recovery and profile.retryable and \
+                        any(a != RecoveryAction.none for a in profile.recommended_recovery):
+                    try:
+                        rr = _recovery_engine.recover(analysis, session, command)
+                        recoveries_used.extend(rr.actions)
+                        self._metric("record_recovery", succeeded=rr.recovered)
+                        if rr.actions:
+                            self._tl(step_id, "recovered", order, rr.to_dict())
+                    except Exception:
+                        pass
+
+                # Retry only when the failure class allows AND the budget remains.
+                if profile.retryable and retry_engine.should_retry(
+                        attempt, self.retry_config, dispatch_failed=True, validation_failed=False):
+                    self._tl(step_id, "retried", order, {"category": category.value})
+                    continue
+
+                # Permanent failure OR budget exhausted → fail immediately.
+                duration = (time.perf_counter() - t0) * 1000
+                screenshot = self._safe_screenshot(f"{phase}-error")
+                self._tl(step_id, "failed", order, {"category": category.value})
+                self._finish_monitor(rec, attempt, "failed", False, category.value, last_strategy,
+                                     recoveries_used, [screenshot] if screenshot else [])
+                self._metric("record_step", succeeded=False, retries=attempt - 1,
+                             elapsed_ms=duration, locator_strategy=last_strategy)
+                return AdapterResult(
+                    success=False,
+                    duration_ms=round(duration, 3),
+                    logs=logs,
+                    output={
+                        "error":            analysis.base.to_dict(),
+                        "failure_category": category.value,
+                        "failure_profile":  profile.to_dict(),
+                        "screenshot_path":  screenshot,
+                        "attempts":         attempt,
+                        "recoveries":       len(recoveries_used),
+                        "recovery_used":    recoveries_used,
+                        "locator_strategy": last_strategy,
+                        "phase":            phase,
+                    },
+                    validation_passed=False,
+                    message=analysis.base.message or category.value,
+                )
+
     # ── action implementations ────────────────────────────────────────────────
 
     def _do_navigate(self, session: Any, command: ExecutionCommand) -> dict:
@@ -191,7 +379,7 @@ class PlaywrightAdapter(ExecutionAdapter):
     def _do_wait(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
         ms = int(command.parameters.get("timeout_ms", command.parameters.get("ms", 500)))
-        if self.resolver.strategy_for(command.parameters):
+        if self._strategy_for(command.parameters):
             resolved = self._resolve(page, command.parameters)
             resolved.locator.wait_for(state=command.parameters.get("state", "visible"), timeout=ms)
             return {"waited_for": "element", "timeout_ms": ms}
@@ -201,7 +389,7 @@ class PlaywrightAdapter(ExecutionAdapter):
     def _do_extract(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
         mode = command.parameters.get("mode", "text").lower()  # text | html
-        if self.resolver.strategy_for(command.parameters):
+        if self._strategy_for(command.parameters):
             resolved = self._resolve(page, command.parameters)
             content = resolved.locator.inner_html() if mode == "html" else resolved.locator.inner_text()
             strat = resolved.strategy
@@ -227,7 +415,7 @@ class PlaywrightAdapter(ExecutionAdapter):
             passed = expected in body if expected else False
             return {"validate": "text", "expected": expected, "_validation_passed": passed}
         # DOM_PRESENCE / VALIDATE_EXISTS / default
-        if self.resolver.strategy_for(command.parameters):
+        if self._strategy_for(command.parameters):
             resolved = self._resolve(page, command.parameters)
             count = resolved.locator.count()
             return {"validate": "exists", "strategy": resolved.strategy, "count": count,
