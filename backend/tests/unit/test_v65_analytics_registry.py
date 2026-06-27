@@ -168,7 +168,7 @@ class TestTrustRegistry:
         try:
             ev = _ev()
             trust_reg.set_evaluation(ev)
-            time.sleep(0.01)
+            time.sleep(0.05)
             out = trust_reg.get(TargetType.action, "x")
             assert out is None
         finally:

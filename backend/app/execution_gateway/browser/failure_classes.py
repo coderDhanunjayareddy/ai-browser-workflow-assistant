@@ -148,28 +148,41 @@ class FailureAnalysis:
 
 
 def _refine(category: FailureCategory, msg_low: str, phase: str) -> FailureCategory:
-    """Refine a base category using message + phase hints (deterministic)."""
-    # Hidden / obscured element (Playwright actionability messages)
-    if category == FailureCategory.element_not_found:
-        if any(n in msg_low for n in ("not visible", "is hidden", "hidden", "intercepts pointer",
-                                      "element is outside of the viewport", "not stable")):
-            return FailureCategory.element_hidden
-    # Timeout flavour
+    """
+    Refine a base category using message + phase hints (deterministic, keyword-first).
+
+    Keyword matches win over the base category so a "hidden element" / "page crashed"
+    message is classified correctly even when the Phase C base classifier could only
+    reach a generic category. Ordered most-severe / most-specific first.
+    """
+    # 1. Page crash (fatal — target/page/browser closed or crashed).
+    if any(n in msg_low for n in ("crash", "target closed", "page closed",
+                                  "browser has been closed", "page has been closed",
+                                  "context or browser has been closed", "target page, context")):
+        return FailureCategory.page_crash
+    # 2. Unexpected popup / dialog / extra window.
+    if any(n in msg_low for n in ("unexpected popup", "popup", "dialog", "beforeunload",
+                                  "alert(", "new window opened")):
+        return FailureCategory.unexpected_popup
+    # 3. Authentication expired / access revoked.
+    if any(n in msg_low for n in ("session expired", "logged out", "login required",
+                                  "unauthorized", "forbidden", "authentication")):
+        return FailureCategory.authentication_expired
+    # 4. Hidden / obscured element (Playwright actionability messages) — from ANY base.
+    if any(n in msg_low for n in ("not visible", "is hidden", "element is hidden", " hidden",
+                                  "intercepts pointer", "outside of the viewport",
+                                  "not stable", "is covered", "obscured")):
+        return FailureCategory.element_hidden
+    # 5. Network-idle / load-state timeouts.
+    if "networkidle" in msg_low or "network idle" in msg_low or "load state" in msg_low:
+        return FailureCategory.network_idle_timeout
+    # 6. Timeout flavour (when the base was a transient timeout).
     if category == FailureCategory.transient_timeout:
-        if "networkidle" in msg_low or "network idle" in msg_low or "load state" in msg_low:
-            return FailureCategory.network_idle_timeout
         if phase == "navigate" or "navigat" in msg_low or "goto" in msg_low:
             return FailureCategory.navigation_timeout
         if phase == "download" or "download" in msg_low:
             return FailureCategory.download_timeout
-    # Page crash (target/page closed/crashed)
-    if any(n in msg_low for n in ("crash", "target closed", "page closed", "browser has been closed",
-                                  "page has been closed")):
-        return FailureCategory.page_crash
-    # Unexpected popup / dialog
-    if any(n in msg_low for n in ("unexpected popup", "popup", "dialog", "beforeunload", "alert(")):
-        return FailureCategory.unexpected_popup
-    # Download flavour
+    # 7. Download flavour.
     if category == FailureCategory.download_failure and "timeout" in msg_low:
         return FailureCategory.download_timeout
     return category

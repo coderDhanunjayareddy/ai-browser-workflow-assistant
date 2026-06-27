@@ -29,6 +29,16 @@ from app.execution_gateway.browser import errors as browser_errors
 from app.execution_gateway.browser import resolver as element_resolver
 from app.execution_gateway.browser import session as session_module
 
+# ── Phase D — Adaptive Execution & Recovery (additive; used only when enabled) ──
+from app.execution_gateway.browser import adaptive_resolver as _adaptive_resolver
+from app.execution_gateway.browser import failure_classes as _failure_classes
+from app.execution_gateway.browser import recovery as _recovery_engine
+from app.execution_gateway.browser import execution_validation as _exec_validation
+from app.execution_gateway.browser import monitor as _exec_monitor
+from app.execution_gateway.browser import metrics as _exec_metrics
+from app.execution_gateway.browser import exec_timeline as _exec_timeline
+from app.execution_gateway.browser.failure_classes import RecoveryAction
+
 
 class PlaywrightAdapter(ExecutionAdapter):
 
@@ -43,6 +53,13 @@ class PlaywrightAdapter(ExecutionAdapter):
         session_manager: Any = None,
         retry_config:    Optional[RetryConfig] = None,
         resolver:        Any = None,
+        # ── Phase D (additive, opt-in). All default OFF → Phase C byte-identical. ──
+        adaptive:        bool = False,
+        recovery:        bool = False,
+        post_validation: bool = False,
+        monitor:         Any = None,
+        metrics:         Any = None,
+        timeline:        Any = None,
     ) -> None:
         self.execution_id    = execution_id or f"pw-{int(time.time()*1000)}"
         self.headless        = headless
@@ -51,35 +68,43 @@ class PlaywrightAdapter(ExecutionAdapter):
         # Internal transient-retry budget (reuses the EXISTING RetryEngine policy).
         self.retry_config    = retry_config or RetryConfig(max_retries=2)
         self.resolver        = resolver or element_resolver
+        # Phase D collaborators (only consulted when the matching flag is on).
+        self.adaptive        = adaptive
+        self.recovery        = recovery
+        self.post_validation = post_validation
+        self.phase_d         = adaptive or recovery or post_validation
+        self.monitor         = monitor  if monitor  is not None else _exec_monitor
+        self.metrics         = metrics  if metrics  is not None else _exec_metrics
+        self.timeline        = timeline if timeline is not None else _exec_timeline
 
     # ── adapter contract (9 methods) ──────────────────────────────────────────
 
     def navigate(self, command: ExecutionCommand) -> AdapterResult:
-        return self._run(command, "navigate", self._do_navigate)
+        return self._execute(command, "navigate", self._do_navigate)
 
     def click(self, command: ExecutionCommand) -> AdapterResult:
-        return self._run(command, "click", self._do_click)
+        return self._execute(command, "click", self._do_click)
 
     def type(self, command: ExecutionCommand) -> AdapterResult:
-        return self._run(command, "type", self._do_type)
+        return self._execute(command, "type", self._do_type)
 
     def wait(self, command: ExecutionCommand) -> AdapterResult:
-        return self._run(command, "wait", self._do_wait)
+        return self._execute(command, "wait", self._do_wait)
 
     def extract(self, command: ExecutionCommand) -> AdapterResult:
-        return self._run(command, "extract", self._do_extract)
+        return self._execute(command, "extract", self._do_extract)
 
     def validate(self, command: ExecutionCommand) -> AdapterResult:
-        return self._run(command, "validate", self._do_validate)
+        return self._execute(command, "validate", self._do_validate)
 
     def upload(self, command: ExecutionCommand) -> AdapterResult:
-        return self._run(command, "upload", self._do_upload)
+        return self._execute(command, "upload", self._do_upload)
 
     def download(self, command: ExecutionCommand) -> AdapterResult:
-        return self._run(command, "download", self._do_download)
+        return self._execute(command, "download", self._do_download)
 
     def execute_custom(self, command: ExecutionCommand) -> AdapterResult:
-        return self._run(command, "custom", self._do_custom)
+        return self._execute(command, "custom", self._do_custom)
 
     # ── shared run wrapper: timing + transient retry + classification ──────────
 
@@ -151,14 +176,14 @@ class PlaywrightAdapter(ExecutionAdapter):
 
     def _do_click(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
-        resolved = self.resolver.resolve(page, command.parameters)
+        resolved = self._resolve(page, command.parameters)
         resolved.locator.click(timeout=self._timeout(command))
         return {"strategy": resolved.strategy, "value": resolved.value,
                 "target": command.target_description}
 
     def _do_type(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
-        resolved = self.resolver.resolve(page, command.parameters)
+        resolved = self._resolve(page, command.parameters)
         text = command.parameters.get("value") or command.parameters.get("text") or ""
         resolved.locator.fill(text, timeout=self._timeout(command))
         return {"strategy": resolved.strategy, "length": len(text)}
@@ -167,7 +192,7 @@ class PlaywrightAdapter(ExecutionAdapter):
         page = session.ensure_page()
         ms = int(command.parameters.get("timeout_ms", command.parameters.get("ms", 500)))
         if self.resolver.strategy_for(command.parameters):
-            resolved = self.resolver.resolve(page, command.parameters)
+            resolved = self._resolve(page, command.parameters)
             resolved.locator.wait_for(state=command.parameters.get("state", "visible"), timeout=ms)
             return {"waited_for": "element", "timeout_ms": ms}
         page.wait_for_timeout(ms)
@@ -177,7 +202,7 @@ class PlaywrightAdapter(ExecutionAdapter):
         page = session.ensure_page()
         mode = command.parameters.get("mode", "text").lower()  # text | html
         if self.resolver.strategy_for(command.parameters):
-            resolved = self.resolver.resolve(page, command.parameters)
+            resolved = self._resolve(page, command.parameters)
             content = resolved.locator.inner_html() if mode == "html" else resolved.locator.inner_text()
             strat = resolved.strategy
         else:
@@ -203,7 +228,7 @@ class PlaywrightAdapter(ExecutionAdapter):
             return {"validate": "text", "expected": expected, "_validation_passed": passed}
         # DOM_PRESENCE / VALIDATE_EXISTS / default
         if self.resolver.strategy_for(command.parameters):
-            resolved = self.resolver.resolve(page, command.parameters)
+            resolved = self._resolve(page, command.parameters)
             count = resolved.locator.count()
             return {"validate": "exists", "strategy": resolved.strategy, "count": count,
                     "_validation_passed": count > 0}
@@ -211,7 +236,7 @@ class PlaywrightAdapter(ExecutionAdapter):
 
     def _do_upload(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
-        resolved = self.resolver.resolve(page, command.parameters)
+        resolved = self._resolve(page, command.parameters)
         files = command.parameters.get("files")
         if not files:
             single = command.parameters.get("file")
@@ -223,7 +248,7 @@ class PlaywrightAdapter(ExecutionAdapter):
 
     def _do_download(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
-        resolved = self.resolver.resolve(page, command.parameters)
+        resolved = self._resolve(page, command.parameters)
         with page.expect_download(timeout=self._timeout(command)) as dl_info:
             resolved.locator.click()
         download = dl_info.value
