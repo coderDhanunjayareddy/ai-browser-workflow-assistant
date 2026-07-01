@@ -60,6 +60,17 @@ chrome-profile/
 playwright-profile/
 playwright-profile-*/
 
+# M0 benchmark — run artifacts + secrets (baselines/ and examples/ ARE committed)
+backend/benchmark/reports/
+backend/benchmark/screenshots/
+backend/benchmark/dom_snapshots/
+backend/benchmark/timelines/
+backend/benchmark/.playwright_state/
+backend/benchmark/.benchmark_secrets
+backend/benchmark/assets/
+backend/benchmark/trace_out/
+backend/.trace_sink/
+
 # Temporary documents / scratch files
 But.docx
 

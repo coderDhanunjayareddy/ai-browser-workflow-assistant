@@ -29,6 +29,13 @@ class Settings(BaseSettings):
     # V5.0: set to true to enable SQLAlchemy persistence for Mission lifecycle.
     mission_persistence: bool = False
 
+    # M0.6 diagnostics: when true, the /analyze path additionally writes the exact
+    # provider prompt + raw response to <trace_dir>/backend/<trace_id>.json for the
+    # benchmark trace viewer. OFF by default → byte-identical behavior. Purely additive
+    # recording; never influences planning, prompts, parsing, or execution.
+    trace_mode: bool = False
+    trace_dir: str = ""   # default resolved in app.diagnostics.trace_sink when empty
+
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.
     model_config = SettingsConfigDict(

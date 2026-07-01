@@ -1,0 +1,157 @@
+"""M0 integration tests — the TaskRunner observe->analyze->gate->execute->validate loop.
+
+Driven entirely by FakeDriver + FakeAnalyzeClient: no browser, no network, no AI.
+"""
+import tempfile
+
+import pytest
+
+from benchmark.m0_task_runner import TaskRunner
+from benchmark.fakes import FakeDriver, FakeAnalyzeClient, page
+from benchmark.m0_executor import ExecResult
+from benchmark.m0_models import (
+    M0TaskDefinition, M0Criterion, M0CriterionKind as K, M0FailureCriterion,
+    FailureCriterionKind as FK, Difficulty, BenchmarkCategory, TaskStatus, FailureCategory,
+    HumanInterventionRules,
+)
+
+
+def task(**kw):
+    d = dict(task_id="t", site_id="fixture_server", website="W", difficulty=Difficulty.simple,
+             category=BenchmarkCategory.search, goal="g", start_url="http://x/a",
+             max_steps=6, retry_budget=1)
+    d.update(kw)
+    return M0TaskDefinition(**d)
+
+
+def runner(driver, client, mode="playwright", auto_approve=True):
+    return TaskRunner(driver=driver, client=client, executor_mode=mode, run_id="t",
+                      artifacts_dir=tempfile.gettempdir(), auto_approve=auto_approve)
+
+
+def test_happy_path_completes():
+    d = FakeDriver([
+        page("http://x/login", text="form", elements=[{"selector": "#u"}]),
+        page("http://x/ok", text="Welcome tester"),
+    ])
+    c = FakeAnalyzeClient([("fill", "#u", "tester"), ("click", "#go", None)])
+    t = task(success_criteria=[M0Criterion(K.dom_text_present, target="Welcome tester")])
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.completed
+    assert r.ai_calls >= 1
+    assert d.navigations and d.navigations[-1] == "http://x/a"
+
+
+def test_navigation_only_completes_without_action():
+    # criteria already satisfied at first observation -> 0 actions
+    d = FakeDriver([page("http://x/nasa/", text="nasa profile")])
+    c = FakeAnalyzeClient([])
+    t = task(success_criteria=[M0Criterion(K.url_matches, target=r"/nasa/")])
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.completed
+    assert r.steps_taken == 0
+
+
+def test_grounding_failure_classified():
+    d = FakeDriver([page("http://x/a", text="nothing")],
+                   responder=lambda a, i: ExecResult(False, "not found", locator_strategy=None,
+                                                      locator_attempts=5))
+    c = FakeAnalyzeClient([("click", "button.x", None)] * 4)
+    t = task(success_criteria=[M0Criterion(K.dom_text_present, target="done")], retry_budget=1)
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.failed
+    assert r.failure_category == FailureCategory.grounding.value
+    assert r.recoveries_attempted >= 1
+
+
+def test_captcha_blocks():
+    d = FakeDriver([page("http://x/a", text="x")], captcha=True)
+    r = runner(d, FakeAnalyzeClient([("click", "#x", None)])).run(task())
+    assert r.status == TaskStatus.blocked
+    assert r.failure_category == FailureCategory.blocked_captcha.value
+    assert not r.counts_toward_completion
+
+
+def test_failure_criterion_trips():
+    d = FakeDriver([page("http://x/login", text="please log in")])
+    t = task(failure_criteria=[M0FailureCriterion(FK.dom_error_present, target="log in")],
+             success_criteria=[M0Criterion(K.dom_text_present, target="never")])
+    r = runner(d, FakeAnalyzeClient([])).run(t)
+    assert r.status == TaskStatus.blocked  # login wall -> blocked category
+    assert r.failure_category == FailureCategory.blocked_login_wall.value
+
+
+def test_max_steps_timeout():
+    # never satisfies; each action "succeeds" + changes page sig so it keeps looping
+    pages = [page(f"http://x/{i}", text=f"page {i}", elements=[{"selector": "#x"}]) for i in range(10)]
+    d = FakeDriver(pages)
+    c = FakeAnalyzeClient([("click", "#x", None)] * 10)
+    t = task(success_criteria=[M0Criterion(K.dom_text_present, target="unreachable")], max_steps=3)
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.timeout
+    assert r.steps_taken == 3
+
+
+def test_danger_action_requires_human_blocks_unattended():
+    d = FakeDriver([page("http://x/a", text="x", elements=[{"selector": "#buy"}])])
+    c = FakeAnalyzeClient([("click", "#buy", None)])
+    # description carries a danger phrase -> classified danger -> require_human -> blocked
+    c._script = [("click", "#buy", None)]
+    t = task(goal="purchase",
+             human_intervention_rules=HumanInterventionRules(danger_actions="require_human",
+                                                             max_human_interventions=0),
+             success_criteria=[M0Criterion(K.dom_text_present, target="done")])
+    # monkeypatch the action description to include a danger phrase
+    orig = c.analyze
+    def patched(**kw):
+        res = orig(**kw)
+        if res.suggested_actions:
+            res.suggested_actions[0].description = "pay now and place order"
+        return res
+    c.analyze = patched
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.blocked
+    assert r.failure_category == "HUMAN_REQUIRED"
+
+
+def test_rc1_successful_fills_with_no_signature_change_still_complete():
+    """RC-1 regression: successful fills don't change the coarse DOM signature.
+
+    Old behaviour treated each fill as 'no effect', consumed the single recovery, and
+    failed EXECUTION before the final click. After the fix, recovery keys off executor
+    failure only, so the task fills, fills, clicks, and completes.
+    """
+    def login_page():
+        return page("http://127.0.0.1:5000/login", text="Login form here",
+                    elements=[{"selector": "#u"}, {"selector": "#p"}, {"selector": "#go"}])
+    # three identical-signature pages (the two fills change nothing observable), then success
+    pages = [login_page(), login_page(), login_page(),
+             page("http://127.0.0.1:5000/login", text="Welcome tester now",
+                  elements=[{"selector": "#u"}, {"selector": "#p"}, {"selector": "#go"}])]
+    d = FakeDriver(pages)
+    c = FakeAnalyzeClient([("fill", "#u", "tester"), ("fill", "#p", "secret123"),
+                           ("click", "#go", None)])
+    t = task(retry_budget=1, max_steps=6,
+             success_criteria=[M0Criterion(K.dom_text_present, target="Welcome tester")])
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.completed, f"{r.status} {r.failure_category} {r.failure_detail}"
+    assert r.steps_taken == 3
+
+
+def test_recovery_breadcrumb_then_success():
+    # step 1 fails (no effect, same page), recovery retries, step 2 succeeds + completes
+    state = {"calls": 0}
+    def responder(action, idx):
+        state["calls"] += 1
+        if state["calls"] == 1:
+            return ExecResult(False, "no effect", locator_strategy="css_selector", locator_attempts=1)
+        return ExecResult(True, "ok", locator_strategy="css_selector", locator_attempts=1)
+    d = FakeDriver([
+        page("http://x/a", text="start", elements=[{"selector": "#x"}]),
+        page("http://x/b", text="done now"),
+    ], responder=responder)
+    c = FakeAnalyzeClient([("click", "#x", None), ("click", "#x", None)])
+    t = task(success_criteria=[M0Criterion(K.dom_text_present, target="done now")], retry_budget=2)
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.completed
+    assert r.recoveries_attempted >= 1

@@ -1,0 +1,8 @@
+name: release
+description: >
+  Pre-release gate. Same task set as nightly, but intended to be run headed
+  (--no --headless omitted) with human approval enabled (--no-auto-approve) so danger/
+  caution actions pause for a human. Required before tagging a milestone release.
+include_fixtures: true
+include_no_auth: true
+include_auth: true

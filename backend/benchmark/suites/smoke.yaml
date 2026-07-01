@@ -1,0 +1,10 @@
+name: smoke
+description: >
+  Fast PR gate. 5 tasks: 3 offline fixtures (must always pass) + 2 no-auth real-site
+  searches (may be BLOCKED by site defenses but must not ERROR). ~$0.20 / run.
+task_ids:
+  - fixture__login_form
+  - fixture__pagination
+  - fixture__modal_dialog
+  - youtube_com__video_search
+  - github_com__repo_search

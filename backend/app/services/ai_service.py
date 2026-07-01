@@ -228,6 +228,7 @@ def _call_openrouter_chat(
     if response_format:
         body["response_format"] = response_format
 
+    _t0 = time.perf_counter()
     try:
         with httpx.Client(timeout=60.0) as client:
             response = client.post(
@@ -252,10 +253,30 @@ def _call_openrouter_chat(
         raise AIProviderError("OpenRouter", 502, f"Unexpected OpenRouter response: {payload}") from exc
 
     if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        return "".join(str(part.get("text", "")) for part in content if isinstance(part, dict))
-    return str(content or "")
+        text = content
+    elif isinstance(content, list):
+        text = "".join(str(part.get("text", "")) for part in content if isinstance(part, dict))
+    else:
+        text = str(content or "")
+
+    # M0.6 diagnostics (TRACE_MODE only): record the exact prompt + raw response. Purely
+    # additive; the returned value is unchanged, so behavior is byte-identical when off.
+    if settings.trace_mode:
+        try:
+            from app.diagnostics import trace_sink
+            _choice0 = (payload.get("choices") or [{}])[0]
+            trace_sink.record_provider_exchange(
+                request={"provider": "openrouter", "model": body["model"],
+                         "messages": body["messages"], "temperature": body["temperature"],
+                         "max_tokens": body["max_tokens"],
+                         "response_format": body.get("response_format")},
+                response={"raw_text": text, "finish_reason": _choice0.get("finish_reason"),
+                          "usage": payload.get("usage")},
+                latency_ms=(time.perf_counter() - _t0) * 1000)
+        except Exception:
+            pass
+
+    return text
 
 
 def _image_content_part(img_bytes: bytes, mime_type: str) -> dict:

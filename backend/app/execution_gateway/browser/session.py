@@ -28,6 +28,23 @@ from typing import Any, Optional
 DEFAULT_TIMEOUT_MS: int = 30_000
 SCREENSHOT_DIR = os.path.join(tempfile.gettempdir(), "ai_browser_assist_screenshots")
 
+# Records intended window.open() targets WITHOUT changing behaviour (calls through to the
+# original and returns its result). Lets the pipeline recover the URL of a popup that the
+# browser blocked (e.g. a non-gesture service launcher), so it can navigate there directly.
+_WINDOW_OPEN_SHIM = """
+(() => {
+  try {
+    if (window.__aiOpenShim) return; window.__aiOpenShim = true;
+    window.__intendedOpens = [];
+    const orig = window.open;
+    window.open = function(u, t, f) {
+      try { if (u) window.__intendedOpens.push(String(u)); } catch (e) {}
+      try { return orig ? orig.apply(window, arguments) : null; } catch (e) { return null; }
+    };
+  } catch (e) {}
+})();
+"""
+
 
 class BrowserSession:
     """Wraps the Playwright objects for one execution. Owns its page/context/browser."""
@@ -58,6 +75,66 @@ class BrowserSession:
         self.active_tab_id = "tab-0"
         self.screenshots: list[str] = []
         self.downloads:   list[str] = []
+        # popup / new-window registry (window.open / target=_blank)
+        self._popups: list[Any] = []
+        self._attach_context_listener()
+
+    # ── popups / new windows ───────────────────────────────────────────────────
+
+    def _attach_context_listener(self) -> None:
+        """Register popups (window.open / target=_blank) opened in this context.
+
+        Uses the context 'page' event + page.opener() to tell a real popup (opener set)
+        from an explicit context.new_page() (opener None), so the manual register_tab /
+        switch_tab API is unaffected. Best-effort: guarded for fake contexts in unit
+        tests. The initial page (tab-0) was created before this listener, so it is never
+        mistaken for a popup."""
+        try:
+            self.context.on("page", self._on_new_page)
+        except Exception:
+            pass
+
+    def _on_new_page(self, page: Any) -> None:
+        try:
+            if page is None or any(page is p for p in self._popups):
+                return
+            try:
+                opener = page.opener()
+            except Exception:
+                opener = None
+            if opener is not None:          # real popup, NOT an explicit new_page()
+                self._popups.append(page)
+                self.register_tab(page)     # make it followable (dedup-aware)
+        except Exception:
+            pass
+
+    def latest_popup(self) -> Any:
+        return self._popups[-1] if self._popups else None
+
+    def popup_count(self) -> int:
+        return len(self._popups)
+
+    def follow_latest_popup(self) -> Any:
+        """Switch the active page to the most recently opened popup (if any).
+
+        Explicit, opt-in — nothing calls this automatically, so existing single-page
+        flows are unchanged. Returns the popup page or None."""
+        pop = self.latest_popup()
+        if pop is None:
+            return None
+        self.switch_tab(self.register_tab(pop))
+        return pop
+
+    def intended_popup_urls(self) -> list[str]:
+        """URLs the current page tried to window.open() — even if the popup was blocked.
+
+        Lets a caller navigate directly to a service launcher's target when the browser
+        suppressed the popup. Best-effort; read on the session's own thread."""
+        try:
+            vals = self.ensure_page().evaluate("() => window.__intendedOpens || []")
+            return [str(u) for u in vals] if vals else []
+        except Exception:
+            return []
 
     # ── crash recovery ─────────────────────────────────────────────────────────
 
@@ -79,6 +156,10 @@ class BrowserSession:
     # ── tabs / windows ─────────────────────────────────────────────────────────
 
     def register_tab(self, page: Any) -> str:
+        # dedup: a page already registered (e.g. auto-registered popup) keeps its id
+        for tid, pg in self._tabs.items():
+            if pg is page:
+                return tid
         tab_id = f"tab-{len(self._tabs)}"
         self._tabs[tab_id] = page
         return tab_id
@@ -144,6 +225,7 @@ class BrowserSession:
             "timeout_ms":    self.timeout_ms,
             "active_tab_id": self.active_tab_id,
             "tab_count":     self.tab_count(),
+            "popups":        len(self._popups),
             "current_url":   url,
             "current_title": title,
             "screenshots":   len(self.screenshots),
@@ -180,6 +262,10 @@ class BrowserSessionManager:
         browser = pw.chromium.launch(headless=headless)
         context = browser.new_context(accept_downloads=True)
         context.set_default_timeout(self._timeout_ms)
+        try:
+            context.add_init_script(_WINDOW_OPEN_SHIM)   # capture window.open targets (additive)
+        except Exception:
+            pass
         page = context.new_page()
         return BrowserSession(
             execution_id, pw, browser, context, page,

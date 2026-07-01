@@ -172,3 +172,23 @@
 **Trade-off:** Chrome displays "Read and change all your data on websites" during installation. This is standard and expected for browser assistant extensions (Grammarly, Notion Clipper, etc.). The permission is limited to http/https — chrome:// pages remain inaccessible by design.
 
 **Affected files:** `manifest.json`
+
+---
+
+## ADR-012: M0 real-website benchmark — dual executor, criteria-based completion, faithful injection
+**Date:** 2026-06-30
+**Status:** Accepted
+
+**Context:** The repository had **zero measurement of real-world task completion on real websites** (Phase F certification only ran 24 synthetic local fixtures on 127.0.0.1 and asserted 100%). Per `docs/benchmark-m0.md`, M0 builds a benchmark that drives the live `/analyze` loop against real sites so every future milestone (M1+) is judged by a measured number. This ADR records the implementation decisions.
+
+**Decisions:**
+1. **Dual executor.** The benchmark runs in two modes: `playwright` (trusted CDP input — an upper bound that isolates reasoning/grounding failures from execution failures) and `synthetic` (the verbatim extension `executor_v2` events — production reality). The per-tier gap between them quantifies the execution-fidelity problem M1 targets.
+2. **Completion is detected by re-evaluating `success_criteria` after every step**, because the live `AnalyzeResponse` has no `task_complete` action (its `action_type` set is click/fill/scroll/navigate/wait/select_option/choose_date/hover/keyboard_shortcut). "Extract X" tasks read X from the response `analysis` text.
+3. **Faithful Mode-B injection.** `benchmark/injected_scripts.js` is a type-stripped verbatim port of `extractor_v2.ts` + `executor_v2.ts` (both pure DOM, no `chrome.*`). A drift-guard test (`test_injection_fidelity.py`) fails if the action cases or the fill() event order diverge from the `.ts` sources.
+4. **Reuse, not fork.** M0 lives under `backend/benchmark/` and reuses `app.certification.{fixtures,reliability,failure_catalog,trace}`. No production code was modified.
+5. **Blocked ≠ failed.** CAPTCHA / rate-limit / auth-wall / anti-bot outcomes are excluded from the completion-rate denominator (they are site defenses, not agent failures).
+6. **Dependencies isolated.** `playwright`, `requests`, `PyYAML` go in `requirements-benchmark.txt`, not production `requirements.txt`. HTML reports use the stdlib only (self-contained, no external JS/CSS).
+
+**Why this only narrowly touches ADR-006 (no server-side Playwright):** Playwright here is a **measurement tool** for a dev/CI benchmark, not a production execution path. Production execution remains the user's real Chrome session.
+
+**Affected files:** new `backend/benchmark/**`, `backend/requirements-benchmark.txt`, `backend/tests/benchmark/**`, `.gitignore`. No app code changed.

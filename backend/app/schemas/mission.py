@@ -143,6 +143,7 @@ class MissionInspectorSchema(BaseModel):
     runtime:       Optional[dict] = None   # V8.9 browser runtime summary
     execution_planning: Optional[dict] = None   # V9.0 execution planning summary
     execution_gateway:  Optional[dict] = None   # Phase B execution gateway summary
+    website_intelligence: Optional[dict] = None # Phase E website intelligence pointer
     from_store:    bool = True             # True = in-memory; False = restored from DB
     latency_ms:    int = 0
 

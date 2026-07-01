@@ -1,0 +1,18 @@
+# M0 Real Website Benchmark — dev/CI dependencies ONLY.
+# NOT a production dependency. Production requirements.txt is unchanged.
+#
+# Install:   pip install -r requirements-benchmark.txt
+# Then:      playwright install chromium
+#
+# Why each is needed:
+#   playwright  — drives a real Chromium for the benchmark (Mode A trusted input,
+#                 Mode B synthetic-event injection, screenshots, network capture).
+#   requests    — POSTs to the live /analyze backend endpoint from the runner.
+#   PyYAML      — parses the human-editable suite definitions in benchmark/suites/*.yaml.
+#
+# The HTML report is generated with the standard library only (no jinja2) so that it
+# stays fully self-contained with no external JS/CSS, exactly as the design requires.
+
+playwright>=1.45.0
+requests>=2.32.0
+PyYAML>=6.0

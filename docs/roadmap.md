@@ -108,6 +108,22 @@ Stop condition: User completes a 3-step workflow with approval at each step.
 
 ---
 
+## Post-audit roadmap (real-world completion)
+
+After the architecture review (`docs/architecture-review.md` → `-reconciliation.md` →
+`-alignment.md`), the program is sequenced by measured real-world task completion:
+
+- **M0 — Real Website Benchmark — IMPLEMENTED (2026-06-30).** `backend/benchmark/`,
+  designed in `docs/benchmark-m0.md`. Drives the live `/analyze` loop against real sites +
+  fixtures in two executor modes; emits JSON/MD/HTML + a locked baseline. Framework verified
+  offline (35 validation checks, 63 tests, perf bench). **First real baseline pending** an
+  operator run (`pip install -r requirements-benchmark.txt && playwright install chromium`,
+  then `python -m benchmark.m0_runner --suite nightly --executor playwright`).
+- **M1** — CDP trusted driver + shadow/iframe + ranked locators (gated by M0 baseline).
+- **M2** — close the loop (validate → reflect → recover, risk-scoped approval).
+- **M3** — wire website_intelligence + vision into in-loop perception.
+- **M4** — merge mission/unified, multi-tab, persistence, learning layer.
+
 ## V2 Backlog (Out of scope for MVP)
 
 - Playwright integration for server-side browser actions

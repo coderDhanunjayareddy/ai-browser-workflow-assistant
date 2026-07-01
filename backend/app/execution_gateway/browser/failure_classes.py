@@ -14,6 +14,7 @@ This engine is consumed only when recovery is enabled on the adapter; the defaul
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -61,6 +62,7 @@ class FailureCategory(str, Enum):
     stale_element         = "StaleElement"
     temporary_rendering   = "TemporaryRendering"
     invalid_selector      = "InvalidSelector"
+    ambiguous_locator     = "AmbiguousLocator"
     navigation_failed     = "NavigationFailed"
     unknown               = "Unknown"
 
@@ -100,6 +102,9 @@ PROFILES: dict[FailureCategory, FailureProfile] = {
     FailureCategory.upload_failure:       FailureProfile(FailureCategory.upload_failure,      FailureSeverity.permanent, False, (RecoveryAction.none,)),
     FailureCategory.authentication_expired: FailureProfile(FailureCategory.authentication_expired, FailureSeverity.permanent, False, (RecoveryAction.none,)),
     FailureCategory.invalid_selector:     FailureProfile(FailureCategory.invalid_selector,    FailureSeverity.permanent, False, (RecoveryAction.none,)),
+    # Ambiguous locator: matches >1 element. Deterministic recovery (wait/refresh) can
+    # NEVER make it unique — fail fast so the selector is disambiguated (no wasted retries).
+    FailureCategory.ambiguous_locator:    FailureProfile(FailureCategory.ambiguous_locator,   FailureSeverity.permanent, False, (RecoveryAction.none,)),
     FailureCategory.navigation_failed:    FailureProfile(FailureCategory.navigation_failed,   FailureSeverity.permanent, False, (RecoveryAction.none,)),
     FailureCategory.unknown:              FailureProfile(FailureCategory.unknown,             FailureSeverity.permanent, False, (RecoveryAction.none,)),
 }
@@ -155,6 +160,15 @@ def _refine(category: FailureCategory, msg_low: str, phase: str) -> FailureCateg
     message is classified correctly even when the Phase C base classifier could only
     reach a generic category. Ordered most-severe / most-specific first.
     """
+    # 0. Ambiguous locator: a strict-uniqueness / Playwright strict-mode violation where
+    #    the locator matched MORE THAN ONE element. Waiting / refreshing can never make it
+    #    unique, so this is PERMANENT — fail fast and surface an accurate category (the
+    #    selector must be disambiguated). A "matched 0 elements" strict failure is genuinely
+    #    missing and falls through to element_not_found (which IS recoverable).
+    if "strict mode violation" in msg_low or "strict uniqueness failed" in msg_low or "not unique" in msg_low:
+        m = re.search(r"(?:matched|resolved to)\s+(\d+)\s+element", msg_low)
+        if "strict mode violation" in msg_low or (m is not None and int(m.group(1)) >= 2):
+            return FailureCategory.ambiguous_locator
     # 1. Page crash (fatal — target/page/browser closed or crashed).
     if any(n in msg_low for n in ("crash", "target closed", "page closed",
                                   "browser has been closed", "page has been closed",

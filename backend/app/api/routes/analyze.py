@@ -1,6 +1,8 @@
 import json
 
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Depends, Header
 from sqlalchemy.orm import Session
 from google.genai import errors
 
@@ -25,12 +27,19 @@ def analyze_usage() -> dict:
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
-def analyze(request: AnalyzeRequest, db: Session = Depends(get_db)) -> AnalyzeResponse:
+def analyze(request: AnalyzeRequest, db: Session = Depends(get_db),
+            x_trace_id: Optional[str] = Header(default=None, alias="X-Trace-Id")) -> AnalyzeResponse:
     """
     Analyze a page context and task. Returns AI-suggested browser actions.
     Each error case maps to a specific HTTP status so the extension can
     show a meaningful message instead of a generic failure.
     """
+    # M0.6 diagnostics (TRACE_MODE only): tag this request so the provider exchange is
+    # written under this trace_id. No-op when TRACE_MODE is off; never alters the response.
+    if x_trace_id:
+        from app.diagnostics import trace_sink
+        trace_sink.set_current(x_trace_id)
+
     page_context_text = context_service.format_page_context(request.page_context)
     
     print("\n================= PAGE CONTEXT =================")

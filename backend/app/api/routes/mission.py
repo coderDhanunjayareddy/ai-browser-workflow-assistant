@@ -492,6 +492,23 @@ def inspect_mission(mission_id: str):
     except Exception:
         pass
 
+    # Phase E: Website Intelligence pointer (non-blocking)
+    website_intelligence_pointer = None
+    try:
+        from app.execution_gateway import registry as _gw_reg2
+        from app.execution_gateway.browser import session as _browser_sess
+        gw_sum = _gw_reg2.summary_for_mission(mission_id)
+        latest_exec = gw_sum.get("latest_execution_id")
+        has_live = bool(latest_exec and _browser_sess.get(latest_exec) is not None)
+        website_intelligence_pointer = {
+            "available":        has_live,
+            "latest_execution": latest_exec,
+            "live_endpoint":    (f"/website-intelligence/live/{latest_exec}" if latest_exec else None),
+            "analyze_endpoint": "/website-intelligence/analyze",
+        }
+    except Exception:
+        pass
+
     # Phase B: Execution gateway summary (non-blocking)
     execution_gateway_summary = None
     try:
@@ -518,6 +535,7 @@ def inspect_mission(mission_id: str):
         runtime=runtime_summary,
         execution_planning=execution_planning_summary,
         execution_gateway=execution_gateway_summary,
+        website_intelligence=website_intelligence_pointer,
         from_store=from_store,
         latency_ms=latency_ms,
     )

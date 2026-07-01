@@ -80,6 +80,12 @@ def diagnostics(execution_id: str) -> dict[str, Any]:
         "timeline_summary":      exec_timeline.summary(execution_id),
         "metrics":               exec_metrics.get_metrics(),
         "session":               sess_info or None,
+        # Phase E — Website Intelligence pointer (additive; analysis served on demand)
+        "website_intelligence": {
+            "available":        sess is not None,
+            "live_endpoint":    f"/website-intelligence/live/{execution_id}",
+            "analyze_endpoint": "/website-intelligence/analyze",
+        },
     }
 
 

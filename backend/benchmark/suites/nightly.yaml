@@ -1,0 +1,8 @@
+name: nightly
+description: >
+  Full 27-task suite run daily. Includes fixtures, no-auth real sites, and auth-gated
+  sites. Auth-gated tasks SKIP automatically when no recorded auth state exists. Run in
+  both executor modes (playwright + synthetic) to measure the execution-fidelity gap.
+include_fixtures: true
+include_no_auth: true
+include_auth: true

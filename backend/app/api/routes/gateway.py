@@ -141,3 +141,44 @@ def get_browser_screenshot(execution_id: str):
     if not path or not os.path.exists(path):
         raise HTTPException(status_code=404, detail="No screenshot available")
     return FileResponse(path, media_type="image/png")
+
+
+# ── Phase D additive endpoints (non-breaking, read-only diagnostics/metrics) ──
+# GET /gateway/browser/diagnostics/{execution_id} → full browser diagnostics (metadata)
+# GET /gateway/browser/monitor/{execution_id}     → per-step execution monitor summary
+# GET /gateway/browser/timeline/{execution_id}    → per-step execution timeline
+# GET /gateway/browser/metrics                    → aggregate execution metrics
+
+@router.get("/browser/metrics")
+def get_browser_metrics():
+    from app.execution_gateway.browser import metrics as exec_metrics
+    return exec_metrics.get_metrics()
+
+
+@router.get("/browser/diagnostics/{execution_id}")
+def get_browser_diagnostics(execution_id: str):
+    from app.execution_gateway.browser import diagnostics as browser_diag
+    from app.execution_gateway.browser import monitor as exec_monitor
+    # 404 only when there is neither a monitor record nor a live session for the id.
+    if not exec_monitor.steps_for(execution_id):
+        from app.execution_gateway.browser import session as browser_session
+        if browser_session.get(execution_id) is None:
+            raise HTTPException(status_code=404, detail=f"No diagnostics for {execution_id}")
+    return browser_diag.diagnostics(execution_id)
+
+
+@router.get("/browser/monitor/{execution_id}")
+def get_browser_monitor(execution_id: str):
+    from app.execution_gateway.browser import monitor as exec_monitor
+    if not exec_monitor.steps_for(execution_id):
+        raise HTTPException(status_code=404, detail=f"No monitor data for {execution_id}")
+    return exec_monitor.summary(execution_id)
+
+
+@router.get("/browser/timeline/{execution_id}")
+def get_browser_timeline(execution_id: str):
+    from app.execution_gateway.browser import exec_timeline
+    summary = exec_timeline.summary(execution_id)
+    if summary["event_count"] == 0:
+        raise HTTPException(status_code=404, detail=f"No timeline for {execution_id}")
+    return summary
