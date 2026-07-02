@@ -12,7 +12,7 @@ class RelevanceRanker:
 
     def rank(self, task: str, elements: list[Any]) -> list[dict]:
         task_terms = self._terms(task)
-        ranked: list[tuple[float, int, dict]] = []
+        ranked: list[tuple[float, float, float, int, dict]] = []
         for index, item in enumerate(elements):
             data = item.model_dump() if hasattr(item, "model_dump") else dict(item)
             text = " ".join(str(data.get(key) or "") for key in (
@@ -23,6 +23,10 @@ class RelevanceRanker:
             score = overlap * 10 + (3 if data.get("visible", True) else 0)
             score += 2 if data.get("aria_label") or data.get("accessibility_name") else 0
             score += 1 if data.get("selector") else 0
-            ranked.append((score, -index, data))
-        ranked.sort(reverse=True, key=lambda row: (row[0], row[1]))
-        return [data for _, _, data in ranked[: self.limit]]
+            bbox = data.get("bounding_box") or {}
+            bbox_y = bbox.get("y", 0) or 0
+            bbox_x = bbox.get("x", 0) or 0
+            # Ties: prefer topmost, then leftmost, then earliest DOM order.
+            ranked.append((score, -bbox_y, -bbox_x, -index, data))
+        ranked.sort(reverse=True, key=lambda row: (row[0], row[1], row[2], row[3]))
+        return [data for *_, data in ranked[: self.limit]]

@@ -4,6 +4,10 @@ Grounding Sprint — RelevanceRanker unit tests.
 M-G2: the selector string is now part of the term-overlap text pool, so an unlabeled
 element whose selector carries task-relevant tokens (e.g. "#nav-search-submit-button")
 can out-rank a labeled decoy that merely mentions the task's domain in its aria-label.
+
+M-G3a: ties (equal score) are now broken by geometric position (topmost, then leftmost)
+before falling back to DOM order, using the already-captured bounding_box — no new data
+source, no schema change.
 """
 from app.context_compression.relevance_ranker import RelevanceRanker
 
@@ -82,3 +86,51 @@ def test_selector_terms_are_tokenized_on_non_alnum_boundaries():
     other = _el(selector="#totally-unrelated-widget")
     ranked2 = RelevanceRanker().rank("submit", [other, el])
     assert ranked2[0]["selector"] == "#nav-search-submit-button"
+
+
+# ── M-G3a: position-based tie-break ──────────────────────────────────────────
+
+def test_equal_score_ties_prefer_topmost_element():
+    low = _el(text="item", selector="#a", bounding_box={"x": 0, "y": 400})
+    high = _el(text="item", selector="#b", bounding_box={"x": 0, "y": 50})
+    ranked = RelevanceRanker().rank("item", [low, high])
+    assert ranked[0]["selector"] == "#b"
+
+
+def test_equal_score_and_equal_y_ties_prefer_leftmost_element():
+    right = _el(text="item", selector="#a", bounding_box={"x": 300, "y": 100})
+    left = _el(text="item", selector="#b", bounding_box={"x": 10, "y": 100})
+    ranked = RelevanceRanker().rank("item", [right, left])
+    assert ranked[0]["selector"] == "#b"
+
+
+def test_exact_position_tie_falls_back_to_dom_order():
+    first = _el(text="item", selector="#first", bounding_box={"x": 0, "y": 0})
+    second = _el(text="item", selector="#second", bounding_box={"x": 0, "y": 0})
+    ranked = RelevanceRanker().rank("item", [first, second])
+    assert ranked[0]["selector"] == "#first"
+
+
+def test_missing_bounding_box_defaults_to_origin_and_does_not_crash():
+    no_bbox = _el(text="item", selector="#no-bbox")
+    no_bbox.pop("bounding_box")
+    with_bbox = _el(text="item", selector="#with-bbox", bounding_box={"x": 5, "y": 5})
+    ranked = RelevanceRanker().rank("item", [with_bbox, no_bbox])
+    # missing bbox treated as (0, 0) -> topmost/leftmost -> ranks first on position
+    assert ranked[0]["selector"] == "#no-bbox"
+
+
+def test_duplicate_announce_elements_are_disambiguated_by_position_not_raw_index():
+    # Reconstruction of amazon_in__add_to_cart: N structurally-identical candidates
+    # (#a-autoid-N-announce) tie at an exact score; position must break the tie
+    # deterministically instead of collapsing to whichever happened to appear last
+    # in DOM order at a lower index.
+    duplicates = [
+        _el(text="", selector=f"#a-autoid-{i}-announce", role="button",
+            bounding_box={"x": 20, "y": 200 + i * 40})
+        for i in range(5)
+    ]
+    # shuffle DOM order so index alone would pick the wrong one
+    shuffled = [duplicates[3], duplicates[1], duplicates[4], duplicates[0], duplicates[2]]
+    ranked = RelevanceRanker().rank("add to cart", shuffled)
+    assert ranked[0]["selector"] == "#a-autoid-0-announce"
