@@ -16,7 +16,8 @@ class RelevanceRanker:
         for index, item in enumerate(elements):
             data = item.model_dump() if hasattr(item, "model_dump") else dict(item)
             text = " ".join(str(data.get(key) or "") for key in (
-                "text", "aria_label", "accessibility_name", "placeholder", "role", "type"
+                "text", "aria_label", "accessibility_name", "placeholder", "role", "type",
+                "selector",
             ))
             overlap = len(task_terms & self._terms(text))
             score = overlap * 10 + (3 if data.get("visible", True) else 0)
