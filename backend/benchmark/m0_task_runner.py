@@ -169,6 +169,11 @@ class TaskRunner:
             step.locator_attempts = ex.locator_attempts
             if not ex.success:
                 step.error_detail = ex.message
+            # M2: executor-level (DOM-diagnosed) recovery is distinct from the loop's own
+            # LLM-retry recovery below — it happens transparently within this one step.
+            if ex.recovery_attempted:
+                step.is_recovery = True
+                step.recovery_success = ex.success
 
             # WAIT + re-observe for validation
             self.driver.wait_stable(max_ms=3000)

@@ -38,6 +38,7 @@
 
     var MAX_ELEMENTS = 150;
     var MAX_TEXT_LENGTH = 1000;
+    var MAX_VALUE_LENGTH = 200;
 
     function sanitizeText(text) {
       return text
@@ -121,10 +122,37 @@
       var state = {};
       if (el.getAttribute('aria-expanded')) state['expanded'] = el.getAttribute('aria-expanded') === 'true';
       if (el.getAttribute('aria-checked')) state['checked'] = el.getAttribute('aria-checked') === 'true';
+      // M1.2: native <details> open/closed state (evidence-backed, no ARIA attribute needed).
+      if (el.tagName === 'DETAILS') state['expanded'] = el.open;
+
       if (el instanceof HTMLInputElement) {
         if (el.disabled) state['disabled'] = true;
         if (el.readOnly) state['readonly'] = true;
+
+        // M1.2: current value/checked so the planner can tell "already filled" from "empty".
+        // Native .checked is ground truth for real checkbox/radio inputs.
+        if (el.type === 'checkbox' || el.type === 'radio') {
+          state['checked'] = el.checked;
+        } else if (
+          el.type !== 'password' && el.type !== 'file' && el.type !== 'hidden' &&
+          el.type !== 'submit' && el.type !== 'button' && el.type !== 'reset' && el.type !== 'image'
+        ) {
+          // Password fields are explicitly excluded from value capture — never even redacted.
+          if (el.value) state['value'] = sanitizeText(el.value).slice(0, MAX_VALUE_LENGTH);
+        }
+      } else if (el instanceof HTMLTextAreaElement) {
+        if (el.value) state['value'] = sanitizeText(el.value).slice(0, MAX_VALUE_LENGTH);
+      } else if (el instanceof HTMLSelectElement) {
+        if (el.value) state['value'] = el.value;
+        var selectedOption = el.options[el.selectedIndex];
+        if (selectedOption && selectedOption.text) {
+          state['selected_text'] = sanitizeText(selectedOption.text).slice(0, MAX_VALUE_LENGTH);
+        }
+      } else if (el.getAttribute('contenteditable') === 'true') {
+        var text = el.innerText || el.textContent || '';
+        if (text) state['value'] = sanitizeText(text).slice(0, MAX_VALUE_LENGTH);
       }
+
       return state;
     }
 

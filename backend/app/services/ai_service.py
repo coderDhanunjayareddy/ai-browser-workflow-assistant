@@ -536,6 +536,69 @@ def fallback_parse_failure(session_id: str) -> AnalyzeResponse:
     )
 
 
+# ── M1.3 — Reflection (capability spec: docs/m1-engineering-spec.md Part 6) ────
+#
+# Mechanism decision (Part 10, M1.3 step 2 — recorded here, not assumed in advance):
+# a BOUNDED SECONDARY CALL, gated on the Part 6 trigger condition, was chosen over
+# extending the primary pass. Reasoning: the trigger condition is defined over the
+# *candidate action* the primary call returns — it cannot be evaluated before that
+# candidate exists, so "extend the primary pass" cannot act on a verified match, only
+# a speculative one. A secondary call gated on the verified match cleanly satisfies
+# every Part 6 guarantee: bounded (at most one extra call), fails safe (falls back to
+# the original action on any error), no parallel planner (exactly one action is still
+# returned), and zero cost on the non-triggered path (the gate is a cheap, local,
+# deterministic check with no LLM call of its own).
+#
+# Evaluation basis (Part 10, M1.3 step 1): no live benchmark run was available when
+# this was implemented (see the M1.3 deliverable). The decision instead uses the
+# existing evidence trail (M0.7-M0.9, M1.1/M1.2 test results): fixture__login_form's
+# repeat is expected to be substantially resolved by M1.1 (episodic memory) + M1.2
+# (observable field values) alone, since both signals now independently indicate the
+# field is filled. fixture__pagination has no equivalent "is the goal state visible"
+# shortcut and M0.9's own scenario analysis (Task 4, scenario 3) predicts memory alone
+# is insufficient — reflection is the milestone expected to move that case. This is a
+# reasoned evaluation, not a fresh measurement; a live confirmatory run remains pending.
+
+def _detect_repeat_trigger(response: AnalyzeResponse, compressed_context: Optional[dict]) -> Optional[dict]:
+    """
+    Part 6 trigger condition: does the primary candidate action's (action_type,
+    target_selector) match a `recent_actions` entry whose page_changed is False or
+    unknown (None)? Pure and deterministic — no LLM call, no side effects. Returns the
+    matching entry, or None if reflection is not warranted for this response.
+    """
+    if not compressed_context or not response.suggested_actions:
+        return None
+    recent_actions = compressed_context.get("recent_actions") or []
+    if not recent_actions:
+        return None
+    candidate = response.suggested_actions[0]
+    if not candidate.target_selector:
+        return None
+    for entry in recent_actions:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("action_type") != candidate.action_type:
+            continue
+        if entry.get("selector") != candidate.target_selector:
+            continue
+        if entry.get("page_changed") is not True:
+            return entry
+    return None
+
+
+def _reflection_directive(matched_entry: dict) -> str:
+    """A short instruction referencing the SPECIFIC abandoned action (Part 6 Purpose)."""
+    action_type = matched_entry.get("action_type") or "action"
+    selector = matched_entry.get("selector") or "the same element"
+    return (
+        "\n\nREFLECTION: You already attempted this exact action "
+        f'({action_type} on selector "{selector}") and it did not produce visible '
+        "progress toward the goal. Do not propose that exact action again. Choose a "
+        "different element or a different approach, or if repeating it is genuinely "
+        "still correct, say so explicitly in your reasoning."
+    )
+
+
 # ── Public interface ──────────────────────────────────────────────────────────
 
 def generate_text(system_prompt: str, user_message: str) -> str:
@@ -767,7 +830,26 @@ def analyze(
         print(f"[AI Service] Raw JSON response from OpenRouter (Workflow):\n{raw}\n", flush=True)
         for repair_attempt in range(2):
             try:
-                return parse_response(raw, session_id)
+                result = parse_response(raw, session_id)
+                trigger = _detect_repeat_trigger(result, compressed_context)
+                if trigger is None:
+                    return result
+                # M1.3: bounded, fail-safe reflection — one extra call, only when the
+                # primary candidate repeats a recent no-progress action (Part 6).
+                try:
+                    reflected_raw = _call_openrouter_chat(
+                        [
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "user", "content": user_message + _reflection_directive(trigger)},
+                        ],
+                        response_format={"type": "json_object"},
+                        max_tokens=512,
+                    )
+                    print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n", flush=True)
+                    return parse_response(reflected_raw, session_id)
+                except Exception as reflect_err:
+                    print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}", flush=True)
+                    return result
             except Exception as e:
                 try:
                     with open("debug_openrouter_raw.json", "w", encoding="utf-8") as f:
@@ -832,7 +914,28 @@ def analyze(
     print(f"[AI Service] Raw JSON response from Gemini (Workflow):\n{raw}\n", flush=True)
     for repair_attempt in range(2):
         try:
-            return parse_response(raw, session_id)
+            result = parse_response(raw, session_id)
+            trigger = _detect_repeat_trigger(result, compressed_context)
+            if trigger is None:
+                return result
+            # M1.3: bounded, fail-safe reflection — one extra call, only when the
+            # primary candidate repeats a recent no-progress action (Part 6).
+            try:
+                reflected_response = client.models.generate_content(
+                    model=settings.gemini_model,
+                    contents=contents + [types.Part.from_text(text=_reflection_directive(trigger))],
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_PROMPT,
+                        response_mime_type="application/json",
+                        temperature=0,
+                    ),
+                )
+                reflected_raw = reflected_response.text or "{}"
+                print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n", flush=True)
+                return parse_response(reflected_raw, session_id)
+            except Exception as reflect_err:
+                print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}", flush=True)
+                return result
         except Exception as e:
             try:
                 with open("debug_gemini_raw.json", "w", encoding="utf-8") as f:

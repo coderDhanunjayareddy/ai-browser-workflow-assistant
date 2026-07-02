@@ -35,7 +35,11 @@ def test_compressor_emits_only_planner_contract_and_ranks_relevance():
         task="search flights", page_context=page(elements), verified_facts={"origin": "HYD"},
         prior_steps=[PriorStep(action_type="fill", description="Set origin", execution_result="success")],
     )
-    assert set(result) == {"verified_facts", "active_goal", "relevant_elements", "important_failures", "task_constraints"}
+    # M1.1 adds "recent_actions" (episodic memory) to the compressed-context contract.
+    assert set(result) == {
+        "verified_facts", "active_goal", "relevant_elements", "recent_actions",
+        "important_failures", "task_constraints",
+    }
     assert result["relevant_elements"][0]["selector"] == "#search"
     assert "full text must not leak" not in str(result)
 

@@ -62,3 +62,35 @@ def test_extractor_caps_preserved():
     js = _read(JS)
     assert "MAX_ELEMENTS = 150" in js
     assert "MAX_TEXT_LENGTH = 1000" in js
+
+
+# ── M1.2: observation completeness (value/checked/selected capture) ─────────
+
+@pytest.mark.skipif(not os.path.exists(EXTRACTOR_TS), reason="extension source not present")
+def test_value_capture_present_in_both_files():
+    ts, js = _read(EXTRACTOR_TS), _read(JS)
+    for marker in ("MAX_VALUE_LENGTH", "checkbox", "selected_text", "contenteditable"):
+        assert marker in ts, f"{marker} missing from extractor_v2.ts"
+        assert marker in js, f"{marker} missing from injected_scripts.js"
+
+
+def test_password_fields_excluded_from_value_capture_in_both_files():
+    ts, js = _read(EXTRACTOR_TS), _read(JS)
+    for src, name in ((ts, "extractor_v2.ts"), (js, "injected_scripts.js")):
+        assert "'password'" in src, f"password exclusion missing from {name}"
+        # the exclusion must sit on the same branch that guards state['value'] capture
+        idx = src.find("el.type !== 'password'")
+        assert idx != -1, f"password exclusion condition missing from {name}"
+        assert "state['value']" in src[idx:idx + 400], (
+            f"password exclusion in {name} is not guarding the value-capture branch")
+
+
+def test_checked_uses_native_property_in_both_files():
+    ts, js = _read(EXTRACTOR_TS), _read(JS)
+    assert "state['checked'] = el.checked" in ts
+    assert "state['checked'] = el.checked" in js
+
+
+def test_details_open_state_in_both_files():
+    ts, js = _read(EXTRACTOR_TS), _read(JS)
+    assert "DETAILS" in ts and "DETAILS" in js

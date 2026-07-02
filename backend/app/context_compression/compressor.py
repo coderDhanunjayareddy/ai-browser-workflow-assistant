@@ -28,10 +28,14 @@ class ContextCompressor:
             "verified_facts": state["verified_facts"],
             "active_goal": state["active_goal"],
             "relevant_elements": self.ranker.rank(task, page_context.interactive_elements),
+            # M1.1: episodic memory — previously-successful actions (with selector) that were
+            # computed by StateSummarizer but discarded before this point. Restoring this is
+            # the entire M1.1 change; see docs/m1-engineering-spec.md Part 4.1.
+            "recent_actions": state["completed_nodes"],
             "important_failures": state["important_failures"],
             "task_constraints": task_constraints or [],
         }
-        # V3.0: inject cognitive context when available (6th key, optional)
+        # V3.0: inject cognitive context when available (7th key, optional)
         if cognitive_context:
             result["cognitive_context"] = cognitive_context
         return result

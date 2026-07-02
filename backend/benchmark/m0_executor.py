@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from benchmark.m0_models import LocatorStrategy
+from benchmark.recovery_engine import RecoveryEngine, RecoveryHistory
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _INJECT_PATH = os.path.join(_HERE, "injected_scripts.js")
@@ -40,6 +41,10 @@ class ExecResult:
     locator_strategy: Optional[str] = None
     locator_attempts: int = 0
     error_type:       str = ""
+    # M2: populated when the Adaptive Execution & Recovery Engine acted on this attempt.
+    recovery_attempted: bool = False
+    recovery_diagnosis: Optional[str] = None
+    recovery_strategy:  Optional[str] = None
 
 
 # captcha / challenge markers used for fast in-loop block detection
@@ -99,6 +104,9 @@ class PlaywrightDriver(Driver):
         self._pw = pw
         self._upload_file = upload_file
         self._last_status: Optional[int] = None
+        # M2: recovery is stateless per-attempt; history persists per task (reset on navigate).
+        self._recovery = RecoveryEngine()
+        self._recovery_history = RecoveryHistory()
 
     # -- lifecycle --------------------------------------------------------------
     @classmethod
@@ -130,6 +138,7 @@ class PlaywrightDriver(Driver):
     def navigate(self, url: str) -> None:
         resp = self._page.goto(url, wait_until="domcontentloaded", timeout=45_000)
         self._last_status = resp.status if resp is not None else None
+        self._recovery_history.reset()  # a new page is a new situation
 
     def current_url(self) -> str:
         return self._page.url
@@ -207,30 +216,59 @@ class PlaywrightDriver(Driver):
                 return ExecResult(False, f"all locator strategies failed for {selector!r}",
                                   locator_strategy=None, locator_attempts=attempts)
 
-            if atype == "click" or atype == "choose_date":
-                locator.scroll_into_view_if_needed(timeout=4000)
-                locator.click(timeout=6000)
-            elif atype == "fill":
-                if self._is_file_input(locator):
-                    if not self._upload_file:
-                        return ExecResult(False, "no upload file configured",
-                                          locator_strategy=strategy.value, locator_attempts=attempts)
-                    locator.set_input_files(self._upload_file)
-                else:
-                    locator.fill(value or "", timeout=6000)
-            elif atype == "select_option":
-                try:
-                    locator.select_option(value=value, timeout=4000)
-                except Exception:
-                    locator.select_option(label=value, timeout=4000)
-            elif atype == "hover":
-                locator.hover(timeout=6000)
-            else:
+            if atype not in ("click", "choose_date", "fill", "select_option", "hover"):
                 return ExecResult(False, f"unsupported action_type {atype}",
                                   locator_strategy=strategy.value, locator_attempts=attempts)
-            return ExecResult(True, f"{atype} ok", locator_strategy=strategy.value, locator_attempts=attempts)
+
+            if atype == "fill" and self._is_file_input(locator):
+                if not self._upload_file:
+                    return ExecResult(False, "no upload file configured",
+                                      locator_strategy=strategy.value, locator_attempts=attempts)
+                locator.set_input_files(self._upload_file)
+                return ExecResult(True, f"{atype} ok", locator_strategy=strategy.value, locator_attempts=attempts)
+
+            before_url = self._page.url
+            try:
+                self._attempt(atype, locator, value)
+                return ExecResult(True, f"{atype} ok", locator_strategy=strategy.value, locator_attempts=attempts)
+            except Exception:
+                # M2: the primary attempt failed. Diagnose the live page state and try the
+                # ONE matching recovery strategy before giving up (bounded: +1 retry, never a
+                # cascade). This replaces returning the raw Playwright exception as-is, which
+                # was being misclassified as INFRASTRUCTURE downstream (see recovery_engine.py
+                # module docstring / M2 design notes) — the recovered/exhausted outcome below
+                # always carries a clean, descriptive error_type instead.
+                outcome = self._recovery.recover(
+                    page=self._page, locator=locator, action_type=atype, selector=selector,
+                    value=value, description=action.get("description", ""),
+                    before_url=before_url, history=self._recovery_history)
+                if outcome.success:
+                    return ExecResult(True, f"{atype} ok (recovered: {outcome.strategy})",
+                                      locator_strategy=strategy.value, locator_attempts=attempts,
+                                      recovery_attempted=True, recovery_diagnosis=outcome.diagnosis,
+                                      recovery_strategy=outcome.strategy)
+                return ExecResult(
+                    False, f"{atype} blocked ({outcome.diagnosis or 'unresolved'}): {outcome.message}",
+                    locator_strategy=strategy.value, locator_attempts=attempts,
+                    error_type="RecoveryExhausted", recovery_attempted=True,
+                    recovery_diagnosis=outcome.diagnosis, recovery_strategy=outcome.strategy)
         except Exception as e:
             return ExecResult(False, f"{atype} error: {e}", error_type=type(e).__name__)
+
+    def _attempt(self, atype: str, locator, value) -> None:
+        """One primary, undiagnosed attempt — unchanged behavior from before M2."""
+        if atype == "click" or atype == "choose_date":
+            locator.scroll_into_view_if_needed(timeout=4000)
+            locator.click(timeout=6000)
+        elif atype == "fill":
+            locator.fill(value or "", timeout=6000)
+        elif atype == "select_option":
+            try:
+                locator.select_option(value=value, timeout=4000)
+            except Exception:
+                locator.select_option(label=value, timeout=4000)
+        elif atype == "hover":
+            locator.hover(timeout=6000)
 
     # -- locator ladder ---------------------------------------------------------
     def _resolve(self, selector: str, description: str, value):
