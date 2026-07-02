@@ -17,6 +17,7 @@ export function extractPageContextV2(): PageContext {
     '[role="row"]',
     '[role="tab"]',
     'span[title]:not([title=""])',
+    'summary',
   ].join(', ')
 
   const MAX_ELEMENTS = 150

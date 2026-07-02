@@ -34,6 +34,7 @@
       '[role="row"]',
       '[role="tab"]',
       'span[title]:not([title=""])',
+      'summary',
     ].join(', ');
 
     var MAX_ELEMENTS = 150;

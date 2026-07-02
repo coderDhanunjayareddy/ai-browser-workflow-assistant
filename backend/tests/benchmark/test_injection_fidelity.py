@@ -94,3 +94,15 @@ def test_checked_uses_native_property_in_both_files():
 def test_details_open_state_in_both_files():
     ts, js = _read(EXTRACTOR_TS), _read(JS)
     assert "DETAILS" in ts and "DETAILS" in js
+
+
+# ── M-G1: candidate-generation coverage (summary is a native disclosure control) ──
+
+@pytest.mark.skipif(not os.path.exists(EXTRACTOR_TS), reason="extension source not present")
+def test_summary_tag_is_candidate_in_both_files():
+    ts, js = _read(EXTRACTOR_TS), _read(JS)
+    for src, name in ((ts, "extractor_v2.ts"), (js, "injected_scripts.js")):
+        m = re.search(r"INTERACTIVE_SELECTOR\s*=\s*\[(.*?)\]\.join", src, re.DOTALL)
+        assert m, f"INTERACTIVE_SELECTOR array not found in {name}"
+        selectors = re.findall(r"'([^']*)'", m.group(1))
+        assert "summary" in selectors, f"'summary' missing from INTERACTIVE_SELECTOR in {name}"
