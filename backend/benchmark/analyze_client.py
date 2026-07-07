@@ -47,10 +47,26 @@ class SuggestedActionDTO:
 
 
 @dataclass
+class ReportOutcomeDTO:
+    claim:  str = ""
+    answer: Optional[str] = None
+
+
+@dataclass
+class ReplanOutcomeDTO:
+    reason: str = ""
+
+
+@dataclass
 class AnalyzeResult:
     analysis:               str = ""
+    # Planner Contract V2: which kind of turn this is. Defaults to "act" so every
+    # existing construction site (which never sets this) is unaffected.
+    outcome_kind:           str = "act"
     suggested_actions:      list[SuggestedActionDTO] = field(default_factory=list)
     clarification_question: Optional[str] = None
+    report:                 Optional[ReportOutcomeDTO] = None
+    replan:                 Optional[ReplanOutcomeDTO] = None
     prompt_tokens:          int = 0
     completion_tokens:      int = 0
 
@@ -108,10 +124,21 @@ def parse_analyze_response(body: dict[str, Any]) -> AnalyzeResult:
             safety_level=a.get("safety_level", "safe"),
         ))
     usage = body.get("usage") or {}
+
+    report_raw = body.get("report")
+    report = (ReportOutcomeDTO(claim=report_raw.get("claim", ""), answer=report_raw.get("answer"))
+              if isinstance(report_raw, dict) else None)
+    replan_raw = body.get("replan")
+    replan = (ReplanOutcomeDTO(reason=replan_raw.get("reason", ""))
+              if isinstance(replan_raw, dict) else None)
+
     return AnalyzeResult(
         analysis=body.get("analysis", "") or "",
+        outcome_kind=body.get("outcome_kind") or "act",
         suggested_actions=actions,
         clarification_question=body.get("clarification_question"),
+        report=report,
+        replan=replan,
         prompt_tokens=int(usage.get("prompt_tokens", 0) or 0),
         completion_tokens=int(usage.get("completion_tokens", 0) or 0),
     )

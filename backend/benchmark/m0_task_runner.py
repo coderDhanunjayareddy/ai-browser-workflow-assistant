@@ -122,12 +122,61 @@ class TaskRunner:
             step.completion_tokens = ar.completion_tokens
             if ar.analysis:
                 analysis_texts.append(ar.analysis)
+
+            # Planner Contract V2 — ORCHESTRATOR DISPATCH: route by outcome kind.
+            # "act" (default) and "wait" (still a suggested_action, unchanged mechanism)
+            # fall straight through to the existing action-execution path below.
+            # "ask" with no action falls through to the existing no-action branch below,
+            # which already recheck-then-fails with the clarification text attached.
+            outcome_kind = getattr(ar, "outcome_kind", "act") or "act"
+
+            if outcome_kind == "report":
+                # Report is a claim, never self-certification: fold it into the same
+                # observable trail Validation already checks (all_analysis), then
+                # re-evaluate the REAL success criteria. Completion is granted only by
+                # that check — the planner's own claim never completes the task by itself.
+                if ar.report:
+                    if ar.report.answer:
+                        analysis_texts.append(ar.report.answer)
+                    if ar.report.claim:
+                        analysis_texts.append(ar.report.claim)
+                step.action_type = "report"
+                recheck = evaluate_success(task.success_criteria,
+                                           self._ctx(page_context, analysis_texts, len(result.steps)))
+                result.steps.append(step)
+                if all_passed(recheck):
+                    result.criteria_results = recheck
+                    return self._finalize_status(task, result, t_start, TaskStatus.completed)
+                prior_steps.append({
+                    "action_type": "report", "description": ar.analysis or "",
+                    "target_selector": "", "value": None,
+                    "execution_result": "claim unverified — success criteria not yet satisfied",
+                    "page_url": page_context.get("url", ""), "page_title": page_context.get("title", ""),
+                })
+                continue  # unverified claim: keep looping, do not trust it
+
+            if outcome_kind == "replan":
+                # The planner's own real-time judgment that the approach needs to change —
+                # distinct from Reflection's after-the-fact veto. No action is executed;
+                # the loop simply re-observes and re-plans with the reason left in the trail.
+                step.action_type = "replan"
+                step.error_detail = ar.replan.reason if ar.replan else ""
+                result.steps.append(step)
+                prior_steps.append({
+                    "action_type": "replan", "description": ar.replan.reason if ar.replan else "",
+                    "target_selector": "", "value": None,
+                    "execution_result": "replanning — no action taken this turn",
+                    "page_url": page_context.get("url", ""), "page_title": page_context.get("title", ""),
+                })
+                continue
+
             action = ar.first_action
 
             if action is None:
                 # nothing to do: maybe already complete (recheck with fresh analysis), else gave up
                 recheck = evaluate_success(task.success_criteria,
                                            self._ctx(page_context, analysis_texts, len(result.steps)))
+                step.action_type = step.action_type or (outcome_kind if outcome_kind != "act" else None)
                 result.steps.append(step)
                 if all_passed(recheck):
                     result.criteria_results = recheck

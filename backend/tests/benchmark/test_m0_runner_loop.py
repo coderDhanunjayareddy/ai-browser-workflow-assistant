@@ -9,6 +9,7 @@ import pytest
 from benchmark.m0_task_runner import TaskRunner
 from benchmark.fakes import FakeDriver, FakeAnalyzeClient, page
 from benchmark.m0_executor import ExecResult
+from benchmark.analyze_client import ReportOutcomeDTO, ReplanOutcomeDTO
 from benchmark.m0_models import (
     M0TaskDefinition, M0Criterion, M0CriterionKind as K, M0FailureCriterion,
     FailureCriterionKind as FK, Difficulty, BenchmarkCategory, TaskStatus, FailureCategory,
@@ -136,6 +137,68 @@ def test_rc1_successful_fills_with_no_signature_change_still_complete():
     r = runner(d, c).run(t)
     assert r.status == TaskStatus.completed, f"{r.status} {r.failure_category} {r.failure_detail}"
     assert r.steps_taken == 3
+
+
+# ── Planner Contract V2: outcome-kind dispatch ───────────────────────────────
+
+def test_report_outcome_completes_when_claim_matches_real_criteria():
+    # The Amazon-shaped case: the answer is already visible, no action needed.
+    d = FakeDriver([page("http://x/product", text="price page")])
+    c = FakeAnalyzeClient([
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="₹15,299.00", claim="price already visible")},
+    ])
+    t = task(success_criteria=[M0Criterion(K.extracted_value_present, target="₹15,299.00")])
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.completed
+    assert r.steps_taken == 1
+    assert r.steps[0].action_type == "report"
+
+
+def test_report_outcome_does_not_self_certify_when_criteria_still_fail():
+    # Report is a claim, never self-certification: an unverified claim must NOT
+    # complete the task — Validation (real success criteria) remains the authority.
+    d = FakeDriver([page("http://x/product", text="price page")])
+    c = FakeAnalyzeClient([
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="wrong value", claim="I believe this is the price")},
+    ])
+    t = task(max_steps=2,
+             success_criteria=[M0Criterion(K.extracted_value_present, target="₹99,999.00")])
+    r = runner(d, c).run(t)
+    assert r.status != TaskStatus.completed
+    assert r.steps[0].action_type == "report"
+
+
+def test_replan_outcome_takes_no_action_then_next_turn_completes():
+    d = FakeDriver([
+        page("http://x/a", text="start", elements=[{"selector": "#x"}]),
+        page("http://x/b", text="done now"),
+    ])
+    c = FakeAnalyzeClient([
+        {"outcome_kind": "replan", "replan": ReplanOutcomeDTO(reason="wrong approach, try direct click")},
+        ("click", "#x", None),
+    ])
+    t = task(success_criteria=[M0Criterion(K.dom_text_present, target="done now")])
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.completed
+    assert r.steps_taken == 2
+    assert r.steps[0].action_type == "replan"
+    assert r.steps[0].action_selector is None  # no action was executed on the replan turn
+    assert r.steps[1].action_type == "click"
+
+
+def test_existing_act_only_scripts_are_unaffected_by_outcome_kind_default():
+    # Backward compatibility: scripts/fakes that never set outcome_kind (the entire
+    # existing test suite) must behave identically — outcome_kind defaults to "act".
+    d = FakeDriver([
+        page("http://x/login", text="form", elements=[{"selector": "#u"}]),
+        page("http://x/ok", text="Welcome tester"),
+    ])
+    c = FakeAnalyzeClient([("fill", "#u", "tester"), ("click", "#go", None)])
+    t = task(success_criteria=[M0Criterion(K.dom_text_present, target="Welcome tester")])
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.completed
 
 
 def test_recovery_breadcrumb_then_success():

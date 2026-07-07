@@ -39,36 +39,72 @@ export function extractPageContextV2(): PageContext {
   }
 
   function buildSelector(el: Element): string {
-    if (el.id) return `#${CSS.escape(el.id)}`
+    // A selector is only useful if it resolves to the exact element we extracted.
+    // Verify each candidate against the live DOM before trusting it; repeated
+    // structures (result grids, feeds) otherwise collapse many distinct elements
+    // onto one non-unique path that later binds to the wrong (often hidden) node.
+    function isUnique(sel: string): boolean {
+      try {
+        const m = document.querySelectorAll(sel)
+        return m.length === 1 && m[0] === el
+      } catch {
+        return false
+      }
+    }
+
+    if (el.id) {
+      const sel = `#${CSS.escape(el.id)}`
+      if (isUnique(sel)) return sel
+    }
     const testId = el.getAttribute('data-testid')
-    if (testId) return `[data-testid="${testId}"]`
-    
+    if (testId) {
+      const sel = `[data-testid="${testId}"]`
+      if (isUnique(sel)) return sel
+    }
     const ariaLabel = el.getAttribute('aria-label')
-    if (ariaLabel) return `${el.tagName.toLowerCase()}[aria-label="${ariaLabel}"]`
-
+    if (ariaLabel) {
+      const sel = `${el.tagName.toLowerCase()}[aria-label="${ariaLabel}"]`
+      if (isUnique(sel)) return sel
+    }
     const title = el.getAttribute('title')
-    if (title) return `${el.tagName.toLowerCase()}[title="${title}"]`
-
+    if (title) {
+      const sel = `${el.tagName.toLowerCase()}[title="${title}"]`
+      if (isUnique(sel)) return sel
+    }
     const placeholder = el.getAttribute('placeholder')
-    if (placeholder) return `${el.tagName.toLowerCase()}[placeholder="${placeholder}"]`
+    if (placeholder) {
+      const sel = `${el.tagName.toLowerCase()}[placeholder="${placeholder}"]`
+      if (isUnique(sel)) return sel
+    }
 
+    // Structural fallback: climb ancestors adding :nth-of-type at each level, and
+    // return as soon as the accumulated path uniquely identifies THIS element. An
+    // ancestor id, when present, roots the path so it stays short and unique.
     const parts: string[] = []
     let current: Element | null = el
-    let depth = 0
-    while (current && current.tagName !== 'BODY' && depth < 5) {
+    while (current && current.tagName !== 'BODY' && current.tagName !== 'HTML') {
       let part = current.tagName.toLowerCase()
       const role = current.getAttribute('role')
       if (role) part += `[role="${CSS.escape(role)}"]`
 
       const parent = current.parentElement
       if (parent) {
-        const siblings = Array.from(parent.children).filter((child) => child.tagName === current!.tagName)
-        if (siblings.length > 1) part += `:nth-of-type(${siblings.indexOf(current) + 1})`
+        const cur = current
+        const siblings = Array.from(parent.children).filter((child) => child.tagName === cur.tagName)
+        if (siblings.length > 1) part += `:nth-of-type(${siblings.indexOf(cur) + 1})`
       }
       parts.unshift(part)
+
+      if (current.id) {
+        const anchored = [`#${CSS.escape(current.id)}`, ...parts.slice(1)].join(' > ')
+        if (isUnique(anchored)) return anchored
+      }
+      const path = parts.join(' > ')
+      if (isUnique(path)) return path
+
       current = current.parentElement
-      depth++
     }
+
     return parts.join(' > ') || el.tagName.toLowerCase()
   }
 
@@ -83,6 +119,7 @@ export function extractPageContextV2(): PageContext {
       const type = (el as HTMLInputElement).type
       if (type === 'checkbox') return 'checkbox'
       if (type === 'radio') return 'radio'
+      if (type === 'submit' || type === 'button' || type === 'image' || type === 'reset') return 'button'
       return 'textbox'
     }
     if (tag === 'select') return 'combobox'

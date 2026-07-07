@@ -23,8 +23,27 @@ class SuggestedAction(BaseModel):
     safety_level: Literal['safe', 'caution', 'danger']
 
 
+class ReportOutcome(BaseModel):
+    """Planner Contract V2: a claim that the goal (or active sub-goal) is already
+    satisfied from what is currently known — never self-certifying. The orchestrator
+    verifies this against real success criteria before treating it as completion."""
+    answer: Optional[str] = None
+    claim: str
+
+
+class ReplanOutcome(BaseModel):
+    """Planner Contract V2: the planner's own real-time judgment that the current
+    approach needs to change, distinct from Reflection's after-the-fact veto."""
+    reason: str
+
+
 class AnalyzeResponse(BaseModel):
     session_id: str
     analysis: str
+    # Planner Contract V2: which kind of turn this is. Defaults to 'act' so every
+    # existing caller/construction site (which never sets this) is unaffected.
+    outcome_kind: Literal['act', 'report', 'wait', 'ask', 'replan'] = 'act'
     suggested_actions: list[SuggestedAction]
     clarification_question: Optional[str] = None
+    report: Optional[ReportOutcome] = None
+    replan: Optional[ReplanOutcome] = None

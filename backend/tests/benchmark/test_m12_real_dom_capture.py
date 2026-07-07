@@ -74,3 +74,55 @@ def test_second_analyze_would_see_previously_filled_value(fixture_server, driver
     ctx2 = driver.capture()  # second observation (simulates step N+1, unrelated action)
     el = next(e for e in ctx2["interactive_elements"] if e["selector"] == "#username")
     assert el["state"]["value"] == "tester"
+
+
+# ── Unique selector generation (Amazon result-grid defect) ───────────────────
+
+# Identical deep single-child nesting per card, so the old depth-capped path
+# (`div > div > div > div > a`) collided across every card — exactly the Amazon
+# failure. A hidden anchor sits first in DOM order inside the same structure, the
+# node the old `.first` resolution wrongly bound to.
+_GRID_HTML = """
+<div id="root">
+  <div class="card"><div><div><div><div><div>
+    <a href="/hidden" style="display:none">Hidden Decoy</a>
+  </div></div></div></div></div></div>
+  <div class="card"><div><div><div><div><div>
+    <a href="/p1">Product One</a>
+  </div></div></div></div></div></div>
+  <div class="card"><div><div><div><div><div>
+    <a href="/p2">Product Two</a>
+  </div></div></div></div></div></div>
+  <div class="card"><div><div><div><div><div>
+    <a href="/p3">Product Three</a>
+  </div></div></div></div></div></div>
+</div>
+"""
+
+
+def test_repeated_cards_receive_distinct_unique_selectors(driver):
+    driver._page.set_content(_GRID_HTML)
+    ctx = driver.capture()
+    links = [e for e in ctx["interactive_elements"]
+             if e["type"] == "a" and e["text"].strip().startswith("Product")]
+    assert len(links) == 3, "the three visible product links should be extracted"
+
+    selectors = [e["selector"] for e in links]
+    # 1. distinct: no two result links share a selector (the core defect)
+    assert len(set(selectors)) == 3, f"duplicate selectors emitted: {selectors}"
+
+    # 2. each selector resolves to exactly one element — the intended visible link,
+    #    never the hidden decoy that the old non-unique path bound to.
+    for e in links:
+        loc = driver._page.locator(e["selector"])
+        assert loc.count() == 1, f"selector {e['selector']!r} is ambiguous ({loc.count()} matches)"
+        assert loc.inner_text().strip() == e["text"].strip()
+
+
+def test_id_bearing_element_still_prefers_short_id_selector(driver):
+    # Guard: uniqueness verification must not regress the simple case — a unique id
+    # still yields the short `#id`, not a verbose structural path.
+    driver._page.set_content('<div><button id="go">Go</button></div>')
+    ctx = driver.capture()
+    btn = next(e for e in ctx["interactive_elements"] if e["text"].strip() == "Go")
+    assert btn["selector"] == "#go"

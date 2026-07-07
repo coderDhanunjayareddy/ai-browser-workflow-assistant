@@ -14,7 +14,7 @@ from google.genai import errors as _genai_errors
 
 from app.core.config import settings
 from app.schemas.request import PageContext, PriorStep
-from app.schemas.response import AnalyzeResponse, SuggestedAction
+from app.schemas.response import AnalyzeResponse, SuggestedAction, ReportOutcome, ReplanOutcome
 
 
 class TransientAIError(RuntimeError):
@@ -113,17 +113,20 @@ def save_image_locally(url: str, img_bytes: bytes, mime_type: str, index: int) -
 
 # ── System prompt ─────────────────────────────────────────────────────────────
 
-SYSTEM_PROMPT = """You are an AI browser workflow assistant. Suggest the NEXT browser action for the user's task.
+SYSTEM_PROMPT = """You are an AI browser workflow assistant. Decide the NEXT outcome for the user's task — this is not always a browser action.
 1. ALWAYS use the exact "selector" value from INTERACTIVE ELEMENTS or VISIBLE CONTENT BLOCKS. NEVER invent selectors. Prefer #id, data-testid, aria-label, title, placeholder, or accessibility-name based selectors.
 2. Before choosing a click selector, verify that the same listed element's label, accessibility name, or aria-label matches the control named in your description. Never use a selector whose listed label contradicts the intended control.
 3. CURRENT PAGE CONTEXT IS AUTHORITATIVE. Prior steps describe attempts, not guaranteed application state. Never assume that a wait, click, or successful executor result means a destination page loaded. Confirm the expected page using its current URL, heading, visible text, and controls.
 4. Suggest only controls that are present in the current INTERACTIVE ELEMENTS. If a login form is still visible, do not propose dashboard, navigation-menu, search-result, or post-login actions. Inspect validation errors and recover the login step first.
-5. Suggest ONE action at a time.
+5. Produce ONE outcome at a time.
 6. If an ACTIVE TASK NODE CONTEXT is provided, satisfy ONLY the current active task node. Do not plan ahead.
 7. Output valid JSON in the format:
 {
-  "analysis": "Brief next step explanation",
+  "analysis": "Brief explanation of this outcome",
+  "outcome_kind": "act | report | wait | ask | replan",
   "clarification_question": null,
+  "report": null,
+  "replan": null,
   "suggested_actions": [
     {
       "action_id": "unique_string",
@@ -147,7 +150,13 @@ SYSTEM_PROMPT = """You are an AI browser workflow assistant. Suggest the NEXT br
 - scroll: target_selector = "window", value = "up" | "down"
 - navigate: target_selector = null, value = URL
 - wait: target_selector = "window", value = milliseconds as string
-9. Keep descriptions concise, but do not omit necessary values such as field purpose, date, recipient, search query, or option text."""
+9. Keep descriptions concise, but do not omit necessary values such as field purpose, date, recipient, search query, or option text.
+10. outcome_kind chooses the shape of this turn — pick the one that actually matches what is needed, do not default to "act" out of habit:
+- "act": suggested_actions has exactly one entry, following rule 8. Use this when a browser interaction is genuinely required.
+- "report": the task (or its current active node) is already answerable from PAGE CONTEXT, VISIBLE CONTENT BLOCKS, or CURRENT VERIFIED STATE FACTS as they stand right now — e.g. a price, a name, a status that is already present as text or an accessibility name. Do NOT click an element merely to "reveal" a value that is already present in front of you. suggested_actions must be empty; set "report": {"answer": "the extracted value, if any", "claim": "why you believe the goal is satisfied"}.
+- "wait": the page is mid-transition (e.g. just navigated or an async region is loading) and needs time before the next observation is meaningful. suggested_actions has one entry with action_type "wait" (rule 8).
+- "ask": the task cannot proceed without information only the user can supply (e.g. login credentials, a payment choice, an ambiguous preference). suggested_actions must be empty; set "clarification_question" to the question. Never use "ask" to request browser strategy or extraction help — figure those out yourself.
+- "replan": the current approach is not working and a different strategy is needed. suggested_actions must be empty; set "replan": {"reason": "why this approach should change"}."""
 
 
 # ── Prompt builder ────────────────────────────────────────────────────────────
@@ -516,11 +525,31 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
     if not isinstance(analysis_val, str):
         analysis_val = json.dumps(analysis_val, indent=2, ensure_ascii=False)
 
+    # Planner Contract V2: which kind of turn this is. Fail open to "act" for any
+    # missing/unrecognized value so a non-conforming response degrades to today's
+    # behavior rather than erroring.
+    ALLOWED_OUTCOME_KINDS = {"act", "report", "wait", "ask", "replan"}
+    outcome_kind = data.get("outcome_kind")
+    outcome_kind = outcome_kind if outcome_kind in ALLOWED_OUTCOME_KINDS else "act"
+
+    report_obj = None
+    report_raw = data.get("report")
+    if isinstance(report_raw, dict) and report_raw.get("claim"):
+        report_obj = ReportOutcome(answer=report_raw.get("answer"), claim=report_raw["claim"])
+
+    replan_obj = None
+    replan_raw = data.get("replan")
+    if isinstance(replan_raw, dict) and replan_raw.get("reason"):
+        replan_obj = ReplanOutcome(reason=replan_raw["reason"])
+
     return AnalyzeResponse(
         session_id=session_id,
         analysis=analysis_val,
+        outcome_kind=outcome_kind,
         clarification_question=clarification_question,
         suggested_actions=actions,
+        report=report_obj,
+        replan=replan_obj,
     )
 
 

@@ -23,6 +23,11 @@ class RelevanceRanker:
             score = overlap * 10 + (3 if data.get("visible", True) else 0)
             score += 2 if data.get("aria_label") or data.get("accessibility_name") else 0
             score += 1 if data.get("selector") else 0
+            # Action relevance: a genuine actionable control (a real button / native
+            # submit) is a better target for an action than a same-scoring navigational
+            # link decoy (e.g. Amazon's #nav-assist-search shortcut hint).
+            actionable = data.get("role") == "button" or data.get("input_type") in ("submit", "button")
+            score += 3 if actionable else 0
             bbox = data.get("bounding_box") or {}
             bbox_y = bbox.get("y", 0) or 0
             bbox_x = bbox.get("x", 0) or 0

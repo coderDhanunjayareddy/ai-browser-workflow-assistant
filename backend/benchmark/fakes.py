@@ -12,7 +12,9 @@ from typing import Callable, Optional
 
 from benchmark.m0_executor import Driver, ExecResult
 from benchmark.m0_models import LocatorStrategy
-from benchmark.analyze_client import AnalyzeResult, SuggestedActionDTO
+from benchmark.analyze_client import (
+    AnalyzeResult, SuggestedActionDTO, ReportOutcomeDTO, ReplanOutcomeDTO,
+)
 
 
 def page(url: str, *, text: str = "", elements: Optional[list[dict]] = None,
@@ -85,7 +87,13 @@ class FakeDriver(Driver):
 
 
 class FakeAnalyzeClient:
-    """Returns scripted actions. `script` is a list of (action_type, selector, value) or None."""
+    """Returns scripted outcomes. Each `script` entry is one of:
+      - None                                    -> empty "act" outcome (no action)
+      - (action_type, selector, value)           -> an "act" outcome (existing shape)
+      - {"outcome_kind": ..., ...}                -> a Planner Contract V2 outcome
+        (e.g. {"outcome_kind": "report", "report": ReportOutcomeDTO(...)},
+              {"outcome_kind": "replan", "replan": ReplanOutcomeDTO(...)})
+    """
 
     def __init__(self, script: list, analysis: str = "") -> None:
         self._script = script
@@ -100,6 +108,16 @@ class FakeAnalyzeClient:
         self._n += 1
         if spec is None:
             return AnalyzeResult(analysis=self._analysis, suggested_actions=[])
+        if isinstance(spec, dict):
+            return AnalyzeResult(
+                analysis=spec.get("analysis", self._analysis),
+                outcome_kind=spec.get("outcome_kind", "act"),
+                suggested_actions=[],
+                clarification_question=spec.get("clarification_question"),
+                report=spec.get("report"),
+                replan=spec.get("replan"),
+                prompt_tokens=1000, completion_tokens=120,
+            )
         atype, selector, value = spec
         action = SuggestedActionDTO(
             action_id=f"a{self._n}", action_type=atype, target_selector=selector,

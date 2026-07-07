@@ -8,6 +8,10 @@ can out-rank a labeled decoy that merely mentions the task's domain in its aria-
 M-G3a: ties (equal score) are now broken by geometric position (topmost, then leftmost)
 before falling back to DOM order, using the already-captured bounding_box — no new data
 source, no schema change.
+
+Amazon Search Action Selection: a genuine actionable control (role=="button" / native
+submit) receives an action-relevance bonus so it is preferred over a same-scoring
+navigational link decoy (the Amazon #nav-assist-search keyboard-shortcut hint).
 """
 from app.context_compression.relevance_ranker import RelevanceRanker
 
@@ -39,33 +43,45 @@ def test_unlabeled_button_with_relevant_selector_beats_unlabeled_irrelevant_sele
     assert ranked[0]["selector"] == "#nav-search-submit-button"
 
 
-def test_amazon_search_submit_reconstruction_score_gap_narrows_but_does_not_flip():
-    # Faithful reconstruction of the amazon_in__product_search_price grounding
-    # failure using the real task goal text and the real element attributes.
-    # Evidence (manually verified against this exact scoring formula):
-    #   pre-M-G2:  real_submit=4,  decoy=16  (documented root cause)
-    #   post-M-G2: real_submit=14, decoy=16  (selector signal closes 10 of 12 points,
-    #              but the decoy's own aria-label already matched "search" before this
-    #              fix, and keeps its +2 aria-label bonus, so the ranking does not flip)
-    # This is intentionally NOT asserted as "fixed" — M-G2 as scoped (selector text
-    # added to the overlap pool only) narrows but does not resolve this specific
-    # failure in isolation. Confirmed live: the benchmark shows both outcomes occur
-    # across runs (planner sometimes picks the real button, sometimes the decoy),
-    # consistent with a narrowed-but-not-flipped 14-vs-16 score gap.
+def test_amazon_search_action_selection_prefers_real_submit_over_shortcut_decoy():
+    # Amazon Search Action Selection — acceptance test, faithful reconstruction of
+    # amazon_in__product_search_price from the real captured DOM snapshot
+    # (m0-nightly-1783015760/.../step_005.json), using the real task goal text.
+    #
+    # Score evolution against this exact formula (each stage evidence-verified):
+    #   pre-M-G2:            real_submit=4,  decoy=16   (original root cause)
+    #   post-M-G2:           real_submit=14, decoy=16   (selector tokens added; gap narrows, no flip)
+    #   post-M-R1 (role fix) real_submit=14, decoy=16   (submit role textbox->button; still no flip)
+    #   post-M-R7 (this fix) real_submit=17, decoy=16   (actionable-affordance +3 flips it)
+    #
+    # The submit control is captured as role="button" after M-R1 (was "textbox") and
+    # carries input_type="submit"; the decoy is a role="link" keyboard-shortcut hint.
     real_submit = _el(
-        type="input", text="", selector="#nav-search-submit-button",
+        type="input", input_type="submit", role="button",
+        text="", selector="#nav-search-submit-button",
         aria_label=None, accessibility_name="",
     )
     decoy = _el(
-        type="button", text="", selector="#nav-assist-search",
+        type="a", role="link",
+        text="Search alt /", selector="#nav-assist-search",
         aria_label="Search, alt, forward slash",
         accessibility_name="Search, alt, forward slash",
     )
     task = ('Search for "wireless headphones" on Amazon India, open the first '
             'result, and extract the price')
     ranked = RelevanceRanker().rank(task, [decoy, real_submit])
-    assert ranked[0]["selector"] == "#nav-assist-search"
-    assert ranked[1]["selector"] == "#nav-search-submit-button"
+    assert ranked[0]["selector"] == "#nav-search-submit-button"
+
+
+def test_action_relevance_does_not_apply_without_actionable_affordance():
+    # Guard: the affordance bonus keys off role=="button" / native submit only.
+    # A role="link" element must NOT receive it, so the signal cannot silently
+    # promote every link over every non-actionable element.
+    link = _el(type="a", role="link", text="", selector="#a-link")
+    plain = _el(type="input", role="textbox", text="", selector="#a-textbox")
+    button = _el(type="input", role="button", input_type="submit", text="", selector="#a-button")
+    ranked = RelevanceRanker().rank("go", [link, plain, button])
+    assert ranked[0]["selector"] == "#a-button"
 
 
 def test_selector_alone_does_not_outweigh_a_true_text_match():

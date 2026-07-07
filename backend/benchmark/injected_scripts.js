@@ -56,23 +56,50 @@
     }
 
     function buildSelector(el) {
-      if (el.id) return '#' + CSS.escape(el.id);
+      // A selector is only useful if it resolves to the exact element we extracted.
+      // Verify each candidate against the live DOM before trusting it; repeated
+      // structures (result grids, feeds) otherwise collapse many distinct elements
+      // onto one non-unique path that later binds to the wrong (often hidden) node.
+      function isUnique(sel) {
+        try {
+          var m = document.querySelectorAll(sel);
+          return m.length === 1 && m[0] === el;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      if (el.id) {
+        var idSel = '#' + CSS.escape(el.id);
+        if (isUnique(idSel)) return idSel;
+      }
       var testId = el.getAttribute('data-testid');
-      if (testId) return '[data-testid="' + testId + '"]';
-
+      if (testId) {
+        var testSel = '[data-testid="' + testId + '"]';
+        if (isUnique(testSel)) return testSel;
+      }
       var ariaLabel = el.getAttribute('aria-label');
-      if (ariaLabel) return el.tagName.toLowerCase() + '[aria-label="' + ariaLabel + '"]';
-
+      if (ariaLabel) {
+        var ariaSel = el.tagName.toLowerCase() + '[aria-label="' + ariaLabel + '"]';
+        if (isUnique(ariaSel)) return ariaSel;
+      }
       var title = el.getAttribute('title');
-      if (title) return el.tagName.toLowerCase() + '[title="' + title + '"]';
-
+      if (title) {
+        var titleSel = el.tagName.toLowerCase() + '[title="' + title + '"]';
+        if (isUnique(titleSel)) return titleSel;
+      }
       var placeholder = el.getAttribute('placeholder');
-      if (placeholder) return el.tagName.toLowerCase() + '[placeholder="' + placeholder + '"]';
+      if (placeholder) {
+        var phSel = el.tagName.toLowerCase() + '[placeholder="' + placeholder + '"]';
+        if (isUnique(phSel)) return phSel;
+      }
 
+      // Structural fallback: climb ancestors adding :nth-of-type at each level, and
+      // return as soon as the accumulated path uniquely identifies THIS element. An
+      // ancestor id, when present, roots the path so it stays short and unique.
       var parts = [];
       var current = el;
-      var depth = 0;
-      while (current && current.tagName !== 'BODY' && depth < 5) {
+      while (current && current.tagName !== 'BODY' && current.tagName !== 'HTML') {
         var part = current.tagName.toLowerCase();
         var role = current.getAttribute('role');
         if (role) part += '[role="' + CSS.escape(role) + '"]';
@@ -86,9 +113,17 @@
           if (siblings.length > 1) part += ':nth-of-type(' + (siblings.indexOf(current) + 1) + ')';
         }
         parts.unshift(part);
+
+        if (current.id) {
+          var anchored = ['#' + CSS.escape(current.id)].concat(parts.slice(1)).join(' > ');
+          if (isUnique(anchored)) return anchored;
+        }
+        var path = parts.join(' > ');
+        if (isUnique(path)) return path;
+
         current = current.parentElement;
-        depth++;
       }
+
       return parts.join(' > ') || el.tagName.toLowerCase();
     }
 
@@ -102,6 +137,7 @@
         var type = el.type;
         if (type === 'checkbox') return 'checkbox';
         if (type === 'radio') return 'radio';
+        if (type === 'submit' || type === 'button' || type === 'image' || type === 'reset') return 'button';
         return 'textbox';
       }
       if (tag === 'select') return 'combobox';

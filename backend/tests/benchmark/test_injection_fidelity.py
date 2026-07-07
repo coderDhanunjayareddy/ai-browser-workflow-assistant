@@ -106,3 +106,27 @@ def test_summary_tag_is_candidate_in_both_files():
         assert m, f"INTERACTIVE_SELECTOR array not found in {name}"
         selectors = re.findall(r"'([^']*)'", m.group(1))
         assert "summary" in selectors, f"'summary' missing from INTERACTIVE_SELECTOR in {name}"
+
+
+# ── Amazon Search Action Selection: submit/button/image/reset inputs are buttons ──
+
+@pytest.mark.skipif(not os.path.exists(EXTRACTOR_TS), reason="extension source not present")
+def test_submit_button_inputs_get_button_role_in_both_files():
+    ts, js = _read(EXTRACTOR_TS), _read(JS)
+    for src, name in ((ts, "extractor_v2.ts"), (js, "injected_scripts.js")):
+        assert "type === 'submit'" in src and "type === 'button'" in src, (
+            f"submit/button role mapping missing from {name}")
+        assert "type === 'image'" in src and "type === 'reset'" in src, (
+            f"image/reset role mapping missing from {name}")
+
+
+# ── Unique selector generation: buildSelector must verify uniqueness ──────────
+
+@pytest.mark.skipif(not os.path.exists(EXTRACTOR_TS), reason="extension source not present")
+def test_build_selector_verifies_uniqueness_in_both_files():
+    ts, js = _read(EXTRACTOR_TS), _read(JS)
+    for src, name in ((ts, "extractor_v2.ts"), (js, "injected_scripts.js")):
+        assert "isUnique" in src, f"uniqueness verification helper missing from {name}"
+        assert "querySelectorAll" in src, f"buildSelector must query the DOM to verify in {name}"
+        # the old unconditional depth cap must be gone (it produced non-unique paths)
+        assert "depth < 5" not in src, f"stale depth-capped structural path still present in {name}"
