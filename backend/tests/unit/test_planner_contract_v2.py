@@ -69,6 +69,25 @@ def test_parse_response_report_outcome():
     assert resp.report.claim == "price already visible in accessibility name"
 
 
+def test_parse_response_normalizes_report_action_to_report_outcome():
+    raw = _raw(suggested_actions=[{
+        "action_id": "extract_price_001",
+        "action_type": "report",
+        "target_selector": None,
+        "value": "â‚¹15,299.00",
+        "description": "Extract the price from the current page.",
+        "reasoning": "The price is already visible on the product page.",
+        "confidence": 1.0,
+        "safety_level": "safe",
+    }])
+    resp = ai_service.parse_response(raw, "s1")
+    assert resp.outcome_kind == "report"
+    assert resp.suggested_actions == []
+    assert resp.report is not None
+    assert resp.report.answer == "â‚¹15,299.00"
+    assert resp.report.claim == "The price is already visible on the product page."
+
+
 def test_parse_response_replan_outcome():
     raw = _raw(outcome_kind="replan", suggested_actions=[],
                replan={"reason": "current approach is not working"})
@@ -114,3 +133,25 @@ def test_parse_response_missing_outcome_kind_defaults_to_act():
     resp = ai_service.parse_response(json.dumps(body), "s1")
     assert resp.outcome_kind == "act"
     assert resp.suggested_actions[0].action_type == "fill"
+
+
+def test_debug_logging_is_safe_for_cp1252_stdout(monkeypatch):
+    class Cp1252Stdout:
+        encoding = "cp1252"
+
+        def __init__(self):
+            self.parts = []
+
+        def write(self, text):
+            text.encode(self.encoding)
+            self.parts.append(text)
+
+        def flush(self):
+            pass
+
+    stream = Cp1252Stdout()
+    monkeypatch.setattr(ai_service.sys, "stdout", stream)
+
+    ai_service._safe_debug_print("price " + chr(0x20B9) + "699")
+
+    assert "\\u20b9" in "".join(stream.parts)

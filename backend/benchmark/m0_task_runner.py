@@ -25,6 +25,7 @@ from benchmark.m0_models import (
 from benchmark.analyze_client import AnalyzeError, classify_risk, gate_decision
 from benchmark.criteria import EvalContext, evaluate_success, evaluate_failure, all_passed
 from benchmark.failure_classifier import FailureSignal, classify
+from benchmark.goal_convergence import ConvergenceEvidence, GoalConvergenceEngine
 from benchmark.m0_executor import Driver, ExecResult
 
 
@@ -70,6 +71,7 @@ class TaskRunner:
         last_sig: Optional[str] = None
         same_streak = 0
         recoveries_used = 0
+        convergence = GoalConvergenceEngine()
         deadline = t_start + task.timeout_ms / 1000.0
 
         # ── LOOP ─────────────────────────────────────────────────────────────--
@@ -147,12 +149,22 @@ class TaskRunner:
                 if all_passed(recheck):
                     result.criteria_results = recheck
                     return self._finalize_status(task, result, t_start, TaskStatus.completed)
+                decision = convergence.assess(ConvergenceEvidence(
+                    outcome_kind="report",
+                    strategy_key="report",
+                    semantic_signature=self._semantic_signature(page_context),
+                    validation_signature=self._criteria_signature(recheck),
+                ))
                 prior_steps.append({
                     "action_type": "report", "description": ar.analysis or "",
                     "target_selector": "", "value": None,
                     "execution_result": "claim unverified — success criteria not yet satisfied",
                     "page_url": page_context.get("url", ""), "page_title": page_context.get("title", ""),
                 })
+                if decision.should_replan:
+                    step.error_detail = decision.reason
+                    self._append_convergence_replan(prior_steps, decision.reason, page_context)
+                    convergence.reset()
                 continue  # unverified claim: keep looping, do not trust it
 
             if outcome_kind == "replan":
@@ -256,6 +268,17 @@ class TaskRunner:
                 result.criteria_results = succ2
                 return self._finalize_status(task, result, t_start, TaskStatus.completed)
 
+            decision = convergence.assess(ConvergenceEvidence(
+                outcome_kind=action.action_type,
+                strategy_key=self._action_strategy_key(action),
+                semantic_signature=self._semantic_signature(after_context),
+                validation_signature=self._criteria_signature(succ2),
+            ))
+            if decision.should_replan:
+                step.error_detail = decision.reason
+                self._append_convergence_replan(prior_steps, decision.reason, after_context)
+                convergence.reset()
+
             # RECOVERY: retry only when the executor itself reported failure. A successful
             # action with no net DOM-signature change (a fill, an equal-length text swap,
             # a state toggle) is NOT a failure — completion is governed by success_criteria
@@ -300,6 +323,7 @@ class TaskRunner:
         return EvalContext(
             final_url=page_context.get("url", "") or self.driver.current_url(),
             page_text=page_context.get("visible_text", ""),
+            semantic_texts=self._semantic_texts(page_context),
             analysis_texts=list(analysis_texts),
             steps_taken=steps_taken,
             http_errors=http_errors,
@@ -308,11 +332,80 @@ class TaskRunner:
         )
 
     @staticmethod
+    def _semantic_texts(page_context: dict) -> list[str]:
+        texts: list[str] = []
+
+        def add(value) -> None:
+            if value is None:
+                return
+            if isinstance(value, (str, int, float, bool)):
+                text = str(value).strip()
+                if text:
+                    texts.append(text)
+
+        add(page_context.get("title"))
+        for heading in page_context.get("headings", []) or []:
+            add(heading)
+        add(page_context.get("selected_text"))
+
+        for block in page_context.get("content_blocks", []) or []:
+            if isinstance(block, dict):
+                add(block.get("text"))
+
+        for element in page_context.get("interactive_elements", []) or []:
+            if not isinstance(element, dict):
+                continue
+            for key in ("text", "aria_label", "accessibility_name", "placeholder"):
+                add(element.get(key))
+            state = element.get("state")
+            if isinstance(state, dict):
+                for key in ("value", "selected_text"):
+                    add(state.get(key))
+
+        return texts
+
+    @staticmethod
     def _signature(page_context: dict) -> str:
         basis = (page_context.get("url", "") + "|"
                  + str(len(page_context.get("visible_text", ""))) + "|"
                  + str(len(page_context.get("interactive_elements", []))))
         return hashlib.md5(basis.encode("utf-8")).hexdigest()
+
+    def _semantic_signature(self, page_context: dict) -> str:
+        semantic_basis = {
+            "url": page_context.get("url", ""),
+            "title": page_context.get("title", ""),
+            "visible_text": page_context.get("visible_text", ""),
+            "semantic_texts": self._semantic_texts(page_context),
+        }
+        raw = json.dumps(semantic_basis, sort_keys=True, ensure_ascii=False)
+        return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _criteria_signature(results) -> str:
+        raw = json.dumps(
+            [(r.kind, r.detail, r.passed) for r in results],
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+        return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _action_strategy_key(action) -> str:
+        value = "" if action.value is None else str(action.value)
+        return f"{action.action_type}|{action.target_selector}|{value}"
+
+    @staticmethod
+    def _append_convergence_replan(prior_steps: list[dict], reason: str, page_context: dict) -> None:
+        prior_steps.append({
+            "action_type": "replan",
+            "description": reason,
+            "target_selector": "",
+            "value": None,
+            "execution_result": "FAILED: current strategy is not making semantic progress; replan",
+            "page_url": page_context.get("url", ""),
+            "page_title": page_context.get("title", ""),
+        })
 
     # ── classification helpers ──────────────────────────────────────────────--
     def _classify_block_or_fail(self, task, trip, page_context, ctx) -> FailureCategory:

@@ -22,6 +22,7 @@ class EvalContext:
     """Everything a criterion can be evaluated against."""
     final_url:      str = ""
     page_text:      str = ""                 # visible_text of the latest observation
+    semantic_texts: list[str] = field(default_factory=list)
     analysis_texts: list[str] = field(default_factory=list)  # every AI `analysis` string seen
     steps_taken:    int = 0
     http_errors:    list[str] = field(default_factory=list)  # observed status codes as strings
@@ -32,6 +33,10 @@ class EvalContext:
     @property
     def all_analysis(self) -> str:
         return "\n".join(self.analysis_texts)
+
+    @property
+    def all_page_text(self) -> str:
+        return "\n".join([self.page_text or "", *self.semantic_texts])
 
 
 def _eval_one(c: M0Criterion, ctx: EvalContext) -> CriterionResult:
@@ -47,11 +52,11 @@ def _eval_one(c: M0Criterion, ctx: EvalContext) -> CriterionResult:
             return CriterionResult(k.value, c.detail, ok, f"selector={target!r} present={ok}")
 
         if k == M0CriterionKind.dom_text_present:
-            ok = target.lower() in (ctx.page_text or "").lower()
+            ok = target.lower() in ctx.all_page_text.lower()
             return CriterionResult(k.value, c.detail, ok, f"text~={target!r} found={ok}")
 
         if k == M0CriterionKind.dom_text_absent:
-            ok = target.lower() not in (ctx.page_text or "").lower()
+            ok = target.lower() not in ctx.all_page_text.lower()
             return CriterionResult(k.value, c.detail, ok, f"text~={target!r} absent={ok}")
 
         if k == M0CriterionKind.extracted_value_present:

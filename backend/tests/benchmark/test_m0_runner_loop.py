@@ -30,6 +30,22 @@ def runner(driver, client, mode="playwright", auto_approve=True):
                       artifacts_dir=tempfile.gettempdir(), auto_approve=auto_approve)
 
 
+class RecordingAnalyzeClient(FakeAnalyzeClient):
+    def __init__(self, script: list, analysis: str = "") -> None:
+        super().__init__(script, analysis=analysis)
+        self.prior_steps_seen: list[list[dict]] = []
+
+    def analyze(self, *, session_id: str, task: str, page_context: dict,
+                prior_steps: list) :
+        self.prior_steps_seen.append(list(prior_steps))
+        return super().analyze(
+            session_id=session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=prior_steps,
+        )
+
+
 def test_happy_path_completes():
     d = FakeDriver([
         page("http://x/login", text="form", elements=[{"selector": "#u"}]),
@@ -170,6 +186,46 @@ def test_report_outcome_does_not_self_certify_when_criteria_still_fail():
     assert r.steps[0].action_type == "report"
 
 
+def test_repeated_unsupported_reports_trigger_replan_breadcrumb():
+    d = FakeDriver([page("http://x/product", text="search results")])
+    c = RecordingAnalyzeClient([
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="not enough", claim="price is available")},
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="still not enough", claim="price is available")},
+        ("click", "#product", None),
+    ])
+    t = task(max_steps=3,
+             success_criteria=[M0Criterion(K.extracted_value_present, target="missing-price")])
+
+    runner(d, c).run(t)
+
+    assert any(
+        step.get("action_type") == "replan"
+        and "semantic progress" in step.get("execution_result", "")
+        for step in c.prior_steps_seen[-1]
+    )
+
+
+def test_report_outcome_completes_with_semantic_page_evidence():
+    pg = page("http://x/results", text="navigation shell",
+              title="Python tutorial - Search results",
+              elements=[{"selector": "#q", "text": "", "accessibility_name": "Search"}])
+    pg["content_blocks"] = [{"text": "Python Full Course for Beginners"}]
+    d = FakeDriver([pg])
+    c = FakeAnalyzeClient([
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="Python Full Course", claim="result is visible")},
+    ])
+    t = task(success_criteria=[
+        M0Criterion(K.dom_text_present, target="Python tutorial"),
+        M0Criterion(K.extracted_value_present, target="Python Full Course"),
+    ])
+    r = runner(d, c).run(t)
+    assert r.status == TaskStatus.completed
+    assert r.steps[0].action_type == "report"
+
+
 def test_replan_outcome_takes_no_action_then_next_turn_completes():
     d = FakeDriver([
         page("http://x/a", text="start", elements=[{"selector": "#x"}]),
@@ -199,6 +255,49 @@ def test_existing_act_only_scripts_are_unaffected_by_outcome_kind_default():
     t = task(success_criteria=[M0Criterion(K.dom_text_present, target="Welcome tester")])
     r = runner(d, c).run(t)
     assert r.status == TaskStatus.completed
+
+
+def test_repeated_identical_actions_trigger_replan_breadcrumb():
+    unchanged = page("http://x/search", text="same results", elements=[{"selector": "#next"}])
+    d = FakeDriver([unchanged, unchanged, unchanged])
+    c = RecordingAnalyzeClient([
+        ("click", "#next", None),
+        ("click", "#next", None),
+        ("click", "#next", None),
+    ])
+    t = task(max_steps=3,
+             success_criteria=[M0Criterion(K.dom_text_present, target="never appears")])
+
+    runner(d, c).run(t)
+
+    assert any(
+        step.get("action_type") == "replan"
+        and "semantic progress" in step.get("execution_result", "")
+        for step in c.prior_steps_seen[-1]
+    )
+
+
+def test_semantic_progress_resets_convergence_in_runner():
+    d = FakeDriver([
+        page("http://x/search", text="page one", elements=[{"selector": "#next"}]),
+        page("http://x/search", text="page two", elements=[{"selector": "#next"}]),
+        page("http://x/search", text="page three", elements=[{"selector": "#next"}]),
+    ])
+    c = RecordingAnalyzeClient([
+        ("click", "#next", None),
+        ("click", "#next", None),
+        ("click", "#next", None),
+    ])
+    t = task(max_steps=3,
+             success_criteria=[M0Criterion(K.dom_text_present, target="never appears")])
+
+    runner(d, c).run(t)
+
+    assert not any(
+        step.get("action_type") == "replan"
+        for seen in c.prior_steps_seen
+        for step in seen
+    )
 
 
 def test_recovery_breadcrumb_then_success():

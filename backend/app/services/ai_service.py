@@ -4,6 +4,7 @@ import re
 import time
 import os
 import base64
+import sys
 import httpx
 import concurrent.futures
 from typing import Optional, Dict, Any
@@ -43,6 +44,17 @@ def is_transient_error(exc: Exception) -> bool:
     )
 
 
+def _safe_debug_print(message: str) -> None:
+    try:
+        print(message, flush=True)
+    except UnicodeEncodeError:
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        safe = str(message).encode(encoding, errors="backslashreplace").decode(
+            encoding, errors="replace"
+        )
+        print(safe, flush=True)
+
+
 def download_image(url: str) -> tuple[str, bytes, str] | None:
     if url.startswith("data:image"):
         try:
@@ -70,7 +82,7 @@ def download_image(url: str) -> tuple[str, bytes, str] | None:
                     return None
                 return url, resp.content, mime_type
     except Exception as e:
-        print(f"[Image Downloader] Failed to download {url[:100]}: {e}", flush=True)
+        _safe_debug_print(f"[Image Downloader] Failed to download {url[:100]}: {e}")
     return None
 
 
@@ -107,7 +119,7 @@ def save_image_locally(url: str, img_bytes: bytes, mime_type: str, index: int) -
             f.write(img_bytes)
         return filepath
     except Exception as e:
-        print(f"[Image Downloader] Failed to save image: {e}", flush=True)
+        _safe_debug_print(f"[Image Downloader] Failed to save image: {e}")
         return ""
 
 
@@ -153,7 +165,7 @@ SYSTEM_PROMPT = """You are an AI browser workflow assistant. Decide the NEXT out
 9. Keep descriptions concise, but do not omit necessary values such as field purpose, date, recipient, search query, or option text.
 10. outcome_kind chooses the shape of this turn — pick the one that actually matches what is needed, do not default to "act" out of habit:
 - "act": suggested_actions has exactly one entry, following rule 8. Use this when a browser interaction is genuinely required.
-- "report": the task (or its current active node) is already answerable from PAGE CONTEXT, VISIBLE CONTENT BLOCKS, or CURRENT VERIFIED STATE FACTS as they stand right now — e.g. a price, a name, a status that is already present as text or an accessibility name. Do NOT click an element merely to "reveal" a value that is already present in front of you. suggested_actions must be empty; set "report": {"answer": "the extracted value, if any", "claim": "why you believe the goal is satisfied"}.
+- "report": the task (or its current active node) is already answerable from PAGE CONTEXT, VISIBLE CONTENT BLOCKS, or CURRENT VERIFIED STATE FACTS as they stand right now — e.g. a price, a name, a status that is already present as text or an accessibility name. Do NOT click an element merely to "reveal" a value that is already present in front of you. suggested_actions must be empty; set "report": {"answer": "the extracted value, if any", "claim": "why you believe the goal is satisfied"}. Never put "report" in suggested_actions.action_type; it is an outcome_kind, not a browser action.
 - "wait": the page is mid-transition (e.g. just navigated or an async region is loading) and needs time before the next observation is meaningful. suggested_actions has one entry with action_type "wait" (rule 8).
 - "ask": the task cannot proceed without information only the user can supply (e.g. login credentials, a payment choice, an ambiguous preference). suggested_actions must be empty; set "clarification_question" to the question. Never use "ask" to request browser strategy or extraction help — figure those out yourself.
 - "replan": the current approach is not working and a different strategy is needed. suggested_actions must be empty; set "replan": {"reason": "why this approach should change"}."""
@@ -474,8 +486,31 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
             return True
         return False
 
+    suggested_raw = data.get("suggested_actions", [])
+    if not isinstance(suggested_raw, list):
+        suggested_raw = []
+
+    # Planner Contract V2 compatibility: "report" is an outcome kind, not a
+    # browser action. If a provider emits the V2 intent in the old action slot,
+    # normalize it into the canonical Report outcome before action validation.
+    if (suggested_raw and isinstance(suggested_raw[0], dict)
+            and suggested_raw[0].get("action_type") == "report"):
+        report_action = suggested_raw[0]
+        data["outcome_kind"] = "report"
+        data["suggested_actions"] = []
+        if not isinstance(data.get("report"), dict):
+            data["report"] = {
+                "answer": report_action.get("value"),
+                "claim": (
+                    report_action.get("reasoning")
+                    or report_action.get("description")
+                    or "planner reported the goal is satisfied"
+                ),
+            }
+        suggested_raw = []
+
     actions: list[SuggestedAction] = []
-    for item in data.get("suggested_actions", [])[:1]:
+    for item in suggested_raw[:1]:
         action_type = item.get("action_type", "")
         if action_type not in ALLOWED_TYPES:
             raise ValueError(f"Unsupported action_type from AI: {action_type}")
@@ -732,17 +767,17 @@ def analyze(
     is_extraction_task = any(k in task.lower() for k in ["extraction agent", "extract all", "structured json", "section 10", "product details", "output format", "section 19"])
 
     if is_extraction_task:
-        print(f"[AI Service] Detected extraction task. Using {provider} direct text generation mode.", flush=True)
+        _safe_debug_print(f"[AI Service] Detected extraction task. Using {provider} direct text generation mode.")
         # Download images concurrently and save them locally
         downloaded = []
         saved_images_info = []
         if page_context.images:
-            print(f"[AI Service] Downloading and saving up to 5 images for visual analysis...", flush=True)
+            _safe_debug_print("[AI Service] Downloading and saving up to 5 images for visual analysis...")
             downloaded = download_images_concurrently(page_context.images, max_images=5)
             for i, (original_url, img_bytes, mime_type) in enumerate(downloaded, 1):
                 local_path = save_image_locally(original_url, img_bytes, mime_type, i)
                 if local_path:
-                    print(f"[AI Service] Saved image {i} to {local_path}", flush=True)
+                    _safe_debug_print(f"[AI Service] Saved image {i} to {local_path}")
                     saved_images_info.append({
                         "url": original_url,
                         "local_path": local_path
@@ -767,7 +802,7 @@ def analyze(
                 [{"role": "user", "content": content}],
                 max_tokens=2048,
             )
-            print(f"[AI Service] Raw text response from OpenRouter (Extraction):\n{raw_text[:300]}...\n", flush=True)
+            _safe_debug_print(f"[AI Service] Raw text response from OpenRouter (Extraction):\n{raw_text[:300]}...\n")
 
             cleaned_text = raw_text.strip()
             if cleaned_text.startswith("```"):
@@ -827,7 +862,7 @@ def analyze(
             raise last_error or RuntimeError("Gemini did not return a response")
 
         raw_text = response.text or ""
-        print(f"[AI Service] Raw text response from Gemini (Extraction):\n{raw_text[:300]}...\n", flush=True)
+        _safe_debug_print(f"[AI Service] Raw text response from Gemini (Extraction):\n{raw_text[:300]}...\n")
         
         # Strip markdown fences if Gemini wrapped it, to keep it clean in the text editor
         cleaned_text = raw_text.strip()
@@ -845,7 +880,7 @@ def analyze(
 
     # Standard browser interactive workflow (JSON mode with SYSTEM_PROMPT)
     # We do NOT download or pass image bytes here to keep request payload tiny and fast.
-    print(f"[AI Service] Standard workflow task via {provider}. Skipping image downloader.", flush=True)
+    _safe_debug_print(f"[AI Service] Standard workflow task via {provider}. Skipping image downloader.")
 
     if provider == "openrouter":
         raw = _call_openrouter_chat(
@@ -856,7 +891,7 @@ def analyze(
             response_format={"type": "json_object"},
             max_tokens=512,
         )
-        print(f"[AI Service] Raw JSON response from OpenRouter (Workflow):\n{raw}\n", flush=True)
+        _safe_debug_print(f"[AI Service] Raw JSON response from OpenRouter (Workflow):\n{raw}\n")
         for repair_attempt in range(2):
             try:
                 result = parse_response(raw, session_id)
@@ -874,10 +909,10 @@ def analyze(
                         response_format={"type": "json_object"},
                         max_tokens=512,
                     )
-                    print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n", flush=True)
+                    _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
                     return parse_response(reflected_raw, session_id)
                 except Exception as reflect_err:
-                    print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}", flush=True)
+                    _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")
                     return result
             except Exception as e:
                 try:
@@ -885,7 +920,7 @@ def analyze(
                         f.write(f"Error: {str(e)}\n\nRaw:\n{raw}")
                 except Exception:
                     pass
-                print(f"[AI Service ERROR] OpenRouter parse attempt {repair_attempt} failed: {e}", flush=True)
+                _safe_debug_print(f"[AI Service ERROR] OpenRouter parse attempt {repair_attempt} failed: {e}")
                 if not isinstance(e, json.JSONDecodeError):
                     raise
                 raw = _call_openrouter_chat(
@@ -940,7 +975,7 @@ def analyze(
         raise last_error or RuntimeError("Gemini did not return a response")
 
     raw = response.text or "{}"
-    print(f"[AI Service] Raw JSON response from Gemini (Workflow):\n{raw}\n", flush=True)
+    _safe_debug_print(f"[AI Service] Raw JSON response from Gemini (Workflow):\n{raw}\n")
     for repair_attempt in range(2):
         try:
             result = parse_response(raw, session_id)
@@ -960,10 +995,10 @@ def analyze(
                     ),
                 )
                 reflected_raw = reflected_response.text or "{}"
-                print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n", flush=True)
+                _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
                 return parse_response(reflected_raw, session_id)
             except Exception as reflect_err:
-                print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}", flush=True)
+                _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")
                 return result
         except Exception as e:
             try:
@@ -971,7 +1006,7 @@ def analyze(
                     f.write(f"Error: {str(e)}\n\nRaw:\n{raw}")
             except Exception:
                 pass
-            print(f"[AI Service ERROR] parse attempt {repair_attempt} failed: {e}", flush=True)
+            _safe_debug_print(f"[AI Service ERROR] parse attempt {repair_attempt} failed: {e}")
             if not isinstance(e, json.JSONDecodeError):
                 raise
             repair_response = client.models.generate_content(

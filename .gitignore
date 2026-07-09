@@ -80,3 +80,7 @@ screenshots/
 *.jpg
 *.jpeg
 *.gif
+
+# Local virtualenvs and debug traces
+.venv-codex/
+debug_openrouter_raw.json

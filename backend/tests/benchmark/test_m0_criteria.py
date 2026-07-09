@@ -28,6 +28,13 @@ def test_dom_text_present_absent():
     assert not evaluate_success([M0Criterion(K.dom_text_present, target="nope")], ctx())[0].passed
 
 
+def test_dom_text_uses_semantic_evidence():
+    c = ctx(page_text="navigation shell", semantic_texts=["Python tutorial result", "HP laptop"])
+    assert evaluate_success([M0Criterion(K.dom_text_present, target="tutorial result")], c)[0].passed
+    assert evaluate_success([M0Criterion(K.dom_text_absent, target="missing brand")], c)[0].passed
+    assert not evaluate_success([M0Criterion(K.dom_text_absent, target="HP laptop")], c)[0].passed
+
+
 def test_extracted_value():
     assert evaluate_success([M0Criterion(K.extracted_value_present, target="price")], ctx())[0].passed
     assert evaluate_success([M0Criterion(K.extracted_value_matches, target=r"rs \d+")], ctx())[0].passed
