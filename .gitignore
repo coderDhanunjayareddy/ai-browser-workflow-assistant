@@ -84,3 +84,6 @@ screenshots/
 # Local virtualenvs and debug traces
 .venv-codex/
 debug_openrouter_raw.json
+backend/debug.log
+backend/debug_anthropic_raw.json
+

@@ -38,12 +38,19 @@ def observation(*, url: str, title: str, dom_snapshot: Optional[str], screenshot
 
 def planner_input(*, task: str, page_context_sent: dict, prior_steps_sent: list[dict],
                   compressed_context: Optional[dict], system_prompt_version: Optional[str],
-                  model: Optional[str], timestamp: float) -> dict:
+                  model: Optional[str], timestamp: float,
+                  strategy_generation_context: Optional[list[dict]] = None) -> dict:
     """What the benchmark transmitted to /analyze (exact), plus backend-internal fields."""
+    url = page_context_sent.get("url", "") if isinstance(page_context_sent, dict) else ""
+    visible_text = page_context_sent.get("visible_text", "") if isinstance(page_context_sent, dict) else ""
     return {
         "task": task,
+        "url": url,
+        "observation_summary": (visible_text or "")[:400],
         "page_context_sent": page_context_sent,        # exact payload transmitted
         "prior_steps_sent": prior_steps_sent,          # exact history transmitted
+        "strategy_generation_context": strategy_generation_context or [],
+        "strategy_generation_context_present": bool(strategy_generation_context),
         "compressed_context": compressed_context,      # backend-internal (null unless TRACE_MODE)
         "compressed_context_unavailable_reason": None if compressed_context is not None else REASON_BACKEND_OFF,
         "system_prompt_version": system_prompt_version,
@@ -61,6 +68,7 @@ def provider_request(exchange: Optional[dict]) -> dict:
         "available": True,
         "provider": req.get("provider"),
         "model": req.get("model"),
+        "system_prompt": req.get("system"),
         "assembled_prompt": req.get("messages"),       # exact system+user messages sent to provider
         "temperature": req.get("temperature"),
         "max_tokens": req.get("max_tokens"),
@@ -134,7 +142,7 @@ def loop_decision(*, decision: str, reason: str) -> dict:
 def step_trace(*, trace_id: str, run_id: str, task_id: str, session_id: str, step_index: int,
                observation: dict, planner_input: dict, provider_request: dict,
                provider_response: dict, parsed_action: dict, executor: dict,
-               validation: dict, loop_decision: dict) -> dict:
+               validation: dict, loop_decision: dict, metadata: Optional[dict] = None) -> dict:
     return {
         "schema_version": SCHEMA_VERSION,
         "trace_id": trace_id,
@@ -142,6 +150,7 @@ def step_trace(*, trace_id: str, run_id: str, task_id: str, session_id: str, ste
         "task_id": task_id,
         "session_id": session_id,
         "step_index": step_index,
+        "metadata": metadata or {},
         "observation": observation,
         "planner_input": planner_input,
         "provider_request": provider_request,

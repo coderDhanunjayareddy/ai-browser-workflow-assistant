@@ -27,6 +27,7 @@ from benchmark.criteria import EvalContext, evaluate_success, evaluate_failure, 
 from benchmark.failure_classifier import FailureSignal, classify
 from benchmark.goal_convergence import ConvergenceEvidence, GoalConvergenceEngine
 from benchmark.m0_executor import Driver, ExecResult
+from benchmark.strategy_generation import build_strategy_context
 
 
 # task_ids whose targets are canvas/coordinate-only (no DOM equivalent) — used to tag
@@ -72,6 +73,7 @@ class TaskRunner:
         same_streak = 0
         recoveries_used = 0
         convergence = GoalConvergenceEngine()
+        emitted_strategy_contexts: set[str] = set()
         deadline = t_start + task.timeout_ms / 1000.0
 
         # ── LOOP ─────────────────────────────────────────────────────────────--
@@ -163,7 +165,9 @@ class TaskRunner:
                 })
                 if decision.should_replan:
                     step.error_detail = decision.reason
-                    self._append_convergence_replan(prior_steps, decision.reason, page_context)
+                    self._append_convergence_replan(
+                        prior_steps, emitted_strategy_contexts, task, decision.reason,
+                        page_context, recheck, "report", "report")
                     convergence.reset()
                 continue  # unverified claim: keep looping, do not trust it
 
@@ -276,7 +280,9 @@ class TaskRunner:
             ))
             if decision.should_replan:
                 step.error_detail = decision.reason
-                self._append_convergence_replan(prior_steps, decision.reason, after_context)
+                self._append_convergence_replan(
+                    prior_steps, emitted_strategy_contexts, task, decision.reason,
+                    after_context, succ2, action.action_type, self._action_strategy_key(action))
                 convergence.reset()
 
             # RECOVERY: retry only when the executor itself reported failure. A successful
@@ -396,13 +402,38 @@ class TaskRunner:
         return f"{action.action_type}|{action.target_selector}|{value}"
 
     @staticmethod
-    def _append_convergence_replan(prior_steps: list[dict], reason: str, page_context: dict) -> None:
+    def _append_convergence_replan(
+        prior_steps: list[dict],
+        emitted_strategy_contexts: set[str],
+        task,
+        reason: str,
+        page_context: dict,
+        validation_results,
+        outcome_kind: str,
+        strategy_key: str,
+    ) -> None:
+        strategy_context = build_strategy_context(
+            goal=task.goal,
+            success_criteria=task.success_criteria,
+            validation_results=validation_results,
+            page_context=page_context,
+            outcome_kind=outcome_kind,
+            strategy_key=strategy_key,
+            convergence_reason=reason,
+        )
+        if strategy_context.context_key in emitted_strategy_contexts:
+            return
+        emitted_strategy_contexts.add(strategy_context.context_key)
         prior_steps.append({
             "action_type": "replan",
-            "description": reason,
+            "description": "Strategy Generation: previous strategy stalled",
             "target_selector": "",
             "value": None,
-            "execution_result": "FAILED: current strategy is not making semantic progress; replan",
+            "execution_result": (
+                "FAILED: current strategy is not making semantic progress; "
+                "use strategy context before choosing the next outcome"
+            ),
+            "page_analysis": strategy_context.text,
             "page_url": page_context.get("url", ""),
             "page_title": page_context.get("title", ""),
         })

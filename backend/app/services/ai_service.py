@@ -220,6 +220,18 @@ def _openrouter_headers() -> dict[str, str]:
     }
 
 
+def _anthropic_headers() -> dict[str, str]:
+    api_key = (settings.anthropic_api_key or "").strip()
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY is not configured")
+
+    return {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+    }
+
+
 def _extract_provider_error(response: httpx.Response) -> str:
     try:
         payload = response.json()
@@ -300,12 +312,87 @@ def _call_openrouter_chat(
     return text
 
 
+def _call_anthropic_messages(
+    messages: list[dict],
+    *,
+    system_prompt: str | None = None,
+    max_tokens: int = 512,
+) -> str:
+    model = settings.anthropic_model
+    body = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": max_tokens,
+    }
+    if _anthropic_accepts_temperature(model):
+        body["temperature"] = 0
+    if system_prompt:
+        body["system"] = system_prompt
+
+    _t0 = time.perf_counter()
+    try:
+        with httpx.Client(timeout=60.0) as client:
+            response = client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers=_anthropic_headers(),
+                json=body,
+            )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code
+        message = _extract_provider_error(exc.response)
+        if status_code == 429 or status_code >= 500:
+            raise TransientAIError(message) from exc
+        raise AIProviderError("Anthropic", status_code, message) from exc
+    except httpx.HTTPError as exc:
+        raise TransientAIError(str(exc)) from exc
+
+    payload = response.json()
+    parts = payload.get("content") or []
+    text = "".join(
+        str(part.get("text", ""))
+        for part in parts
+        if isinstance(part, dict) and part.get("type") == "text"
+    )
+
+    if settings.trace_mode:
+        try:
+            from app.diagnostics import trace_sink
+            trace_sink.record_provider_exchange(
+                request={"provider": "anthropic", "model": body["model"],
+                         "messages": body["messages"], "system": body.get("system"),
+                         "temperature": body.get("temperature"), "max_tokens": body["max_tokens"]},
+                response={"raw_text": text, "stop_reason": payload.get("stop_reason"),
+                          "usage": payload.get("usage")},
+                latency_ms=(time.perf_counter() - _t0) * 1000)
+        except Exception:
+            pass
+
+    return text
+
+
+def _anthropic_accepts_temperature(model: str) -> bool:
+    """Some latest Anthropic models reject temperature; keep existing behavior elsewhere."""
+    return not (model or "").strip().lower().startswith("claude-sonnet-5")
+
+
 def _image_content_part(img_bytes: bytes, mime_type: str) -> dict:
     encoded = base64.b64encode(img_bytes).decode("ascii")
     return {
         "type": "image_url",
         "image_url": {
             "url": f"data:{mime_type};base64,{encoded}",
+        },
+    }
+
+
+def _anthropic_image_content_part(img_bytes: bytes, mime_type: str) -> dict:
+    return {
+        "type": "image",
+        "source": {
+            "type": "base64",
+            "media_type": mime_type,
+            "data": base64.b64encode(img_bytes).decode("ascii"),
         },
     }
 
@@ -682,6 +769,13 @@ def generate_text(system_prompt: str, user_message: str) -> str:
             max_tokens=1024,
         )
 
+    if provider == "anthropic":
+        return _call_anthropic_messages(
+            [{"role": "user", "content": user_message}],
+            system_prompt=system_prompt,
+            max_tokens=1024,
+        )
+
     if provider != "gemini":
         raise ValueError(f"Unsupported AI_PROVIDER={settings.ai_provider}")
     if not settings.gemini_api_key:
@@ -803,6 +897,30 @@ def analyze(
                 max_tokens=2048,
             )
             _safe_debug_print(f"[AI Service] Raw text response from OpenRouter (Extraction):\n{raw_text[:300]}...\n")
+
+            cleaned_text = raw_text.strip()
+            if cleaned_text.startswith("```"):
+                cleaned_text = re.sub(r"^```(?:json)?\s*", "", cleaned_text, flags=re.IGNORECASE)
+                cleaned_text = re.sub(r"\s*```$", "", cleaned_text)
+                cleaned_text = cleaned_text.strip()
+
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=cleaned_text,
+                clarification_question=None,
+                suggested_actions=[],
+            )
+
+        if provider == "anthropic":
+            content = [{"type": "text", "text": user_message}]
+            for _, img_bytes, mime_type in downloaded:
+                content.append(_anthropic_image_content_part(img_bytes, mime_type))
+
+            raw_text = _call_anthropic_messages(
+                [{"role": "user", "content": content}],
+                max_tokens=2048,
+            )
+            _safe_debug_print(f"[AI Service] Raw text response from Anthropic (Extraction):\n{raw_text[:300]}...\n")
 
             cleaned_text = raw_text.strip()
             if cleaned_text.startswith("```"):
@@ -940,6 +1058,55 @@ def analyze(
 
         return fallback_parse_failure(session_id)
 
+    if provider == "anthropic":
+        raw = _call_anthropic_messages(
+            [{"role": "user", "content": user_message}],
+            system_prompt=SYSTEM_PROMPT,
+            max_tokens=512,
+        )
+        _safe_debug_print(f"[AI Service] Raw JSON response from Anthropic (Workflow):\n{raw}\n")
+        for repair_attempt in range(2):
+            try:
+                result = parse_response(raw, session_id)
+                trigger = _detect_repeat_trigger(result, compressed_context)
+                if trigger is None:
+                    return result
+                try:
+                    reflected_raw = _call_anthropic_messages(
+                        [{"role": "user", "content": user_message + _reflection_directive(trigger)}],
+                        system_prompt=SYSTEM_PROMPT,
+                        max_tokens=512,
+                    )
+                    _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
+                    return parse_response(reflected_raw, session_id)
+                except Exception as reflect_err:
+                    _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")
+                    return result
+            except Exception as e:
+                try:
+                    with open("debug_anthropic_raw.json", "w", encoding="utf-8") as f:
+                        f.write(f"Error: {str(e)}\n\nRaw:\n{raw}")
+                except Exception:
+                    pass
+                _safe_debug_print(f"[AI Service ERROR] Anthropic parse attempt {repair_attempt} failed: {e}")
+                if not isinstance(e, json.JSONDecodeError):
+                    raise
+                raw = _call_anthropic_messages(
+                    [
+                        {
+                            "role": "user",
+                            "content": (
+                                f"{user_message}\n\nYour previous response was invalid JSON. "
+                                "Return only one valid JSON object matching the required output format."
+                            ),
+                        },
+                    ],
+                    system_prompt=SYSTEM_PROMPT,
+                    max_tokens=512,
+                )
+
+        return fallback_parse_failure(session_id)
+
     if provider != "gemini":
         raise ValueError(f"Unsupported AI_PROVIDER={settings.ai_provider}")
     if not settings.gemini_api_key:
@@ -975,6 +1142,18 @@ def analyze(
         raise last_error or RuntimeError("Gemini did not return a response")
 
     raw = response.text or "{}"
+    if settings.trace_mode:
+        try:
+            from app.diagnostics import trace_sink
+            trace_sink.record_provider_exchange(
+                request={"provider": "gemini", "model": settings.gemini_model,
+                         "messages": [{"role": "user", "content": user_message}],
+                         "system": SYSTEM_PROMPT, "temperature": 0, "max_tokens": None,
+                         "response_format": {"type": "json_object"}},
+                response={"raw_text": raw, "finish_reason": None, "usage": None},
+                latency_ms=0.0)
+        except Exception:
+            pass
     _safe_debug_print(f"[AI Service] Raw JSON response from Gemini (Workflow):\n{raw}\n")
     for repair_attempt in range(2):
         try:
@@ -995,6 +1174,21 @@ def analyze(
                     ),
                 )
                 reflected_raw = reflected_response.text or "{}"
+                if settings.trace_mode:
+                    try:
+                        from app.diagnostics import trace_sink
+                        trace_sink.record_provider_exchange(
+                            request={"provider": "gemini", "model": settings.gemini_model,
+                                     "messages": [
+                                         {"role": "user", "content": user_message},
+                                         {"role": "user", "content": _reflection_directive(trigger)},
+                                     ],
+                                     "system": SYSTEM_PROMPT, "temperature": 0, "max_tokens": None,
+                                     "response_format": {"type": "json_object"}},
+                            response={"raw_text": reflected_raw, "finish_reason": None, "usage": None},
+                            latency_ms=0.0)
+                    except Exception:
+                        pass
                 _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
                 return parse_response(reflected_raw, session_id)
             except Exception as reflect_err:
@@ -1019,5 +1213,17 @@ def analyze(
                 ),
             )
             raw = repair_response.text or "{}"
+            if settings.trace_mode:
+                try:
+                    from app.diagnostics import trace_sink
+                    trace_sink.record_provider_exchange(
+                        request={"provider": "gemini", "model": settings.gemini_model,
+                                 "messages": [{"role": "user", "content": user_message}],
+                                 "system": SYSTEM_PROMPT, "temperature": 0, "max_tokens": None,
+                                 "response_format": {"type": "json_object"}},
+                        response={"raw_text": raw, "finish_reason": None, "usage": None},
+                        latency_ms=0.0)
+                except Exception:
+                    pass
 
     return fallback_parse_failure(session_id)

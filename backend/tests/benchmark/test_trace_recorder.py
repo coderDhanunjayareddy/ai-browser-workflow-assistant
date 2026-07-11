@@ -5,7 +5,12 @@ import os
 from benchmark.trace import schema
 from benchmark.trace.recorder import TraceRecorder
 from benchmark.trace.tracing_client import Exchange
-from benchmark.analyze_client import AnalyzeResult, SuggestedActionDTO
+from benchmark.analyze_client import (
+    AnalyzeResult,
+    ReportOutcomeDTO,
+    ReplanOutcomeDTO,
+    SuggestedActionDTO,
+)
 from benchmark.m0_models import M0TaskResult, M0StepRecord, TaskStatus
 
 
@@ -106,6 +111,63 @@ def test_recorder_merges_all_sources(tmp_path):
     # files written
     assert (out / "r1" / "fixture__login_form" / "step_000.trace.json").exists()
     assert (out / "r1" / "fixture__login_form" / "index.json").exists()
+
+
+def test_recorder_persists_full_planner_request_and_response(tmp_path):
+    result = _result()
+    act = SuggestedActionDTO(action_id="a", action_type="click", target_selector="#p",
+                             value=None, description="open product", reasoning="need details",
+                             confidence=0.7, safety_level="safe")
+    res = AnalyzeResult(
+        analysis="open product page",
+        outcome_kind="replan",
+        suggested_actions=[act],
+        report=ReportOutcomeDTO(claim="price is visible", answer="Rs 100"),
+        replan=ReplanOutcomeDTO(reason="previous strategy stalled"),
+        prompt_tokens=11,
+        completion_tokens=7,
+    )
+    prior_steps = [{
+        "action_type": "replan",
+        "description": "Strategy Generation: previous strategy stalled",
+        "execution_result": "FAILED: current strategy is not making semantic progress",
+        "page_analysis": "STRATEGY GENERATION CONTEXT\nExpected semantic goal: price visible",
+    }]
+    ex = Exchange(trace_id="tid0", session_id="benchmark_fixture__login_form_r1",
+                  task="find price",
+                  page_context={"url": "http://x/results", "title": "Results",
+                                "visible_text": "search results",
+                                "interactive_elements": [{"selector": "#p", "text": "Product"}]},
+                  prior_steps=prior_steps, timestamp=123.0, result=res)
+
+    traces = TraceRecorder(enabled=True, artifacts_dir=str(tmp_path), out_dir=str(tmp_path / "out"),
+                           trace_dir=str(tmp_path / "trace"), run_id="r1").build_task(result, [ex])
+
+    t0 = traces[0]
+    assert t0["planner_input"]["task"] == "find price"
+    assert t0["planner_input"]["url"] == "http://x/results"
+    assert t0["planner_input"]["prior_steps_sent"] == prior_steps
+    contexts = t0["planner_input"]["strategy_generation_context"]
+    assert contexts[0]["page_analysis"].startswith("STRATEGY GENERATION CONTEXT")
+    parsed = t0["provider_response"]["parsed_json"]
+    assert parsed["analysis"] == "open product page"
+    assert parsed["outcome_kind"] == "replan"
+    assert parsed["suggested_actions"][0]["action_type"] == "click"
+    assert parsed["report"]["claim"] == "price is visible"
+    assert parsed["replan"]["reason"] == "previous strategy stalled"
+    assert t0["metadata"]["step_number"] == 0
+    assert t0["metadata"]["attempt_number"] == 0
+    assert t0["metadata"]["token_usage"]["parsed"]["prompt_tokens"] == 11
+
+
+def test_strategy_context_absent_when_not_emitted(tmp_path):
+    result = _result()
+    ex = _exchanges("benchmark_fixture__login_form_r1")[0]
+    traces = TraceRecorder(enabled=True, artifacts_dir=str(tmp_path), out_dir=str(tmp_path / "out"),
+                           trace_dir=str(tmp_path / "trace"), run_id="r1").build_task(result, [ex])
+
+    assert traces[0]["planner_input"]["strategy_generation_context"] == []
+    assert traces[0]["planner_input"]["strategy_generation_context_present"] is False
 
 
 def test_recorder_disabled_is_noop(tmp_path):

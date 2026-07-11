@@ -68,6 +68,7 @@ class TraceRecorder:
                 task=ex.task if ex else result.task_id,
                 page_context_sent=sent_ctx,
                 prior_steps_sent=ex.prior_steps if ex else [],
+                strategy_generation_context=self._strategy_contexts(ex.prior_steps if ex else []),
                 compressed_context=None,   # embedded inside the assembled prompt (provider_request)
                 system_prompt_version=None,
                 model=(backend or {}).get("request", {}).get("model") if backend else None,
@@ -77,9 +78,7 @@ class TraceRecorder:
             action = res.first_action if res else None
             pres = schema.provider_response(
                 backend,
-                parsed={"analysis": res.analysis if res else "",
-                        "suggested_actions": [a.__dict__ for a in (res.suggested_actions if res else [])],
-                        "clarification_question": res.clarification_question if res else None},
+                parsed=self._parsed_response(res),
                 parse_error=ex.error if ex else None)
 
             pact = schema.parsed_action(
@@ -110,13 +109,80 @@ class TraceRecorder:
                 trace_id=trace_id, run_id=self.run_id, task_id=result.task_id,
                 session_id=f"{self.session_prefix}_{result.task_id}_{self.run_id}", step_index=i,
                 observation=obs, planner_input=pin, provider_request=preq, provider_response=pres,
-                parsed_action=pact, executor=exec_rec, validation=val, loop_decision=decision)
+                parsed_action=pact, executor=exec_rec, validation=val, loop_decision=decision,
+                metadata=self._metadata(i, ex, backend, res))
             traces.append(trace)
             self._write(result.task_id, i, trace)
             prev_url = url
 
         self._write_index(result.task_id, traces, result)
         return traces
+
+    def _parsed_response(self, res) -> dict:
+        if not res:
+            return {
+                "analysis": "",
+                "outcome_kind": None,
+                "suggested_actions": [],
+                "clarification_question": None,
+                "report": None,
+                "replan": None,
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0},
+            }
+        return {
+            "analysis": res.analysis,
+            "outcome_kind": res.outcome_kind,
+            "suggested_actions": [self._dto(a) for a in (res.suggested_actions or [])],
+            "clarification_question": res.clarification_question,
+            "report": self._dto(res.report),
+            "replan": self._dto(res.replan),
+            "usage": {
+                "prompt_tokens": res.prompt_tokens,
+                "completion_tokens": res.completion_tokens,
+            },
+        }
+
+    def _metadata(self, step_index: int, ex, backend: Optional[dict], res) -> dict:
+        req = (backend or {}).get("request", {}) if backend else {}
+        raw = (backend or {}).get("response", {}) if backend else {}
+        usage = raw.get("usage") or {}
+        return {
+            "step_number": step_index,
+            "attempt_number": 0,
+            "timestamp": ex.timestamp if ex else 0.0,
+            "provider": req.get("provider"),
+            "model": req.get("model"),
+            "token_usage": {
+                "provider": usage,
+                "parsed": {
+                    "prompt_tokens": res.prompt_tokens if res else 0,
+                    "completion_tokens": res.completion_tokens if res else 0,
+                },
+            },
+        }
+
+    def _dto(self, value):
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            return value
+        if hasattr(value, "__dict__"):
+            return dict(value.__dict__)
+        return value
+
+    def _strategy_contexts(self, prior_steps: list[dict]) -> list[dict]:
+        contexts = []
+        for i, step in enumerate(prior_steps or []):
+            page_analysis = step.get("page_analysis", "") if isinstance(step, dict) else ""
+            if "STRATEGY GENERATION CONTEXT" in page_analysis:
+                contexts.append({
+                    "prior_step_index": i,
+                    "action_type": step.get("action_type"),
+                    "description": step.get("description"),
+                    "execution_result": step.get("execution_result"),
+                    "page_analysis": page_analysis,
+                })
+        return contexts
 
     def _decision(self, step, i, n, result) -> dict:
         if i < n - 1:

@@ -205,6 +205,14 @@ def test_repeated_unsupported_reports_trigger_replan_breadcrumb():
         and "semantic progress" in step.get("execution_result", "")
         for step in c.prior_steps_seen[-1]
     )
+    context_steps = [
+        step for step in c.prior_steps_seen[-1]
+        if step.get("action_type") == "replan"
+    ]
+    assert context_steps
+    assert "STRATEGY GENERATION CONTEXT" in context_steps[0].get("page_analysis", "")
+    assert "Expected semantic goal:" in context_steps[0].get("page_analysis", "")
+    assert "Avoid next:" in context_steps[0].get("page_analysis", "")
 
 
 def test_report_outcome_completes_with_semantic_page_evidence():
@@ -275,6 +283,13 @@ def test_repeated_identical_actions_trigger_replan_breadcrumb():
         and "semantic progress" in step.get("execution_result", "")
         for step in c.prior_steps_seen[-1]
     )
+    context = next(
+        step.get("page_analysis", "")
+        for step in c.prior_steps_seen[-1]
+        if step.get("action_type") == "replan"
+    )
+    assert "Repeatedly failed strategy: repeated click strategy" in context
+    assert "Validation still missing:" in context
 
 
 def test_semantic_progress_resets_convergence_in_runner():
@@ -298,6 +313,28 @@ def test_semantic_progress_resets_convergence_in_runner():
         for seen in c.prior_steps_seen
         for step in seen
     )
+
+
+def test_duplicate_strategy_context_is_not_emitted_for_same_stall():
+    unchanged = page("http://x/search", text="same results", elements=[{"selector": "#next"}])
+    d = FakeDriver([unchanged, unchanged, unchanged, unchanged, unchanged])
+    c = RecordingAnalyzeClient([
+        ("click", "#next", None),
+        ("click", "#next", None),
+        ("click", "#next", None),
+        ("click", "#next", None),
+        ("click", "#next", None),
+    ])
+    t = task(max_steps=5,
+             success_criteria=[M0Criterion(K.dom_text_present, target="never appears")])
+
+    runner(d, c).run(t)
+
+    strategy_contexts = [
+        step for step in c.prior_steps_seen[-1]
+        if "STRATEGY GENERATION CONTEXT" in step.get("page_analysis", "")
+    ]
+    assert len(strategy_contexts) == 1
 
 
 def test_recovery_breadcrumb_then_success():

@@ -9,7 +9,7 @@ ENV_FILE = str(Path(__file__).resolve().parents[2] / ".env")
 class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5433/ai_browser_assist"
 
-    # AI provider. Supported values: "gemini", "openrouter".
+    # AI provider. Supported values: "gemini", "openrouter", "anthropic".
     ai_provider: str = "gemini"
 
     # Gemini API.
@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     openrouter_model: str = "openai/gpt-4o-mini"
     openrouter_site_url: str = "http://localhost:8000"
     openrouter_app_name: str = "AI Browser Assist"
+
+    # Anthropic Claude API.
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-5"
 
     # V4.6: set to true to enable SQLAlchemy persistence for UnifiedTask lifecycle.
     # Keep false (default) so existing tests continue to run without a DB.
