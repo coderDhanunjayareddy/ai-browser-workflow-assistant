@@ -360,6 +360,28 @@ DRAGDROP = _p("Board", """
 </main>""")
 
 
+INVOICE = _p("Invoice Details", """
+<header><h1>Invoice INV-2026-0711</h1></header>
+<main>
+  <section aria-labelledby="summary-heading">
+    <h2 id="summary-heading">Billing Summary</h2>
+    <dl>
+      <dt>Invoice Number</dt><dd>INV-2026-0711</dd>
+      <dt>Customer</dt><dd>Acme Supplies</dd>
+      <dt>Invoice Date</dt><dd>July 11, 2026</dd>
+      <dt>Status</dt><dd>Due</dd>
+      <dt>Subtotal</dt><dd>INR 12,400.00</dd>
+      <dt>Tax</dt><dd>INR 2,232.00</dd>
+      <dt>Total Due</dt><dd id="invoice-total" data-testid="invoice-total">INR 14,632.00</dd>
+      <dt>Payment Terms</dt><dd>Net 15</dd>
+    </dl>
+  </section>
+  <button id="download-pdf" data-testid="download-pdf">Download PDF</button>
+  <button id="print" data-testid="print">Print</button>
+  <button id="pay-invoice" data-testid="pay-invoice">Pay Invoice</button>
+</main>""")
+
+
 FIXTURES: dict[str, str] = {
     "/login":      LOGIN,
     "/register":   REGISTER,
@@ -379,6 +401,7 @@ FIXTURES: dict[str, str] = {
     "/toast":      TOAST,
     "/confirm":    CONFIRM,
     "/dragdrop":   DRAGDROP,
+    "/invoice":    INVOICE,
 }
 
 

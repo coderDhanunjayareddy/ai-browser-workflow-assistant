@@ -18,6 +18,15 @@ from app.schemas.request import PriorStep
 def _page(elements=None):
     pc = MagicMock()
     pc.interactive_elements = elements or []
+    pc.content_blocks = []
+    pc.visible_text = ""
+    return pc
+
+
+def _page_with_content(*, text: str, selector: str = "section", visible_text: str = ""):
+    pc = _page()
+    pc.content_blocks = [{"selector": selector, "text": text}]
+    pc.visible_text = visible_text
     return pc
 
 
@@ -180,3 +189,54 @@ def test_compress_cognitive_context_still_optional_and_additive():
         cognitive_context={"user_goal": "x"})
     assert result2["cognitive_context"] == {"user_goal": "x"}
     assert result2["recent_actions"] == []
+
+
+def test_compress_preserves_goal_relevant_visible_content_in_verified_facts():
+    result = ContextCompressor().compress(
+        task="Tell me the invoice total",
+        page_context=_page_with_content(
+            text=(
+                "Billing Summary Invoice Number INV-2026-0711 "
+                "Subtotal INR 12,400.00 Tax INR 2,232.00 "
+                "Total Due INR 14,632.00 Payment Terms Net 15"
+            ),
+        ),
+        verified_facts={},
+        prior_steps=[],
+    )
+
+    content = result["verified_facts"]["relevant_visible_content"]
+    assert content == [{
+        "selector": "section",
+        "text": (
+            "Billing Summary Invoice Number INV-2026-0711 "
+            "Subtotal INR 12,400.00 Tax INR 2,232.00 "
+            "Total Due INR 14,632.00 Payment Terms Net 15"
+        ),
+    }]
+
+
+def test_compress_excludes_irrelevant_visible_content_noise():
+    result = ContextCompressor().compress(
+        task="Search flights",
+        page_context=_page_with_content(
+            text="Footer links Privacy Terms Careers Advertising Contact",
+            visible_text="Footer links Privacy Terms Careers Advertising Contact",
+        ),
+        verified_facts={},
+        prior_steps=[],
+    )
+
+    assert "relevant_visible_content" not in result["verified_facts"]
+
+
+def test_compress_preserves_existing_verified_facts_when_adding_content():
+    result = ContextCompressor().compress(
+        task="Tell me the invoice total",
+        page_context=_page_with_content(text="Total Due INR 14,632.00"),
+        verified_facts={"status": "due"},
+        prior_steps=[],
+    )
+
+    assert result["verified_facts"]["status"] == "due"
+    assert "Total Due INR 14,632.00" in result["verified_facts"]["relevant_visible_content"][0]["text"]

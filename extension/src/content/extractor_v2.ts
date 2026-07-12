@@ -162,6 +162,8 @@ export function extractPageContextV2(): PageContext {
       // aria-checked read above, which exists for ARIA-widget checkboxes, e.g. <div role=checkbox>).
       if (el.type === 'checkbox' || el.type === 'radio') {
         state['checked'] = el.checked
+      } else if (el.type === 'password') {
+        state['filled'] = el.value.length > 0
       } else if (
         el.type !== 'password' && el.type !== 'file' && el.type !== 'hidden' &&
         el.type !== 'submit' && el.type !== 'button' && el.type !== 'reset' && el.type !== 'image'

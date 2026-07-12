@@ -41,11 +41,11 @@ class TestModels:
 
 
 class TestFixtures:
-    def test_18_fixtures_present(self):
-        assert len(fixtures.FIXTURES) == 18
+    def test_19_fixtures_present(self):
+        assert len(fixtures.FIXTURES) == 19
         for p in ["/login", "/register", "/dashboard", "/crud", "/search", "/upload", "/download",
                   "/pagination", "/modal", "/multistep", "/scroll", "/nav", "/tabs", "/accordion",
-                  "/dynamic", "/toast", "/confirm", "/dragdrop"]:
+                  "/dynamic", "/toast", "/confirm", "/dragdrop", "/invoice"]:
             assert p in fixtures.FIXTURES
 
     def test_fixture_html_lookup(self):

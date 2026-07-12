@@ -78,6 +78,7 @@ def test_password_fields_excluded_from_value_capture_in_both_files():
     ts, js = _read(EXTRACTOR_TS), _read(JS)
     for src, name in ((ts, "extractor_v2.ts"), (js, "injected_scripts.js")):
         assert "'password'" in src, f"password exclusion missing from {name}"
+        assert "state['filled']" in src, f"password filled-state missing from {name}"
         # the exclusion must sit on the same branch that guards state['value'] capture
         idx = src.find("el.type !== 'password'")
         assert idx != -1, f"password exclusion condition missing from {name}"

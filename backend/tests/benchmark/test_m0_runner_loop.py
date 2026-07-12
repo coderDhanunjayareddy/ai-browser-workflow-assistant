@@ -46,6 +46,21 @@ class RecordingAnalyzeClient(FakeAnalyzeClient):
         )
 
 
+def _has_recovery_context(prior_steps: list[dict]) -> bool:
+    return any(
+        "PLANNER RECOVERY MODE" in step.get("page_analysis", "")
+        or "RECOVERY MODE" in step.get("execution_result", "")
+        for step in prior_steps
+    )
+
+
+def _has_strategy_context(prior_steps: list[dict]) -> bool:
+    return any(
+        "STRATEGY GENERATION CONTEXT" in step.get("page_analysis", "")
+        for step in prior_steps
+    )
+
+
 def test_happy_path_completes():
     d = FakeDriver([
         page("http://x/login", text="form", elements=[{"selector": "#u"}]),
@@ -158,8 +173,8 @@ def test_rc1_successful_fills_with_no_signature_change_still_complete():
 # ── Planner Contract V2: outcome-kind dispatch ───────────────────────────────
 
 def test_report_outcome_completes_when_claim_matches_real_criteria():
-    # The Amazon-shaped case: the answer is already visible, no action needed.
-    d = FakeDriver([page("http://x/product", text="price page")])
+    # The Amazon-shaped case: the answer is already visible in page evidence, no action needed.
+    d = FakeDriver([page("http://x/product", text="price page ₹15,299.00")])
     c = FakeAnalyzeClient([
         {"outcome_kind": "report",
          "report": ReportOutcomeDTO(answer="₹15,299.00", claim="price already visible")},
@@ -168,6 +183,55 @@ def test_report_outcome_completes_when_claim_matches_real_criteria():
     r = runner(d, c).run(t)
     assert r.status == TaskStatus.completed
     assert r.steps_taken == 1
+    assert r.steps[0].action_type == "report"
+
+
+def test_invoice_total_report_fixture_completes_without_browser_action():
+    d = FakeDriver([page(
+        "http://x/invoice",
+        text="Invoice INV-2026-0711\nBilling Summary\nTotal Due INR 14,632.00\nPayment Terms Net 15",
+        elements=[
+            {"selector": "#download-pdf", "text": "Download PDF"},
+            {"selector": "#print", "text": "Print"},
+            {"selector": "#pay-invoice", "text": "Pay Invoice"},
+        ],
+        title="Invoice Details",
+    )])
+    c = FakeAnalyzeClient([
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(
+             answer="INR 14,632.00",
+             claim="The invoice total is visible in the Billing Summary.",
+         )},
+    ])
+    t = task(
+        task_id="fixture__invoice_total_report",
+        goal="Tell me the invoice total.",
+        max_steps=2,
+        success_criteria=[M0Criterion(K.extracted_value_present, target="INR 14,632.00")],
+    )
+    r = runner(d, c).run(t)
+
+    assert r.status == TaskStatus.completed
+    assert r.steps_taken == 1
+    assert len(r.steps) == 1
+    assert r.steps[0].action_type == "report"
+    assert r.steps[0].executed is False
+    assert r.steps[0].execution_success is False
+    assert r.criteria_results
+    assert all(cr.passed for cr in r.criteria_results)
+
+
+def test_report_outcome_does_not_self_certify_from_answer_only():
+    d = FakeDriver([page("http://x/product", text="price page")])
+    c = FakeAnalyzeClient([
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="₹15,299.00", claim="price already visible")},
+    ])
+    t = task(max_steps=1,
+             success_criteria=[M0Criterion(K.extracted_value_present, target="₹15,299.00")])
+    r = runner(d, c).run(t)
+    assert r.status != TaskStatus.completed
     assert r.steps[0].action_type == "report"
 
 
@@ -335,6 +399,87 @@ def test_duplicate_strategy_context_is_not_emitted_for_same_stall():
         if "STRATEGY GENERATION CONTEXT" in step.get("page_analysis", "")
     ]
     assert len(strategy_contexts) == 1
+
+
+def test_planner_recovery_enters_only_after_goal_convergence():
+    unchanged = page("http://x/product", text="search results")
+    d = FakeDriver([unchanged])
+    c = RecordingAnalyzeClient([
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="not enough", claim="price is available")},
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="still not enough", claim="price is available")},
+        ("click", "#product", None),
+    ])
+    t = task(max_steps=3,
+             success_criteria=[M0Criterion(K.extracted_value_present, target="missing-price")])
+
+    runner(d, c).run(t)
+
+    assert len(c.prior_steps_seen) == 3
+    assert not _has_recovery_context(c.prior_steps_seen[0])
+    assert not _has_recovery_context(c.prior_steps_seen[1])
+    assert _has_recovery_context(c.prior_steps_seen[2])
+
+
+def test_planner_recovery_context_contains_strategy_generation_context():
+    unchanged = page("http://x/search", text="same results", elements=[{"selector": "#next"}])
+    d = FakeDriver([unchanged, unchanged, unchanged])
+    c = RecordingAnalyzeClient([
+        ("click", "#next", None),
+        ("click", "#next", None),
+        ("click", "#next", None),
+    ])
+    t = task(max_steps=3,
+             success_criteria=[M0Criterion(K.dom_text_present, target="never appears")])
+
+    runner(d, c).run(t)
+
+    recovery_turn = c.prior_steps_seen[-1]
+    assert _has_recovery_context(recovery_turn)
+    assert _has_strategy_context(recovery_turn)
+
+
+def test_planner_recovery_lasts_exactly_one_planner_invocation():
+    d = FakeDriver([
+        page("http://x/product", text="search results", elements=[{"selector": "#product"}]),
+        page("http://x/product/1", text="new product detail", elements=[{"selector": "#other"}]),
+    ])
+    c = RecordingAnalyzeClient([
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="not enough", claim="price is available")},
+        {"outcome_kind": "report",
+         "report": ReportOutcomeDTO(answer="still not enough", claim="price is available")},
+        ("click", "#product", None),
+        None,
+    ])
+    t = task(max_steps=4,
+             success_criteria=[M0Criterion(K.extracted_value_present, target="missing-price")])
+
+    runner(d, c).run(t)
+
+    assert len(c.prior_steps_seen) == 4
+    assert _has_recovery_context(c.prior_steps_seen[2])
+    assert not _has_recovery_context(c.prior_steps_seen[3])
+
+
+def test_planner_recovery_not_added_to_normal_progressing_turns():
+    d = FakeDriver([
+        page("http://x/search", text="page one", elements=[{"selector": "#next"}]),
+        page("http://x/search", text="page two", elements=[{"selector": "#next"}]),
+        page("http://x/search", text="page three", elements=[{"selector": "#next"}]),
+    ])
+    c = RecordingAnalyzeClient([
+        ("click", "#next", None),
+        ("click", "#next", None),
+        ("click", "#next", None),
+    ])
+    t = task(max_steps=3,
+             success_criteria=[M0Criterion(K.dom_text_present, target="never appears")])
+
+    runner(d, c).run(t)
+
+    assert not any(_has_recovery_context(seen) for seen in c.prior_steps_seen)
 
 
 def test_recovery_breadcrumb_then_success():

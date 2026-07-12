@@ -170,6 +170,8 @@
         // Native .checked is ground truth for real checkbox/radio inputs.
         if (el.type === 'checkbox' || el.type === 'radio') {
           state['checked'] = el.checked;
+        } else if (el.type === 'password') {
+          state['filled'] = el.value.length > 0;
         } else if (
           el.type !== 'password' && el.type !== 'file' && el.type !== 'hidden' &&
           el.type !== 'submit' && el.type !== 'button' && el.type !== 'reset' && el.type !== 'image'

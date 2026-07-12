@@ -1,8 +1,8 @@
-"""Goal Convergence Engine, phase 1.
+"""Goal Convergence Engine.
 
 Pure strategy-progress detection for the M0 loop. It consumes evidence the loop
-already has and recommends an existing Planner Contract V2 replan when the same
-unsupported strategy repeats without semantic progress.
+already has and recommends an existing Planner Contract V2 replan when attempts
+repeat without semantic progress.
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ class GoalConvergenceEngine:
 
     def __init__(self, *, repeated_attempt_threshold: int = 2) -> None:
         self.repeated_attempt_threshold = repeated_attempt_threshold
-        self._last_key: tuple[str, str, str, str] | None = None
+        self._last_progress_key: tuple[str, str] | None = None
         self._streak = 0
 
     def assess(self, evidence: ConvergenceEvidence) -> ConvergenceDecision:
@@ -37,16 +37,14 @@ class GoalConvergenceEngine:
             self.reset()
             return ConvergenceDecision(False)
 
-        key = (
-            evidence.outcome_kind,
-            evidence.strategy_key,
+        progress_key = (
             evidence.semantic_signature,
             evidence.validation_signature,
         )
-        if key == self._last_key:
+        if progress_key == self._last_progress_key:
             self._streak += 1
         else:
-            self._last_key = key
+            self._last_progress_key = progress_key
             self._streak = 1
 
         if self._streak >= self.repeated_attempt_threshold:
@@ -61,5 +59,5 @@ class GoalConvergenceEngine:
         return ConvergenceDecision(False)
 
     def reset(self) -> None:
-        self._last_key = None
+        self._last_progress_key = None
         self._streak = 0

@@ -1,7 +1,7 @@
 """
 M0 — Benchmark task definitions (the dataset).
 
-27 declarative tasks: 10 local fixtures (offline, deterministic regression anchors),
+28 declarative tasks: 11 local fixtures (offline, deterministic regression anchors),
 14 real-site tasks, and 3 capability-specific tasks. Pure data — no control flow, no
 browser, no AI. The runner drives them. Do not invent additional tasks here; this set
 maps 1:1 to docs/benchmark-m0.md Part 4.
@@ -146,6 +146,19 @@ def build_m0_scenarios() -> list[M0TaskDefinition]:
         success_criteria=[_c(K.dom_text_present, "uploaded", target="Uploaded: benchmark_test.txt")],
         timeout_ms=20_000, max_steps=3, retry_budget=1,
         notes="Mode A uses set_input_files; Mode B uses synthetic flow. A/B gap expected.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="fixture__invoice_total_report", site_id="fixture_server",
+        website="Fixture: Invoice Details",
+        difficulty=Difficulty.simple, category=BenchmarkCategory.search, is_fixture=True,
+        goal="Tell me the invoice total.",
+        start_url=f"{FB}/invoice",
+        success_criteria=[
+            _c(K.extracted_value_present, "invoice total", target="INR 14,632.00"),
+        ],
+        timeout_ms=20_000, max_steps=2, retry_budget=0, expected_step_range=(1, 1),
+        notes="Deterministic positive Planner Contract V2 Report path: visible value, no action required.",
     ))
 
     # ─────────────────────────── MEDIUM TIER (9–18) ──────────────────────────

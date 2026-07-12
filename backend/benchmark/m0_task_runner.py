@@ -74,6 +74,7 @@ class TaskRunner:
         recoveries_used = 0
         convergence = GoalConvergenceEngine()
         emitted_strategy_contexts: set[str] = set()
+        pending_recovery_context: Optional[dict] = None
         deadline = t_start + task.timeout_ms / 1000.0
 
         # ── LOOP ─────────────────────────────────────────────────────────────--
@@ -109,17 +110,25 @@ class TaskRunner:
                 return self._finalize_status(task, result, t_start, TaskStatus.completed)
 
             # ANALYZE (real /analyze)
+            planner_prior_steps = self._planner_prior_steps(
+                prior_steps, pending_recovery_context, page_context)
+            recovery_turn_sent = pending_recovery_context is not None
             try:
                 ar, step.analyze_ms = self._timed(
                     lambda: self.client.analyze(session_id=sess_id, task=task.goal,
-                                                page_context=page_context, prior_steps=prior_steps))
+                                                page_context=page_context,
+                                                prior_steps=planner_prior_steps))
             except AnalyzeError as e:
+                if recovery_turn_sent:
+                    pending_recovery_context = None
                 step.ai_called = True
                 step.error_detail = str(e)
                 result.steps.append(step)
                 cat = (FailureCategory.blocked_rate_limit if e.status_code == 429
                        else FailureCategory.infrastructure)
                 return self._finalize_with_category(task, result, t_start, cat, str(e))
+            if recovery_turn_sent:
+                pending_recovery_context = None
 
             step.ai_called = True
             step.prompt_tokens = ar.prompt_tokens
@@ -139,14 +148,9 @@ class TaskRunner:
                 # observable trail Validation already checks (all_analysis), then
                 # re-evaluate the REAL success criteria. Completion is granted only by
                 # that check — the planner's own claim never completes the task by itself.
-                if ar.report:
-                    if ar.report.answer:
-                        analysis_texts.append(ar.report.answer)
-                    if ar.report.claim:
-                        analysis_texts.append(ar.report.claim)
                 step.action_type = "report"
                 recheck = evaluate_success(task.success_criteria,
-                                           self._ctx(page_context, analysis_texts, len(result.steps)))
+                                           self._report_ctx(page_context, analysis_texts, len(result.steps)))
                 result.steps.append(step)
                 if all_passed(recheck):
                     result.criteria_results = recheck
@@ -165,9 +169,11 @@ class TaskRunner:
                 })
                 if decision.should_replan:
                     step.error_detail = decision.reason
-                    self._append_convergence_replan(
+                    recovery_context = self._append_convergence_replan(
                         prior_steps, emitted_strategy_contexts, task, decision.reason,
                         page_context, recheck, "report", "report")
+                    if recovery_context is not None:
+                        pending_recovery_context = recovery_context
                     convergence.reset()
                 continue  # unverified claim: keep looping, do not trust it
 
@@ -280,9 +286,11 @@ class TaskRunner:
             ))
             if decision.should_replan:
                 step.error_detail = decision.reason
-                self._append_convergence_replan(
+                recovery_context = self._append_convergence_replan(
                     prior_steps, emitted_strategy_contexts, task, decision.reason,
                     after_context, succ2, action.action_type, self._action_strategy_key(action))
+                if recovery_context is not None:
+                    pending_recovery_context = recovery_context
                 convergence.reset()
 
             # RECOVERY: retry only when the executor itself reported failure. A successful
@@ -337,6 +345,12 @@ class TaskRunner:
             element_present=self.driver.element_present,
         )
 
+    def _report_ctx(self, page_context: dict, analysis_texts: list[str], steps_taken: int) -> EvalContext:
+        semantic_evidence = list(analysis_texts)
+        semantic_evidence.append(page_context.get("visible_text", ""))
+        semantic_evidence.extend(self._semantic_texts(page_context))
+        return self._ctx(page_context, semantic_evidence, steps_taken)
+
     @staticmethod
     def _semantic_texts(page_context: dict) -> list[str]:
         texts: list[str] = []
@@ -367,6 +381,9 @@ class TaskRunner:
             if isinstance(state, dict):
                 for key in ("value", "selected_text"):
                     add(state.get(key))
+                for key in ("checked", "filled"):
+                    if key in state:
+                        add(f"{element.get('selector', '')}:{key}={bool(state.get(key))}")
 
         return texts
 
@@ -402,6 +419,38 @@ class TaskRunner:
         return f"{action.action_type}|{action.target_selector}|{value}"
 
     @staticmethod
+    def _planner_prior_steps(
+        prior_steps: list[dict],
+        pending_recovery_context: Optional[dict],
+        page_context: dict,
+    ) -> list[dict]:
+        if pending_recovery_context is None:
+            return prior_steps
+        return [
+            *prior_steps,
+            {
+                "action_type": "replan",
+                "description": "Planner Recovery: one-turn recovery planning",
+                "target_selector": "",
+                "value": None,
+                "execution_result": (
+                    "RECOVERY MODE: Goal Convergence marked the previous strategy as stalled; "
+                    "use the existing Strategy Generation context for this planner turn"
+                ),
+                "page_analysis": (
+                    "PLANNER RECOVERY MODE\n"
+                    "This is a one-turn recovery planning cycle after Goal Convergence "
+                    "detected semantic non-progress.\n"
+                    "Use the Strategy Generation context already present in prior_steps. "
+                    "Choose one valid Planner Contract V2 outcome that does not simply "
+                    "continue the failed strategy unless new evidence supports it."
+                ),
+                "page_url": page_context.get("url", ""),
+                "page_title": page_context.get("title", ""),
+            },
+        ]
+
+    @staticmethod
     def _append_convergence_replan(
         prior_steps: list[dict],
         emitted_strategy_contexts: set[str],
@@ -411,7 +460,7 @@ class TaskRunner:
         validation_results,
         outcome_kind: str,
         strategy_key: str,
-    ) -> None:
+    ) -> Optional[dict]:
         strategy_context = build_strategy_context(
             goal=task.goal,
             success_criteria=task.success_criteria,
@@ -422,9 +471,9 @@ class TaskRunner:
             convergence_reason=reason,
         )
         if strategy_context.context_key in emitted_strategy_contexts:
-            return
+            return None
         emitted_strategy_contexts.add(strategy_context.context_key)
-        prior_steps.append({
+        context_step = {
             "action_type": "replan",
             "description": "Strategy Generation: previous strategy stalled",
             "target_selector": "",
@@ -436,7 +485,9 @@ class TaskRunner:
             "page_analysis": strategy_context.text,
             "page_url": page_context.get("url", ""),
             "page_title": page_context.get("title", ""),
-        })
+        }
+        prior_steps.append(context_step)
+        return context_step
 
     # ── classification helpers ──────────────────────────────────────────────--
     def _classify_block_or_fail(self, task, trip, page_context, ctx) -> FailureCategory:

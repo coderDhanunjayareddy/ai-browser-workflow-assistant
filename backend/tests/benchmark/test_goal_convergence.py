@@ -41,6 +41,81 @@ def test_repeated_identical_actions_with_unchanged_semantic_evidence_trigger_rep
     assert engine.assess(ev).should_replan
 
 
+def test_click_wait_report_with_unchanged_semantic_evidence_triggers_replan():
+    engine = GoalConvergenceEngine()
+
+    click = evidence(
+        outcome_kind="click",
+        strategy_key="click|#p2|",
+        semantic_signature="page-still-one",
+        validation_signature="missing-page-two",
+    )
+    wait = evidence(
+        outcome_kind="wait",
+        strategy_key="wait|window|2000",
+        semantic_signature="page-still-one",
+        validation_signature="missing-page-two",
+    )
+    report = evidence(
+        outcome_kind="report",
+        strategy_key="report",
+        semantic_signature="page-still-one",
+        validation_signature="missing-page-two",
+    )
+
+    assert not engine.assess(click).should_replan
+    assert engine.assess(wait).should_replan
+    engine.reset()
+    assert not engine.assess(wait).should_replan
+    assert engine.assess(report).should_replan
+
+
+def test_different_semantic_evidence_does_not_trigger_replan_across_actions():
+    engine = GoalConvergenceEngine()
+
+    assert not engine.assess(evidence(
+        outcome_kind="click",
+        strategy_key="click|#next|",
+        semantic_signature="page-one",
+        validation_signature="missing-target",
+    )).should_replan
+    assert not engine.assess(evidence(
+        outcome_kind="wait",
+        strategy_key="wait|window|2000",
+        semantic_signature="page-loading",
+        validation_signature="missing-target",
+    )).should_replan
+    assert not engine.assess(evidence(
+        outcome_kind="report",
+        strategy_key="report",
+        semantic_signature="page-two-visible",
+        validation_signature="missing-confirmation",
+    )).should_replan
+
+
+def test_genuine_semantic_progress_resets_convergence_across_actions():
+    engine = GoalConvergenceEngine()
+
+    assert not engine.assess(evidence(
+        outcome_kind="click",
+        strategy_key="click|#p2|",
+        semantic_signature="page-one",
+        validation_signature="missing-page-two",
+    )).should_replan
+    assert not engine.assess(evidence(
+        outcome_kind="wait",
+        strategy_key="wait|window|2000",
+        semantic_signature="page-two",
+        validation_signature="missing-item-c",
+    )).should_replan
+    assert not engine.assess(evidence(
+        outcome_kind="report",
+        strategy_key="report",
+        semantic_signature="page-two-with-item-c",
+        validation_signature="complete",
+    )).should_replan
+
+
 def test_semantic_progress_resets_convergence_state():
     engine = GoalConvergenceEngine()
 

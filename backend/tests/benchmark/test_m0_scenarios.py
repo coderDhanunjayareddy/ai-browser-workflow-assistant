@@ -3,9 +3,9 @@ from benchmark import m0_scenarios, website_profiles
 from benchmark.m0_models import Difficulty
 
 
-def test_27_scenarios():
+def test_28_scenarios():
     tasks = m0_scenarios.build_m0_scenarios()
-    assert len(tasks) == 27
+    assert len(tasks) == 28
 
 
 def test_ids_unique_and_kebab():

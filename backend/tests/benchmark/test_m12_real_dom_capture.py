@@ -46,6 +46,7 @@ def test_password_field_value_never_captured(fixture_server, driver):
     ctx = driver.capture()
     el = next(e for e in ctx["interactive_elements"] if e["selector"] == "#password")
     assert "value" not in el["state"]
+    assert el["state"]["filled"] is True
 
 
 def test_checkbox_checked_state_is_captured(fixture_server, driver):
