@@ -73,11 +73,28 @@ class WorkflowOrchestrator:
             from app.cognitive_core.workflow_context import build_cognitive_context
             cognitive_context = build_cognitive_context(handoff_payload)
 
+        # Production Strategy Generation SG-1: if the previous production turn
+        # passively detected Goal Convergence, append the already-prepared
+        # context to this planner request as prior-step context only. This does
+        # not alter prompts globally, outcomes, actions, execution, or recovery.
+        from app.orchestrator.strategy_generation import consume_strategy_prior_steps
+        planner_prior_steps = consume_strategy_prior_steps(
+            session_id=self.session_id,
+            prior_steps=prior_steps,
+            page_context=page_context,
+        )
+        from app.orchestrator.planner_recovery import consume_recovery_prior_steps
+        planner_prior_steps = consume_recovery_prior_steps(
+            session_id=self.session_id,
+            prior_steps=planner_prior_steps,
+            page_context=page_context,
+        )
+
         compressed_context = self.context_compressor.compress(
             task=task,
             page_context=page_context,
             verified_facts=verified_state,
-            prior_steps=prior_steps,
+            prior_steps=planner_prior_steps,
             task_constraints=[supplemental_context] if supplemental_context else [],
             cognitive_context=cognitive_context,
         )
@@ -90,7 +107,7 @@ class WorkflowOrchestrator:
                 session_id=self.session_id,
                 task=task,
                 page_context=page_context,
-                prior_steps=prior_steps,
+                prior_steps=planner_prior_steps,
                 supplemental_context="",
                 active_node=None,
                 verified_state=verified_state,
@@ -103,6 +120,76 @@ class WorkflowOrchestrator:
             token_estimate += ai_service.estimate_tokens(result.model_dump_json())
             record_planner_call(self.db, self.session_id, token_estimate, latency_ms)
             self.budget_manager.consume(tokens=token_estimate)
+
+            # Production SGV Phase 1: validate report claims against live page
+            # evidence before returning to the extension.
+            # SGV is a validator only — outcome_kind and report are never modified.
+            if result.outcome_kind == "report":
+                from app.orchestrator.report_verifier import verify_report
+                result.sgv_verified = verify_report(
+                    claim=result.report.claim if result.report else "",
+                    answer=result.report.answer if result.report else None,
+                    page_context=page_context,
+                )
+                logger.info(
+                    "SGV: session=%s verified=%s claim=%r",
+                    self.session_id,
+                    result.sgv_verified,
+                    result.report.claim if result.report else "",
+                )
+
+            # Production Goal Convergence GC-1: observer-only stagnation signal.
+            # It never modifies outcome_kind, suggested_actions, report, replan,
+            # prompts, execution, recovery, or planner decisions.
+            from app.orchestrator.goal_convergence import assess_goal_convergence
+            convergence = assess_goal_convergence(
+                session_id=self.session_id,
+                page_context=page_context,
+                planner_response=result,
+            )
+            result.goal_convergence = convergence.goal_convergence
+            logger.info(
+                "Goal convergence: session=%s stalled=%s signature=%s",
+                self.session_id,
+                result.goal_convergence,
+                convergence.semantic_signature,
+            )
+
+            # Production Strategy Generation SG-1: prepare context for the next
+            # planner turn only after GC observes semantic stagnation. The
+            # current planner response remains untouched and no recovery or
+            # automatic replanning is triggered.
+            from app.orchestrator.strategy_generation import prepare_strategy_context_if_stalled
+            strategy_context_prepared = prepare_strategy_context_if_stalled(
+                session_id=self.session_id,
+                goal_convergence=result.goal_convergence,
+                task=task,
+                page_context=page_context,
+                planner_response=result,
+            )
+            logger.info(
+                "Strategy generation: session=%s prepared=%s",
+                self.session_id,
+                strategy_context_prepared,
+            )
+            # Production Planner Recovery PR-1: after GC and SG both fire,
+            # mark the next planner invocation as a one-turn recovery cycle.
+            # This only adds context to the next request and never creates
+            # actions, reports, replans, retries, or workflow transitions.
+            from app.orchestrator.planner_recovery import (
+                prepare_planner_recovery_if_strategy_context,
+            )
+            recovery_prepared = prepare_planner_recovery_if_strategy_context(
+                session_id=self.session_id,
+                goal_convergence=result.goal_convergence,
+                strategy_context_prepared=strategy_context_prepared,
+            )
+            logger.info(
+                "Planner recovery: session=%s prepared=%s",
+                self.session_id,
+                recovery_prepared,
+            )
+
             return result
 
     def process_executed_step(

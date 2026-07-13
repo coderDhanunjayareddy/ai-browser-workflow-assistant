@@ -47,3 +47,10 @@ class AnalyzeResponse(BaseModel):
     clarification_question: Optional[str] = None
     report: Optional[ReportOutcome] = None
     replan: Optional[ReplanOutcome] = None
+    # Production SGV Phase 1: set by WorkflowOrchestrator after validating a
+    # report claim against live page evidence.  False by default so every existing
+    # caller is unaffected.  outcome_kind is never changed by SGV.
+    sgv_verified: bool = False
+    # Production Goal Convergence GC-1: passive semantic stagnation signal.
+    # This never changes planner intent, actions, prompts, or recovery behavior.
+    goal_convergence: bool = False

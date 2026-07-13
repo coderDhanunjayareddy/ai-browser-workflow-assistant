@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
+    "test:workflow": "node --test tests/useWorkflow.routing.test.cjs",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

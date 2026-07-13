@@ -2,6 +2,39 @@ import { extractPageContext } from '../content/extractor'
 import { executeAction } from '../content/executor'
 import { extractPageContextV2 } from '../content/extractor_v2'
 import { executeActionV2 } from '../content/executor_v2'
+import {
+  captureVerificationState,
+  createFallbackVerificationState,
+  verifyActionEffect,
+  type ActionVerificationState,
+  type BasicExecutionResult,
+  type VerifiedExecutionResult,
+} from '../content/action_verification'
+import {
+  findRecoverySelector,
+  shouldAttemptSelectorRecovery,
+} from '../content/selector_recovery'
+import {
+  activateTab,
+  createMultiTabWorkspace,
+  registerTab,
+  removeClosedTab,
+  tabSnapshotFromChromeTab,
+  updateTab,
+  type MultiTabWorkspace,
+} from '../workspace/multiTabWorkspace'
+
+type ExecutableAction = {
+  action_id: string
+  action_type: string
+  target_selector: string | null
+  value: string | null
+  description?: string
+  reasoning?: string
+  safety_level?: string
+}
+
+let tabWorkspace: MultiTabWorkspace = createMultiTabWorkspace()
 
 async function getTargetTab(): Promise<chrome.tabs.Tab | undefined> {
   try {
@@ -30,6 +63,34 @@ chrome.runtime.onInstalled.addListener(() => {
     .catch(console.error)
 })
 
+chrome.tabs.onCreated.addListener((tab) => {
+  tabWorkspace = registerTab(tabWorkspace, tabSnapshotFromChromeTab(tab))
+})
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  tabWorkspace = registerTab(tabWorkspace, tabSnapshotFromChromeTab(tab))
+  tabWorkspace = updateTab(tabWorkspace, tabId, {
+    url: changeInfo.url ?? tab.url ?? '',
+    title: changeInfo.title ?? tab.title ?? '',
+    is_active: tab.active,
+    visited: Boolean(tab.url || changeInfo.url),
+  })
+})
+
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  tabWorkspace = activateTab(tabWorkspace, activeInfo.tabId)
+  chrome.tabs.get(activeInfo.tabId)
+    .then((tab) => {
+      tabWorkspace = registerTab(tabWorkspace, { ...tabSnapshotFromChromeTab(tab), active: true })
+      tabWorkspace = activateTab(tabWorkspace, activeInfo.tabId)
+    })
+    .catch(() => {})
+})
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  tabWorkspace = removeClosedTab(tabWorkspace, tabId)
+})
+
 /**
  * Message router. Runs async work in a separate function so we can use
  * async/await cleanly while returning `true` from the listener to keep
@@ -56,18 +117,29 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     handleWaitForDomSettle(sendResponse)
     return true
   }
+  if (message.type === 'GET_TAB_WORKSPACE') {
+    handleGetTabWorkspace(sendResponse)
+    return true
+  }
 })
 
 // ── Context extraction ────────────────────────────────────────────────────────
 
 async function handleExtractContext(sendResponse: (response: unknown) => void) {
   try {
+    const tab = await getTargetTab()
     const context = await extractContextWithRetry()
     if (!context) {
       sendResponse({ error: 'Extraction returned empty. Try reloading the page.' })
       return
     }
-    sendResponse({ context })
+    sendResponse({
+      context: {
+        ...context,
+        tab_id: tab?.id,
+        window_id: tab?.windowId,
+      },
+    })
   } catch (err) {
     const msg = String(err)
     if (msg.includes('Cannot access') || msg.includes('chrome://') || msg.includes('chrome-extension://') || msg.includes('not allowed')) {
@@ -290,12 +362,14 @@ function clickOnceAndReuseTab(action: {
 }
 
 async function handleExecuteAction(
-  action: { action_id: string; action_type: string; target_selector: string | null; value: string | null; description?: string },
+  action: ExecutableAction,
   sendResponse: (response: unknown) => void,
 ) {
   try {
     const tab = await getTargetTab()
     if (!tab?.id) { sendResponse({ error: 'No active tab found.' }); return }
+    const startedAt = performance.now()
+    const beforeState = await captureActionVerificationState(tab.id, action, tab)
 
     // Intercept navigate action and handle directly from background
     if (action.action_type === 'navigate') {
@@ -309,52 +383,20 @@ async function handleExecuteAction(
         return
       }
       await chrome.tabs.update(tab.id, { url })
-      sendResponse({
-        result: {
-          success: true,
-          message: `Navigating to: ${url}`,
-          action_id: action.action_id,
-        }
-      })
+      const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, {
+        success: true,
+        message: `Navigating to: ${url}`,
+        action_id: action.action_id,
+      }, startedAt)
+      sendResponse({ result: verifiedResult })
       return
     }
 
-    if (action.action_type === 'click') {
-      const popupSafeResult = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        world: 'MAIN',
-        func: clickOnceAndReuseTab,
-        args: [action],
-      })
-      const result = popupSafeResult[0]?.result
-      if (result?.success) {
-        sendResponse({ result })
-        return
-      }
-    }
-
-    const v2OnlyActions = new Set(['select_option', 'choose_date', 'hover', 'keyboard_shortcut'])
-    const primaryExecutor = v2OnlyActions.has(action.action_type) ? executeActionV2 : executeAction
-    const fallbackExecutor = v2OnlyActions.has(action.action_type) ? executeAction : executeActionV2
-
-    let results
-    try {
-      results = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: primaryExecutor,
-        args: [action],
-      })
-    } catch (primaryError) {
-      console.warn('Primary execution failed, trying fallback executor:', primaryError)
-      results = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: fallbackExecutor,
-        args: [action],
-      })
-    }
-    const result = results[0]?.result
+    const result = await executeBrowserActionOnce(tab.id, action)
     if (!result) { sendResponse({ error: 'Executor returned empty result.' }); return }
-    sendResponse({ result })
+    const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, result, startedAt)
+    const finalResult = await recoverSelectorOnceIfEligible(tab.id, action, verifiedResult)
+    sendResponse({ result: finalResult })
   } catch (err) {
     const msg = String(err)
     if (msg.includes('Cannot access') || msg.includes('not allowed')) {
@@ -362,6 +404,157 @@ async function handleExecuteAction(
     } else {
       sendResponse({ error: `Execution failed: ${msg}` })
     }
+  }
+}
+
+async function handleGetTabWorkspace(sendResponse: (response: unknown) => void) {
+  try {
+    await syncTabWorkspaceSnapshot()
+    sendResponse({ tab_workspace: tabWorkspace })
+  } catch (err) {
+    sendResponse({ error: `Tab workspace unavailable: ${String(err)}` })
+  }
+}
+
+async function syncTabWorkspaceSnapshot() {
+  const tabs = await chrome.tabs.query({})
+  let next = tabWorkspace
+  for (const tab of tabs) {
+    next = registerTab(next, tabSnapshotFromChromeTab(tab))
+    if (tab.active && typeof tab.id === 'number') {
+      next = activateTab(next, tab.id)
+    }
+  }
+  tabWorkspace = next
+}
+
+async function executeBrowserActionOnce(
+  tabId: number,
+  action: ExecutableAction,
+): Promise<BasicExecutionResult | null> {
+  if (action.action_type === 'click') {
+    const popupSafeResult = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: 'MAIN',
+      func: clickOnceAndReuseTab,
+      args: [action],
+    })
+    const result = popupSafeResult[0]?.result
+    if (result?.success) return result
+  }
+
+  const v2OnlyActions = new Set(['select_option', 'choose_date', 'hover', 'keyboard_shortcut'])
+  const primaryExecutor = v2OnlyActions.has(action.action_type) ? executeActionV2 : executeAction
+  const fallbackExecutor = v2OnlyActions.has(action.action_type) ? executeAction : executeActionV2
+
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: primaryExecutor,
+      args: [action],
+    })
+    return results[0]?.result ?? null
+  } catch (primaryError) {
+    console.warn('Primary execution failed, trying fallback executor:', primaryError)
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: fallbackExecutor,
+      args: [action],
+    })
+    return results[0]?.result ?? null
+  }
+}
+
+async function captureActionVerificationState(
+  tabId: number,
+  action: ExecutableAction,
+  fallbackTab?: chrome.tabs.Tab,
+): Promise<ActionVerificationState> {
+  try {
+    const [state] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: captureVerificationState,
+      args: [action],
+    })
+    if (state?.result) return state.result
+  } catch {
+    // Restricted or navigating pages still get tab-level verification metadata.
+  }
+
+  const tab = fallbackTab ?? await chrome.tabs.get(tabId).catch(() => undefined)
+  return createFallbackVerificationState(tab?.url, tab?.title, action)
+}
+
+async function createVerifiedExecutionResult(
+  tabId: number,
+  action: ExecutableAction,
+  beforeState: ActionVerificationState,
+  result: BasicExecutionResult,
+  startedAt: number,
+): Promise<VerifiedExecutionResult> {
+  const tab = await chrome.tabs.get(tabId).catch(() => undefined)
+  const afterState = await captureActionVerificationState(tabId, action, tab)
+  const executionDurationMs = performance.now() - startedAt
+  const verification = verifyActionEffect(action, result, beforeState, afterState, executionDurationMs)
+  return {
+    ...result,
+    verification,
+    execution_duration_ms: Math.max(0, Math.round(executionDurationMs)),
+  }
+}
+
+async function recoverSelectorOnceIfEligible(
+  tabId: number,
+  action: ExecutableAction,
+  initialResult: VerifiedExecutionResult,
+): Promise<VerifiedExecutionResult> {
+  if (!shouldAttemptSelectorRecovery(action, initialResult, initialResult.verification, Boolean(initialResult.recovery_attempted))) {
+    return initialResult
+  }
+
+  const [choiceResult] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: findRecoverySelector,
+    args: [action],
+  })
+  const choice = choiceResult?.result
+  if (!choice?.selector) {
+    return {
+      ...initialResult,
+      recovery_attempted: false,
+      recovery_selector: null,
+      recovery_source: null,
+      recovery_verified: false,
+      recovery_reason: 'no_recovery_selector',
+    }
+  }
+
+  const recoveredAction: ExecutableAction = {
+    ...action,
+    target_selector: choice.selector,
+  }
+  const recoveryStartedAt = performance.now()
+  const recoveryBeforeState = await captureActionVerificationState(tabId, recoveredAction)
+  const recoveryExecutionResult = await executeBrowserActionOnce(tabId, recoveredAction) ?? {
+    success: false,
+    message: 'Recovered selector executor returned empty result.',
+    action_id: action.action_id,
+  }
+  const recoveredResult = await createVerifiedExecutionResult(
+    tabId,
+    recoveredAction,
+    recoveryBeforeState,
+    recoveryExecutionResult,
+    recoveryStartedAt,
+  )
+
+  return {
+    ...recoveredResult,
+    recovery_attempted: true,
+    recovery_selector: choice.selector,
+    recovery_source: choice.source,
+    recovery_verified: recoveredResult.verification?.verified ?? false,
+    recovery_reason: recoveredResult.verification?.reason ?? choice.reason,
   }
 }
 
@@ -374,6 +567,7 @@ async function handleWaitForTabLoad(sendResponse: (response: unknown) => void) {
 
   const tab = await getTargetTab()
   if (!tab?.id) { sendResponse({ ready: true }); return }
+  const targetTabId = tab.id
 
   // Already loaded.
   if (tab.status === 'complete') { sendResponse({ ready: true }); return }
@@ -386,7 +580,7 @@ async function handleWaitForTabLoad(sendResponse: (response: unknown) => void) {
     }, TIMEOUT_MS)
 
     function listener(tabId: number, changeInfo: chrome.tabs.TabChangeInfo) {
-      if (tabId === tab.id && changeInfo.status === 'complete') {
+      if (tabId === targetTabId && changeInfo.status === 'complete') {
         clearTimeout(timer)
         chrome.tabs.onUpdated.removeListener(listener)
         resolve()

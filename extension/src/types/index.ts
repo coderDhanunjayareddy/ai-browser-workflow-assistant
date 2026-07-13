@@ -39,6 +39,8 @@ export interface ContentBlock {
 }
 
 export interface PageContext {
+  tab_id?: number
+  window_id?: number
   url: string
   title: string
   metadata: Record<string, string>
@@ -62,11 +64,36 @@ export interface SuggestedAction {
   safety_level: SafetyLevel
 }
 
+export type PlannerOutcomeKind = 'act' | 'wait' | 'ask' | 'report' | 'replan'
+
+export interface ReportOutcome {
+  answer?: string | null
+  claim: string
+}
+
+export interface ReplanOutcome {
+  reason: string
+}
+
 export interface AnalyzeResponse {
   session_id: string
   analysis: string
+  /** Planner Contract V2 outcome. Optional for backward compatibility. */
+  outcome_kind?: PlannerOutcomeKind
   clarification_question?: string | null
+  report?: ReportOutcome | null
+  replan?: ReplanOutcome | null
   suggested_actions: SuggestedAction[]
+  /**
+   * Production SGV Phase 1: true when the backend verified the report claim
+   * against live page evidence.  Absent or false means unverified.
+   */
+  sgv_verified?: boolean
+  /**
+   * Production Goal Convergence GC-1: passive semantic stagnation signal.
+   * Presentation-only in the extension; it does not change execution.
+   */
+  goal_convergence?: boolean
 }
 
 export interface PriorStep {
@@ -92,10 +119,57 @@ export interface CompletedAction {
   }
 }
 
+export type VerificationReason = 'verified' | 'no_effect' | 'execution_failed' | 'not_applicable'
+
+export interface ActionVerificationTargetState {
+  exists: boolean
+  selector: string | null
+  tagName?: string
+  inputType?: string | null
+  value?: string | null
+  filled?: boolean
+  checked?: boolean | null
+  selectedValue?: string | null
+  selectedText?: string | null
+  ariaExpanded?: string | null
+  visible?: boolean
+}
+
+export interface ActionVerificationState {
+  url: string
+  title: string
+  domSignature: string
+  visibleTextLength: number
+  interactiveCount: number
+  activeElementSignature: string | null
+  modalCount: number
+  dialogCount: number
+  expandedStates: string[]
+  checkboxStates: string[]
+  scrollX: number
+  scrollY: number
+  target?: ActionVerificationTargetState
+}
+
+export interface ActionVerification {
+  verified: boolean
+  reason: VerificationReason
+  before_state: ActionVerificationState
+  after_state: ActionVerificationState
+  signals: Record<string, boolean | number | string | null>
+}
+
 export interface ExecutionResult {
   success: boolean
   message: string
   action_id: string
+  verification?: ActionVerification
+  execution_duration_ms?: number
+  recovery_attempted?: boolean
+  recovery_selector?: string | null
+  recovery_source?: string | null
+  recovery_verified?: boolean
+  recovery_reason?: string | null
 }
 
 export interface EventHistory {
@@ -125,4 +199,5 @@ export type ExtensionMessage =
   | { type: 'EXTRACT_CONTEXT'; tabId: number }
   | { type: 'CONTEXT_RESULT'; context: PageContext }
   | { type: 'EXECUTE_ACTION'; action: SuggestedAction }
+  | { type: 'GET_TAB_WORKSPACE' }
   | { type: 'EXECUTION_RESULT'; action_id: string; result: 'success' | 'failure' | 'element_not_found'; error: string | null }

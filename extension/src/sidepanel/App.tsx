@@ -121,27 +121,32 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
   // automatically after a short delay so the user can see what's happening.
   useEffect(() => {
     if (!autoMode) return
-    if (state.phase !== 'awaiting') return
+    if (state.phase !== 'awaiting_execution') return
     if (state.pendingActions.length === 0) return
     const timer = setTimeout(() => approveAction(), 800)
     return () => clearTimeout(timer)
   }, [autoMode, state.phase, state.pendingActions, approveAction])
 
   // ── Derived state ─────────────────────────────────────────────────────────
-  const { phase, task, analysisText, pendingActions, activeAction, completedActions, error, clarificationQuestion } = state
-  const isWorking   = phase === 'extracting' || phase === 'analyzing' || phase === 'executing' || phase === 'reanalyzing'
-  const isAwaiting  = phase === 'awaiting'
-  const needsInput  = phase === 'needs_input'
-  const isComplete  = phase === 'complete'
+  const { phase, task, analysisText, pendingActions, activeAction, completedActions, error, clarificationQuestion, report, replan, goalConvergence } = state
+  const isWorking   = phase === 'observing' || phase === 'analyzing' || phase === 'executing' || phase === 'refreshing'
+  const isAwaiting  = phase === 'awaiting_execution'
+  const needsInput  = phase === 'awaiting_user'
+  const isComplete  = phase === 'completed'
+  const isCancelled = phase === 'cancelled'
+  const isFailed    = phase === 'failed'
+  const isReported  = phase === 'reported'
+  const isReplan    = phase === 'replan'
   const isRunning   = isWorking || isAwaiting || needsInput
 
   const phaseLabel: Record<string, string> = {
-    idle: 'Analyze', extracting: 'Reading page…', analyzing: 'Thinking…',
-    awaiting: 'Analyze', executing: 'Executing…', reanalyzing: 'Re-analyzing…',
-    needs_input: 'Waiting for info', complete: 'Analyze',
+    idle: 'Analyze', observing: 'Reading page…', analyzing: 'Thinking…',
+    awaiting_execution: 'Analyze', executing: 'Executing…', refreshing: 'Refreshing…',
+    awaiting_user: 'Waiting for info', reported: 'Analyze', replan: 'Analyze',
+    completed: 'Analyze', cancelled: 'Analyze', failed: 'Analyze',
   }
 
-  const showResults = analysisText || completedActions.length > 0 || pendingActions.length > 0 || activeAction || isComplete || needsInput
+  const showResults = analysisText || completedActions.length > 0 || pendingActions.length > 0 || activeAction || isComplete || isCancelled || isFailed || needsInput || isReported || isReplan
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); analyze() }
@@ -235,6 +240,13 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
             </div>
           )}
 
+          {goalConvergence && (
+            <div style={s.convergenceBox}>
+              <p style={s.convergenceLabel}>Goal convergence</p>
+              <p style={s.convergenceText}>Semantic progress has stalled.</p>
+            </div>
+          )}
+
           {/* Live execution feed — completed steps */}
           {completedActions.length > 0 && (
             <div style={s.feed}>
@@ -265,7 +277,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
           )}
 
           {/* Re-analyzing */}
-          {phase === 'reanalyzing' && (
+          {phase === 'refreshing' && (
             <div style={s.statusCard}>
               <span style={s.spinner}>⟳</span>
               <span style={s.statusMsg}>Re-analyzing updated page…</span>
@@ -293,6 +305,22 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
                   Continue
                 </button>
               </div>
+            </div>
+          )}
+
+          {isReported && report && (
+            <div style={s.reportBox}>
+              <p style={s.reportLabel}>Planner report</p>
+              {report.answer && <p style={s.reportAnswer}>{report.answer}</p>}
+              <p style={s.reportClaim}>{report.claim}</p>
+              <p style={s.reportNote}>This answer has not been semantically verified yet.</p>
+            </div>
+          )}
+
+          {isReplan && replan && (
+            <div style={s.replanBox}>
+              <p style={s.replanLabel}>Planner requested replan</p>
+              <p style={s.replanReason}>{replan.reason}</p>
             </div>
           )}
 
@@ -334,6 +362,9 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
           )}
           {isComplete && completedActions.length === 0 && !error && analysisText && (
             <div style={s.completeBox}>✓ No actions needed for this task.</div>
+          )}
+          {isCancelled && (
+            <div style={s.cancelledBox}>Workflow cancelled.</div>
           )}
         </div>
       )}
@@ -1052,6 +1083,9 @@ const s: Record<string, React.CSSProperties> = {
   analysisBox: { background: '#f0f7ff', border: '1px solid #bee3f8', borderRadius: '5px', padding: '10px', marginBottom: '10px' },
   analysisLabel: { fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', color: '#2563eb', marginBottom: '4px' },
   analysisText: { fontSize: '12px', color: '#1e3a5f', lineHeight: 1.5, whiteSpace: 'pre-wrap', fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace' },
+  convergenceBox: { background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '5px', padding: '8px 10px', marginBottom: '10px' },
+  convergenceLabel: { fontSize: '10px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', marginBottom: '3px' },
+  convergenceText: { fontSize: '12px', color: '#92400e', margin: 0 },
 
   // Live feed
   feed: { marginBottom: '10px', borderLeft: '3px solid #2563eb', paddingLeft: '10px' },
@@ -1074,6 +1108,16 @@ const s: Record<string, React.CSSProperties> = {
   clarifyQuestion: { fontSize: '12px', color: '#1e3a5f', lineHeight: 1.4, marginBottom: '8px' },
   clarifyRow: { display: 'flex', gap: '6px', alignItems: 'center' },
   clarifyInput: { flex: 1, minWidth: 0, padding: '7px 8px', fontSize: '12px', border: '1px solid #93c5fd', borderRadius: '5px', fontFamily: 'inherit' },
+
+  // Planner Contract V2 non-action outcomes
+  reportBox: { border: '1px solid #86efac', borderRadius: '6px', padding: '10px', marginBottom: '10px', background: '#f0fdf4' },
+  reportLabel: { fontSize: '10px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', marginBottom: '4px' },
+  reportAnswer: { fontSize: '14px', fontWeight: 700, color: '#14532d', lineHeight: 1.4, marginBottom: '5px' },
+  reportClaim: { fontSize: '12px', color: '#166534', lineHeight: 1.5, marginBottom: '5px' },
+  reportNote: { fontSize: '10px', color: '#4d7c0f', fontStyle: 'italic', margin: 0 },
+  replanBox: { border: '1px solid #fed7aa', borderRadius: '6px', padding: '10px', marginBottom: '10px', background: '#fff7ed' },
+  replanLabel: { fontSize: '10px', fontWeight: 700, color: '#c2410c', textTransform: 'uppercase', marginBottom: '4px' },
+  replanReason: { fontSize: '12px', color: '#9a3412', lineHeight: 1.5, margin: 0 },
 
   // Action card
   card: { border: '2px solid #2563eb', borderRadius: '6px', padding: '10px', marginBottom: '10px', background: '#fff' },
@@ -1104,6 +1148,7 @@ const s: Record<string, React.CSSProperties> = {
   // Stop / complete
   stopBtn: { width: '100%', padding: '6px', fontSize: '12px', background: 'none', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', color: '#999', marginBottom: '8px' },
   completeBox: { padding: '10px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#166534' },
+  cancelledBox: { padding: '10px', background: '#fafafa', border: '1px solid #e0e0e0', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#555' },
 
   // Assist panel
   assistBar: { display: 'flex', alignItems: 'center', gap: '6px', background: '#f0f7ff', border: '1px solid #bfdbfe', borderRadius: '5px', padding: '6px 10px', marginBottom: '10px' },

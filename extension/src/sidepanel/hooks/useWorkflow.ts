@@ -1,5 +1,18 @@
 import { useState, useCallback } from 'react'
 import { sendToBackground } from '../../utils/messaging'
+import {
+  createTaskWorkspace,
+  summarizeTaskWorkspace,
+  updateTaskWorkspace,
+  type TaskWorkspace,
+} from '../taskWorkspace'
+export { createTaskWorkspace, updateTaskWorkspace } from '../taskWorkspace'
+import {
+  summarizeMultiTabWorkspace,
+  updateTabFactCount,
+  type MultiTabWorkspace,
+} from '../../workspace/multiTabWorkspace'
+export { createMultiTabWorkspace, registerTab, updateTab, activateTab, removeClosedTab, updateTabPurpose, updateTabFactCount, summarizeMultiTabWorkspace } from '../../workspace/multiTabWorkspace'
 import type {
   PageContext,
   AnalyzeResponse,
@@ -7,6 +20,9 @@ import type {
   ExecutionResult,
   CompletedAction,
   PriorStep,
+  PlannerOutcomeKind,
+  ReportOutcome,
+  ReplanOutcome,
 } from '../../types'
 
 const BACKEND_URL = 'http://localhost:8000'
@@ -14,6 +30,7 @@ const ANALYZE_TIMEOUT_MS = 90_000
 const MAX_DETAILED_PRIOR_STEPS = 30
 const MAX_TOTAL_PRIOR_STEPS = 30
 const MAX_ANALYSIS_SNAPSHOT_CHARS = 1000
+const MAX_EXECUTION_FEEDBACK_CHARS = 900
 const MAX_REPEATED_INTERACTIVE_ACTIONS = 2
 const RETRYABLE_ANALYZE_STATUSES = new Set([502, 503, 504])
 
@@ -32,13 +49,17 @@ function errMsg(err: unknown): string {
 // Phase describes what the workflow engine is currently doing.
 export type WorkflowPhase =
   | 'idle'         // Nothing started yet
-  | 'extracting'   // Reading the page
-  | 'analyzing'    // Calling the AI (initial)
-  | 'awaiting'     // Waiting for user to approve/reject the active action
+  | 'observing'    // Reading the page before the first planner call
+  | 'analyzing'    // Calling the AI planner
+  | 'awaiting_execution' // Waiting for user to approve/reject the active action
   | 'executing'    // Running the approved action on the live page
-  | 'reanalyzing'  // Re-extracting context + re-calling AI after a step
-  | 'needs_input'  // Waiting for missing user-provided information
-  | 'complete'     // Workflow finished (all done, stopped, or failed)
+  | 'refreshing'   // Reading fresh page state after execution or user input
+  | 'awaiting_user' // Waiting for missing user-provided information
+  | 'reported'     // Planner reported an answer; not SGV-verified in production yet
+  | 'replan'       // Planner requested a different plan; presentation only in Phase 1
+  | 'completed'    // Workflow finished successfully or with no more actions
+  | 'cancelled'    // User stopped or rejected the workflow
+  | 'failed'       // Workflow could not continue because of an error
 
 export interface WorkflowState {
   sessionId: string
@@ -47,10 +68,53 @@ export interface WorkflowState {
   pendingActions: SuggestedAction[]   // [0] = next to approve, rest = queued
   activeAction: SuggestedAction | null // Currently executing
   completedActions: CompletedAction[]
+  workspace: TaskWorkspace | null
+  tabWorkspace: MultiTabWorkspace | null
   userInputs: string[]
   clarificationQuestion: string | null
+  contractOutcome: PlannerOutcomeKind | null
+  report: ReportOutcome | null
+  replan: ReplanOutcome | null
+  goalConvergence: boolean
   phase: WorkflowPhase
   error: string | null
+}
+
+interface AnalyzeRoutingOptions {
+  completedActions: CompletedAction[]
+  currentUrl?: string
+  userInputs: string[]
+  includeReanalysisErrors?: boolean
+}
+
+interface AnalyzeRoutingResult {
+  phase: WorkflowPhase
+  analysisText: string
+  pendingActions: SuggestedAction[]
+  clarificationQuestion: string | null
+  contractOutcome: PlannerOutcomeKind
+  report: ReportOutcome | null
+  replan: ReplanOutcome | null
+  goalConvergence: boolean
+  error: string | null
+}
+
+interface WorkflowLoopInput {
+  sessionId: string
+  task: string
+  completedActions: CompletedAction[]
+  workspace: TaskWorkspace | null
+  tabWorkspace: MultiTabWorkspace | null
+  userInputs: string[]
+  refresh: boolean
+}
+
+interface AnalyzeRequestBody {
+  session_id: string
+  task: string
+  page_context: PageContext
+  prior_steps?: PriorStep[]
+  supplemental_context: string
 }
 
 async function fetchWithTimeout(url: string, options: RequestInit, ms: number): Promise<Response> {
@@ -146,18 +210,75 @@ function validateObservableProgress(
   return `Action reported success, but the page did not visibly change after ${action.action_type}. Retrying from the current page state.`
 }
 
+function buildExecutionFeedback(action: SuggestedAction, result: ExecutionResult): string {
+  const verification = result.verification
+  const lines = [
+    'Execution Feedback',
+    `Action: ${action.action_type}`,
+    `Execution: ${result.success ? 'success' : 'failed'}`,
+  ]
+
+  if (verification) {
+    lines.push(`Verification: ${verification.verified ? 'verified' : verification.reason}`)
+  }
+
+  if (typeof result.recovery_attempted === 'boolean') {
+    lines.push(`Recovery: ${result.recovery_attempted ? 'attempted' : 'not_attempted'}`)
+  }
+
+  if (result.recovery_attempted) {
+    lines.push(`Recovery Result: ${result.recovery_verified ? 'verified' : 'failed'}`)
+    if (result.recovery_reason) lines.push(`Recovery Reason: ${result.recovery_reason}`)
+  } else if (result.recovery_reason) {
+    lines.push(`Recovery Reason: ${result.recovery_reason}`)
+  }
+
+  if (verification?.reason === 'no_effect') {
+    lines.push('Recommendation: Avoid repeating this selector unless the page evidence has changed.')
+  } else if (verification?.verified) {
+    lines.push('Recommendation: Treat the action as having produced the intended browser effect.')
+  } else if (!result.success) {
+    lines.push('Recommendation: Do not assume the browser action completed.')
+  }
+
+  return lines.join('\n').slice(0, MAX_EXECUTION_FEEDBACK_CHARS)
+}
+
+function sanitizeExecutionMessageForPlanner(message: string): string {
+  return message
+    .replace(/Clicked at \([^)]+\): .*/i, 'Clicked target')
+    .replace(/Clicked once: .*/i, 'Clicked target')
+    .replace(/Clicked: .*/i, 'Clicked target')
+    .replace(/Filled field: .*/i, 'Filled field')
+    .replace(/Selected option: (.*?) on select: .*/i, 'Selected option: $1')
+    .replace(/Selected visible option: .*/i, 'Selected visible option')
+    .replace(/Scrolled (.*?) on: .*/i, 'Scrolled $1')
+}
+
+function buildExecutionResultForPlanner(
+  action: SuggestedAction,
+  result: ExecutionResult,
+  includeFeedback: boolean,
+): string {
+  const message = sanitizeExecutionMessageForPlanner(result.message)
+  if (!includeFeedback) return message
+  const feedback = buildExecutionFeedback(action, result)
+  return [message, feedback].filter(Boolean).join('\n\n')
+}
+
 function buildPriorSteps(completed: CompletedAction[]): PriorStep[] {
   const startDetailedIndex = Math.max(0, completed.length - MAX_DETAILED_PRIOR_STEPS)
   return completed.slice(-MAX_TOTAL_PRIOR_STEPS).map(({ action, result, analysis_snapshot, page_snapshot }, index, visibleSteps) => {
     const originalIndex = completed.length - visibleSteps.length + index
     const includeDetails = originalIndex >= startDetailedIndex
+    const includeExecutionFeedback = originalIndex === completed.length - 1
 
     return {
     action_type: action.action_type,
     description: action.description,
     target_selector: includeDetails ? action.target_selector : null,
     value: includeDetails ? action.value : null,
-    execution_result: result.message,
+    execution_result: buildExecutionResultForPlanner(action, result, includeExecutionFeedback),
     page_analysis: includeDetails ? analysis_snapshot?.slice(0, MAX_ANALYSIS_SNAPSHOT_CHARS) : undefined,
     page_url: includeDetails ? page_snapshot?.url : undefined,
     page_title: includeDetails ? page_snapshot?.title : undefined,
@@ -166,12 +287,47 @@ function buildPriorSteps(completed: CompletedAction[]): PriorStep[] {
   })
 }
 
-function buildSupplementalContext(userInputs: string[]): string {
-  if (userInputs.length === 0) return ''
-  return [
-    'Authoritative user-provided answers. Use these answers directly. Do not ask for the same information again:',
-    ...userInputs.map((input, index) => `${index + 1}. ${input}`),
-  ].join('\n')
+function buildSupplementalContext(
+  userInputs: string[],
+  workspace?: TaskWorkspace | null,
+  tabWorkspace?: MultiTabWorkspace | null,
+): string {
+  const parts: string[] = []
+  const workspaceSummary = summarizeTaskWorkspace(workspace)
+  if (workspaceSummary) parts.push(workspaceSummary)
+  const tabWorkspaceSummary = summarizeMultiTabWorkspace(tabWorkspace)
+  if (tabWorkspaceSummary) parts.push(tabWorkspaceSummary)
+
+  if (userInputs.length > 0) {
+    parts.push([
+      'Authoritative user-provided answers. Use these answers directly. Do not ask for the same information again:',
+      ...userInputs.map((input, index) => `${index + 1}. ${input}`),
+    ].join('\n'))
+  }
+
+  return parts.join('\n\n')
+}
+
+export function workflowLoopObservationPhase(refresh: boolean): WorkflowPhase {
+  return refresh ? 'refreshing' : 'observing'
+}
+
+export function buildAnalyzeRequestBody(
+  sessionId: string,
+  task: string,
+  pageContext: PageContext,
+  completedActions: CompletedAction[],
+  userInputs: string[],
+  workspace?: TaskWorkspace | null,
+  tabWorkspace?: MultiTabWorkspace | null,
+): AnalyzeRequestBody {
+  return {
+    session_id: sessionId,
+    task,
+    page_context: pageContext,
+    prior_steps: completedActions.length > 0 ? buildPriorSteps(completedActions) : undefined,
+    supplemental_context: buildSupplementalContext(userInputs, workspace, tabWorkspace),
+  }
 }
 
 function normalizeActionValue(action: SuggestedAction): string {
@@ -232,6 +388,142 @@ function nextAllowedActions(actions: SuggestedAction[], completed: CompletedActi
   return isRepeatedAction(nextAction, completed, currentUrl) ? [] : [nextAction]
 }
 
+function repeatedClarificationQuestion(question: string | null | undefined, userInputs: string[]): string | null {
+  if (!question) return null
+  const repeatedQuestion = userInputs.some((input) =>
+    input.toLowerCase().includes(`question: ${question}`.toLowerCase()),
+  )
+  return repeatedQuestion
+    ? `I already have an answer for "${question}". If it is wrong, provide the corrected value; otherwise click Continue to retry using the saved answer.`
+    : question
+}
+
+function buildReportAnalysis(result: AnalyzeResponse): string {
+  const parts = [result.analysis]
+  const answer = result.report?.answer?.trim()
+  const claim = result.report?.claim?.trim()
+  if (answer) parts.push(`Report answer: ${answer}`)
+  if (claim) parts.push(`Report claim: ${claim}`)
+  return parts.filter(Boolean).join('\n\n')
+}
+
+function buildReplanAnalysis(result: AnalyzeResponse): string {
+  const reason = result.replan?.reason?.trim()
+  return [result.analysis, reason ? `Replan reason: ${reason}` : 'Replan requested by planner.']
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+
+export function routeAnalyzeOutcome(
+  result: AnalyzeResponse,
+  options: AnalyzeRoutingOptions,
+): AnalyzeRoutingResult {
+  const outcomeKind = result.outcome_kind ?? (result.clarification_question ? 'ask' : 'act')
+  const allowedActions = nextAllowedActions(
+    result.suggested_actions,
+    options.completedActions,
+    options.currentUrl,
+  )
+
+  if (outcomeKind === 'ask') {
+    return {
+      phase: 'awaiting_user',
+      analysisText: result.analysis,
+      pendingActions: [],
+      clarificationQuestion: repeatedClarificationQuestion(result.clarification_question, options.userInputs),
+      contractOutcome: outcomeKind,
+      report: null,
+      replan: null,
+      goalConvergence: Boolean(result.goal_convergence),
+      error: null,
+    }
+  }
+
+  if (outcomeKind === 'report') {
+    // Production SGV Phase 1: the backend already validated the claim against
+    // live page evidence and set sgv_verified on the response.
+    // Verified   → complete the workflow now.
+    // Unverified → continue with the existing 'reported' phase so the loop
+    //              proceeds exactly as it did before SGV existed.
+    if (result.sgv_verified) {
+      return {
+        phase: 'completed',
+        analysisText: buildReportAnalysis(result),
+        pendingActions: [],
+        clarificationQuestion: null,
+        contractOutcome: outcomeKind,
+        report: result.report ?? null,
+        replan: null,
+        goalConvergence: Boolean(result.goal_convergence),
+        error: null,
+      }
+    }
+    return {
+      phase: 'reported',
+      analysisText: buildReportAnalysis(result),
+      pendingActions: [],
+      clarificationQuestion: null,
+      contractOutcome: outcomeKind,
+      report: result.report ?? null,
+      replan: null,
+      goalConvergence: Boolean(result.goal_convergence),
+      error: null,
+    }
+  }
+
+  if (outcomeKind === 'replan') {
+    return {
+      phase: 'replan',
+      analysisText: buildReplanAnalysis(result),
+      pendingActions: [],
+      clarificationQuestion: null,
+      contractOutcome: outcomeKind,
+      report: null,
+      replan: result.replan ?? null,
+      goalConvergence: Boolean(result.goal_convergence),
+      error: null,
+    }
+  }
+
+  if (allowedActions.length === 0) {
+    const stoppedRepeat = result.suggested_actions.length > 0
+    const unresolvedFailure = options.completedActions.some(({ result: execution }) => !execution.success)
+    return {
+      phase: 'completed',
+      analysisText: result.analysis,
+      pendingActions: [],
+      clarificationQuestion: null,
+      contractOutcome: outcomeKind,
+      report: null,
+      replan: null,
+      goalConvergence: Boolean(result.goal_convergence),
+      error: options.includeReanalysisErrors
+        ? stoppedRepeat
+          ? 'Stopped because the assistant proposed a repeated browser action instead of making progress.'
+          : unresolvedFailure
+            ? 'Stopped with unresolved failed actions. The task was not completed.'
+            : null
+        : null,
+    }
+  }
+
+  return {
+    phase: 'awaiting_execution',
+    analysisText: result.analysis,
+    pendingActions: allowedActions,
+    clarificationQuestion: null,
+    contractOutcome: outcomeKind,
+    report: null,
+    replan: null,
+    goalConvergence: Boolean(result.goal_convergence),
+    error: null,
+  }
+}
+
+export function cancelWorkflowPatch(): Pick<WorkflowState, 'pendingActions' | 'phase'> {
+  return { pendingActions: [], phase: 'cancelled' }
+}
 function logEvent(
   sessionId: string,
   eventType: 'approved' | 'rejected' | 'executed',
@@ -261,8 +553,14 @@ export function useWorkflow() {
     pendingActions: [],
     activeAction: null,
     completedActions: [],
+    workspace: null,
+    tabWorkspace: null,
     userInputs: [],
     clarificationQuestion: null,
+    contractOutcome: null,
+    report: null,
+    replan: null,
+    goalConvergence: false,
     phase: 'idle',
     error: null,
   })
@@ -277,114 +575,28 @@ export function useWorkflow() {
 
   // ── Initial analysis ────────────────────────────────────────────────────────
 
-  const analyze = useCallback(async (taskOverride?: string) => {
-    const { sessionId } = state
-    // taskOverride lets voice input bypass the stale closure on state.task.
-    const task = (taskOverride ?? state.task).trim()
-    if (!task) return
-
+  const runWorkflowLoop = useCallback(async ({
+    sessionId,
+    task,
+    completedActions,
+    workspace,
+    tabWorkspace,
+    userInputs,
+    refresh,
+  }: WorkflowLoopInput) => {
     setState((s) => ({
       ...s,
-      task,           // Sync state.task if voice provided an override.
-      phase: 'extracting',
-      error: null,
-      analysisText: '',
+      phase: workflowLoopObservationPhase(refresh),
       pendingActions: [],
       activeAction: null,
-      completedActions: [],
-      userInputs: [],
       clarificationQuestion: null,
+      contractOutcome: null,
+      report: null,
+      replan: null,
+      goalConvergence: false,
+      error: null,
     }))
 
-    // 1. Extract page context
-    let ctx: PageContext
-    try {
-      const res = await sendToBackground<{ context?: PageContext; error?: string }>({
-        type: 'EXTRACT_CONTEXT',
-      })
-      if (!res.context) {
-        setState((s) => ({ ...s, phase: 'idle', error: res.error ?? 'Failed to read page.' }))
-        return
-      }
-      ctx = res.context
-      setPageContext(ctx)
-    } catch (err) {
-      setState((s) => ({ ...s, phase: 'idle', error: errMsg(err) }))
-      return
-    }
-
-    // 2. Call AI
-    setState((s) => ({ ...s, phase: 'analyzing' }))
-    try {
-      const response = await fetchAnalyzeWithRetry(
-        `${BACKEND_URL}/analyze`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: sessionId,
-            task,
-            page_context: ctx,
-            supplemental_context: buildSupplementalContext([]),
-          }),
-        },
-      )
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }))
-        // FastAPI 422 detail is an array of {loc, msg, type} — flatten to a readable string.
-        const detail = Array.isArray(err.detail)
-          ? err.detail.map((e: { msg?: string; loc?: string[] }) =>
-              `${(e.loc ?? []).slice(-1)[0] ?? 'field'}: ${e.msg ?? JSON.stringify(e)}`
-            ).join(' | ')
-          : (err.detail ?? `HTTP ${response.status}`)
-        throw new Error(detail)
-      }
-      const result: AnalyzeResponse = await response.json()
-      const allowedActions = nextAllowedActions(result.suggested_actions, [], ctx.url)
-
-      if (result.clarification_question) {
-        const repeatedQuestion = state.userInputs.some((input) =>
-          input.toLowerCase().includes(`question: ${result.clarification_question}`.toLowerCase()),
-        )
-        setState((s) => ({
-          ...s,
-          phase: 'needs_input',
-          analysisText: result.analysis,
-          pendingActions: [],
-          clarificationQuestion: repeatedQuestion
-            ? `I already have an answer for "${result.clarification_question}". If it is wrong, provide the corrected value; otherwise click Continue to retry using the saved answer.`
-            : result.clarification_question ?? null,
-        }))
-      } else if (allowedActions.length === 0) {
-        setState((s) => ({
-          ...s,
-          phase: 'complete',
-          analysisText: result.analysis,
-          pendingActions: [],
-          clarificationQuestion: null,
-        }))
-      } else {
-        setState((s) => ({
-          ...s, phase: 'awaiting', analysisText: result.analysis,
-          pendingActions: allowedActions, clarificationQuestion: null,
-        }))
-      }
-    } catch (err) {
-      setState((s) => ({ ...s, phase: 'idle', error: errMsg(err) }))
-    }
-  }, [state.task, state.sessionId])
-
-  // ── Re-analysis after a step ────────────────────────────────────────────────
-
-  const reanalyze = useCallback(async (
-    sessionId: string,
-    task: string,
-    completed: CompletedAction[],
-    userInputs: string[],
-  ) => {
-    setState((s) => ({ ...s, phase: 'reanalyzing', clarificationQuestion: null }))
-
-    // Re-extract fresh page context
     let ctx: PageContext
     try {
       const res = await sendToBackground<{ context?: PageContext; error?: string }>({
@@ -392,8 +604,11 @@ export function useWorkflow() {
       })
       if (!res.context) {
         setState((s) => ({
-          ...s, phase: 'complete', pendingActions: [],
-          error: `Re-analysis: page read failed — ${res.error ?? 'unknown'}`,
+          ...s,
+          phase: 'failed',
+          pendingActions: [],
+          activeAction: null,
+          error: `${refresh ? 'Refresh' : 'Observation'} failed: ${res.error ?? 'Failed to read page.'}`,
         }))
         return
       }
@@ -401,30 +616,53 @@ export function useWorkflow() {
       setPageContext(ctx)
     } catch (err) {
       setState((s) => ({
-        ...s, phase: 'complete', pendingActions: [],
-        error: `Re-analysis: page read error — ${errMsg(err)}`,
+        ...s,
+        phase: 'failed',
+        pendingActions: [],
+        activeAction: null,
+        error: `${refresh ? 'Refresh' : 'Observation'} error: ${errMsg(err)}`,
       }))
       return
     }
 
-    // Call AI with updated context + prior steps
+    const updatedWorkspace = updateTaskWorkspace(
+      workspace ?? createTaskWorkspace(task),
+      ctx,
+      completedActions,
+    )
+    let updatedTabWorkspace = tabWorkspace
+    try {
+      const tabResponse = await sendToBackground<{ tab_workspace?: MultiTabWorkspace; error?: string }>({
+        type: 'GET_TAB_WORKSPACE',
+      })
+      const snapshot = tabResponse.tab_workspace ?? tabWorkspace
+      updatedTabWorkspace = snapshot
+        ? updateTabFactCount(snapshot, ctx.tab_id, updatedWorkspace.extractedFacts.length)
+        : null
+    } catch {
+      updatedTabWorkspace = tabWorkspace
+    }
+
+    setState((s) => ({ ...s, phase: 'analyzing' }))
     try {
       const response = await fetchAnalyzeWithRetry(
         `${BACKEND_URL}/analyze`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: sessionId,
+          body: JSON.stringify(buildAnalyzeRequestBody(
+            sessionId,
             task,
-            page_context: ctx,
-            prior_steps: buildPriorSteps(completed),
-            supplemental_context: buildSupplementalContext(userInputs),
-          }),
+            ctx,
+            completedActions,
+            userInputs,
+            updatedWorkspace,
+            updatedTabWorkspace,
+          )),
         },
       )
       if (!response.ok) {
-        const errBody = await response.json().catch(() => ({}))
+        const errBody = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }))
         const detail = Array.isArray(errBody.detail)
           ? errBody.detail.map((e: { msg?: string; loc?: string[] }) =>
               `${(e.loc ?? []).slice(-1)[0] ?? 'field'}: ${e.msg ?? JSON.stringify(e)}`
@@ -433,51 +671,75 @@ export function useWorkflow() {
         throw new Error(detail)
       }
       const result: AnalyzeResponse = await response.json()
-      const allowedActions = nextAllowedActions(result.suggested_actions, completed, ctx.url)
-
-      if (result.clarification_question) {
-        const repeatedQuestion = userInputs.some((input) =>
-          input.toLowerCase().includes(`question: ${result.clarification_question}`.toLowerCase()),
-        )
-        setState((s) => ({
-          ...s,
-          phase: 'needs_input',
-          pendingActions: [],
-          analysisText: result.analysis,
-          clarificationQuestion: repeatedQuestion
-            ? `I already have an answer for "${result.clarification_question}". If it is wrong, provide the corrected value; otherwise click Continue to retry using the saved answer.`
-            : result.clarification_question ?? null,
-        }))
-      } else if (allowedActions.length === 0) {
-        const stoppedRepeat = result.suggested_actions.length > 0
-        const unresolvedFailure = completed.some(({ result: execution }) => !execution.success)
-        setState((s) => ({
-          ...s, phase: 'complete', pendingActions: [], analysisText: result.analysis,
-          clarificationQuestion: null,
-          error: stoppedRepeat
-            ? 'Stopped because the assistant proposed a repeated browser action instead of making progress.'
-            : unresolvedFailure
-              ? 'Stopped with unresolved failed actions. The task was not completed.'
-              : null,
-        }))
-      } else {
-        setState((s) => ({
-          ...s, phase: 'awaiting', pendingActions: allowedActions,
-          analysisText: result.analysis, clarificationQuestion: null,
-        }))
-      }
+      const routed = routeAnalyzeOutcome(result, {
+        completedActions,
+        currentUrl: ctx.url,
+        userInputs,
+        includeReanalysisErrors: refresh,
+      })
+      setState((s) => ({
+        ...s,
+        completedActions,
+        workspace: updatedWorkspace,
+        tabWorkspace: updatedTabWorkspace,
+        userInputs,
+        ...routed,
+      }))
     } catch (err) {
       setState((s) => ({
-        ...s, phase: 'complete', pendingActions: [],
-        error: `Re-analysis failed: ${errMsg(err)}`,
+        ...s,
+        phase: 'failed',
+        pendingActions: [],
+        activeAction: null,
+        error: `Analysis failed: ${errMsg(err)}`,
       }))
     }
   }, [])
 
+  const analyze = useCallback(async (taskOverride?: string) => {
+    const { sessionId } = state
+    // taskOverride lets voice input bypass the stale closure on state.task.
+    const task = (taskOverride ?? state.task).trim()
+    if (!task) return
+    const workspace = createTaskWorkspace(task)
+
+    setState((s) => ({
+      ...s,
+      task,           // Sync state.task if voice provided an override.
+      phase: 'observing',
+      error: null,
+      analysisText: '',
+      pendingActions: [],
+      activeAction: null,
+      completedActions: [],
+      workspace,
+      tabWorkspace: null,
+      userInputs: [],
+      clarificationQuestion: null,
+      contractOutcome: null,
+      report: null,
+      replan: null,
+      goalConvergence: false,
+    }))
+
+    await runWorkflowLoop({
+      sessionId,
+      task,
+      completedActions: [],
+      workspace,
+      tabWorkspace: null,
+      userInputs: [],
+      refresh: false,
+    })
+  }, [runWorkflowLoop, state.task, state.sessionId])
+
+  // ── Re-analysis after a step ────────────────────────────────────────────────
+
+
   // ── Approve ─────────────────────────────────────────────────────────────────
 
   const approveAction = useCallback(async () => {
-    const { pendingActions, sessionId, task, completedActions, analysisText, userInputs } = state
+    const { pendingActions, sessionId, task, completedActions, workspace, tabWorkspace, analysisText, userInputs } = state
     const action = pendingActions[0]
     if (!action) return
 
@@ -583,23 +845,38 @@ export function useWorkflow() {
       result.success ? 'success' : result.message)
 
     if (!result.success) {
-      await reanalyze(sessionId, task, newCompleted, userInputs)
+      await runWorkflowLoop({
+        sessionId,
+        task,
+        completedActions: newCompleted,
+        workspace,
+        tabWorkspace,
+        userInputs,
+        refresh: true,
+      })
       return
     }
 
-    // Re-analyze with fresh page context
-    await reanalyze(sessionId, task, newCompleted, userInputs)
-  }, [state, pageContext, reanalyze])
+    await runWorkflowLoop({
+      sessionId,
+      task,
+      completedActions: newCompleted,
+      workspace,
+      tabWorkspace,
+      userInputs,
+      refresh: true,
+    })
+  }, [state, pageContext, runWorkflowLoop])
 
   const continueWithInput = useCallback(async (answer: string) => {
     const trimmed = answer.trim()
     if (!trimmed) return
 
-    const { sessionId, task, completedActions, userInputs } = state
+    const { sessionId, task, completedActions, workspace, tabWorkspace, userInputs } = state
     if (/^(done|complete|completed|finished)$/i.test(trimmed)) {
       setState((s) => ({
         ...s,
-        phase: 'complete',
+        phase: 'completed',
         clarificationQuestion: null,
         error: null,
       }))
@@ -617,8 +894,16 @@ export function useWorkflow() {
       clarificationQuestion: null,
       error: null,
     }))
-    await reanalyze(sessionId, task, completedActions, nextInputs)
-  }, [state, reanalyze])
+    await runWorkflowLoop({
+      sessionId,
+      task,
+      completedActions,
+      workspace,
+      tabWorkspace,
+      userInputs: nextInputs,
+      refresh: true,
+    })
+  }, [state, runWorkflowLoop])
 
   // ── Reject ──────────────────────────────────────────────────────────────────
 
@@ -630,13 +915,13 @@ export function useWorkflow() {
     logEvent(sessionId, 'rejected', action, pageContext)
 
     // Rejecting stops the remaining queue
-    setState((s) => ({ ...s, pendingActions: [], phase: 'complete' }))
+    setState((s) => ({ ...s, ...cancelWorkflowPatch() }))
   }, [state, pageContext])
 
   // ── Stop ────────────────────────────────────────────────────────────────────
 
   const stopWorkflow = useCallback(() => {
-    setState((s) => ({ ...s, pendingActions: [], phase: 'complete' }))
+    setState((s) => ({ ...s, ...cancelWorkflowPatch() }))
   }, [])
 
   // ── Reset ───────────────────────────────────────────────────────────────────
@@ -649,8 +934,14 @@ export function useWorkflow() {
       pendingActions: [],
       activeAction: null,
       completedActions: [],
+      workspace: null,
+      tabWorkspace: null,
       userInputs: [],
       clarificationQuestion: null,
+      contractOutcome: null,
+      report: null,
+      replan: null,
+      goalConvergence: false,
       phase: 'idle',
       error: null,
     }))
