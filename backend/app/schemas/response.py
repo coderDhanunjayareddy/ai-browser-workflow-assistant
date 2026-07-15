@@ -14,6 +14,10 @@ class SuggestedAction(BaseModel):
         'choose_date',
         'hover',
         'keyboard_shortcut',
+        'open_new_tab',
+        'switch_tab',
+        'close_tab',
+        'focus_existing_tab',
     ]
     target_selector: str
     value: Optional[str] = None

@@ -68,6 +68,7 @@ export interface WorkflowState {
   pendingActions: SuggestedAction[]   // [0] = next to approve, rest = queued
   activeAction: SuggestedAction | null // Currently executing
   completedActions: CompletedAction[]
+  validationPriorSteps: PriorStep[]
   workspace: TaskWorkspace | null
   tabWorkspace: MultiTabWorkspace | null
   userInputs: string[]
@@ -97,12 +98,15 @@ interface AnalyzeRoutingResult {
   replan: ReplanOutcome | null
   goalConvergence: boolean
   error: string | null
+  continueAfterRejectedReport: boolean
+  rejectedReportPriorStep: PriorStep | null
 }
 
 interface WorkflowLoopInput {
   sessionId: string
   task: string
   completedActions: CompletedAction[]
+  validationPriorSteps: PriorStep[]
   workspace: TaskWorkspace | null
   tabWorkspace: MultiTabWorkspace | null
   userInputs: string[]
@@ -210,6 +214,37 @@ function validateObservableProgress(
   return `Action reported success, but the page did not visibly change after ${action.action_type}. Retrying from the current page state.`
 }
 
+function detectExecutionSemanticMismatch(
+  action: SuggestedAction,
+  before: PageContext | null,
+  after: PageContext,
+): Pick<
+  ExecutionResult,
+  'semantic_mismatch' |
+  'semantic_mismatch_reason' |
+  'semantic_mismatch_observed_result' |
+  'semantic_mismatch_assessment'
+> | null {
+  if (!before || !actionNeedsObservableProgress(action)) return null
+
+  const pageText = normalizeForCompare([
+    after.title,
+    after.headings.slice(0, 3).join(' '),
+    after.visible_text.slice(0, 500),
+  ].join(' '))
+  const obviousWrongPage = /\b(404|page not found|not found|does not exist|doesn't exist|cannot be found|isn't available)\b/i
+    .test(pageText)
+
+  if (!obviousWrongPage) return null
+
+  return {
+    semantic_mismatch: true,
+    semantic_mismatch_reason: 'obvious_wrong_page',
+    semantic_mismatch_observed_result: 'The browser reached a page state that appears unrelated to the intended goal.',
+    semantic_mismatch_assessment: "The selected element's semantic purpose did not match the intended goal.",
+  }
+}
+
 function buildExecutionFeedback(action: SuggestedAction, result: ExecutionResult): string {
   const verification = result.verification
   const lines = [
@@ -233,7 +268,17 @@ function buildExecutionFeedback(action: SuggestedAction, result: ExecutionResult
     lines.push(`Recovery Reason: ${result.recovery_reason}`)
   }
 
-  if (verification?.reason === 'no_effect') {
+  if (result.semantic_mismatch) {
+    lines.push('Semantic Assessment: mismatch')
+    if (result.semantic_mismatch_observed_result) {
+      lines.push(`Observed Result: ${result.semantic_mismatch_observed_result}`)
+    }
+    if (result.semantic_mismatch_assessment) {
+      lines.push(`Execution Assessment: ${result.semantic_mismatch_assessment}`)
+    }
+    lines.push('Recommendation: Avoid repeating the previous selector unless page evidence changes.')
+    lines.push('Recommendation: Select an element whose semantic purpose matches the requested goal.')
+  } else if (verification?.reason === 'no_effect') {
     lines.push('Recommendation: Avoid repeating this selector unless the page evidence has changed.')
   } else if (verification?.verified) {
     lines.push('Recommendation: Treat the action as having produced the intended browser effect.')
@@ -320,12 +365,15 @@ export function buildAnalyzeRequestBody(
   userInputs: string[],
   workspace?: TaskWorkspace | null,
   tabWorkspace?: MultiTabWorkspace | null,
+  validationPriorSteps: PriorStep[] = [],
 ): AnalyzeRequestBody {
+  const actionPriorSteps = completedActions.length > 0 ? buildPriorSteps(completedActions) : []
+  const priorSteps = [...actionPriorSteps, ...validationPriorSteps]
   return {
     session_id: sessionId,
     task,
     page_context: pageContext,
-    prior_steps: completedActions.length > 0 ? buildPriorSteps(completedActions) : undefined,
+    prior_steps: priorSteps.length > 0 ? priorSteps : undefined,
     supplemental_context: buildSupplementalContext(userInputs, workspace, tabWorkspace),
   }
 }
@@ -407,6 +455,64 @@ function buildReportAnalysis(result: AnalyzeResponse): string {
   return parts.filter(Boolean).join('\n\n')
 }
 
+const REPORT_VALIDATION_REJECTION_TEXT = [
+  'Report Validation',
+  '',
+  'Result:',
+  'Rejected',
+  '',
+  'Reason:',
+  'The previous report could not be verified against current page evidence.',
+  '',
+  'Planner Guidance:',
+  '- continue gathering evidence',
+  '- avoid repeating the rejected report unless page evidence changes',
+  '- determine what information is still missing to satisfy the user goal',
+].join('\n')
+
+export function buildRejectedReportPriorStep(
+  result: AnalyzeResponse,
+  pageContext?: PageContext | null,
+): PriorStep {
+  const answer = result.report?.answer?.trim()
+  const claim = result.report?.claim?.trim()
+  const executionResult = [
+    REPORT_VALIDATION_REJECTION_TEXT,
+    answer ? `Rejected answer: ${answer.slice(0, 300)}` : '',
+    claim ? `Rejected claim: ${claim.slice(0, 500)}` : '',
+  ].filter(Boolean).join('\n\n')
+
+  return {
+    action_type: 'report_validation',
+    description: 'Report Validation: rejected unsupported report',
+    target_selector: null,
+    value: null,
+    execution_result: executionResult.slice(0, 1200),
+    page_analysis: result.analysis.slice(0, MAX_ANALYSIS_SNAPSHOT_CHARS),
+    page_url: pageContext?.url,
+    page_title: pageContext?.title,
+    page_metadata: pageContext?.metadata ? compactMetadata(pageContext.metadata) : {},
+  }
+}
+
+function priorStepSignature(step: PriorStep): string {
+  return [
+    step.action_type,
+    step.description,
+    step.execution_result,
+    step.page_url ?? '',
+  ].join('|')
+}
+
+export function appendValidationPriorStepOnce(
+  steps: PriorStep[],
+  nextStep: PriorStep,
+): PriorStep[] {
+  const signature = priorStepSignature(nextStep)
+  if (steps.some((step) => priorStepSignature(step) === signature)) return steps
+  return [...steps, nextStep].slice(-5)
+}
+
 function buildReplanAnalysis(result: AnalyzeResponse): string {
   const reason = result.replan?.reason?.trim()
   return [result.analysis, reason ? `Replan reason: ${reason}` : 'Replan requested by planner.']
@@ -437,6 +543,8 @@ export function routeAnalyzeOutcome(
       replan: null,
       goalConvergence: Boolean(result.goal_convergence),
       error: null,
+      continueAfterRejectedReport: false,
+      rejectedReportPriorStep: null,
     }
   }
 
@@ -457,10 +565,12 @@ export function routeAnalyzeOutcome(
         replan: null,
         goalConvergence: Boolean(result.goal_convergence),
         error: null,
+        continueAfterRejectedReport: false,
+        rejectedReportPriorStep: null,
       }
     }
     return {
-      phase: 'reported',
+      phase: 'refreshing',
       analysisText: buildReportAnalysis(result),
       pendingActions: [],
       clarificationQuestion: null,
@@ -469,6 +579,8 @@ export function routeAnalyzeOutcome(
       replan: null,
       goalConvergence: Boolean(result.goal_convergence),
       error: null,
+      continueAfterRejectedReport: true,
+      rejectedReportPriorStep: buildRejectedReportPriorStep(result),
     }
   }
 
@@ -483,6 +595,8 @@ export function routeAnalyzeOutcome(
       replan: result.replan ?? null,
       goalConvergence: Boolean(result.goal_convergence),
       error: null,
+      continueAfterRejectedReport: false,
+      rejectedReportPriorStep: null,
     }
   }
 
@@ -505,6 +619,8 @@ export function routeAnalyzeOutcome(
             ? 'Stopped with unresolved failed actions. The task was not completed.'
             : null
         : null,
+      continueAfterRejectedReport: false,
+      rejectedReportPriorStep: null,
     }
   }
 
@@ -518,6 +634,8 @@ export function routeAnalyzeOutcome(
     replan: null,
     goalConvergence: Boolean(result.goal_convergence),
     error: null,
+    continueAfterRejectedReport: false,
+    rejectedReportPriorStep: null,
   }
 }
 
@@ -553,6 +671,7 @@ export function useWorkflow() {
     pendingActions: [],
     activeAction: null,
     completedActions: [],
+    validationPriorSteps: [],
     workspace: null,
     tabWorkspace: null,
     userInputs: [],
@@ -579,6 +698,7 @@ export function useWorkflow() {
     sessionId,
     task,
     completedActions,
+    validationPriorSteps,
     workspace,
     tabWorkspace,
     userInputs,
@@ -658,6 +778,7 @@ export function useWorkflow() {
             userInputs,
             updatedWorkspace,
             updatedTabWorkspace,
+            validationPriorSteps,
           )),
         },
       )
@@ -680,11 +801,28 @@ export function useWorkflow() {
       setState((s) => ({
         ...s,
         completedActions,
+        validationPriorSteps,
         workspace: updatedWorkspace,
         tabWorkspace: updatedTabWorkspace,
         userInputs,
         ...routed,
       }))
+      if (routed.continueAfterRejectedReport && routed.rejectedReportPriorStep) {
+        const nextValidationPriorSteps = appendValidationPriorStepOnce(
+          validationPriorSteps,
+          buildRejectedReportPriorStep(result, ctx),
+        )
+        await runWorkflowLoop({
+          sessionId,
+          task,
+          completedActions,
+          validationPriorSteps: nextValidationPriorSteps,
+          workspace: updatedWorkspace,
+          tabWorkspace: updatedTabWorkspace,
+          userInputs,
+          refresh: true,
+        })
+      }
     } catch (err) {
       setState((s) => ({
         ...s,
@@ -712,6 +850,7 @@ export function useWorkflow() {
       pendingActions: [],
       activeAction: null,
       completedActions: [],
+      validationPriorSteps: [],
       workspace,
       tabWorkspace: null,
       userInputs: [],
@@ -726,6 +865,7 @@ export function useWorkflow() {
       sessionId,
       task,
       completedActions: [],
+      validationPriorSteps: [],
       workspace,
       tabWorkspace: null,
       userInputs: [],
@@ -739,7 +879,7 @@ export function useWorkflow() {
   // ── Approve ─────────────────────────────────────────────────────────────────
 
   const approveAction = useCallback(async () => {
-    const { pendingActions, sessionId, task, completedActions, workspace, tabWorkspace, analysisText, userInputs } = state
+    const { pendingActions, sessionId, task, completedActions, validationPriorSteps, workspace, tabWorkspace, analysisText, userInputs } = state
     const action = pendingActions[0]
     if (!action) return
 
@@ -797,8 +937,15 @@ export function useWorkflow() {
           })
           if (res.context) {
             const progressError = validateObservableProgress(action, pageContext, res.context)
+            const semanticMismatch = detectExecutionSemanticMismatch(action, pageContext, res.context)
             pageContextAfterAction = res.context
             setPageContext(res.context)
+            if (semanticMismatch) {
+              result = {
+                ...result,
+                ...semanticMismatch,
+              }
+            }
             if (progressError) {
               result = {
                 success: false,
@@ -849,6 +996,7 @@ export function useWorkflow() {
         sessionId,
         task,
         completedActions: newCompleted,
+        validationPriorSteps,
         workspace,
         tabWorkspace,
         userInputs,
@@ -861,6 +1009,7 @@ export function useWorkflow() {
       sessionId,
       task,
       completedActions: newCompleted,
+      validationPriorSteps,
       workspace,
       tabWorkspace,
       userInputs,
@@ -872,7 +1021,7 @@ export function useWorkflow() {
     const trimmed = answer.trim()
     if (!trimmed) return
 
-    const { sessionId, task, completedActions, workspace, tabWorkspace, userInputs } = state
+    const { sessionId, task, completedActions, validationPriorSteps, workspace, tabWorkspace, userInputs } = state
     if (/^(done|complete|completed|finished)$/i.test(trimmed)) {
       setState((s) => ({
         ...s,
@@ -898,6 +1047,7 @@ export function useWorkflow() {
       sessionId,
       task,
       completedActions,
+      validationPriorSteps,
       workspace,
       tabWorkspace,
       userInputs: nextInputs,
@@ -934,6 +1084,7 @@ export function useWorkflow() {
       pendingActions: [],
       activeAction: null,
       completedActions: [],
+      validationPriorSteps: [],
       workspace: null,
       tabWorkspace: null,
       userInputs: [],

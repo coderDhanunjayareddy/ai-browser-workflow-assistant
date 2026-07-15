@@ -60,6 +60,19 @@ export interface VerifiedExecutionResult extends BasicExecutionResult {
   recovery_source?: string | null
   recovery_verified?: boolean
   recovery_reason?: string | null
+  upload_attempted?: boolean
+  upload_completed?: boolean
+  download_detected?: boolean
+  download_completed?: boolean
+  filename?: string | null
+  mime_type?: string | null
+  size_bytes?: number | null
+  download_path_ref?: string | null
+  opened_tab_id?: number | null
+  previous_tab_id?: number | null
+  active_tab_id?: number | null
+  closed_tab_id?: number | null
+  tab_switch_verified?: boolean
 }
 
 export function captureVerificationState(action: VerifiableAction): ActionVerificationState {

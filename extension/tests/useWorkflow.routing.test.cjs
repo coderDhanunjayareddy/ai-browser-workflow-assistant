@@ -36,7 +36,9 @@ function compileRouter() {
 
 compileRouter()
 const {
+  appendValidationPriorStepOnce,
   buildAnalyzeRequestBody,
+  buildRejectedReportPriorStep,
   cancelWorkflowPatch,
   createMultiTabWorkspace,
   createTaskWorkspace,
@@ -157,9 +159,9 @@ test('routes ask outcomes to clarification without actions', () => {
   assert.deepEqual(routed.pendingActions, [])
 })
 
-test('routes unverified report outcomes to reported phase (sgv_verified absent)', () => {
-  // Regression: existing behavior before SGV — no sgv_verified field means
-  // the workflow continues with the existing 'reported' phase.
+test('routes report outcomes without SGV verification to continuation', () => {
+  // PRC-1: an unverified report is not terminal; it becomes validation context
+  // for the next normal observe -> analyze cycle.
   const routed = route(response({
     outcome_kind: 'report',
     report: {
@@ -169,10 +171,12 @@ test('routes unverified report outcomes to reported phase (sgv_verified absent)'
     suggested_actions: [action()],
   }))
 
-  assert.equal(routed.phase, 'reported')
+  assert.equal(routed.phase, 'refreshing')
   assert.equal(routed.contractOutcome, 'report')
   assert.deepEqual(routed.pendingActions, [])
   assert.equal(routed.report.answer, 'INR 14,632.00')
+  assert.equal(routed.continueAfterRejectedReport, true)
+  assert.equal(routed.rejectedReportPriorStep.action_type, 'report_validation')
   assert.match(routed.analysisText, /Report answer: INR 14,632\.00/)
   assert.match(routed.analysisText, /Report claim: The invoice total is visible on the page\./)
 })
@@ -194,14 +198,15 @@ test('Production SGV: verified report (sgv_verified=true) routes to completed', 
   assert.equal(routed.contractOutcome, 'report')
   assert.deepEqual(routed.pendingActions, [])
   assert.equal(routed.report.answer, 'INR 14,632.00')
+  assert.equal(routed.continueAfterRejectedReport, false)
+  assert.equal(routed.rejectedReportPriorStep, null)
   assert.match(routed.analysisText, /Report answer: INR 14,632\.00/)
   assert.equal(routed.error, null)
 })
 
-test('Production SGV: unverified report (sgv_verified=false) routes to reported for existing loop continuation', () => {
-  // The backend set sgv_verified=false — the workflow continues using the
-  // existing 'reported' phase. No new SGV-specific execution path is created.
-  // The planner will decide the next action on the following analyze cycle.
+test('Production SGV: unverified report (sgv_verified=false) continues with validation prior step', () => {
+  // The backend set sgv_verified=false. The workflow does not invent an action;
+  // it only sends validation feedback so the planner can decide the next turn.
   const routed = route(response({
     outcome_kind: 'report',
     sgv_verified: false,
@@ -212,10 +217,14 @@ test('Production SGV: unverified report (sgv_verified=false) routes to reported 
     suggested_actions: [],
   }))
 
-  assert.equal(routed.phase, 'reported')
+  assert.equal(routed.phase, 'refreshing')
   assert.equal(routed.contractOutcome, 'report')
   assert.deepEqual(routed.pendingActions, [])
   assert.equal(routed.report.answer, '₹15,299.00')
+  assert.equal(routed.continueAfterRejectedReport, true)
+  assert.match(routed.rejectedReportPriorStep.execution_result, /Report Validation/)
+  assert.match(routed.rejectedReportPriorStep.execution_result, /Result:\nRejected/)
+  assert.match(routed.rejectedReportPriorStep.execution_result, /continue gathering evidence/)
   assert.equal(routed.error, null)
 })
 
@@ -286,6 +295,57 @@ test('execute to refresh to analyze loop sends fresh observation with prior step
   assert.match(request.supplemental_context, /Authoritative user-provided answers/)
 })
 
+test('rejected report validation prior step is appended to planner request', () => {
+  const rejectedStep = buildRejectedReportPriorStep(response({
+    outcome_kind: 'report',
+    sgv_verified: false,
+    analysis: 'Reported too early.',
+    report: {
+      answer: 'Only one repository was inspected.',
+      claim: 'This satisfies the comparison.',
+    },
+    suggested_actions: [],
+  }), pageContext({ url: 'https://github.com/one/repo', title: 'One Repo' }))
+
+  const request = buildAnalyzeRequestBody(
+    'session-1',
+    'Compare two repositories.',
+    pageContext({ url: 'https://github.com/one/repo', title: 'One Repo' }),
+    [completedAction()],
+    [],
+    null,
+    null,
+    [rejectedStep],
+  )
+
+  assert.equal(request.prior_steps.length, 2)
+  assert.equal(request.prior_steps[1].action_type, 'report_validation')
+  assert.match(request.prior_steps[1].execution_result, /Report Validation/)
+  assert.match(request.prior_steps[1].execution_result, /The previous report could not be verified/)
+  assert.match(request.prior_steps[1].execution_result, /avoid repeating the rejected report/)
+  assert.doesNotMatch(request.prior_steps[1].execution_result, /<html|<div|screenshot|DOM/i)
+})
+
+test('identical rejected reports do not duplicate validation prior steps', () => {
+  const rejectedStep = buildRejectedReportPriorStep(response({
+    outcome_kind: 'report',
+    sgv_verified: false,
+    analysis: 'Reported too early.',
+    report: {
+      answer: 'Only one repository was inspected.',
+      claim: 'This satisfies the comparison.',
+    },
+    suggested_actions: [],
+  }), pageContext({ url: 'https://github.com/one/repo', title: 'One Repo' }))
+
+  const once = appendValidationPriorStepOnce([], rejectedStep)
+  const twice = appendValidationPriorStepOnce(once, rejectedStep)
+
+  assert.equal(once.length, 1)
+  assert.equal(twice.length, 1)
+  assert.deepEqual(twice, once)
+})
+
 test('successful execution feedback is included in latest planner context', () => {
   const request = buildAnalyzeRequestBody(
     'session-1',
@@ -345,6 +405,90 @@ test('no-effect execution feedback is included without leaking raw DOM', () => {
   assert.doesNotMatch(executionResult, /domSignature/)
   assert.doesNotMatch(executionResult, /before_state/)
   assert.doesNotMatch(executionResult, /after_state/)
+})
+
+test('execution semantic mismatch feedback is included generically', () => {
+  const request = buildAnalyzeRequestBody(
+    'session-1',
+    'Open the repository page.',
+    pageContext({ url: 'https://example.test/not-found', title: 'Page not found' }),
+    [completedAction({
+      action: {
+        description: 'Click the repository link',
+        target_selector: 'a[href="/example/repository/metadata"]',
+      },
+      result: {
+        success: true,
+        message: 'Clicked target',
+        action_id: 'a1',
+        verification: {
+          verified: true,
+          reason: 'verified',
+          before_state: {},
+          after_state: {},
+          signals: { url_changed: true },
+        },
+        semantic_mismatch: true,
+        semantic_mismatch_reason: 'obvious_wrong_page',
+        semantic_mismatch_observed_result: 'The browser reached a page state that appears unrelated to the intended goal.',
+        semantic_mismatch_assessment: "The selected element's semantic purpose did not match the intended goal.",
+      },
+    })],
+    [],
+  )
+
+  const executionResult = request.prior_steps[0].execution_result
+  assert.match(executionResult, /Execution Feedback/)
+  assert.match(executionResult, /Execution: success/)
+  assert.match(executionResult, /Verification: verified/)
+  assert.match(executionResult, /Semantic Assessment: mismatch/)
+  assert.match(executionResult, /The selected element's semantic purpose did not match the intended goal/)
+  assert.match(executionResult, /Select an element whose semantic purpose matches the requested goal/)
+  assert.doesNotMatch(executionResult, /stargazers/i)
+  assert.doesNotMatch(executionResult, /<html|<div|screenshot|DOM/i)
+})
+
+test('repeated identical semantic mismatch feedback is not duplicated in prior steps', () => {
+  const failedAction = {
+    action: {
+      description: 'Click the repository link',
+      target_selector: 'a[href="/example/repository/metadata"]',
+    },
+    result: {
+      success: true,
+      message: 'Clicked target',
+      action_id: 'a1',
+      verification: {
+        verified: true,
+        reason: 'verified',
+        before_state: {},
+        after_state: {},
+        signals: { url_changed: true },
+      },
+      semantic_mismatch: true,
+      semantic_mismatch_reason: 'obvious_wrong_page',
+      semantic_mismatch_observed_result: 'The browser reached a page state that appears unrelated to the intended goal.',
+      semantic_mismatch_assessment: "The selected element's semantic purpose did not match the intended goal.",
+    },
+  }
+  const request = buildAnalyzeRequestBody(
+    'session-1',
+    'Open the repository page.',
+    pageContext({ url: 'https://example.test/not-found', title: 'Page not found' }),
+    [
+      completedAction(failedAction),
+      completedAction(failedAction),
+    ],
+    [],
+  )
+
+  assert.equal(request.prior_steps.length, 2)
+  assert.doesNotMatch(request.prior_steps[0].execution_result, /Semantic Assessment: mismatch/)
+  assert.match(request.prior_steps[1].execution_result, /Semantic Assessment: mismatch/)
+  assert.equal(
+    (request.prior_steps[1].execution_result.match(/Execution Feedback/g) ?? []).length,
+    1,
+  )
 })
 
 test('recovery success feedback is included', () => {
@@ -585,8 +729,9 @@ test('goal convergence is presentation state only for report/replan outcomes', (
   }))
 
   assert.equal(reportRoute.goalConvergence, true)
-  assert.equal(reportRoute.phase, 'reported')
+  assert.equal(reportRoute.phase, 'refreshing')
   assert.deepEqual(reportRoute.pendingActions, [])
+  assert.equal(reportRoute.continueAfterRejectedReport, true)
   assert.equal(replanRoute.goalConvergence, true)
   assert.equal(replanRoute.phase, 'replan')
   assert.deepEqual(replanRoute.pendingActions, [])

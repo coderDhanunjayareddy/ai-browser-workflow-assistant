@@ -14,6 +14,19 @@ import {
   findRecoverySelector,
   shouldAttemptSelectorRecovery,
 } from '../content/selector_recovery'
+import { executeWidgetAdapter } from '../content/widget_adapters'
+import { executeUploadHandler } from '../content/file_transfer'
+import {
+  downloadMetadata,
+  type FileTransferMetadata,
+} from './file_transfer_metadata'
+import {
+  canCloseTab,
+  findTabEntryByReference,
+  isTabControlAction,
+  normalizeOpenTabUrl,
+  parseTabReference,
+} from './tab_control'
 import {
   activateTab,
   createMultiTabWorkspace,
@@ -32,6 +45,14 @@ type ExecutableAction = {
   description?: string
   reasoning?: string
   safety_level?: string
+}
+
+type TabControlMetadata = {
+  opened_tab_id?: number | null
+  previous_tab_id?: number | null
+  active_tab_id?: number | null
+  closed_tab_id?: number | null
+  tab_switch_verified?: boolean
 }
 
 let tabWorkspace: MultiTabWorkspace = createMultiTabWorkspace()
@@ -432,6 +453,26 @@ async function executeBrowserActionOnce(
   tabId: number,
   action: ExecutableAction,
 ): Promise<BasicExecutionResult | null> {
+  const tabControlResult = await executeTabControlAction(action)
+  if (tabControlResult) return tabControlResult
+
+  const widgetAttempt = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: executeWidgetAdapter,
+    args: [action],
+  }).catch(() => null)
+  const widgetResult = widgetAttempt?.[0]?.result
+  if (widgetResult) return widgetResult
+
+  const uploadAttempt = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: executeUploadHandler,
+    args: [action],
+  }).catch(() => null)
+  const uploadResult = uploadAttempt?.[0]?.result
+  if (uploadResult) return uploadResult
+
+  const downloadWatch = shouldWatchDownload(action) ? watchNextDownload() : null
   if (action.action_type === 'click') {
     const popupSafeResult = await chrome.scripting.executeScript({
       target: { tabId },
@@ -440,7 +481,7 @@ async function executeBrowserActionOnce(
       args: [action],
     })
     const result = popupSafeResult[0]?.result
-    if (result?.success) return result
+    if (result?.success) return attachDownloadMetadata(result, await settleDownloadWatch(downloadWatch))
   }
 
   const v2OnlyActions = new Set(['select_option', 'choose_date', 'hover', 'keyboard_shortcut'])
@@ -453,7 +494,7 @@ async function executeBrowserActionOnce(
       func: primaryExecutor,
       args: [action],
     })
-    return results[0]?.result ?? null
+    return attachDownloadMetadata(results[0]?.result ?? null, await settleDownloadWatch(downloadWatch))
   } catch (primaryError) {
     console.warn('Primary execution failed, trying fallback executor:', primaryError)
     const results = await chrome.scripting.executeScript({
@@ -461,9 +502,139 @@ async function executeBrowserActionOnce(
       func: fallbackExecutor,
       args: [action],
     })
-    return results[0]?.result ?? null
+    return attachDownloadMetadata(results[0]?.result ?? null, await settleDownloadWatch(downloadWatch))
   }
 }
+
+async function executeTabControlAction(action: ExecutableAction): Promise<(BasicExecutionResult & TabControlMetadata) | null> {
+  if (!isTabControlAction(action)) return null
+  await syncTabWorkspaceSnapshot()
+  const previousTab = await getTargetTab()
+  const previousTabId = previousTab?.id ?? null
+
+  if (action.action_type === 'open_new_tab') {
+    const url = normalizeOpenTabUrl(action.value)
+    if (!url) {
+      return { success: false, message: 'No safe http/https URL provided for new tab.', action_id: action.action_id }
+    }
+    const opened = await chrome.tabs.create({ url, active: true })
+    tabWorkspace = registerTab(tabWorkspace, tabSnapshotFromChromeTab(opened))
+    if (typeof opened.id === 'number') tabWorkspace = activateTab(tabWorkspace, opened.id)
+    return {
+      success: true,
+      message: `Opened new tab: ${url}`,
+      action_id: action.action_id,
+      opened_tab_id: opened.id ?? null,
+      previous_tab_id: previousTabId,
+      active_tab_id: opened.id ?? null,
+      tab_switch_verified: Boolean(opened.active),
+    }
+  }
+
+  const reference = parseTabReference(action)
+  if (!reference) {
+    return { success: false, message: 'No explicit tab reference provided.', action_id: action.action_id }
+  }
+  const entry = findTabEntryByReference(tabWorkspace, reference)
+  if (!entry) {
+    return { success: false, message: `No tab matched explicit ${reference.kind}: ${reference.value}`, action_id: action.action_id }
+  }
+
+  if (action.action_type === 'switch_tab' || action.action_type === 'focus_existing_tab') {
+    await chrome.tabs.update(entry.tab_id, { active: true })
+    if (entry.window_id !== null) await chrome.windows.update(entry.window_id, { focused: true }).catch(() => undefined)
+    const active = await chrome.tabs.get(entry.tab_id).catch(() => null)
+    tabWorkspace = activateTab(tabWorkspace, entry.tab_id)
+    return {
+      success: true,
+      message: `Focused tab: ${entry.title}`,
+      action_id: action.action_id,
+      previous_tab_id: previousTabId,
+      active_tab_id: entry.tab_id,
+      tab_switch_verified: Boolean(active?.active),
+    }
+  }
+
+  if (action.action_type === 'close_tab') {
+    const allTabs = await chrome.tabs.query({})
+    const tab = await chrome.tabs.get(entry.tab_id).catch(() => null)
+    const closeDecision = canCloseTab(tab ?? { id: entry.tab_id, url: entry.url }, allTabs.length)
+    if (!closeDecision.allowed) {
+      return { success: false, message: `Refused to close tab: ${closeDecision.reason}`, action_id: action.action_id }
+    }
+    await chrome.tabs.remove(entry.tab_id)
+    tabWorkspace = removeClosedTab(tabWorkspace, entry.tab_id)
+    return {
+      success: true,
+      message: `Closed tab: ${entry.title}`,
+      action_id: action.action_id,
+      previous_tab_id: previousTabId,
+      closed_tab_id: entry.tab_id,
+      active_tab_id: previousTabId === entry.tab_id ? null : previousTabId,
+    }
+  }
+
+  return null
+}
+
+function shouldWatchDownload(action: ExecutableAction): boolean {
+  if (action.action_type !== 'click') return false
+  const text = `${action.description || ''} ${action.value || ''}`.toLowerCase()
+  return /\b(download|export|save file|save as|pdf|csv|xlsx|receipt|invoice)\b/.test(text)
+}
+
+function attachDownloadMetadata<T extends BasicExecutionResult | null>(
+  result: T,
+  metadata: FileTransferMetadata | null,
+): T {
+  if (!result || !metadata) return result
+  return { ...result, ...metadata } as T
+}
+
+async function settleDownloadWatch(watch: Promise<FileTransferMetadata | null> | null): Promise<FileTransferMetadata | null> {
+  return watch ? await watch : null
+}
+
+function watchNextDownload(): Promise<FileTransferMetadata | null> {
+  const downloads = chrome.downloads
+  if (!downloads?.onCreated || !downloads?.onChanged) return Promise.resolve(null)
+
+  return new Promise((resolve) => {
+    let downloadId: number | null = null
+    let itemSnapshot: chrome.downloads.DownloadItem | null = null
+    const timer = setTimeout(() => {
+      cleanup()
+      resolve(downloadId === null ? null : downloadMetadata(itemSnapshot, false))
+    }, 3000)
+
+    function cleanup() {
+      clearTimeout(timer)
+      downloads.onCreated.removeListener(onCreated)
+      downloads.onChanged.removeListener(onChanged)
+    }
+
+    function onCreated(item: chrome.downloads.DownloadItem) {
+      if (downloadId !== null) return
+      downloadId = item.id
+      itemSnapshot = item
+    }
+
+    function onChanged(delta: chrome.downloads.DownloadDelta) {
+      if (downloadId === null || delta.id !== downloadId) return
+      if (delta.state?.current === 'complete' || delta.state?.current === 'interrupted') {
+        downloads.search({ id: downloadId }, (items) => {
+          cleanup()
+          itemSnapshot = items[0] ?? itemSnapshot
+          resolve(downloadMetadata(itemSnapshot, delta.state?.current === 'complete'))
+        })
+      }
+    }
+
+    downloads.onCreated.addListener(onCreated)
+    downloads.onChanged.addListener(onChanged)
+  })
+}
+
 
 async function captureActionVerificationState(
   tabId: number,

@@ -11,6 +11,10 @@ export type ActionType =
   | 'choose_date'
   | 'hover'
   | 'keyboard_shortcut'
+  | 'open_new_tab'
+  | 'switch_tab'
+  | 'close_tab'
+  | 'focus_existing_tab'
 export type SafetyLevel = 'safe' | 'caution' | 'danger'
 
 export interface InteractiveElement {
@@ -170,6 +174,23 @@ export interface ExecutionResult {
   recovery_source?: string | null
   recovery_verified?: boolean
   recovery_reason?: string | null
+  upload_attempted?: boolean
+  upload_completed?: boolean
+  download_detected?: boolean
+  download_completed?: boolean
+  filename?: string | null
+  mime_type?: string | null
+  size_bytes?: number | null
+  download_path_ref?: string | null
+  opened_tab_id?: number | null
+  previous_tab_id?: number | null
+  active_tab_id?: number | null
+  closed_tab_id?: number | null
+  tab_switch_verified?: boolean
+  semantic_mismatch?: boolean
+  semantic_mismatch_reason?: string | null
+  semantic_mismatch_observed_result?: string | null
+  semantic_mismatch_assessment?: string | null
 }
 
 export interface EventHistory {

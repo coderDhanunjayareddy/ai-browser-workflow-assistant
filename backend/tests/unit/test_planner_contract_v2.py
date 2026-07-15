@@ -58,6 +58,33 @@ def test_parse_response_act_outcome_unchanged():
     assert resp.suggested_actions[0].action_type == "click"
 
 
+def test_system_prompt_includes_production_capability_guidance():
+    prompt = ai_service.SYSTEM_PROMPT
+
+    assert "open_new_tab" in prompt
+    assert "switch_tab" in prompt
+    assert "focus_existing_tab" in prompt
+    assert "close_tab" in prompt
+    assert "MULTI-TAB WORKSPACE" in prompt
+    assert "File transfer uses normal browser controls" in prompt
+    assert "Existing browser execution understands common widgets" in prompt
+    assert "Use EXECUTION FEEDBACK when present" in prompt
+
+
+def test_planner_contract_top_level_schema_unchanged():
+    assert set(AnalyzeResponse.model_fields) == {
+        "session_id",
+        "analysis",
+        "outcome_kind",
+        "suggested_actions",
+        "clarification_question",
+        "report",
+        "replan",
+        "sgv_verified",
+        "goal_convergence",
+    }
+
+
 def test_parse_response_report_outcome():
     raw = _raw(outcome_kind="report", suggested_actions=[],
                report={"answer": "₹15,299.00", "claim": "price already visible in accessibility name"})
@@ -67,6 +94,34 @@ def test_parse_response_report_outcome():
     assert resp.report is not None
     assert resp.report.answer == "₹15,299.00"
     assert resp.report.claim == "price already visible in accessibility name"
+
+
+@pytest.mark.parametrize(
+    ("action_type", "value"),
+    [
+        ("open_new_tab", "https://example.com/research"),
+        ("switch_tab", "title:Example Research"),
+        ("focus_existing_tab", "purpose:Compare product details"),
+        ("close_tab", "tab:42"),
+    ],
+)
+def test_parse_response_accepts_existing_tab_control_actions(action_type, value):
+    raw = _raw(suggested_actions=[{
+        "action_id": f"{action_type}_1",
+        "action_type": action_type,
+        "target_selector": None,
+        "value": value,
+        "description": f"{action_type} for multi-tab workflow",
+        "reasoning": "The tab workspace identifies the target tab explicitly.",
+        "confidence": 0.8,
+        "safety_level": "safe",
+    }])
+
+    resp = ai_service.parse_response(raw, "s1")
+
+    assert resp.outcome_kind == "act"
+    assert resp.suggested_actions[0].action_type == action_type
+    assert resp.suggested_actions[0].value == value
 
 
 def test_parse_response_normalizes_report_action_to_report_outcome():

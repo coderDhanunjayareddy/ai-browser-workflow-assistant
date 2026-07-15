@@ -142,7 +142,7 @@ SYSTEM_PROMPT = """You are an AI browser workflow assistant. Decide the NEXT out
   "suggested_actions": [
     {
       "action_id": "unique_string",
-      "action_type": "click | fill | scroll | navigate | wait | select_option | choose_date | hover | keyboard_shortcut",
+      "action_type": "click | fill | scroll | navigate | wait | select_option | choose_date | hover | keyboard_shortcut | open_new_tab | switch_tab | close_tab | focus_existing_tab",
       "target_selector": "selector from list",
       "value": "text to type or scroll direction/wait ms",
       "description": "what this does",
@@ -162,8 +162,16 @@ SYSTEM_PROMPT = """You are an AI browser workflow assistant. Decide the NEXT out
 - scroll: target_selector = "window", value = "up" | "down"
 - navigate: target_selector = null, value = URL
 - wait: target_selector = "window", value = milliseconds as string
-9. Keep descriptions concise, but do not omit necessary values such as field purpose, date, recipient, search query, or option text.
-10. outcome_kind chooses the shape of this turn — pick the one that actually matches what is needed, do not default to "act" out of habit:
+- open_new_tab: target_selector = null, value = explicit http/https URL. Use for research/comparison when preserving the current page helps.
+- switch_tab: target_selector = null, value = "tab:<id>", "title:<exact title>", "purpose:<exact purpose>", or "url:<exact URL>" from MULTI-TAB WORKSPACE.
+- focus_existing_tab: same as switch_tab, but use when the target tab is already known and should simply become active.
+- close_tab: same tab reference format as switch_tab. Use only for clearly safe cleanup; never close pinned, settings, extension, payment, or final tabs.
+9. Existing browser execution understands common widgets. For date pickers use choose_date, for comboboxes/custom selects use select_option, for autocomplete use fill or click the matching suggestion, and for cookie banners/modals choose the logical visible control. Do not invent DOM workarounds.
+10. File transfer uses normal browser controls. To upload, only when the user explicitly asked and a file input/label/drop zone is visible, use a safe click/fill-style action on that control and never fabricate a local filename. To download, click the visible download/export control; execution records download metadata.
+11. Use EXECUTION FEEDBACK when present. If a previous action had no_effect or selector recovery failed, avoid repeating the same selector/action unless current page evidence changed.
+12. Use TASK WORKSPACE and MULTI-TAB WORKSPACE when present. Do not navigate redundantly to already-open pages; switch/focus an existing tab when the workspace identifies it.
+13. Keep descriptions concise, but do not omit necessary values such as field purpose, date, recipient, search query, tab reference, URL, or option text.
+14. outcome_kind chooses the shape of this turn — pick the one that actually matches what is needed, do not default to "act" out of habit:
 - "act": suggested_actions has exactly one entry, following rule 8. Use this when a browser interaction is genuinely required.
 - "report": the task (or its current active node) is already answerable from PAGE CONTEXT, VISIBLE CONTENT BLOCKS, or CURRENT VERIFIED STATE FACTS as they stand right now — e.g. a price, a name, a status that is already present as text or an accessibility name. Do NOT click an element merely to "reveal" a value that is already present in front of you. suggested_actions must be empty; set "report": {"answer": "the extracted value, if any", "claim": "why you believe the goal is satisfied"}. Never put "report" in suggested_actions.action_type; it is an outcome_kind, not a browser action.
 - "wait": the page is mid-transition (e.g. just navigated or an async region is loading) and needs time before the next observation is meaningful. suggested_actions has one entry with action_type "wait" (rule 8).
@@ -463,6 +471,10 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
         "choose_date",
         "hover",
         "keyboard_shortcut",
+        "open_new_tab",
+        "switch_tab",
+        "close_tab",
+        "focus_existing_tab",
     }
     ALLOWED_SAFETY = {"safe", "caution", "danger"}
 
