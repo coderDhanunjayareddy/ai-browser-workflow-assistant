@@ -38,13 +38,18 @@ compileRouter()
 const {
   appendValidationPriorStepOnce,
   buildAnalyzeRequestBody,
+  buildBudgetedPlannerContext,
   buildRejectedReportPriorStep,
   cancelWorkflowPatch,
+  createMissionSnapshot,
   createMultiTabWorkspace,
   createTaskWorkspace,
   registerTab,
   routeAnalyzeOutcome,
+  PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET,
+  summarizeMissionSnapshot,
   updateTabFactCount,
+  updateMissionSnapshot,
   updateTaskWorkspace,
   workflowLoopObservationPhase,
 } = require(path.join(outDir, 'sidepanel/hooks/useWorkflow.js'))
@@ -292,7 +297,258 @@ test('execute to refresh to analyze loop sends fresh observation with prior step
   assert.match(request.prior_steps[0].execution_result, /Clicked search/)
   assert.match(request.prior_steps[0].execution_result, /Execution Feedback/)
   assert.match(request.prior_steps[0].execution_result, /Execution: success/)
+  assert.match(request.supplemental_context, /Active Goal/)
   assert.match(request.supplemental_context, /Authoritative user-provided answers/)
+})
+
+test('context budget manager leaves under-budget context unchanged', () => {
+  const context = buildBudgetedPlannerContext([
+    { heading: 'Mission Snapshot', content: 'Goal: Find invoice total', priority: 1 },
+    { heading: 'Workspace Summary', content: 'Visited: 1 pages', priority: 2 },
+  ])
+
+  assert.equal(context, [
+    'Mission Snapshot\nGoal: Find invoice total',
+    'Workspace Summary\nVisited: 1 pages',
+  ].join('\n\n'))
+})
+
+test('context budget manager trims lower-priority sections before current state', () => {
+  const context = buildBudgetedPlannerContext([
+    { heading: 'Mission Snapshot', content: 'Goal: Compare repositories', priority: 1 },
+    { heading: 'Workspace Summary', content: 'Current Target: Repository B', priority: 2 },
+    { heading: 'Old Prior Steps', content: 'old\n'.repeat(2000), priority: 4 },
+  ], 240)
+
+  assert.match(context, /Mission Snapshot/)
+  assert.match(context, /Workspace Summary/)
+  assert.doesNotMatch(context, /Old Prior Steps/)
+  assert.ok(context.length <= 240)
+})
+
+test('context budget manager preserves mission and latest execution feedback', () => {
+  const context = buildBudgetedPlannerContext([
+    { heading: 'Mission Snapshot', content: 'Goal: Compare repositories', priority: 1 },
+    {
+      heading: 'Execution Feedback',
+      content: "Execution Assessment: The selected element's semantic purpose did not match the intended goal.",
+      priority: 1,
+    },
+    { heading: 'Older History', content: 'older details\n'.repeat(400), priority: 4 },
+  ], 360)
+
+  assert.match(context, /Mission Snapshot/)
+  assert.match(context, /Execution Feedback/)
+  assert.match(context, /semantic purpose did not match/)
+  assert.doesNotMatch(context, /Older History/)
+  assert.ok(context.length <= 360)
+})
+
+test('context budget manager preserves latest report validation', () => {
+  const context = buildBudgetedPlannerContext([
+    { heading: 'Mission Snapshot', content: 'Goal: Compare products', priority: 1 },
+    {
+      heading: 'Report Validation',
+      content: 'Result: Rejected\nReason: The previous report could not be verified against current page evidence.',
+      priority: 1,
+    },
+    { heading: 'Redundant Notes', content: 'note\n'.repeat(500), priority: 4 },
+  ], 330)
+
+  assert.match(context, /Report Validation/)
+  assert.match(context, /Result: Rejected/)
+  assert.doesNotMatch(context, /Redundant Notes/)
+  assert.ok(context.length <= 330)
+})
+
+test('context budget manager output never exceeds planner supplemental limit', () => {
+  const context = buildBudgetedPlannerContext([
+    { heading: 'Mission Snapshot', content: 'Goal: ' + 'mission '.repeat(500), priority: 1 },
+    { heading: 'Workspace Summary', content: 'workspace '.repeat(1000), priority: 2 },
+    { heading: 'Tab Workspace', content: 'tabs '.repeat(1000), priority: 2 },
+    { heading: 'Older History', content: 'history '.repeat(1000), priority: 4 },
+  ])
+
+  assert.ok(context.length <= PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET)
+  assert.match(context, /Mission Snapshot/)
+})
+
+test('context budget manager is deterministic for identical input', () => {
+  const sections = [
+    { heading: 'Mission Snapshot', content: 'Goal: ' + 'x '.repeat(1000), priority: 1 },
+    { heading: 'Workspace Summary', content: 'Facts: ' + 'y '.repeat(1000), priority: 2 },
+  ]
+
+  assert.equal(
+    buildBudgetedPlannerContext(sections, 500),
+    buildBudgetedPlannerContext(sections, 500),
+  )
+})
+
+test('mission starts correctly', () => {
+  const mission = createMissionSnapshot('Compare repository stars.')
+
+  assert.equal(mission.goal, 'Compare repository stars.')
+  assert.equal(mission.missionStatus, 'not_started')
+  assert.deepEqual(mission.completedObjectives, [])
+  assert.deepEqual(mission.remainingObjectives, ['Compare repository stars.'])
+  assert.equal(mission.currentFocus, 'Compare repository stars.')
+  assert.equal(mission.confidence, 'low')
+  assert.equal(mission.progressEstimate, 0)
+})
+
+test('mission completed objectives accumulate and do not duplicate repeated actions', () => {
+  const ctx = pageContext({ title: 'Search Results', visible_text: 'Repository A: 10 stars' })
+  const workspace = updateTaskWorkspace(
+    createTaskWorkspace('Open repository and collect stars'),
+    ctx,
+    [
+      completedAction({ action: { description: 'Open repository' } }),
+      completedAction({ action: { description: 'Open repository' } }),
+    ],
+  )
+  const mission = updateMissionSnapshot({
+    goal: 'Open repository and collect stars',
+    workspace,
+    completedActions: [
+      completedAction({ action: { description: 'Open repository' } }),
+      completedAction({ action: { description: 'Open repository' } }),
+    ],
+  })
+
+  assert.equal(mission.completedObjectives.filter((objective) => objective === 'Open repository').length, 1)
+  assert.match(mission.knownBlockers.join('\n'), /Repeated browser action observed/)
+})
+
+test('mission remaining objectives shrink as workspace completes objectives', () => {
+  const workspace = updateTaskWorkspace(
+    createTaskWorkspace('Open first repository and open second repository'),
+    pageContext({ title: 'First Repository' }),
+    [completedAction({ action: { description: 'Open first repository' } })],
+  )
+  const mission = updateMissionSnapshot({
+    goal: 'Open first repository and open second repository',
+    workspace,
+    completedActions: [completedAction({ action: { description: 'Open first repository' } })],
+  })
+
+  assert.match(mission.completedObjectives.join('\n'), /Open first repository/)
+  assert.doesNotMatch(mission.remainingObjectives.join('\n'), /^Open first repository$/)
+})
+
+test('mission evidence accumulates from task and tab workspaces', () => {
+  const ctx = pageContext({
+    tab_id: 7,
+    title: 'Repository A',
+    visible_text: 'Stars: 31.8k\nLast updated: 4 minutes ago',
+  })
+  const workspace = updateTaskWorkspace(createTaskWorkspace('Compare repositories'), ctx, [])
+  let tabWorkspace = createMultiTabWorkspace()
+  tabWorkspace = registerTab(tabWorkspace, {
+    id: 7,
+    windowId: 1,
+    url: 'https://example.test/a',
+    title: 'Repository A',
+    active: true,
+  })
+  tabWorkspace = updateTabFactCount(tabWorkspace, 7, workspace.extractedFacts.length)
+  const mission = updateMissionSnapshot({
+    goal: 'Compare repositories',
+    workspace,
+    tabWorkspace,
+  })
+
+  assert.match(mission.evidenceCollected.join('\n'), /Stars = 31\.8k/)
+  assert.match(mission.evidenceCollected.join('\n'), /Repository A: \d+ facts/)
+  assert.equal(mission.missionStatus, 'in_progress')
+})
+
+test('mission snapshot remains bounded', () => {
+  const workspace = createTaskWorkspace('Compare many repositories')
+  workspace.completedObjectives = Array.from({ length: 30 }, (_, index) => `Completed ${index}`)
+  workspace.pendingObjectives = Array.from({ length: 30 }, (_, index) => `Remaining ${index}`)
+  workspace.extractedFacts = Array.from({ length: 40 }, (_, index) => ({
+    subject: `Repo ${index}`,
+    label: 'Stars',
+    value: `${index}`,
+  }))
+  const mission = updateMissionSnapshot({
+    goal: 'Compare many repositories',
+    workspace,
+  })
+  const summary = summarizeMissionSnapshot(mission)
+
+  assert.ok(mission.completedObjectives.length <= 8)
+  assert.ok(mission.remainingObjectives.length <= 8)
+  assert.ok(mission.evidenceCollected.length <= 10)
+  assert.ok(summary.length <= 1800)
+})
+
+test('mission updates after verified report', () => {
+  const mission = updateMissionSnapshot({
+    goal: 'Tell me the invoice total.',
+    workspace: updateTaskWorkspace(createTaskWorkspace('Tell me the invoice total.'), pageContext({
+      title: 'Invoice',
+      visible_text: 'Total Due: INR 14,632.00',
+    }), []),
+    verifiedReport: true,
+  })
+
+  assert.equal(mission.missionStatus, 'completed')
+  assert.equal(mission.progressEstimate, 100)
+  assert.equal(mission.confidence, 'high')
+})
+
+test('mission updates after rejected report', () => {
+  const rejectedStep = buildRejectedReportPriorStep(response({
+    outcome_kind: 'report',
+    sgv_verified: false,
+    analysis: 'Reported too early.',
+    report: {
+      answer: 'Only one repository inspected.',
+      claim: 'Comparison is complete.',
+    },
+    suggested_actions: [],
+  }))
+  const mission = updateMissionSnapshot({
+    goal: 'Compare two repositories.',
+    validationPriorSteps: [rejectedStep],
+  })
+
+  assert.equal(mission.missionStatus, 'blocked')
+  assert.match(mission.knownBlockers.join('\n'), /Previous report was rejected by validation/)
+})
+
+test('planner context includes mission snapshot before workspace summary', () => {
+  const ctx = pageContext({
+    url: 'https://example.test/repo-a',
+    title: 'Repository A',
+    visible_text: 'Stars: 31.8k',
+  })
+  const workspace = updateTaskWorkspace(createTaskWorkspace('Compare repositories'), ctx, [
+    completedAction({ action: { description: 'Open first repository' } }),
+  ])
+  const mission = updateMissionSnapshot({
+    goal: 'Compare repositories',
+    workspace,
+    completedActions: [completedAction({ action: { description: 'Open first repository' } })],
+  })
+  const request = buildAnalyzeRequestBody(
+    'session-1',
+    'Compare repositories',
+    ctx,
+    [],
+    [],
+    workspace,
+    null,
+    [],
+    mission,
+  )
+
+  assert.match(request.supplemental_context, /^Active Goal/)
+  assert.ok(request.supplemental_context.indexOf('Active Goal') < request.supplemental_context.indexOf('Mission Snapshot'))
+  assert.ok(request.supplemental_context.indexOf('Mission Snapshot') < request.supplemental_context.indexOf('Workspace Summary'))
+  assert.doesNotMatch(request.supplemental_context, /<html|<div|screenshot|DOM/i)
 })
 
 test('rejected report validation prior step is appended to planner request', () => {
@@ -630,7 +886,7 @@ test('initial workflow loop observes before first analyze without prior steps', 
 
   assert.equal(workflowLoopObservationPhase(false), 'observing')
   assert.equal(request.prior_steps, undefined)
-  assert.equal(request.supplemental_context, '')
+  assert.equal(request.supplemental_context, 'Active Goal\nFind tutorials.')
 })
 
 test('planner context includes compact task workspace summary when provided', () => {

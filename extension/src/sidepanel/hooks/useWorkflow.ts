@@ -13,6 +13,19 @@ import {
   type MultiTabWorkspace,
 } from '../../workspace/multiTabWorkspace'
 export { createMultiTabWorkspace, registerTab, updateTab, activateTab, removeClosedTab, updateTabPurpose, updateTabFactCount, summarizeMultiTabWorkspace } from '../../workspace/multiTabWorkspace'
+import {
+  createMissionSnapshot,
+  summarizeMissionSnapshot,
+  updateMissionSnapshot,
+  type MissionSnapshot,
+} from '../missionState'
+export { createMissionSnapshot, summarizeMissionSnapshot, updateMissionSnapshot } from '../missionState'
+import {
+  buildBudgetedPlannerContext,
+  PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET,
+  type PlannerContextSection,
+} from '../contextBudgetManager'
+export { buildBudgetedPlannerContext, PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET } from '../contextBudgetManager'
 import type {
   PageContext,
   AnalyzeResponse,
@@ -71,6 +84,7 @@ export interface WorkflowState {
   validationPriorSteps: PriorStep[]
   workspace: TaskWorkspace | null
   tabWorkspace: MultiTabWorkspace | null
+  missionSnapshot: MissionSnapshot | null
   userInputs: string[]
   clarificationQuestion: string | null
   contractOutcome: PlannerOutcomeKind | null
@@ -333,24 +347,46 @@ function buildPriorSteps(completed: CompletedAction[]): PriorStep[] {
 }
 
 function buildSupplementalContext(
+  task: string,
   userInputs: string[],
   workspace?: TaskWorkspace | null,
   tabWorkspace?: MultiTabWorkspace | null,
+  missionSnapshot?: MissionSnapshot | null,
 ): string {
-  const parts: string[] = []
+  const sections: PlannerContextSection[] = []
+  sections.push({
+    heading: 'Active Goal',
+    content: task,
+    priority: 1,
+  })
+  const missionSummary = summarizeMissionSnapshot(missionSnapshot)
+  if (missionSummary) sections.push(summarySection(missionSummary, 1))
   const workspaceSummary = summarizeTaskWorkspace(workspace)
-  if (workspaceSummary) parts.push(workspaceSummary)
+  if (workspaceSummary) sections.push(summarySection(workspaceSummary, 2))
   const tabWorkspaceSummary = summarizeMultiTabWorkspace(tabWorkspace)
-  if (tabWorkspaceSummary) parts.push(tabWorkspaceSummary)
+  if (tabWorkspaceSummary) sections.push(summarySection(tabWorkspaceSummary, 2))
 
   if (userInputs.length > 0) {
-    parts.push([
-      'Authoritative user-provided answers. Use these answers directly. Do not ask for the same information again:',
-      ...userInputs.map((input, index) => `${index + 1}. ${input}`),
-    ].join('\n'))
+    sections.push({
+      heading: 'Authoritative user-provided answers',
+      content: [
+        'Use these answers directly. Do not ask for the same information again:',
+        ...userInputs.map((input, index) => `${index + 1}. ${input}`),
+      ].join('\n'),
+      priority: 1,
+    })
   }
 
-  return parts.join('\n\n')
+  return buildBudgetedPlannerContext(sections, PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET)
+}
+
+function summarySection(summary: string, priority: PlannerContextSection['priority']): PlannerContextSection {
+  const [heading, ...rest] = summary.split('\n')
+  return {
+    heading,
+    content: rest.join('\n'),
+    priority,
+  }
 }
 
 export function workflowLoopObservationPhase(refresh: boolean): WorkflowPhase {
@@ -366,6 +402,7 @@ export function buildAnalyzeRequestBody(
   workspace?: TaskWorkspace | null,
   tabWorkspace?: MultiTabWorkspace | null,
   validationPriorSteps: PriorStep[] = [],
+  missionSnapshot?: MissionSnapshot | null,
 ): AnalyzeRequestBody {
   const actionPriorSteps = completedActions.length > 0 ? buildPriorSteps(completedActions) : []
   const priorSteps = [...actionPriorSteps, ...validationPriorSteps]
@@ -374,7 +411,7 @@ export function buildAnalyzeRequestBody(
     task,
     page_context: pageContext,
     prior_steps: priorSteps.length > 0 ? priorSteps : undefined,
-    supplemental_context: buildSupplementalContext(userInputs, workspace, tabWorkspace),
+    supplemental_context: buildSupplementalContext(task, userInputs, workspace, tabWorkspace, missionSnapshot),
   }
 }
 
@@ -674,6 +711,7 @@ export function useWorkflow() {
     validationPriorSteps: [],
     workspace: null,
     tabWorkspace: null,
+    missionSnapshot: null,
     userInputs: [],
     clarificationQuestion: null,
     contractOutcome: null,
@@ -762,6 +800,14 @@ export function useWorkflow() {
     } catch {
       updatedTabWorkspace = tabWorkspace
     }
+    const updatedMissionSnapshot = updateMissionSnapshot({
+      goal: task,
+      workspace: updatedWorkspace,
+      tabWorkspace: updatedTabWorkspace,
+      completedActions,
+      validationPriorSteps,
+      goalConvergence: false,
+    })
 
     setState((s) => ({ ...s, phase: 'analyzing' }))
     try {
@@ -779,6 +825,7 @@ export function useWorkflow() {
             updatedWorkspace,
             updatedTabWorkspace,
             validationPriorSteps,
+            updatedMissionSnapshot,
           )),
         },
       )
@@ -804,6 +851,24 @@ export function useWorkflow() {
         validationPriorSteps,
         workspace: updatedWorkspace,
         tabWorkspace: updatedTabWorkspace,
+        missionSnapshot: routed.contractOutcome === 'report' && result.sgv_verified
+          ? updateMissionSnapshot({
+              goal: task,
+              workspace: updatedWorkspace,
+              tabWorkspace: updatedTabWorkspace,
+              completedActions,
+              validationPriorSteps,
+              verifiedReport: true,
+              goalConvergence: routed.goalConvergence,
+            })
+          : updateMissionSnapshot({
+              goal: task,
+              workspace: updatedWorkspace,
+              tabWorkspace: updatedTabWorkspace,
+              completedActions,
+              validationPriorSteps,
+              goalConvergence: routed.goalConvergence,
+            }),
         userInputs,
         ...routed,
       }))
@@ -840,6 +905,7 @@ export function useWorkflow() {
     const task = (taskOverride ?? state.task).trim()
     if (!task) return
     const workspace = createTaskWorkspace(task)
+    const missionSnapshot = createMissionSnapshot(task)
 
     setState((s) => ({
       ...s,
@@ -853,6 +919,7 @@ export function useWorkflow() {
       validationPriorSteps: [],
       workspace,
       tabWorkspace: null,
+      missionSnapshot,
       userInputs: [],
       clarificationQuestion: null,
       contractOutcome: null,
@@ -1087,6 +1154,7 @@ export function useWorkflow() {
       validationPriorSteps: [],
       workspace: null,
       tabWorkspace: null,
+      missionSnapshot: null,
       userInputs: [],
       clarificationQuestion: null,
       contractOutcome: null,
