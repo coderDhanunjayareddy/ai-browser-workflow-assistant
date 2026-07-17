@@ -71,6 +71,60 @@ def test_system_prompt_includes_production_capability_guidance():
     assert "Use EXECUTION FEEDBACK when present" in prompt
 
 
+def test_system_prompt_includes_mission_review_guidance():
+    prompt = ai_service.SYSTEM_PROMPT
+
+    assert "MISSION REVIEW" in prompt
+    assert "Mission Snapshot" in prompt
+    assert "Completed Objectives" in prompt
+    assert "Remaining Objectives" in prompt
+    assert "Current Focus" in prompt
+    assert "Evidence Available" in prompt
+    assert "Evidence Missing" in prompt
+
+
+def test_system_prompt_respects_completed_objectives():
+    prompt = ai_service.SYSTEM_PROMPT.lower()
+
+    assert "completed objectives as immutable" in prompt
+    assert "do not reopen" in prompt
+    assert "repeat already completed work" in prompt
+
+
+def test_system_prompt_requires_evidence_sufficiency_before_browsing():
+    prompt = ai_service.SYSTEM_PROMPT
+
+    assert "if enough evidence exists" in prompt
+    assert 'outcome_kind "report"' in prompt
+    assert "instead of unnecessary navigation" in prompt
+
+
+def test_system_prompt_uses_execution_feedback_to_avoid_repeats():
+    prompt = ai_service.SYSTEM_PROMPT
+
+    assert "Previous Action Result" in prompt
+    assert "no_effect" in prompt
+    assert "semantic_mismatch" in prompt
+    assert "recovery_failed" in prompt
+    assert "do not repeat the same selector/action" in prompt
+
+
+def test_system_prompt_advances_to_next_subgoal():
+    prompt = ai_service.SYSTEM_PROMPT.lower()
+
+    assert "advance to the next remaining objective or subgoal" in prompt
+    assert "instead of restarting the workflow" in prompt
+
+
+def test_system_prompt_prefers_extraction_over_unnecessary_navigation():
+    prompt = ai_service.SYSTEM_PROMPT.lower()
+
+    assert "prefer extraction or summarization" in prompt
+    assert "unnecessary navigation" in prompt
+    assert "finish with outcome_kind" in prompt
+    assert "no suggested_actions" in prompt
+
+
 def test_planner_contract_top_level_schema_unchanged():
     assert set(AnalyzeResponse.model_fields) == {
         "session_id",
