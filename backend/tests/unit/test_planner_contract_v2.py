@@ -125,6 +125,63 @@ def test_system_prompt_prefers_extraction_over_unnecessary_navigation():
     assert "no suggested_actions" in prompt
 
 
+def test_system_prompt_includes_mission_operating_modes():
+    prompt = ai_service.SYSTEM_PROMPT
+
+    assert "MISSION OPERATING MODE" in prompt
+    assert "SEARCH" in prompt
+    assert "COLLECT" in prompt
+    assert "EXTRACT" in prompt
+    assert "VERIFY" in prompt
+    assert "COMPARE" in prompt
+    assert "REPORT" in prompt
+    assert "what evidence is required before changing modes" in prompt
+
+
+def test_system_prompt_transitions_from_search_collect_to_extract_report():
+    prompt = ai_service.SYSTEM_PROMPT
+
+    assert "Do not remain in SEARCH or COLLECT once sufficient evidence exists" in prompt
+    assert "EXTRACT to capture visible requested information immediately" in prompt
+    assert "REPORT to stop browsing and answer" in prompt
+
+
+def test_system_prompt_includes_domain_capability_reasoning():
+    prompt = ai_service.SYSTEM_PROMPT.lower()
+
+    assert "domain and capability reasoning" in prompt
+    assert "user's actual goal" in prompt
+    assert "capability required" in prompt
+    assert "current website can realistically satisfy" in prompt
+    assert "more appropriate application or authoritative source" in prompt
+
+
+def test_system_prompt_avoids_impossible_actions_on_unsuitable_sites():
+    prompt = ai_service.SYSTEM_PROMPT.lower()
+
+    assert "messaging applications are not music platforms" in prompt
+    assert "report impossibility" in prompt
+    assert "when it cannot" in prompt
+
+
+def test_system_prompt_guides_common_task_categories_to_suitable_sources():
+    prompt = ai_service.SYSTEM_PROMPT.lower()
+
+    assert "official product pages are authoritative for pricing" in prompt
+    assert "search engines are discovery mechanisms" in prompt
+    assert "documentation research should prefer official docs" in prompt
+    assert "job searches should prefer job platforms" in prompt
+    assert "reuse authenticated sessions" in prompt
+
+
+def test_system_prompt_requires_continuous_website_suitability_review():
+    prompt = ai_service.SYSTEM_PROMPT.lower()
+
+    assert "continuously re-evaluate website suitability" in prompt
+    assert "stay when the site can satisfy the goal" in prompt
+    assert "search or navigate elsewhere when it cannot" in prompt
+
+
 def test_planner_contract_top_level_schema_unchanged():
     assert set(AnalyzeResponse.model_fields) == {
         "session_id",
