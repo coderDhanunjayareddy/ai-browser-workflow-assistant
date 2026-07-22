@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.contracts.ledger_events import LedgerEvent
 from app.models.db import RunLedgerEventRecord
+from app.run_ledger.privacy import sanitize_ledger_payload
 
 
 def event_to_record(event: LedgerEvent) -> RunLedgerEventRecord:
@@ -12,8 +13,8 @@ def event_to_record(event: LedgerEvent) -> RunLedgerEventRecord:
         event_type=event.event_type,
         schema_version=event.schema_version,
         producer=event.producer,
-        payload=event.payload,
-        links=event.links,
+        payload=sanitize_ledger_payload(event.payload),
+        links=sanitize_ledger_payload(event.links),
         created_at=event.created_at.replace(tzinfo=None),
     )
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from app.feature_flags import is_active
-from app.scheduler.jobs import ScheduledWorkItem
+from app.scheduler.jobs import ScheduledWorkItem, WorkStatus
 
 
 class InMemorySchedulerQueue:
@@ -32,10 +32,10 @@ class InMemorySchedulerQueue:
     def get(self, item_id: str) -> ScheduledWorkItem | None:
         return self._items.get(item_id)
 
-    def mark(self, item_id: str, status: str) -> ScheduledWorkItem | None:
+    def mark(self, item_id: str, status: WorkStatus) -> ScheduledWorkItem | None:
         item = self._items.get(item_id)
         if item is None:
             return None
-        item.status = status  # type: ignore[assignment]
+        item.status = status
         item.updated_at = datetime.now(timezone.utc)
         return item

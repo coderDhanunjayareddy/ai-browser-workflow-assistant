@@ -89,3 +89,67 @@ def test_execution_result_does_not_trigger_site_recovery(db_session):
 
     db_session.refresh(session)
     assert session.status == "action_failed"
+
+
+def test_ledger_failure_does_not_alter_planner_output(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.run_ledger import writer as writer_module
+
+    monkeypatch.setattr(settings, "v3_run_ledger", "shadow")
+
+    def fail_event_to_record(_event):
+        raise RuntimeError("ledger unavailable")
+
+    monkeypatch.setattr(writer_module, "event_to_record", fail_event_to_record)
+
+    expected = AnalyzeResponse(
+        session_id="ledger-planner-session",
+        analysis="Planner output is unchanged",
+        suggested_actions=[],
+    )
+
+    def fake_analyze(**_kwargs):
+        return expected
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("ledger-planner-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Plan normally",
+        page_context=page("https://example.test/?token=secret"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response is expected
+    assert response.analysis == "Planner output is unchanged"
+    assert response.outcome_kind == "act"
+
+
+def test_ledger_failure_does_not_alter_execution_recording(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.run_ledger import writer as writer_module
+
+    monkeypatch.setattr(settings, "v3_run_ledger", "shadow")
+
+    def fail_event_to_record(_event):
+        raise RuntimeError("ledger unavailable")
+
+    monkeypatch.setattr(writer_module, "event_to_record", fail_event_to_record)
+
+    session = WorkflowSession(id="ledger-execution-session", status="running")
+    db_session.add(session)
+    db_session.commit()
+
+    orchestrator = WorkflowOrchestrator("ledger-execution-session", db_session)
+    orchestrator.process_executed_step(
+        action_type="click",
+        selector="#continue",
+        value="",
+        success=True,
+        execution_result="success",
+    )
+
+    db_session.refresh(session)
+    assert session.status == "action_executed"

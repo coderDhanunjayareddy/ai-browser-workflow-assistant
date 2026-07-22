@@ -1,0 +1,138 @@
+[
+  {
+    "id": "browser.click",
+    "version": "1.0.0",
+    "purpose": "Activate a visible page control or link",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.fill",
+    "version": "1.0.0",
+    "purpose": "Fill a text-compatible form field",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.select_option",
+    "version": "1.0.0",
+    "purpose": "Select an option in a native or adapted control",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.choose_date",
+    "version": "1.0.0",
+    "purpose": "Choose a date using existing widget support",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.scroll",
+    "version": "1.0.0",
+    "purpose": "Scroll the active page or scroll container",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.navigate",
+    "version": "1.0.0",
+    "purpose": "Navigate the active tab to a URL",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.wait",
+    "version": "1.0.0",
+    "purpose": "Wait for a bounded duration",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.open_new_tab",
+    "version": "1.0.0",
+    "purpose": "Open a new browser tab",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.switch_tab",
+    "version": "1.0.0",
+    "purpose": "Switch to an existing browser tab",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.close_tab",
+    "version": "1.0.0",
+    "purpose": "Close an eligible browser tab",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.focus_existing_tab",
+    "version": "1.0.0",
+    "purpose": "Focus an existing browser tab",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.upload",
+    "version": "1.0.0",
+    "purpose": "Upload an explicitly requested local file",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.download",
+    "version": "1.0.0",
+    "purpose": "Detect and record browser downloads",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.extract_visible_fact",
+    "version": "1.0.0",
+    "purpose": "Read visible page information",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "browser.observe",
+    "version": "1.0.0",
+    "purpose": "Capture current page observation",
+    "permissions": ["page_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "user.ask",
+    "version": "1.0.0",
+    "purpose": "Request clarification from the user",
+    "permissions": ["user_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  },
+  {
+    "id": "user.handoff",
+    "version": "1.0.0",
+    "purpose": "Hand off work to the user when required",
+    "permissions": ["user_interaction"],
+    "constraints": [],
+    "environments": ["extension"]
+  }
+]

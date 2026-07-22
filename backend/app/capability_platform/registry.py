@@ -2,27 +2,7 @@ from __future__ import annotations
 
 from app.contracts.capabilities import CapabilityDescriptor, CapabilityHealth
 from app.feature_flags import is_shadow_or_active
-
-
-_BROWSER_CAPABILITY_IDS = [
-    ("browser.click", "Activate a visible page control or link"),
-    ("browser.fill", "Fill a text-compatible form field"),
-    ("browser.select_option", "Select an option in a native or adapted control"),
-    ("browser.choose_date", "Choose a date using existing widget support"),
-    ("browser.scroll", "Scroll the active page or scroll container"),
-    ("browser.navigate", "Navigate the active tab to a URL"),
-    ("browser.wait", "Wait for a bounded duration"),
-    ("browser.open_new_tab", "Open a new browser tab"),
-    ("browser.switch_tab", "Switch to an existing browser tab"),
-    ("browser.close_tab", "Close an eligible browser tab"),
-    ("browser.focus_existing_tab", "Focus an existing browser tab"),
-    ("browser.upload", "Upload an explicitly requested local file"),
-    ("browser.download", "Detect and record browser downloads"),
-    ("browser.extract_visible_fact", "Read visible page information"),
-    ("browser.observe", "Capture current page observation"),
-    ("user.ask", "Request clarification from the user"),
-    ("user.handoff", "Hand off work to the user when required"),
-]
+from app.capability_platform.manifest import load_capability_manifest
 
 
 class CapabilityRegistry:
@@ -55,18 +35,18 @@ class CapabilityRegistry:
 
 def default_registry(run_id: str = "capability-platform") -> CapabilityRegistry:
     registry = CapabilityRegistry(run_id=run_id)
-    health = CapabilityHealth(run_id=run_id, status="available")
-    for capability_id, purpose in _BROWSER_CAPABILITY_IDS:
+    for entry in load_capability_manifest():
+        health = CapabilityHealth(run_id=run_id, status="available")
         registry.register(
             CapabilityDescriptor(
                 run_id=run_id,
-                id=capability_id,
-                version="1.0.0",
+                id=entry["id"],
+                version=entry["version"],
                 provider="production",
-                purpose=purpose,
-                permissions=["page_interaction"] if capability_id.startswith("browser.") else ["user_interaction"],
-                constraints=[],
-                environments=["extension"],
+                purpose=entry["purpose"],
+                permissions=list(entry.get("permissions", [])),
+                constraints=list(entry.get("constraints", [])),
+                environments=list(entry.get("environments", [])),
                 health=health,
                 feature_flag=None,
             )
