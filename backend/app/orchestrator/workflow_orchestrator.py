@@ -20,9 +20,12 @@ from app.observability.metrics import default_metric_sink
 from app.feature_flags import is_shadow_or_active
 from app.context_packet import ContextPacketBuilder, PlannerV2Adapter
 from app.context_packet.telemetry import record_packet_metrics
+from app.evaluation import EvaluationEngine
 from app.grounding import GroundingCache, GroundingResolver
 from app.grounding.telemetry import record_grounding_metrics
 from app.mission.v3 import MissionIntelligenceEngine
+from app.policy import GovernanceDecisionEngine
+from app.run_ledger.reader import RunLedgerReader
 from app.semantic_page.cache import SemanticGraphCache
 from app.semantic_page.telemetry import record_graph_metrics
 from app.verification import ValidationEngine
@@ -36,6 +39,8 @@ _grounding_resolver = GroundingResolver()
 _grounding_cache = GroundingCache()
 _mission_intelligence = MissionIntelligenceEngine()
 _validation_engine = ValidationEngine()
+_governance_engine = GovernanceDecisionEngine()
+_evaluation_engine = EvaluationEngine()
 
 
 class WorkflowOrchestrator:
@@ -369,6 +374,138 @@ class WorkflowOrchestrator:
         except Exception:
             logger.debug("V3 validation shadow recording skipped", exc_info=True)
 
+    def _evaluate_governance_shadow(self, planner_response: Any) -> None:
+        if not is_shadow_or_active("V3_GOVERNANCE"):
+            return
+        if not getattr(planner_response, "suggested_actions", None):
+            return
+        try:
+            for index, action in enumerate(planner_response.suggested_actions):
+                governance, latency_ms = _governance_engine.evaluate_action(
+                    run_id=self.session_id,
+                    mission_id=self.session_id,
+                    step_id=action.action_id or f"planner.action.{index + 1}",
+                    action=action,
+                    runtime={},
+                )
+                event = self.v3_ledger.append(
+                    run_id=self.session_id,
+                    event_type="governance.evaluated",
+                    payload={
+                        "schema_version": governance.schema_version,
+                        "governance_id": governance.governance_id,
+                        "mission_id": governance.mission_id,
+                        "step_id": governance.step_id,
+                        "policy_decision": governance.policy_decision,
+                        "execution_constraints": governance.execution_constraints.model_dump(mode="json"),
+                        "approval_required": governance.approval_required,
+                        "requires_handoff": governance.requires_handoff,
+                        "decision_reason": governance.decision_reason,
+                        "confidence": governance.confidence,
+                        "risk_level": governance.risk_level,
+                        "constraints_violated": governance.constraints_violated,
+                        "approval_hooks": governance.approval_hooks,
+                        "scheduler_item_id": governance.scheduler_item_id,
+                        "scheduler_status": governance.scheduler_status,
+                        "latency_ms": latency_ms,
+                        "replay_metadata": governance.replay_metadata,
+                    },
+                    producer="backend.policy",
+                )
+                record_structured_trace(
+                    run_id=self.session_id,
+                    event_type="governance.evaluated",
+                    payload={
+                        "governance_id": governance.governance_id,
+                        "policy_decision": governance.policy_decision,
+                        "approval_required": governance.approval_required,
+                        "risk_level": governance.risk_level,
+                    },
+                    ledger_event_id=event.event_id if event else None,
+                )
+                self._update_mission_intelligence_shadow(
+                    event_type="governance.evaluated",
+                    payload={
+                        "policy_decision": governance.policy_decision,
+                        "approval_required": governance.approval_required,
+                        "requires_handoff": governance.requires_handoff,
+                    },
+                    step_index=0,
+                    source_event_id=event.event_id if event else None,
+                )
+        except Exception:
+            logger.debug("V3 governance shadow evaluation skipped", exc_info=True)
+
+    def _evaluate_learning_shadow(self) -> None:
+        """Evaluate completed run evidence in V3.6 shadow mode only.
+
+        Evaluation is production-adjacent observability. It must never alter the
+        planner response, workflow routing, browser execution, validation, or
+        governance decisions.
+        """
+        if not is_shadow_or_active("V3_LEARNING"):
+            return
+        try:
+            events = RunLedgerReader(self.db).list_events(self.session_id)
+            artifacts = _evaluation_engine.evaluate_run(
+                run_id=self.session_id,
+                mission_id=self.session_id,
+                events=events,
+            )
+            evaluation = artifacts.evaluation
+            event = self.v3_ledger.append(
+                run_id=self.session_id,
+                event_type="evaluation.completed",
+                payload={
+                    "schema_version": evaluation.schema_version,
+                    "evaluation_id": evaluation.evaluation_id,
+                    "mission_id": evaluation.mission_id,
+                    "validation_summary": evaluation.validation_summary,
+                    "governance_summary": evaluation.governance_summary,
+                    "mission_summary": evaluation.mission_summary,
+                    "execution_metrics": evaluation.execution_metrics.model_dump(mode="json"),
+                    "score_dimensions": evaluation.score_dimensions.model_dump(mode="json"),
+                    "overall_score": evaluation.overall_score,
+                    "confidence": evaluation.confidence,
+                    "latency_ms": artifacts.latency_ms,
+                    "replay_metadata": evaluation.replay_metadata,
+                },
+                producer="backend.evaluation",
+            )
+            record_structured_trace(
+                run_id=self.session_id,
+                event_type="evaluation.completed",
+                payload={
+                    "evaluation_id": evaluation.evaluation_id,
+                    "overall_score": evaluation.overall_score,
+                    "confidence": evaluation.confidence,
+                    "learning_signals": len(artifacts.learning_signals),
+                },
+                ledger_event_id=event.event_id if event else None,
+            )
+            self.v3_ledger.append(
+                run_id=self.session_id,
+                event_type="run.scorecard_generated",
+                payload=artifacts.scorecard.model_dump(mode="json"),
+                producer="backend.evaluation",
+            )
+            for signal in artifacts.learning_signals:
+                self.v3_ledger.append(
+                    run_id=self.session_id,
+                    event_type="learning.signal_recorded",
+                    payload=signal.model_dump(mode="json"),
+                    producer="backend.evaluation",
+                )
+            for record in artifacts.knowledge_records:
+                self.v3_ledger.append(
+                    run_id=self.session_id,
+                    event_type="knowledge.recorded",
+                    payload=record.model_dump(mode="json"),
+                    producer="backend.evaluation",
+                )
+        except Exception:
+            logger.debug("V3 learning shadow evaluation skipped", exc_info=True)
+
     def orchestrate_analysis(
         self,
         task: str,
@@ -494,6 +631,7 @@ class WorkflowOrchestrator:
                 compressed_context=compressed_context,
                 planner_response=result,
             )
+            self._evaluate_governance_shadow(result)
             latency_ms = int((time.perf_counter() - started) * 1000)
             # Provider-neutral approximation; exact provider usage can replace this
             # without changing budget or analytics contracts.
@@ -541,6 +679,8 @@ class WorkflowOrchestrator:
                         "has_answer": bool(result.report and result.report.answer),
                     },
                 )
+                if result.sgv_verified:
+                    self._evaluate_learning_shadow()
 
             # Production Goal Convergence GC-1: observer-only stagnation signal.
             # It never modifies outcome_kind, suggested_actions, report, replan,

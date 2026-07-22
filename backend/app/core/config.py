@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     v3_intent_grounding: str = "shadow"
     v3_mission_intelligence: str = "shadow"
     v3_validation: str = "shadow"
+    v3_governance: str = "shadow"
+    v3_learning: str = "shadow"
 
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.

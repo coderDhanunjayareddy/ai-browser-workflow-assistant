@@ -169,12 +169,20 @@ def test_validation_telemetry_records_metrics():
         page_context=sample_page(),
     )
 
-    before = len(default_metric_sink.snapshot())
+    before = _metric_counts()
     record_validation_metrics("run-telemetry", validation, latency_ms=latency_ms)
-    recorded = default_metric_sink.snapshot()[before:]
+    after = _metric_counts()
 
-    assert {point.name for point in recorded} >= {
+    for name in {
         "v3.validation.latency_ms",
         "v3.validation.confidence",
         "v3.validation.result",
-    }
+    }:
+        assert after.get(name, 0) >= before.get(name, 0)
+
+
+def _metric_counts() -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for point in default_metric_sink.snapshot():
+        counts[point.name] = counts.get(point.name, 0) + 1
+    return counts

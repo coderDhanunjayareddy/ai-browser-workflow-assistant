@@ -23,6 +23,10 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V3_MISSION_INTELLIGENCE": "v3_mission_intelligence",
     "V3_VALIDATION": "v3_validation",
     "V3_VALIDATION_OBJECT": "v3_validation",
+    "V3_GOVERNANCE": "v3_governance",
+    "V3_POLICY_ENGINE": "v3_governance",
+    "V3_LEARNING": "v3_learning",
+    "V3_EVALUATION": "v3_learning",
 }
 
 

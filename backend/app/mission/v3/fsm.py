@@ -82,6 +82,8 @@ class MissionStateMachine:
             self._on_report_verified(payload)
         elif event_type == "validation.completed":
             self._on_validation(payload, event_id=event_id, step_index=step_index)
+        elif event_type == "governance.evaluated":
+            self._on_governance(payload, event_id=event_id, step_index=step_index)
         elif event_type == "goal_convergence.assessed":
             self._on_goal_convergence(payload, event_id=event_id, step_index=step_index)
         elif event_type == "strategy_context.prepared":
@@ -220,6 +222,23 @@ class MissionStateMachine:
             self.transition("waiting")
             self.snapshot.next_expected_action = "collect_more_evidence"
 
+    def _on_governance(
+        self,
+        payload: dict[str, Any],
+        *,
+        event_id: str | None,
+        step_index: int,
+    ) -> None:
+        decision = payload.get("policy_decision")
+        if decision == "block":
+            self._request_replan("governance_blocked", event_id=event_id, step_index=step_index)
+        elif decision == "handoff_required":
+            self.transition("waiting")
+            self.snapshot.next_expected_action = "human_handoff"
+        elif payload.get("approval_required") is True:
+            self.transition("waiting")
+            self.snapshot.next_expected_action = "await_approval"
+
     def _on_goal_convergence(
         self,
         payload: dict[str, Any],
@@ -304,6 +323,8 @@ def _event_summary(event_type: str, payload: dict[str, Any]) -> str:
         return f"report:verified={payload.get('sgv_verified')}"
     if event_type == "validation.completed":
         return f"validation:{payload.get('validation_status')}"
+    if event_type == "governance.evaluated":
+        return f"governance:{payload.get('policy_decision')}"
     if event_type == "goal_convergence.assessed":
         return f"convergence:{payload.get('goal_convergence')}"
     return event_type

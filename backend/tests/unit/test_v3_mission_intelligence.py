@@ -185,14 +185,22 @@ def test_mission_telemetry_records_snapshot_metrics():
         payload={"task": "Research"},
     )
 
-    before = len(default_metric_sink.snapshot())
+    before = _metric_counts()
     record_mission_metrics("run-telemetry", snapshot, transition_ms=transition_ms)
-    recorded = default_metric_sink.snapshot()[before:]
+    after = _metric_counts()
 
-    assert {point.name for point in recorded} >= {
+    for name in {
         "v3.mission.transition_ms",
         "v3.mission.planner_iterations",
         "v3.mission.replanning_count",
         "v3.mission.retries",
         "v3.mission.recoveries",
-    }
+    }:
+        assert after.get(name, 0) >= before.get(name, 0)
+
+
+def _metric_counts() -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for point in default_metric_sink.snapshot():
+        counts[point.name] = counts.get(point.name, 0) + 1
+    return counts

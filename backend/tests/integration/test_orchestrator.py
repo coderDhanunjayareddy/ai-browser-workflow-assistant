@@ -322,3 +322,78 @@ def test_validation_shadow_preserves_report_sgv_compatibility(db_session, monkey
     assert response.outcome_kind == "report"
     assert response.sgv_verified is True
     assert response.report is expected.report
+
+
+def test_governance_shadow_does_not_change_planner_response(db_session, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "v3_governance", "shadow")
+    expected_action = SuggestedAction(
+        action_id="act-1",
+        action_type="click",
+        target_selector="#continue",
+        value=None,
+        description="Click Continue",
+        reasoning="Continue the workflow",
+        confidence=0.8,
+        safety_level="safe",
+    )
+    expected = AnalyzeResponse(
+        session_id="governance-shadow-session",
+        analysis="Governance shadow is advisory only",
+        suggested_actions=[expected_action],
+    )
+
+    def fake_analyze(**_kwargs):
+        return expected
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("governance-shadow-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Plan normally",
+        page_context=page("https://example.test/application"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response is expected
+    assert response.suggested_actions == [expected_action]
+    assert response.suggested_actions[0].target_selector == "#continue"
+    assert response.outcome_kind == "act"
+
+
+def test_learning_shadow_does_not_change_verified_report_response(db_session, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "v3_learning", "shadow")
+    expected = AnalyzeResponse(
+        session_id="learning-shadow-session",
+        analysis="Report visible value",
+        outcome_kind="report",
+        suggested_actions=[],
+        report=ReportOutcome(
+            answer="Continue",
+            claim="The requested value is visible on the page.",
+        ),
+    )
+
+    def fake_analyze(**_kwargs):
+        return expected
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("learning-shadow-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Tell me the visible button label",
+        page_context=page("https://example.test/application"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response is expected
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.report is expected.report
