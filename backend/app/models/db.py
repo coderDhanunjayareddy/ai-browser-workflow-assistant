@@ -162,6 +162,25 @@ class WorkflowCostMetric(Base):
     session = relationship("WorkflowSession", back_populates="cost_metrics")
 
 
+class RunLedgerEventRecord(Base):
+    """V3.0 append-only canonical run ledger event.
+
+    This table is additive and does not replace existing WorkflowEvent,
+    timeline, mission, workspace, or benchmark trace records.
+    """
+    __tablename__ = "run_ledger_events"
+
+    event_id = Column(String, primary_key=True)
+    run_id = Column(String, nullable=False, index=True)
+    step_index = Column(Integer, default=0, nullable=False)
+    event_type = Column(String, nullable=False, index=True)
+    schema_version = Column(String, nullable=False)
+    producer = Column(String, nullable=False)
+    payload = Column(JSON, default=dict)
+    links = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
 # ── V4.5 / V4.6 Unified Task Graph ───────────────────────────────────────────
 
 class UnifiedTaskRecord(Base):

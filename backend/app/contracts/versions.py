@@ -1,0 +1,7 @@
+RUN_LEDGER_EVENT_V1 = "run_ledger.event.v1"
+CAPABILITY_DESCRIPTOR_V1 = "capability_descriptor.v1"
+CAPABILITY_HEALTH_V1 = "capability_health.v1"
+SCHEDULED_WORK_ITEM_V1 = "scheduled_work_item.v1"
+COST_BUDGET_V1 = "cost_budget.v1"
+COST_DECISION_V1 = "cost_decision.v1"
+TRACE_EVENT_V1 = "trace_event.v1"

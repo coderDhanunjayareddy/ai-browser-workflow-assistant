@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     trace_mode: bool = False
     trace_dir: str = ""   # default resolved in app.diagnostics.trace_sink when empty
 
+    # V3.0 Foundation feature flags. States: off | shadow | active.
+    # New infrastructure starts non-invasive. Shadow may write diagnostics or
+    # ledger records, but must not change planner, workflow, or execution behavior.
+    v3_run_ledger: str = "shadow"
+    v3_trace_parity: str = "off"
+    v3_capability_platform: str = "shadow"
+    v3_scheduler: str = "off"
+    v3_cost_controller: str = "shadow"
+
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.
     model_config = SettingsConfigDict(

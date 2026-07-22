@@ -14,6 +14,9 @@ from app.budget_engine.budget_enforcer import enforce_budget
 from app.budget_engine.budget_models import BudgetCheckpoint
 from app.context_compression import ContextCompressor
 from app.services.analytics_service import record_planner_call
+from app.run_ledger import RunLedgerWriter
+from app.observability.tracing import record_structured_trace
+from app.observability.metrics import default_metric_sink
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +31,44 @@ class WorkflowOrchestrator:
         self.timeline_service = TimelineService(session_id)
         self.budget_manager = BudgetManager(db, session_id)
         self.context_compressor = ContextCompressor()
+        self.v3_ledger = RunLedgerWriter(db)
+
+    def _record_v3_event(
+        self,
+        event_type: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        step_index: int = 0,
+        links: dict[str, Any] | None = None,
+    ) -> None:
+        """Best-effort V3.0 trace parity hook.
+
+        This is write-only foundation infrastructure. It must never change
+        production workflow behavior or raise into the orchestration path.
+        """
+        try:
+            event = self.v3_ledger.append(
+                run_id=self.session_id,
+                event_type=event_type,
+                payload=payload or {},
+                step_index=step_index,
+                links=links or {},
+            )
+            trace_event = record_structured_trace(
+                run_id=self.session_id,
+                event_type=event_type,
+                payload=payload or {},
+                ledger_event_id=event.event_id if event else None,
+            )
+            if event is not None or trace_event is not None:
+                default_metric_sink.record(
+                    "v3.workflow_event",
+                    1,
+                    run_id=self.session_id,
+                    tags={"event_type": event_type},
+                )
+        except Exception:
+            logger.debug("V3 event recording skipped for %s", event_type, exc_info=True)
 
     def orchestrate_analysis(
         self,
@@ -41,6 +82,7 @@ class WorkflowOrchestrator:
         logger.info("Planning next browser action for session %s", self.session_id)
 
         session = self.db.get(WorkflowSession, self.session_id)
+        session_created = not bool(session)
         if not session:
             session = WorkflowSession(
                 id=self.session_id,
@@ -54,6 +96,19 @@ class WorkflowOrchestrator:
             session.tab_title = page_context.title
             session.status = "running"
         self.db.commit()
+        if session_created:
+            self._record_v3_event(
+                "run.started",
+                {"tab_url": page_context.url, "tab_title": page_context.title},
+            )
+        self._record_v3_event(
+            "observation.captured",
+            {
+                "url": page_context.url,
+                "title": page_context.title,
+                "interactive_elements": len(page_context.interactive_elements),
+            },
+        )
 
         registry = GroundedElementRegistry(self.session_id)
         registry.register_elements([element.model_dump() for element in page_context.interactive_elements])
@@ -113,6 +168,15 @@ class WorkflowOrchestrator:
                 verified_state=verified_state,
                 compressed_context=compressed_context,
             )
+            self._record_v3_event(
+                "planner.responded",
+                {
+                    "outcome_kind": result.outcome_kind,
+                    "suggested_actions": len(result.suggested_actions),
+                    "has_report": result.report is not None,
+                    "has_replan": result.replan is not None,
+                },
+            )
             latency_ms = int((time.perf_counter() - started) * 1000)
             # Provider-neutral approximation; exact provider usage can replace this
             # without changing budget or analytics contracts.
@@ -137,6 +201,13 @@ class WorkflowOrchestrator:
                     result.sgv_verified,
                     result.report.claim if result.report else "",
                 )
+                self._record_v3_event(
+                    "report.verified",
+                    {
+                        "sgv_verified": result.sgv_verified,
+                        "has_answer": bool(result.report and result.report.answer),
+                    },
+                )
 
             # Production Goal Convergence GC-1: observer-only stagnation signal.
             # It never modifies outcome_kind, suggested_actions, report, replan,
@@ -153,6 +224,13 @@ class WorkflowOrchestrator:
                 self.session_id,
                 result.goal_convergence,
                 convergence.semantic_signature,
+            )
+            self._record_v3_event(
+                "goal_convergence.assessed",
+                {
+                    "goal_convergence": result.goal_convergence,
+                    "semantic_signature": convergence.semantic_signature,
+                },
             )
 
             # Production Strategy Generation SG-1: prepare context for the next
@@ -226,3 +304,12 @@ class WorkflowOrchestrator:
             success=success,
         )
         self.budget_manager.consume(steps=1, retries=0 if success else 1)
+        self._record_v3_event(
+            "execution.completed",
+            {
+                "action_type": action_type,
+                "success": success,
+                "execution_result": execution_result,
+            },
+            step_index=events_count,
+        )
