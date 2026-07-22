@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     v3_capability_platform: str = "shadow"
     v3_scheduler: str = "off"
     v3_cost_controller: str = "shadow"
+    v3_semantic_graph: str = "shadow"
+    v3_context_packet: str = "shadow"
+    v3_intent_grounding: str = "shadow"
+    v3_mission_intelligence: str = "shadow"
+    v3_validation: str = "shadow"
 
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.

@@ -17,6 +17,12 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V3_CAPABILITY_PLATFORM": "v3_capability_platform",
     "V3_SCHEDULER": "v3_scheduler",
     "V3_COST_CONTROLLER": "v3_cost_controller",
+    "V3_SEMANTIC_GRAPH": "v3_semantic_graph",
+    "V3_CONTEXT_PACKET": "v3_context_packet",
+    "V3_INTENT_GROUNDING": "v3_intent_grounding",
+    "V3_MISSION_INTELLIGENCE": "v3_mission_intelligence",
+    "V3_VALIDATION": "v3_validation",
+    "V3_VALIDATION_OBJECT": "v3_validation",
 }
 
 

@@ -6,7 +6,7 @@ from app.core.database import Base
 from app.models.db import WorkflowSession
 from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
 from app.schemas.request import InteractiveElement, PageContext
-from app.schemas.response import AnalyzeResponse
+from app.schemas.response import AnalyzeResponse, ReportOutcome, SuggestedAction
 
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
@@ -153,3 +153,172 @@ def test_ledger_failure_does_not_alter_execution_recording(db_session, monkeypat
 
     db_session.refresh(session)
     assert session.status == "action_executed"
+
+
+def test_semantic_graph_shadow_does_not_change_planner_request(db_session, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "v3_semantic_graph", "shadow")
+    captured = {}
+
+    def fake_analyze(**kwargs):
+        captured.update(kwargs)
+        return AnalyzeResponse(
+            session_id=kwargs["session_id"],
+            analysis="Planner request unchanged",
+            suggested_actions=[],
+        )
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("semantic-shadow-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Complete the requested workflow",
+        page_context=page("https://example.test/search?q=browser"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response.analysis == "Planner request unchanged"
+    assert "semantic_graph" not in captured
+    assert captured["page_context"].url == "https://example.test/search?q=browser"
+    assert captured["compressed_context"] is not None
+
+
+def test_context_packet_shadow_does_not_change_planner_request(db_session, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "v3_semantic_graph", "shadow")
+    monkeypatch.setattr(settings, "v3_context_packet", "shadow")
+    captured = {}
+
+    def fake_analyze(**kwargs):
+        captured.update(kwargs)
+        return AnalyzeResponse(
+            session_id=kwargs["session_id"],
+            analysis="Planner request still legacy",
+            suggested_actions=[],
+        )
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("context-packet-shadow-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Complete the requested workflow",
+        page_context=page("https://example.test/search?q=browser"),
+        prior_steps=[],
+        supplemental_context="Workspace: active",
+    )
+
+    assert response.analysis == "Planner request still legacy"
+    assert "context_packet" not in captured
+    assert captured["supplemental_context"] == ""
+    assert captured["compressed_context"]["active_goal"] == "Complete the requested workflow"
+
+
+def test_intent_grounding_shadow_does_not_change_planner_response(db_session, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "v3_semantic_graph", "shadow")
+    monkeypatch.setattr(settings, "v3_context_packet", "shadow")
+    monkeypatch.setattr(settings, "v3_intent_grounding", "shadow")
+    expected_action = SuggestedAction(
+        action_id="act-1",
+        action_type="click",
+        target_selector="#continue",
+        value=None,
+        description="Click Continue",
+        reasoning="Continue the workflow",
+        confidence=0.8,
+        safety_level="safe",
+    )
+    expected = AnalyzeResponse(
+        session_id="grounding-shadow-session",
+        analysis="Planner response remains unchanged",
+        suggested_actions=[expected_action],
+    )
+
+    def fake_analyze(**_kwargs):
+        return expected
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("grounding-shadow-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Continue",
+        page_context=page("https://example.test/application"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response is expected
+    assert response.suggested_actions == [expected_action]
+    assert response.suggested_actions[0].target_selector == "#continue"
+    assert response.outcome_kind == "act"
+
+
+def test_mission_intelligence_shadow_does_not_change_planner_response(db_session, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "v3_mission_intelligence", "shadow")
+    expected = AnalyzeResponse(
+        session_id="mission-shadow-session",
+        analysis="Mission shadow state is advisory only",
+        suggested_actions=[],
+    )
+
+    def fake_analyze(**_kwargs):
+        return expected
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("mission-shadow-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Plan normally",
+        page_context=page("https://example.test/application"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response is expected
+    assert response.analysis == "Mission shadow state is advisory only"
+    assert response.outcome_kind == "act"
+
+
+def test_validation_shadow_preserves_report_sgv_compatibility(db_session, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "v3_validation", "shadow")
+    expected = AnalyzeResponse(
+        session_id="validation-shadow-session",
+        analysis="Report visible value",
+        outcome_kind="report",
+        suggested_actions=[],
+        report=ReportOutcome(
+            answer="Continue",
+            claim="The requested value is visible on the page.",
+        ),
+    )
+
+    def fake_analyze(**_kwargs):
+        return expected
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("validation-shadow-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Tell me the visible button label",
+        page_context=page("https://example.test/application"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response is expected
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.report is expected.report

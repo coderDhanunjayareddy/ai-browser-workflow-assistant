@@ -17,8 +17,25 @@ from app.services.analytics_service import record_planner_call
 from app.run_ledger import RunLedgerWriter
 from app.observability.tracing import record_structured_trace
 from app.observability.metrics import default_metric_sink
+from app.feature_flags import is_shadow_or_active
+from app.context_packet import ContextPacketBuilder, PlannerV2Adapter
+from app.context_packet.telemetry import record_packet_metrics
+from app.grounding import GroundingCache, GroundingResolver
+from app.grounding.telemetry import record_grounding_metrics
+from app.mission.v3 import MissionIntelligenceEngine
+from app.semantic_page.cache import SemanticGraphCache
+from app.semantic_page.telemetry import record_graph_metrics
+from app.verification import ValidationEngine
 
 logger = logging.getLogger(__name__)
+
+_semantic_graph_cache = SemanticGraphCache()
+_context_packet_builder = ContextPacketBuilder()
+_planner_v2_adapter = PlannerV2Adapter()
+_grounding_resolver = GroundingResolver()
+_grounding_cache = GroundingCache()
+_mission_intelligence = MissionIntelligenceEngine()
+_validation_engine = ValidationEngine()
 
 
 class WorkflowOrchestrator:
@@ -67,8 +84,290 @@ class WorkflowOrchestrator:
                     run_id=self.session_id,
                     tags={"event_type": event_type},
                 )
+            self._update_mission_intelligence_shadow(
+                event_type=event_type,
+                payload=payload or {},
+                step_index=step_index,
+                source_event_id=event.event_id if event else None,
+            )
         except Exception:
             logger.debug("V3 event recording skipped for %s", event_type, exc_info=True)
+
+    def _update_mission_intelligence_shadow(
+        self,
+        *,
+        event_type: str,
+        payload: dict[str, Any],
+        step_index: int,
+        source_event_id: str | None,
+    ) -> None:
+        """Update V3.3 Mission Intelligence from workflow events in shadow mode."""
+        if event_type == "mission.updated" or not is_shadow_or_active("V3_MISSION_INTELLIGENCE"):
+            return
+        try:
+            snapshot, transition_ms = _mission_intelligence.apply_workflow_event(
+                run_id=self.session_id,
+                event_type=event_type,
+                payload=payload,
+                event_id=source_event_id,
+                step_index=step_index,
+            )
+            mission_event = self.v3_ledger.append(
+                run_id=self.session_id,
+                event_type="mission.updated",
+                payload={
+                    "schema_version": snapshot.schema_version,
+                    "mission_id": snapshot.mission_id,
+                    "state": snapshot.state,
+                    "mode": snapshot.mode,
+                    "goal": snapshot.goal,
+                    "current_objective": snapshot.current_objective,
+                    "completed_objectives": snapshot.completed_objectives,
+                    "remaining_objectives": snapshot.remaining_objectives,
+                    "blocked_objectives": snapshot.blocked_objectives,
+                    "progress_summary": snapshot.progress_summary,
+                    "recent_attempts": [
+                        attempt.model_dump(mode="json")
+                        for attempt in snapshot.attempts[-5:]
+                    ],
+                    "replanning_requested": snapshot.replanning_requested,
+                    "replan_reasons": snapshot.replan_reasons,
+                    "paused": snapshot.paused,
+                    "planner_iterations": snapshot.planner_iterations,
+                    "retry_count": snapshot.retry_count,
+                    "recovery_count": snapshot.recovery_count,
+                    "completed_steps": snapshot.completed_steps,
+                    "next_expected_action": snapshot.next_expected_action,
+                    "transition_ms": transition_ms,
+                },
+                step_index=step_index,
+                producer="backend.mission_intelligence",
+                links={"source_event_id": source_event_id} if source_event_id else {},
+            )
+            record_structured_trace(
+                run_id=self.session_id,
+                event_type="mission.updated",
+                payload={
+                    "state": snapshot.state,
+                    "mode": snapshot.mode,
+                    "replanning_requested": snapshot.replanning_requested,
+                    "planner_iterations": snapshot.planner_iterations,
+                },
+                ledger_event_id=mission_event.event_id if mission_event else None,
+            )
+        except Exception:
+            logger.debug("V3 mission intelligence shadow update skipped", exc_info=True)
+
+    def _build_semantic_graph_shadow(self, page_context: Any) -> None:
+        """Build V3.1A Semantic Page Graph in shadow mode only.
+
+        The graph is infrastructure telemetry. It is not included in planner
+        context and cannot affect planner, workflow, or execution behavior.
+        """
+        if not is_shadow_or_active("V3_SEMANTIC_GRAPH"):
+            return
+        try:
+            result = _semantic_graph_cache.get_or_build(page_context)
+            graph = result.graph
+            record_graph_metrics(
+                self.session_id,
+                result,
+                hit_ratio=_semantic_graph_cache.hit_ratio(),
+                cache_size=_semantic_graph_cache.size(),
+            )
+            self._record_v3_event(
+                "semantic_graph.built",
+                {
+                    "graph_id": graph.graph_id,
+                    "observation_id": graph.observation_id,
+                    "schema_version": graph.schema_version,
+                    "builder_version": graph.builder_version,
+                    "page_type": graph.page_type,
+                    "node_count": len(graph.nodes),
+                    "edge_count": len(graph.edges),
+                    "fact_count": len(graph.facts),
+                    "target_count": len(graph.targets),
+                    "input_hash": graph.metadata.get("input_hash"),
+                    "cache_hit": result.cache_hit,
+                    "build_ms": result.build_ms,
+                },
+            )
+        except Exception:
+            logger.debug("V3 semantic graph shadow build skipped", exc_info=True)
+
+    def _build_context_packet_shadow(
+        self,
+        *,
+        task: str,
+        page_context: Any,
+        prior_steps: list,
+        supplemental_context: str,
+        verified_state: dict[str, Any],
+        compressed_context: dict[str, Any],
+    ) -> None:
+        """Build V3.1B Context Packet without changing planner execution."""
+        if not (
+            is_shadow_or_active("V3_CONTEXT_PACKET")
+            and is_shadow_or_active("V3_SEMANTIC_GRAPH")
+        ):
+            return
+        try:
+            graph_result = _semantic_graph_cache.get_or_build(page_context)
+            packet, build_ms = _context_packet_builder.build(
+                run_id=self.session_id,
+                task=task,
+                page_context=page_context,
+                semantic_graph=graph_result.graph,
+                prior_steps=prior_steps,
+                supplemental_context=supplemental_context,
+                verified_facts=verified_state,
+                compressed_context=compressed_context,
+            )
+            legacy_inputs = _planner_v2_adapter.to_legacy_inputs(
+                packet=packet,
+                task=task,
+                page_context=page_context,
+                prior_steps=prior_steps,
+                supplemental_context="",
+                verified_state=verified_state,
+                compressed_context=compressed_context,
+            )
+            record_packet_metrics(self.session_id, packet, build_ms=build_ms)
+            self._record_v3_event(
+                "planner.packet_built",
+                {
+                    "schema_version": packet.schema_version,
+                    "output_contract": packet.output_contract,
+                    "semantic_graph_id": packet.run.get("semantic_graph_id"),
+                    "packet_chars": packet.budget_metadata.packet_chars,
+                    "original_counts": packet.budget_metadata.original_counts,
+                    "trimmed_counts": packet.budget_metadata.trimmed_counts,
+                    "build_ms": build_ms,
+                    "adapter_output_contract": legacy_inputs.get("output_contract"),
+                },
+            )
+        except Exception:
+            logger.debug("V3 context packet shadow build skipped", exc_info=True)
+
+    def _ground_intents_shadow(
+        self,
+        *,
+        task: str,
+        page_context: Any,
+        prior_steps: list,
+        supplemental_context: str,
+        verified_state: dict[str, Any],
+        compressed_context: dict[str, Any],
+        planner_response: Any,
+    ) -> None:
+        """Resolve planner intents in V3.2 shadow mode without changing actions."""
+        if not (
+            is_shadow_or_active("V3_INTENT_GROUNDING")
+            and is_shadow_or_active("V3_SEMANTIC_GRAPH")
+            and is_shadow_or_active("V3_CONTEXT_PACKET")
+        ):
+            return
+        if not getattr(planner_response, "suggested_actions", None):
+            return
+        try:
+            graph_result = _semantic_graph_cache.get_or_build(page_context)
+            packet, _build_ms = _context_packet_builder.build(
+                run_id=self.session_id,
+                task=task,
+                page_context=page_context,
+                semantic_graph=graph_result.graph,
+                prior_steps=prior_steps,
+                supplemental_context=supplemental_context,
+                verified_facts=verified_state,
+                compressed_context=compressed_context,
+            )
+            for action in planner_response.suggested_actions:
+                cache_result = _grounding_cache.get_or_resolve(
+                    run_id=self.session_id,
+                    action=action,
+                    graph=graph_result.graph,
+                    packet=packet,
+                    resolver=_grounding_resolver,
+                )
+                record_grounding_metrics(
+                    self.session_id,
+                    cache_result,
+                    hit_ratio=_grounding_cache.hit_ratio(),
+                    cache_size=_grounding_cache.size(),
+                )
+                grounding = cache_result.result
+                self._record_v3_event(
+                    "grounding.resolved",
+                    {
+                        "schema_version": grounding.schema_version,
+                        "status": grounding.status,
+                        "action_id": action.action_id,
+                        "action_type": action.action_type,
+                        "semantic_target_id": grounding.semantic_target_id,
+                        "selected_selector": grounding.selected_selector,
+                        "confidence": grounding.confidence,
+                        "candidate_count": len(grounding.candidates),
+                        "fallback_used": grounding.fallback_used,
+                        "fallback_reason": grounding.fallback_reason,
+                        "ambiguity_reason": grounding.ambiguity_reason,
+                        "cache_hit": cache_result.cache_hit,
+                        "semantic_graph_id": graph_result.graph.graph_id,
+                        "planner_packet_version": packet.schema_version,
+                    },
+                )
+        except Exception:
+            logger.debug("V3 intent grounding shadow resolution skipped", exc_info=True)
+
+    def _record_validation_shadow(self, validation: Any, latency_ms: int) -> None:
+        if not is_shadow_or_active("V3_VALIDATION"):
+            return
+        try:
+            event = self.v3_ledger.append(
+                run_id=self.session_id,
+                event_type="validation.completed",
+                payload={
+                    "schema_version": validation.schema_version,
+                    "validation_id": validation.validation_id,
+                    "mission_id": validation.mission_id,
+                    "step_id": validation.step_id,
+                    "expected_outcome": validation.expected_outcome,
+                    "observed_outcome": validation.observed_outcome,
+                    "validation_status": validation.validation_status,
+                    "confidence": validation.confidence,
+                    "failure_category": validation.failure_category,
+                    "required_evidence": validation.required_evidence,
+                    "observed_evidence": validation.observed_evidence,
+                    "missing_evidence": validation.missing_evidence,
+                    "contradictions": validation.contradictions,
+                    "evidence_count": len(validation.evidence),
+                    "latency_ms": latency_ms,
+                    "replay_metadata": validation.replay_metadata,
+                },
+                producer="backend.validation",
+            )
+            record_structured_trace(
+                run_id=self.session_id,
+                event_type="validation.completed",
+                payload={
+                    "validation_id": validation.validation_id,
+                    "validation_status": validation.validation_status,
+                    "failure_category": validation.failure_category,
+                    "confidence": validation.confidence,
+                },
+                ledger_event_id=event.event_id if event else None,
+            )
+            self._update_mission_intelligence_shadow(
+                event_type="validation.completed",
+                payload={
+                    "validation_status": validation.validation_status,
+                    "failure_category": validation.failure_category,
+                    "confidence": validation.confidence,
+                },
+                step_index=0,
+                source_event_id=event.event_id if event else None,
+            )
+        except Exception:
+            logger.debug("V3 validation shadow recording skipped", exc_info=True)
 
     def orchestrate_analysis(
         self,
@@ -99,7 +398,7 @@ class WorkflowOrchestrator:
         if session_created:
             self._record_v3_event(
                 "run.started",
-                {"tab_url": page_context.url, "tab_title": page_context.title},
+                {"task": task, "tab_url": page_context.url, "tab_title": page_context.title},
             )
         self._record_v3_event(
             "observation.captured",
@@ -109,6 +408,7 @@ class WorkflowOrchestrator:
                 "interactive_elements": len(page_context.interactive_elements),
             },
         )
+        self._build_semantic_graph_shadow(page_context)
 
         registry = GroundedElementRegistry(self.session_id)
         registry.register_elements([element.model_dump() for element in page_context.interactive_elements])
@@ -153,6 +453,14 @@ class WorkflowOrchestrator:
             task_constraints=[supplemental_context] if supplemental_context else [],
             cognitive_context=cognitive_context,
         )
+        self._build_context_packet_shadow(
+            task=task,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+            supplemental_context=supplemental_context,
+            verified_state=verified_state,
+            compressed_context=compressed_context,
+        )
 
         from app.services import ai_service
 
@@ -177,6 +485,15 @@ class WorkflowOrchestrator:
                     "has_replan": result.replan is not None,
                 },
             )
+            self._ground_intents_shadow(
+                task=task,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+                supplemental_context=supplemental_context,
+                verified_state=verified_state,
+                compressed_context=compressed_context,
+                planner_response=result,
+            )
             latency_ms = int((time.perf_counter() - started) * 1000)
             # Provider-neutral approximation; exact provider usage can replace this
             # without changing budget or analytics contracts.
@@ -195,6 +512,22 @@ class WorkflowOrchestrator:
                     answer=result.report.answer if result.report else None,
                     page_context=page_context,
                 )
+                if is_shadow_or_active("V3_VALIDATION"):
+                    graph_result = (
+                        _semantic_graph_cache.get_or_build(page_context)
+                        if is_shadow_or_active("V3_SEMANTIC_GRAPH")
+                        else None
+                    )
+                    validation, validation_ms = _validation_engine.validate_report(
+                        run_id=self.session_id,
+                        mission_id=self.session_id,
+                        step_id=f"planner.report.{latency_ms}",
+                        claim=result.report.claim if result.report else "",
+                        answer=result.report.answer if result.report else None,
+                        page_context=page_context,
+                        semantic_graph=graph_result.graph if graph_result else None,
+                    )
+                    self._record_validation_shadow(validation, validation_ms)
                 logger.info(
                     "SGV: session=%s verified=%s claim=%r",
                     self.session_id,
@@ -313,3 +646,14 @@ class WorkflowOrchestrator:
             },
             step_index=events_count,
         )
+        if is_shadow_or_active("V3_VALIDATION"):
+            validation, validation_ms = _validation_engine.validate_execution(
+                run_id=self.session_id,
+                mission_id=self.session_id,
+                step_id=f"execution.{events_count}",
+                action_type=action_type,
+                selector=selector,
+                success=success,
+                execution_result=execution_result,
+            )
+            self._record_validation_shadow(validation, validation_ms)
