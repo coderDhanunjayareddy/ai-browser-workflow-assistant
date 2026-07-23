@@ -32,6 +32,8 @@ class Settings(BaseSettings):
 
     # V5.0: set to true to enable SQLAlchemy persistence for Mission lifecycle.
     mission_persistence: bool = False
+    v5_product_layer: str = "shadow"
+    v5_jwt_secret: str = ""
 
     # M0.6 diagnostics: when true, the /analyze path additionally writes the exact
     # provider prompt + raw response to <trace_dir>/backend/<trace_id>.json for the

@@ -3,17 +3,19 @@ import { useWorkflow } from './hooks/useWorkflow'
 import { useHistory } from './hooks/useHistory'
 import { useSpeechInput } from './hooks/useSpeechInput'
 import { useAssist } from './hooks/useAssist'
+import { useProduct, type ProductOrg, type ProductWorkspace, type ProductWorkflow } from './hooks/useProduct'
 import type { SuggestedAction, SessionHistory, EventHistory } from '../types'
 import type { StructuredSummary, ChatMessage, ResearchReport, IntelligenceLayer, WorkflowRecommendation, ApprovalLevel } from '../types/assist'
 
-type Tab = 'workflow' | 'history' | 'analytics' | 'assist'
+type Tab = 'product' | 'workflow' | 'history' | 'analytics' | 'assist'
 
 // ── App shell ────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('workflow')
+  const [activeTab, setActiveTab] = useState<Tab>('product')
   const workflow = useWorkflow()
   const history = useHistory()
+  const product = useProduct()
 
   function switchTab(tab: Tab) {
     setActiveTab(tab)
@@ -24,6 +26,8 @@ export default function App() {
     <div style={s.container}>
       <h2 style={s.heading}>AI Browser Assistant</h2>
       <div style={s.tabBar}>
+        <button style={{ ...s.tabBtn, ...(activeTab === 'product' ? s.tabActive : {}) }}
+          onClick={() => switchTab('product')}>Product</button>
         <button style={{ ...s.tabBtn, ...(activeTab === 'workflow' ? s.tabActive : {}) }}
           onClick={() => switchTab('workflow')}>Workflow</button>
         <button style={{ ...s.tabBtn, ...(activeTab === 'history' ? s.tabActive : {}) }}
@@ -33,6 +37,7 @@ export default function App() {
         <button style={{ ...s.tabBtn, ...(activeTab === 'assist' ? s.tabActive : {}) }}
           onClick={() => switchTab('assist')}>Assist</button>
       </div>
+      {activeTab === 'product' && <ProductPanel product={product} />}
       {activeTab === 'workflow' && <WorkflowPanel {...workflow} />}
       {activeTab === 'history' && <HistoryPanel sessions={history.sessions} loading={history.loading}
         error={history.error} onRefresh={history.fetchHistory} />}
@@ -50,6 +55,318 @@ export default function App() {
 // ── Workflow panel ────────────────────────────────────────────────────────────
 
 type WorkflowProps = ReturnType<typeof useWorkflow>
+type ProductProps = { product: ReturnType<typeof useProduct> }
+
+function ProductPanel({ product }: ProductProps) {
+  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [view, setView] = useState<'dashboard' | 'replay' | 'tasks' | 'templates' | 'notifications' | 'versions'>('dashboard')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [orgName, setOrgName] = useState('')
+  const [workspaceName, setWorkspaceName] = useState('')
+  const [selectedOrgId, setSelectedOrgId] = useState('')
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('')
+  const [taskTitle, setTaskTitle] = useState('')
+  const [taskPrompt, setTaskPrompt] = useState('')
+  const [templateTitle, setTemplateTitle] = useState('')
+  const [templatePrompt, setTemplatePrompt] = useState('')
+  const [theme, setTheme] = useState(String(product.user?.preferences?.theme || 'system'))
+
+  useEffect(() => {
+    if (!selectedOrgId && product.orgs.length > 0) setSelectedOrgId(product.orgs[0].id)
+  }, [product.orgs, selectedOrgId])
+
+  useEffect(() => {
+    if (!selectedWorkspaceId && product.workspaces.length > 0) setSelectedWorkspaceId(product.workspaces[0].id)
+  }, [product.workspaces, selectedWorkspaceId])
+
+  useEffect(() => {
+    setTheme(String(product.user?.preferences?.theme || 'system'))
+  }, [product.user?.preferences])
+
+  const submitAuth = () => {
+    if (mode === 'register') void product.register(email, password, name || email)
+    else void product.login(email, password)
+  }
+
+  const createOrg = async () => {
+    if (!orgName.trim()) return
+    const org = await product.createOrg(orgName.trim())
+    setOrgName('')
+    setSelectedOrgId(org.id)
+  }
+
+  const createWorkspace = async () => {
+    if (!workspaceName.trim() || !selectedOrgId) return
+    await product.createWorkspace(selectedOrgId, workspaceName.trim())
+    setWorkspaceName('')
+  }
+
+  const createTask = async () => {
+    if (!taskTitle.trim()) return
+    await product.createTask(selectedWorkspaceId, taskTitle.trim(), taskPrompt.trim())
+    setTaskTitle('')
+    setTaskPrompt('')
+  }
+
+  const createTemplate = async () => {
+    if (!templateTitle.trim() || !selectedWorkspaceId) return
+    await product.createTemplate(selectedWorkspaceId, templateTitle.trim(), templatePrompt.trim())
+    setTemplateTitle('')
+    setTemplatePrompt('')
+  }
+
+  if (!product.user) {
+    return (
+      <div style={productStyles.stack}>
+        <div style={productStyles.hero}>
+          <p style={productStyles.kicker}>V5 SaaS Foundation</p>
+          <h3 style={productStyles.title}>{mode === 'register' ? 'Create your account' : 'Sign in to your workspace'}</h3>
+          <p style={productStyles.copy}>Manage organizations, workspaces, workflow history, settings, and audit-ready product state.</p>
+        </div>
+        {mode === 'register' && <input style={productStyles.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />}
+        <input style={productStyles.input} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+        <input style={productStyles.input} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password" />
+        {product.error && <p style={s.error}>{product.error}</p>}
+        <button style={s.primaryBtn} onClick={submitAuth} disabled={product.loading || !email || !password}>
+          {mode === 'register' ? 'Create account' : 'Login'}
+        </button>
+        <button style={s.resetBtn} onClick={() => setMode(mode === 'register' ? 'login' : 'register')}>
+          {mode === 'register' ? 'Use existing account' : 'Register new account'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={productStyles.stack}>
+      <div style={productStyles.topRow}>
+        <div>
+          <p style={productStyles.kicker}>Signed in</p>
+          <h3 style={productStyles.title}>{product.user.name}</h3>
+          <p style={productStyles.copy}>{product.user.email}</p>
+        </div>
+        <button style={s.resetBtn} onClick={() => void product.logout()}>Logout</button>
+      </div>
+
+      {product.error && <p style={s.error}>{product.error}</p>}
+
+      <div style={productStyles.subnav}>
+        {(['dashboard', 'replay', 'tasks', 'templates', 'notifications', 'versions'] as const).map((tab) => (
+          <button key={tab} style={{ ...productStyles.subnavBtn, ...(view === tab ? productStyles.subnavActive : {}) }} onClick={() => setView(tab)}>
+            {tab[0].toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {view === 'dashboard' && (
+        <>
+          <section style={productStyles.section}>
+            <p style={productStyles.sectionTitle}>Dashboard</p>
+            <div style={productStyles.metricGrid}>
+              <Metric label="Organizations" value={product.orgs.length} />
+              <Metric label="Workspaces" value={product.workspaces.length} />
+              <Metric label="Workflows" value={product.workflows.length} />
+              <Metric label="Tasks" value={product.tasks.length} />
+              <Metric label="Templates" value={product.templates.length} />
+              <Metric label="Unread" value={product.notifications.filter((item) => !item.read_at).length} />
+            </div>
+          </section>
+
+          <section style={productStyles.section}>
+            <p style={productStyles.sectionTitle}>Organization creation</p>
+            <div style={productStyles.row}>
+              <input style={productStyles.input} value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Organization name" />
+              <button style={s.primaryBtn} onClick={() => void createOrg()} disabled={!orgName.trim()}>Create</button>
+            </div>
+            <SimpleList items={product.orgs} render={(org: ProductOrg) => `${org.name} (${org.role || 'member'})`} />
+          </section>
+
+          <section style={productStyles.section}>
+            <p style={productStyles.sectionTitle}>Workspace creation</p>
+            <select style={productStyles.input} value={selectedOrgId} onChange={(e) => setSelectedOrgId(e.target.value)}>
+              {product.orgs.map((org) => <option key={org.id} value={org.id}>{org.name}</option>)}
+            </select>
+            <div style={productStyles.row}>
+              <input style={productStyles.input} value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} placeholder="Workspace name" />
+              <button style={s.primaryBtn} onClick={() => void createWorkspace()} disabled={!workspaceName.trim() || !selectedOrgId}>Create</button>
+            </div>
+            <SimpleList items={product.workspaces} render={(workspace: ProductWorkspace) => `${workspace.name} (${workspace.role || 'member'})`} />
+          </section>
+
+          <section style={productStyles.section}>
+            <p style={productStyles.sectionTitle}>Settings</p>
+            <select style={productStyles.input} value={theme} onChange={(e) => setTheme(e.target.value)}>
+              <option value="system">System theme</option>
+              <option value="light">Light theme</option>
+              <option value="dark">Dark theme</option>
+            </select>
+            <button style={s.primaryBtn} onClick={() => void product.updatePreferences({ theme })}>Save settings</button>
+          </section>
+        </>
+      )}
+
+      {view === 'replay' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Replay viewer</p>
+          <WorkflowCards workflows={product.workflows} onReplay={product.loadReplay} onRerun={product.rerunWorkflow} onClone={product.cloneWorkflow} onShare={product.shareReplay} />
+          {product.selectedReplay && (
+            <div style={productStyles.timeline}>
+              {product.selectedReplay.timeline.map((step, index) => (
+                <div key={String(step.step_id || index)} style={productStyles.timelineStep}>
+                  <span style={productStyles.timelineIndex}>{String(step.step_index ?? index)}</span>
+                  <div>
+                    <p style={productStyles.itemTitle}>{String(step.action_type || 'step')} - {String(step.status || '')}</p>
+                    <p style={productStyles.itemMeta}>Validation: {String((step.validation as Record<string, unknown> | undefined)?.status || 'n/a')}</p>
+                    {Boolean(step.screenshot_ref) && <p style={productStyles.itemMeta}>Screenshot: {String(step.screenshot_ref)}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {view === 'tasks' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Task library</p>
+          <WorkspacePicker workspaces={product.workspaces} value={selectedWorkspaceId} onChange={setSelectedWorkspaceId} />
+          <input style={productStyles.input} value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Task title" />
+          <textarea style={productStyles.textarea} value={taskPrompt} onChange={(e) => setTaskPrompt(e.target.value)} placeholder="Saved task prompt" />
+          <button style={s.primaryBtn} onClick={() => void createTask()} disabled={!taskTitle.trim()}>Save task</button>
+          <div style={productStyles.list}>
+            {product.tasks.map((task) => (
+              <div key={task.id} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{task.favorite ? 'Favorite: ' : ''}{task.title}</p>
+                <p style={productStyles.itemMeta}>{task.scope} - {task.run_count} runs - {task.tags.join(', ')}</p>
+                <div style={productStyles.row}>
+                  <button style={s.resetBtn} onClick={() => void product.toggleTaskFavorite(task)}>{task.favorite ? 'Unfavorite' : 'Favorite'}</button>
+                  <button style={s.primaryBtn} onClick={() => void product.runTask(task.id, selectedWorkspaceId)}>Run</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {view === 'templates' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Templates</p>
+          <WorkspacePicker workspaces={product.workspaces} value={selectedWorkspaceId} onChange={setSelectedWorkspaceId} />
+          <input style={productStyles.input} value={templateTitle} onChange={(e) => setTemplateTitle(e.target.value)} placeholder="Template title" />
+          <textarea style={productStyles.textarea} value={templatePrompt} onChange={(e) => setTemplatePrompt(e.target.value)} placeholder="Template prompt" />
+          <button style={s.primaryBtn} onClick={() => void createTemplate()} disabled={!templateTitle.trim() || !selectedWorkspaceId}>Create template</button>
+          <div style={productStyles.list}>
+            {product.templates.map((template) => (
+              <div key={template.id} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{template.title}</p>
+                <p style={productStyles.itemMeta}>v{template.current_version} - {formatDate(template.updated_at)}</p>
+                <div style={productStyles.row}>
+                  <button style={s.resetBtn} onClick={() => void product.forkTemplate(template.id, selectedWorkspaceId)}>Fork</button>
+                  <button style={s.resetBtn} onClick={() => { setView('versions'); void product.loadVersions('template', template.id) }}>Versions</button>
+                  <button style={s.primaryBtn} onClick={() => void product.runTemplate(template.id)}>Run</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {view === 'notifications' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Notifications</p>
+          <div style={productStyles.list}>
+            {product.notifications.length === 0 ? <p style={s.histEmpty}>No notifications yet.</p> : product.notifications.map((notification) => (
+              <div key={notification.id} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{notification.read_at ? '' : 'Unread: '}{notification.title}</p>
+                <p style={productStyles.itemMeta}>{notification.event_type} - {formatDate(notification.created_at)}</p>
+                <p style={productStyles.copy}>{notification.body}</p>
+                {!notification.read_at && <button style={s.resetBtn} onClick={() => void product.markNotificationRead(notification.id)}>Mark read</button>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {view === 'versions' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Version history</p>
+          <div style={productStyles.list}>
+            {product.versions.length === 0 ? <p style={s.histEmpty}>Open a template version history to inspect versions.</p> : product.versions.map((version) => (
+              <div key={version.id} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{version.resource_type} v{version.version_number}</p>
+                <p style={productStyles.itemMeta}>{version.change_summary || 'No summary'} - {formatDate(version.created_at)}</p>
+                <p style={productStyles.itemMeta}>Changed: {String((version.diff.changed as string[] | undefined)?.join(', ') || 'none')}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+function WorkspacePicker({ workspaces, value, onChange }: { workspaces: ProductWorkspace[], value: string, onChange: (value: string) => void }) {
+  return (
+    <select style={productStyles.input} value={value} onChange={(event) => onChange(event.target.value)}>
+      <option value="">Select workspace</option>
+      {workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
+    </select>
+  )
+}
+
+function WorkflowCards({ workflows, onReplay, onRerun, onClone, onShare }: {
+  workflows: ProductWorkflow[]
+  onReplay: (workflowId: string) => Promise<unknown>
+  onRerun: (workflowId: string) => Promise<unknown>
+  onClone: (workflowId: string) => Promise<unknown>
+  onShare: (workflowId: string) => Promise<unknown>
+}) {
+  if (workflows.length === 0) return <p style={s.histEmpty}>No V5 workflows yet.</p>
+  return (
+    <div style={s.histList}>
+      {workflows.map((run) => (
+        <div key={run.id} style={s.sessionCard}>
+          <div style={s.sessionHeader}>
+            <div style={s.sessionMeta}>
+              <span style={s.sessionTitle}>{run.title || run.input_summary || 'Untitled workflow'}</span>
+              <span style={s.sessionDate}>{formatDate(run.created_at)}</span>
+            </div>
+            <div style={s.sessionStats}>
+              <span style={s.statChip}>{run.status}</span>
+              <span style={s.statChip}>{run.steps.length} steps</span>
+            </div>
+          </div>
+          <div style={productStyles.row}>
+            <button style={s.resetBtn} onClick={() => void onReplay(run.id)}>Replay</button>
+            <button style={s.resetBtn} onClick={() => void onShare(run.id)}>Share</button>
+            <button style={s.resetBtn} onClick={() => void onClone(run.id)}>Clone</button>
+            <button style={s.primaryBtn} onClick={() => void onRerun(run.id)}>Rerun</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Metric({ label, value }: { label: string, value: number }) {
+  return (
+    <div style={productStyles.metric}>
+      <span style={productStyles.metricValue}>{value}</span>
+      <span style={productStyles.metricLabel}>{label}</span>
+    </div>
+  )
+}
+
+function SimpleList<T>({ items, render }: { items: T[], render: (item: T) => string }) {
+  if (items.length === 0) return <p style={s.histEmpty}>Nothing created yet.</p>
+  return (
+    <div style={productStyles.list}>
+      {items.slice(0, 6).map((item, index) => <div key={index} style={productStyles.listItem}>{render(item)}</div>)}
+    </div>
+  )
+}
 
 // ── Language list ─────────────────────────────────────────────────────────────
 
@@ -1046,6 +1363,34 @@ function formatDate(iso: string) {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const productStyles: Record<string, React.CSSProperties> = {
+  stack: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  hero: { padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' },
+  topRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' },
+  kicker: { margin: 0, fontSize: '10px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  title: { margin: '3px 0', fontSize: '15px', fontWeight: 700, color: '#111827' },
+  copy: { margin: 0, fontSize: '12px', color: '#64748b', lineHeight: 1.4 },
+  section: { display: 'flex', flexDirection: 'column', gap: '7px', padding: '10px', border: '1px solid #e5e7eb', borderRadius: '6px', background: '#fff' },
+  sectionTitle: { margin: 0, fontSize: '11px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  input: { width: '100%', minWidth: 0, padding: '8px', fontSize: '12px', border: '1px solid #d1d5db', borderRadius: '5px', boxSizing: 'border-box', fontFamily: 'inherit' },
+  textarea: { width: '100%', minHeight: '58px', minWidth: 0, padding: '8px', fontSize: '12px', border: '1px solid #d1d5db', borderRadius: '5px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' },
+  row: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' },
+  subnav: { display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' },
+  subnavBtn: { padding: '5px 8px', fontSize: '11px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '5px', cursor: 'pointer', color: '#475569' },
+  subnavActive: { background: '#dbeafe', borderColor: '#93c5fd', color: '#1d4ed8', fontWeight: 700 },
+  metricGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' },
+  metric: { padding: '8px', borderRadius: '5px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '2px' },
+  metricValue: { fontSize: '16px', fontWeight: 700, color: '#1d4ed8' },
+  metricLabel: { fontSize: '10px', color: '#1e40af' },
+  list: { display: 'flex', flexDirection: 'column', gap: '4px' },
+  listItem: { padding: '6px 8px', borderRadius: '4px', background: '#f9fafb', border: '1px solid #eef2f7', fontSize: '12px', color: '#374151' },
+  itemTitle: { margin: 0, fontSize: '12px', fontWeight: 700, color: '#111827' },
+  itemMeta: { margin: '2px 0', fontSize: '11px', color: '#64748b' },
+  timeline: { display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '6px' },
+  timelineStep: { display: 'grid', gridTemplateColumns: '26px 1fr', gap: '6px', padding: '7px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '5px' },
+  timelineIndex: { width: '22px', height: '22px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#e0f2fe', color: '#0369a1', fontSize: '11px', fontWeight: 700 },
+}
 
 const s: Record<string, React.CSSProperties> = {
   container: { padding: '16px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', fontSize: '13px', color: '#1a1a1a' },
