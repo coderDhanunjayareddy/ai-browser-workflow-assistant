@@ -162,7 +162,11 @@ class ExecutionValidator:
             resolved = resolver.resolve(page, rparams)
             return resolved.locator.input_value()
         except Exception:
-            return None
+            try:
+                resolved = resolver.resolve(page, rparams)
+                return resolved.locator.inner_text()
+            except Exception:
+                return None
 
 
 def _safe(fn):

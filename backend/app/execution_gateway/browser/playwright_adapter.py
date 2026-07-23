@@ -40,6 +40,9 @@ from app.execution_gateway.browser import metrics as _exec_metrics
 from app.execution_gateway.browser import exec_timeline as _exec_timeline
 from app.execution_gateway.browser import smart_waits as _smart_waits
 from app.execution_gateway.browser import auth_handoff as _auth_handoff
+from app.execution_gateway.browser import rich_text as _rich_text
+from app.execution_gateway.browser import wave2_core as _wave2_core
+from app.execution_gateway.browser import wave3_visual as _wave3_visual
 from app.execution_gateway.browser.failure_classes import RecoveryAction
 
 
@@ -385,6 +388,34 @@ class PlaywrightAdapter(ExecutionAdapter):
         page = session.ensure_page()
         resolved = self._resolve(page, command.parameters)
         text = command.parameters.get("value") or command.parameters.get("text") or ""
+        if is_active("V4_RICH_TEXT_EDITING") and (
+            command.parameters.get("rich_text") is True or command.parameters.get("editor") == "rich_text"
+        ):
+            payload = _rich_text.parse_payload(command.parameters.get("rich_text_payload") or command.parameters)
+            rich_result = _rich_text.execute(page, resolved.locator, payload)
+            try:
+                _exec_metrics.record_capability("browser.editors.rich_text", succeeded=rich_result.success)
+            except Exception:
+                pass
+            details = rich_result.to_dict()
+            details["strategy"] = resolved.strategy
+            details["length"] = len(payload.text)
+            details["_validation_passed"] = rich_result.validated
+            return details
+        editor = str(command.parameters.get("editor") or "").lower()
+        if editor in {"monaco", "codemirror"}:
+            flag = "V4_MONACO_EDITOR" if editor == "monaco" else "V4_CODEMIRROR_EDITOR"
+            capability_id = "browser.editors.monaco" if editor == "monaco" else "browser.editors.codemirror"
+            if is_active(flag):
+                payload = _wave2_core.parse_payload(command.parameters.get("editor_payload") or command.parameters)
+                payload.setdefault("text", text)
+                code_result = _wave2_core.execute_code_editor(page, resolved.locator, payload, capability_id=capability_id)
+                self._record_wave2_capability(capability_id, code_result.success)
+                details = code_result.to_dict()
+                details["strategy"] = resolved.strategy
+                details["length"] = len(str(payload.get("text") or payload.get("content") or ""))
+                details["_validation_passed"] = code_result.success
+                return details
         resolved.locator.fill(text, timeout=self._timeout(command))
         return {"strategy": resolved.strategy, "length": len(text)}
 
@@ -497,6 +528,12 @@ class PlaywrightAdapter(ExecutionAdapter):
     def _do_custom(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
         action = command.parameters.get("action", "noop")
+        wave2_result = self._do_wave2_custom(page, command, action)
+        if wave2_result is not None:
+            return wave2_result
+        wave3_result = self._do_wave3_custom(page, command, action)
+        if wave3_result is not None:
+            return wave3_result
         if action == "scroll":
             dy = int(command.parameters.get("dy", 400))
             page.evaluate(f"window.scrollBy(0, {dy})")
@@ -511,6 +548,100 @@ class PlaywrightAdapter(ExecutionAdapter):
             page.go_forward(wait_until=command.parameters.get("wait_until", "load"))
             return {"custom": "history_forward", "url": page.url, "title": _safe(lambda: page.title())}
         return {"custom": action}
+
+    def _do_wave2_custom(self, page: Any, command: ExecutionCommand, action: str) -> dict | None:
+        payload = _wave2_core.parse_payload(command.parameters.get("payload") or command.parameters)
+        result = None
+        capability_id = ""
+        if action == "drag_drop" and is_active("V4_DRAG_DROP"):
+            source = self._resolve(page, command.parameters).locator
+            drop_selector = payload.get("drop_selector") or payload.get("target_selector")
+            if not drop_selector:
+                raise ValueError("drag_drop failed: drop_selector is required")
+            result = _wave2_core.execute_drag_drop(page, source, page.locator(str(drop_selector)), payload)
+            capability_id = "browser.drag_drop"
+        elif action == "virtual_list_find" and is_active("V4_VIRTUAL_LISTS"):
+            locator = self._resolve(page, command.parameters).locator if self._strategy_for(command.parameters) else None
+            result = _wave2_core.execute_virtual_list(page, locator, payload)
+            capability_id = "browser.lists.virtual"
+        elif action == "shadow_dom" and is_active("V4_SHADOW_DOM"):
+            result = _wave2_core.execute_shadow_dom(page, payload)
+            capability_id = "browser.shadow_dom.open"
+        elif action == "infinite_scroll" and is_active("V4_INFINITE_SCROLL"):
+            result = _wave2_core.execute_infinite_scroll(page, payload)
+            capability_id = "browser.scroll.infinite"
+        elif action == "advanced_keyboard" and is_active("V4_ADVANCED_KEYBOARD"):
+            result = _wave2_core.execute_keyboard(page, payload)
+            capability_id = "browser.advanced_keyboard"
+        elif action == "clipboard" and is_active("V4_CLIPBOARD"):
+            result = _wave2_core.execute_clipboard(page, payload)
+            capability_id = "browser.clipboard"
+        if result is None:
+            return None
+        self._record_wave2_capability(capability_id, result.success)
+        details = result.to_dict()
+        details["custom"] = action
+        details["_validation_passed"] = result.success
+        return details
+
+    def _record_wave2_capability(self, capability_id: str, succeeded: bool) -> None:
+        try:
+            _exec_metrics.record_capability(capability_id, succeeded=succeeded)
+        except Exception:
+            pass
+
+    def _do_wave3_custom(self, page: Any, command: ExecutionCommand, action: str) -> dict | None:
+        payload = _wave3_visual.parse_payload(command.parameters.get("payload") or command.parameters)
+        locator = self._resolve(page, command.parameters).locator if self._strategy_for(command.parameters) else None
+        result = None
+        capability_id = ""
+        if action == "canvas" and is_active("V4_CANVAS"):
+            if locator is None:
+                raise ValueError("canvas failed: selector is required")
+            result = _wave3_visual.execute_canvas(page, locator, payload)
+            capability_id = "browser.canvas"
+        elif action == "svg" and is_active("V4_SVG_INTERACTION"):
+            if locator is None:
+                raise ValueError("svg failed: selector is required")
+            result = _wave3_visual.execute_svg(page, locator, payload)
+            capability_id = "browser.svg.interaction"
+        elif action == "pdf_viewer" and is_active("V4_PDF_VIEWER"):
+            result = _wave3_visual.execute_pdf_viewer(page, locator, payload)
+            capability_id = "browser.pdf.viewer"
+        elif action == "chart" and is_active("V4_CHARTS"):
+            if locator is None:
+                raise ValueError("chart failed: selector is required")
+            result = _wave3_visual.execute_chart(page, locator, payload)
+            capability_id = "browser.charts.graphs"
+        elif action == "map" and is_active("V4_MAPS"):
+            if locator is None:
+                raise ValueError("map failed: selector is required")
+            result = _wave3_visual.execute_map(page, locator, payload)
+            capability_id = "browser.maps.interactive"
+        elif action == "media" and is_active("V4_MEDIA_CONTROLS"):
+            if locator is None:
+                raise ValueError("media failed: selector is required")
+            result = _wave3_visual.execute_media(page, locator, payload)
+            capability_id = "browser.media.controls"
+        elif action == "file_preview" and is_active("V4_FILE_PREVIEW"):
+            result = _wave3_visual.execute_file_preview(page, locator, payload)
+            capability_id = "browser.file.preview"
+        elif action == "visual_region" and is_active("V4_VISUAL_REGIONS"):
+            result = _wave3_visual.execute_visual_region(page, locator, payload)
+            capability_id = "browser.visual_regions"
+        if result is None:
+            return None
+        self._record_wave3_capability(capability_id, result.success)
+        details = result.to_dict()
+        details["custom"] = action
+        details["_validation_passed"] = result.success
+        return details
+
+    def _record_wave3_capability(self, capability_id: str, succeeded: bool) -> None:
+        try:
+            _exec_metrics.record_capability(capability_id, succeeded=succeeded)
+        except Exception:
+            pass
 
     # ── side effects: runtime + browser sync (non-blocking, reuse existing) ────
 

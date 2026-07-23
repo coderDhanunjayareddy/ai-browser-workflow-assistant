@@ -30,6 +30,7 @@ class _Counters:
         self.exec_time_total_ms:   float = 0.0
         self.locator_strategy:     dict[str, int] = {}
         self.failure_distribution: dict[str, int] = {}
+        self.capability_counts:    dict[str, dict[str, int]] = {}
 
 
 _c = _Counters()
@@ -73,6 +74,16 @@ def record_failure(category: str) -> None:
         _c.failure_distribution[category] = _c.failure_distribution.get(category, 0) + 1
 
 
+def record_capability(capability_id: str, *, succeeded: bool) -> None:
+    with _lock:
+        counts = _c.capability_counts.setdefault(capability_id, {"attempted": 0, "succeeded": 0, "failed": 0})
+        counts["attempted"] += 1
+        if succeeded:
+            counts["succeeded"] += 1
+        else:
+            counts["failed"] += 1
+
+
 def get_metrics() -> dict:
     with _lock:
         steps = _c.steps_total
@@ -99,4 +110,5 @@ def get_metrics() -> dict:
             "locator_strategy_counts": dict(_c.locator_strategy),
             "locator_strategy_pct":    strat_pct,
             "failure_distribution":    dict(_c.failure_distribution),
+            "capability_counts":       {k: dict(v) for k, v in _c.capability_counts.items()},
         }

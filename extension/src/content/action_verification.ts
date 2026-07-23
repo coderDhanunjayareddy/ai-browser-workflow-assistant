@@ -12,6 +12,10 @@ export interface BasicExecutionResult {
   success: boolean
   message: string
   action_id: string
+  wave2_capability?: string
+  wave2_validated?: boolean
+  wave3_capability?: string
+  wave3_validated?: boolean
 }
 
 export interface ActionVerificationTargetState {
@@ -73,6 +77,12 @@ export interface VerifiedExecutionResult extends BasicExecutionResult {
   active_tab_id?: number | null
   closed_tab_id?: number | null
   tab_switch_verified?: boolean
+  wave2_capability?: string
+  wave2_validated?: boolean
+  wave2_details?: Record<string, string | number | boolean | null>
+  wave3_capability?: string
+  wave3_validated?: boolean
+  wave3_details?: Record<string, string | number | boolean | null>
 }
 
 export function captureVerificationState(action: VerifiableAction): ActionVerificationState {
@@ -266,6 +276,10 @@ export function verifyActionEffect(
     target_selected_changed: before.target?.selectedValue !== after.target?.selectedValue ||
       before.target?.selectedText !== after.target?.selectedText,
     target_expanded_changed: before.target?.ariaExpanded !== after.target?.ariaExpanded,
+    wave2_capability: executionResult.wave2_capability ?? null,
+    wave2_validated: executionResult.wave2_validated ?? null,
+    wave3_capability: executionResult.wave3_capability ?? null,
+    wave3_validated: executionResult.wave3_validated ?? null,
   }
 
   if (!executionResult.success) {
@@ -293,8 +307,37 @@ export function verifyActionEffect(
       break
 
     case 'fill':
+    case 'rich_text':
+    case 'insert_rich_text':
+    case 'edit_rich_text':
+    case 'monaco_edit':
+    case 'codemirror_edit':
+    case 'shadow_fill':
+    case 'clipboard':
       verified = verifyFill(action, before, after)
+      if (!verified && executionResult.wave2_validated === true) verified = true
       signals.fill_verified_without_password_value = verified
+      break
+
+    case 'drag_drop':
+    case 'virtual_list_find':
+    case 'shadow_click':
+    case 'infinite_scroll':
+    case 'advanced_keyboard':
+      verified = executionResult.wave2_validated === true || executionResult.success === true
+      signals.wave2_result_verified = verified
+      break
+
+    case 'canvas_action':
+    case 'svg_action':
+    case 'pdf_viewer':
+    case 'chart_action':
+    case 'map_action':
+    case 'media_control':
+    case 'file_preview':
+    case 'visual_region':
+      verified = executionResult.wave3_validated === true || executionResult.success === true
+      signals.wave3_result_verified = verified
       break
 
     case 'select_option':

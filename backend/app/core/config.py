@@ -76,6 +76,23 @@ class Settings(BaseSettings):
     v4_browser_observability: str = "shadow"
     v4_browser_replay: str = "shadow"
     v4_capability_certification: str = "shadow"
+    v4_rich_text_editing: str = "shadow"
+    v4_monaco_editor: str = "shadow"
+    v4_codemirror_editor: str = "shadow"
+    v4_drag_drop: str = "shadow"
+    v4_virtual_lists: str = "shadow"
+    v4_shadow_dom: str = "shadow"
+    v4_infinite_scroll: str = "shadow"
+    v4_advanced_keyboard: str = "shadow"
+    v4_clipboard: str = "shadow"
+    v4_canvas: str = "shadow"
+    v4_svg_interaction: str = "shadow"
+    v4_pdf_viewer: str = "shadow"
+    v4_charts: str = "shadow"
+    v4_maps: str = "shadow"
+    v4_media_controls: str = "shadow"
+    v4_file_preview: str = "shadow"
+    v4_visual_regions: str = "shadow"
 
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.

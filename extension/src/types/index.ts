@@ -11,6 +11,26 @@ export type ActionType =
   | 'choose_date'
   | 'hover'
   | 'keyboard_shortcut'
+  | 'rich_text'
+  | 'insert_rich_text'
+  | 'edit_rich_text'
+  | 'monaco_edit'
+  | 'codemirror_edit'
+  | 'drag_drop'
+  | 'virtual_list_find'
+  | 'shadow_click'
+  | 'shadow_fill'
+  | 'infinite_scroll'
+  | 'advanced_keyboard'
+  | 'clipboard'
+  | 'canvas_action'
+  | 'svg_action'
+  | 'pdf_viewer'
+  | 'chart_action'
+  | 'map_action'
+  | 'media_control'
+  | 'file_preview'
+  | 'visual_region'
   | 'open_new_tab'
   | 'switch_tab'
   | 'close_tab'
@@ -187,6 +207,17 @@ export interface ExecutionResult {
   active_tab_id?: number | null
   closed_tab_id?: number | null
   tab_switch_verified?: boolean
+  rich_text_editor?: string
+  rich_text_mode?: string
+  rich_text_validated?: boolean
+  inserted_length?: number
+  shortcuts_applied?: string[]
+  wave2_capability?: string
+  wave2_validated?: boolean
+  wave2_details?: Record<string, string | number | boolean | null>
+  wave3_capability?: string
+  wave3_validated?: boolean
+  wave3_details?: Record<string, string | number | boolean | null>
   semantic_mismatch?: boolean
   semantic_mismatch_reason?: string | null
   semantic_mismatch_observed_result?: string | null

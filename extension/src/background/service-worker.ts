@@ -16,6 +16,9 @@ import {
 } from '../content/selector_recovery'
 import { executeWidgetAdapter } from '../content/widget_adapters'
 import { executeUploadHandler } from '../content/file_transfer'
+import { executeRichTextAction } from '../content/rich_text'
+import { executeWave2CoreAction } from '../content/wave2_core'
+import { executeWave3VisualAction } from '../content/wave3_visual'
 import {
   downloadMetadata,
   type FileTransferMetadata,
@@ -463,6 +466,30 @@ async function executeBrowserActionOnce(
   }).catch(() => null)
   const widgetResult = widgetAttempt?.[0]?.result
   if (widgetResult) return widgetResult
+
+  const wave2Attempt = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: executeWave2CoreAction,
+    args: [action],
+  }).catch(() => null)
+  const wave2Result = wave2Attempt?.[0]?.result
+  if (wave2Result) return wave2Result
+
+  const wave3Attempt = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: executeWave3VisualAction,
+    args: [action],
+  }).catch(() => null)
+  const wave3Result = wave3Attempt?.[0]?.result
+  if (wave3Result) return wave3Result
+
+  const richTextAttempt = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: executeRichTextAction,
+    args: [action],
+  }).catch(() => null)
+  const richTextResult = richTextAttempt?.[0]?.result
+  if (richTextResult) return richTextResult
 
   const uploadAttempt = await chrome.scripting.executeScript({
     target: { tabId },
