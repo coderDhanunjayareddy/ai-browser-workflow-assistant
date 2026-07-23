@@ -43,6 +43,7 @@ from app.execution_gateway.browser import auth_handoff as _auth_handoff
 from app.execution_gateway.browser import rich_text as _rich_text
 from app.execution_gateway.browser import wave2_core as _wave2_core
 from app.execution_gateway.browser import wave3_visual as _wave3_visual
+from app.execution_gateway.browser import wave4_enterprise as _wave4_enterprise
 from app.execution_gateway.browser.failure_classes import RecoveryAction
 
 
@@ -534,6 +535,9 @@ class PlaywrightAdapter(ExecutionAdapter):
         wave3_result = self._do_wave3_custom(page, command, action)
         if wave3_result is not None:
             return wave3_result
+        wave4_result = self._do_wave4_custom(page, command, action)
+        if wave4_result is not None:
+            return wave4_result
         if action == "scroll":
             dy = int(command.parameters.get("dy", 400))
             page.evaluate(f"window.scrollBy(0, {dy})")
@@ -638,6 +642,56 @@ class PlaywrightAdapter(ExecutionAdapter):
         return details
 
     def _record_wave3_capability(self, capability_id: str, succeeded: bool) -> None:
+        try:
+            _exec_metrics.record_capability(capability_id, succeeded=succeeded)
+        except Exception:
+            pass
+
+    def _do_wave4_custom(self, page: Any, command: ExecutionCommand, action: str) -> dict | None:
+        payload = _wave4_enterprise.parse_payload(command.parameters.get("payload") or command.parameters)
+        result = None
+        capability_id = ""
+        adapter_flags = {
+            "google_workspace": "V4_GOOGLE_WORKSPACE_ADAPTER",
+            "microsoft365": "V4_MICROSOFT365_ADAPTER",
+            "github_advanced": "V4_GITHUB_ADVANCED_ADAPTER",
+            "jira": "V4_JIRA_ADAPTER",
+            "confluence": "V4_CONFLUENCE_ADAPTER",
+            "slack": "V4_SLACK_ADAPTER",
+            "notion": "V4_NOTION_ADAPTER",
+            "figma": "V4_FIGMA_ADAPTER",
+            "canva": "V4_CANVA_ADAPTER",
+            "salesforce": "V4_SALESFORCE_ADAPTER",
+        }
+        if action == "enterprise_adapter":
+            adapter = str(payload.get("adapter") or payload.get("site") or "").lower()
+            profile = _wave4_enterprise.adapter_profile(adapter) or _wave4_enterprise.adapter_for_url(str(getattr(page, "url", "")))
+            if profile is None:
+                return None
+            if is_active(adapter_flags.get(profile.key, "")):
+                result = _wave4_enterprise.execute_site_adapter(page, {**payload, "adapter": profile.key})
+                capability_id = profile.capability_id
+        elif action == "sso_auth" and is_active("V4_SSO_AUTH"):
+            result = _wave4_enterprise.execute_sso_auth(page, payload)
+            capability_id = _wave4_enterprise.AUTH_CAPABILITY_ID
+        elif action == "mfa_otp_handoff" and is_active("V4_MFA_OTP_HANDOFF"):
+            result = _wave4_enterprise.execute_mfa_handoff(page, payload)
+            capability_id = _wave4_enterprise.MFA_CAPABILITY_ID
+        elif action == "enterprise_file_workflow" and is_active("V4_ENTERPRISE_FILE_WORKFLOWS"):
+            result = _wave4_enterprise.execute_enterprise_file_workflow(page, payload)
+            capability_id = _wave4_enterprise.FILE_CAPABILITY_ID
+        elif action == "site_optimize" and is_active("V4_SITE_OPTIMIZATION_FRAMEWORK"):
+            result = _wave4_enterprise.execute_site_optimization(page, payload)
+            capability_id = _wave4_enterprise.OPTIMIZATION_CAPABILITY_ID
+        if result is None:
+            return None
+        self._record_wave4_capability(capability_id, result.success)
+        details = result.to_dict()
+        details["custom"] = action
+        details["_validation_passed"] = result.success
+        return details
+
+    def _record_wave4_capability(self, capability_id: str, succeeded: bool) -> None:
         try:
             _exec_metrics.record_capability(capability_id, succeeded=succeeded)
         except Exception:

@@ -61,6 +61,20 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V4_MEDIA_CONTROLS": "v4_media_controls",
     "V4_FILE_PREVIEW": "v4_file_preview",
     "V4_VISUAL_REGIONS": "v4_visual_regions",
+    "V4_GOOGLE_WORKSPACE_ADAPTER": "v4_google_workspace_adapter",
+    "V4_MICROSOFT365_ADAPTER": "v4_microsoft365_adapter",
+    "V4_GITHUB_ADVANCED_ADAPTER": "v4_github_advanced_adapter",
+    "V4_JIRA_ADAPTER": "v4_jira_adapter",
+    "V4_CONFLUENCE_ADAPTER": "v4_confluence_adapter",
+    "V4_SLACK_ADAPTER": "v4_slack_adapter",
+    "V4_NOTION_ADAPTER": "v4_notion_adapter",
+    "V4_FIGMA_ADAPTER": "v4_figma_adapter",
+    "V4_CANVA_ADAPTER": "v4_canva_adapter",
+    "V4_SALESFORCE_ADAPTER": "v4_salesforce_adapter",
+    "V4_SSO_AUTH": "v4_sso_auth",
+    "V4_MFA_OTP_HANDOFF": "v4_mfa_otp_handoff",
+    "V4_ENTERPRISE_FILE_WORKFLOWS": "v4_enterprise_file_workflows",
+    "V4_SITE_OPTIMIZATION_FRAMEWORK": "v4_site_optimization_framework",
 }
 
 

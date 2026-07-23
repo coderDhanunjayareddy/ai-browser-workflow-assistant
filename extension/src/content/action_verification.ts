@@ -16,6 +16,8 @@ export interface BasicExecutionResult {
   wave2_validated?: boolean
   wave3_capability?: string
   wave3_validated?: boolean
+  wave4_capability?: string
+  wave4_validated?: boolean
 }
 
 export interface ActionVerificationTargetState {
@@ -83,6 +85,9 @@ export interface VerifiedExecutionResult extends BasicExecutionResult {
   wave3_capability?: string
   wave3_validated?: boolean
   wave3_details?: Record<string, string | number | boolean | null>
+  wave4_capability?: string
+  wave4_validated?: boolean
+  wave4_details?: Record<string, string | number | boolean | null>
 }
 
 export function captureVerificationState(action: VerifiableAction): ActionVerificationState {
@@ -280,6 +285,8 @@ export function verifyActionEffect(
     wave2_validated: executionResult.wave2_validated ?? null,
     wave3_capability: executionResult.wave3_capability ?? null,
     wave3_validated: executionResult.wave3_validated ?? null,
+    wave4_capability: executionResult.wave4_capability ?? null,
+    wave4_validated: executionResult.wave4_validated ?? null,
   }
 
   if (!executionResult.success) {
@@ -338,6 +345,24 @@ export function verifyActionEffect(
     case 'visual_region':
       verified = executionResult.wave3_validated === true || executionResult.success === true
       signals.wave3_result_verified = verified
+      break
+
+    case 'google_workspace_adapter':
+    case 'microsoft365_adapter':
+    case 'github_advanced_adapter':
+    case 'jira_adapter':
+    case 'confluence_adapter':
+    case 'slack_adapter':
+    case 'notion_adapter':
+    case 'figma_adapter':
+    case 'canva_adapter':
+    case 'salesforce_adapter':
+    case 'sso_auth':
+    case 'mfa_otp_handoff':
+    case 'enterprise_file_workflow':
+    case 'site_optimize':
+      verified = executionResult.wave4_validated === true || executionResult.success === true
+      signals.wave4_result_verified = verified
       break
 
     case 'select_option':

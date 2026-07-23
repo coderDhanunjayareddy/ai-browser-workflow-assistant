@@ -93,6 +93,20 @@ class Settings(BaseSettings):
     v4_media_controls: str = "shadow"
     v4_file_preview: str = "shadow"
     v4_visual_regions: str = "shadow"
+    v4_google_workspace_adapter: str = "shadow"
+    v4_microsoft365_adapter: str = "shadow"
+    v4_github_advanced_adapter: str = "shadow"
+    v4_jira_adapter: str = "shadow"
+    v4_confluence_adapter: str = "shadow"
+    v4_slack_adapter: str = "shadow"
+    v4_notion_adapter: str = "shadow"
+    v4_figma_adapter: str = "shadow"
+    v4_canva_adapter: str = "shadow"
+    v4_salesforce_adapter: str = "shadow"
+    v4_sso_auth: str = "shadow"
+    v4_mfa_otp_handoff: str = "shadow"
+    v4_enterprise_file_workflows: str = "shadow"
+    v4_site_optimization_framework: str = "shadow"
 
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.

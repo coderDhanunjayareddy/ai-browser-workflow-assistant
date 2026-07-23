@@ -19,6 +19,7 @@ import { executeUploadHandler } from '../content/file_transfer'
 import { executeRichTextAction } from '../content/rich_text'
 import { executeWave2CoreAction } from '../content/wave2_core'
 import { executeWave3VisualAction } from '../content/wave3_visual'
+import { executeWave4EnterpriseAction } from '../content/wave4_enterprise'
 import {
   downloadMetadata,
   type FileTransferMetadata,
@@ -482,6 +483,14 @@ async function executeBrowserActionOnce(
   }).catch(() => null)
   const wave3Result = wave3Attempt?.[0]?.result
   if (wave3Result) return wave3Result
+
+  const wave4Attempt = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: executeWave4EnterpriseAction,
+    args: [action],
+  }).catch(() => null)
+  const wave4Result = wave4Attempt?.[0]?.result
+  if (wave4Result) return wave4Result
 
   const richTextAttempt = await chrome.scripting.executeScript({
     target: { tabId },

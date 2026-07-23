@@ -31,6 +31,20 @@ export type ActionType =
   | 'media_control'
   | 'file_preview'
   | 'visual_region'
+  | 'google_workspace_adapter'
+  | 'microsoft365_adapter'
+  | 'github_advanced_adapter'
+  | 'jira_adapter'
+  | 'confluence_adapter'
+  | 'slack_adapter'
+  | 'notion_adapter'
+  | 'figma_adapter'
+  | 'canva_adapter'
+  | 'salesforce_adapter'
+  | 'sso_auth'
+  | 'mfa_otp_handoff'
+  | 'enterprise_file_workflow'
+  | 'site_optimize'
   | 'open_new_tab'
   | 'switch_tab'
   | 'close_tab'
@@ -218,6 +232,9 @@ export interface ExecutionResult {
   wave3_capability?: string
   wave3_validated?: boolean
   wave3_details?: Record<string, string | number | boolean | null>
+  wave4_capability?: string
+  wave4_validated?: boolean
+  wave4_details?: Record<string, string | number | boolean | null>
   semantic_mismatch?: boolean
   semantic_mismatch_reason?: string | null
   semantic_mismatch_observed_result?: string | null
