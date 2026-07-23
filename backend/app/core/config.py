@@ -56,6 +56,27 @@ class Settings(BaseSettings):
     v3_governance: str = "shadow"
     v3_learning: str = "shadow"
 
+    # V4 Wave 1 Browser Control feature flags. States: off | shadow | active.
+    # Defaults are non-invasive; V4 capabilities are registered and certifiable
+    # without changing production browser behavior until explicitly enabled.
+    v4_smart_waits: str = "off"
+    v4_locator_resilience: str = "off"
+    v4_action_verification: str = "off"
+    v4_native_forms: str = "off"
+    v4_custom_selects: str = "off"
+    v4_date_time_pickers: str = "off"
+    v4_overlay_handling: str = "off"
+    v4_toast_detection: str = "off"
+    v4_multi_tab_hardening: str = "off"
+    v4_history_control: str = "off"
+    v4_upload_engine: str = "off"
+    v4_download_lifecycle: str = "off"
+    v4_auth_handoff: str = "off"
+    v4_browser_profile: str = "off"
+    v4_browser_observability: str = "shadow"
+    v4_browser_replay: str = "shadow"
+    v4_capability_certification: str = "shadow"
+
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.
     model_config = SettingsConfigDict(

@@ -25,6 +25,8 @@ import time
 import uuid
 from typing import Any, Optional
 
+from app.feature_flags import is_active
+
 DEFAULT_TIMEOUT_MS: int = 30_000
 SCREENSHOT_DIR = os.path.join(tempfile.gettempdir(), "ai_browser_assist_screenshots")
 
@@ -75,6 +77,7 @@ class BrowserSession:
         self.active_tab_id = "tab-0"
         self.screenshots: list[str] = []
         self.downloads:   list[str] = []
+        self.profile_mode = "persistent" if is_active("V4_BROWSER_PROFILE") else "ephemeral"
         # popup / new-window registry (window.open / target=_blank)
         self._popups: list[Any] = []
         self._attach_context_listener()
@@ -230,6 +233,7 @@ class BrowserSession:
             "current_title": title,
             "screenshots":   len(self.screenshots),
             "downloads":     list(self.downloads),
+            "profile_mode":  self.profile_mode,
             "closed":        self.closed,
             "created_at":    self.created_at,
         }
@@ -259,14 +263,25 @@ class BrowserSessionManager:
         # Lazy import: only needed when actually launching a real browser.
         from playwright.sync_api import sync_playwright
         pw = sync_playwright().start()
-        browser = pw.chromium.launch(headless=headless)
-        context = browser.new_context(accept_downloads=True)
+        if is_active("V4_BROWSER_PROFILE"):
+            profile_dir = os.path.join(tempfile.gettempdir(), "ai_browser_assist_profiles", execution_id)
+            os.makedirs(profile_dir, exist_ok=True)
+            context = pw.chromium.launch_persistent_context(profile_dir, headless=headless, accept_downloads=True)
+            browser = getattr(context, "browser", lambda: None)()
+        else:
+            browser = pw.chromium.launch(headless=headless)
+            context = browser.new_context(accept_downloads=True)
         context.set_default_timeout(self._timeout_ms)
         try:
             context.add_init_script(_WINDOW_OPEN_SHIM)   # capture window.open targets (additive)
         except Exception:
             pass
-        page = context.new_page()
+        existing_pages = []
+        try:
+            existing_pages = list(context.pages)
+        except Exception:
+            existing_pages = []
+        page = existing_pages[0] if existing_pages else context.new_page()
         return BrowserSession(
             execution_id, pw, browser, context, page,
             headless=headless, timeout_ms=self._timeout_ms, created_at=time.time(),

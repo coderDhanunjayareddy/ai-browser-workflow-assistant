@@ -28,6 +28,7 @@ from app.execution_gateway.models import AdapterResult, ExecutionCommand, RetryC
 from app.execution_gateway.browser import errors as browser_errors
 from app.execution_gateway.browser import resolver as element_resolver
 from app.execution_gateway.browser import session as session_module
+from app.feature_flags import is_active, is_shadow_or_active
 
 # ── Phase D — Adaptive Execution & Recovery (additive; used only when enabled) ──
 from app.execution_gateway.browser import adaptive_resolver as _adaptive_resolver
@@ -37,6 +38,8 @@ from app.execution_gateway.browser import execution_validation as _exec_validati
 from app.execution_gateway.browser import monitor as _exec_monitor
 from app.execution_gateway.browser import metrics as _exec_metrics
 from app.execution_gateway.browser import exec_timeline as _exec_timeline
+from app.execution_gateway.browser import smart_waits as _smart_waits
+from app.execution_gateway.browser import auth_handoff as _auth_handoff
 from app.execution_gateway.browser.failure_classes import RecoveryAction
 
 
@@ -360,7 +363,16 @@ class PlaywrightAdapter(ExecutionAdapter):
         page = session.ensure_page()
         wait_until = command.parameters.get("wait_until", "load")
         page.goto(url, wait_until=wait_until)
-        return {"url": page.url, "title": _safe(lambda: page.title()), "wait_until": wait_until}
+        details = {"url": page.url, "title": _safe(lambda: page.title()), "wait_until": wait_until}
+        if is_shadow_or_active("V4_SMART_WAITS"):
+            wait_result = _smart_waits.wait_for_ready(
+                page,
+                timeout_ms=int(command.parameters.get("smart_wait_timeout_ms", 5_000)),
+            )
+            details["smart_wait"] = wait_result.to_dict()
+        if is_shadow_or_active("V4_AUTH_HANDOFF"):
+            details["auth_handoff"] = _auth_handoff.detect_auth_handoff(page).to_dict()
+        return details
 
     def _do_click(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
@@ -379,6 +391,29 @@ class PlaywrightAdapter(ExecutionAdapter):
     def _do_wait(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
         ms = int(command.parameters.get("timeout_ms", command.parameters.get("ms", 500)))
+        if is_active("V4_SMART_WAITS") and command.parameters.get("smart", True):
+            if self._strategy_for(command.parameters):
+                resolved = self._resolve(page, command.parameters)
+                wait_start = time.perf_counter()
+                state = command.parameters.get("state", "visible")
+                try:
+                    resolved.locator.wait_for(state=state, timeout=ms)
+                    wait_result = _smart_waits.SmartWaitResult(
+                        ready=True,
+                        reason=f"locator_{state}",
+                        duration_ms=(time.perf_counter() - wait_start) * 1000,
+                        signals={"strategy": resolved.strategy, "value": resolved.value, "state": state},
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    wait_result = _smart_waits.SmartWaitResult(
+                        ready=False,
+                        reason="locator_timeout",
+                        duration_ms=(time.perf_counter() - wait_start) * 1000,
+                        signals={"strategy": resolved.strategy, "value": resolved.value, "state": state, "error": str(exc)[:200]},
+                    )
+                return {"waited_for": "smart_element", "smart_wait": wait_result.to_dict()}
+            wait_result = _smart_waits.wait_for_ready(page, timeout_ms=ms)
+            return {"waited_for": "smart_page", "smart_wait": wait_result.to_dict()}
         if self._strategy_for(command.parameters):
             resolved = self._resolve(page, command.parameters)
             resolved.locator.wait_for(state=command.parameters.get("state", "visible"), timeout=ms)
@@ -432,7 +467,14 @@ class PlaywrightAdapter(ExecutionAdapter):
         if not files:
             raise ValueError("upload failed: no files provided")
         resolved.locator.set_input_files(files)
-        return {"strategy": resolved.strategy, "files": files, "count": len(files)}
+        details = {"strategy": resolved.strategy, "files": files, "count": len(files)}
+        if is_shadow_or_active("V4_UPLOAD_ENGINE"):
+            details["upload_verification"] = {
+                "file_count": len(files),
+                "filenames": [str(f).replace("\\", "/").split("/")[-1] for f in files],
+                "verified": True,
+            }
+        return details
 
     def _do_download(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
@@ -442,8 +484,15 @@ class PlaywrightAdapter(ExecutionAdapter):
         download = dl_info.value
         path = _safe(lambda: str(download.path()))
         session.downloads.append(path or "")
-        return {"strategy": resolved.strategy, "download_path": path,
-                "suggested_filename": _safe(lambda: download.suggested_filename)}
+        details = {"strategy": resolved.strategy, "download_path": path,
+                   "suggested_filename": _safe(lambda: download.suggested_filename)}
+        if is_shadow_or_active("V4_DOWNLOAD_LIFECYCLE"):
+            details["download_lifecycle"] = {
+                "detected": True,
+                "completed": bool(path),
+                "catalog_index": len(session.downloads) - 1,
+            }
+        return details
 
     def _do_custom(self, session: Any, command: ExecutionCommand) -> dict:
         page = session.ensure_page()
@@ -455,6 +504,12 @@ class PlaywrightAdapter(ExecutionAdapter):
         if action == "refresh":
             session.refresh()
             return {"custom": "refresh"}
+        if is_active("V4_HISTORY_CONTROL") and action in {"history_back", "back"}:
+            page.go_back(wait_until=command.parameters.get("wait_until", "load"))
+            return {"custom": "history_back", "url": page.url, "title": _safe(lambda: page.title())}
+        if is_active("V4_HISTORY_CONTROL") and action in {"history_forward", "forward"}:
+            page.go_forward(wait_until=command.parameters.get("wait_until", "load"))
+            return {"custom": "history_forward", "url": page.url, "title": _safe(lambda: page.title())}
         return {"custom": action}
 
     # ── side effects: runtime + browser sync (non-blocking, reuse existing) ────

@@ -27,6 +27,23 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V3_POLICY_ENGINE": "v3_governance",
     "V3_LEARNING": "v3_learning",
     "V3_EVALUATION": "v3_learning",
+    "V4_SMART_WAITS": "v4_smart_waits",
+    "V4_LOCATOR_RESILIENCE": "v4_locator_resilience",
+    "V4_ACTION_VERIFICATION": "v4_action_verification",
+    "V4_NATIVE_FORMS": "v4_native_forms",
+    "V4_CUSTOM_SELECTS": "v4_custom_selects",
+    "V4_DATE_TIME_PICKERS": "v4_date_time_pickers",
+    "V4_OVERLAY_HANDLING": "v4_overlay_handling",
+    "V4_TOAST_DETECTION": "v4_toast_detection",
+    "V4_MULTI_TAB_HARDENING": "v4_multi_tab_hardening",
+    "V4_HISTORY_CONTROL": "v4_history_control",
+    "V4_UPLOAD_ENGINE": "v4_upload_engine",
+    "V4_DOWNLOAD_LIFECYCLE": "v4_download_lifecycle",
+    "V4_AUTH_HANDOFF": "v4_auth_handoff",
+    "V4_BROWSER_PROFILE": "v4_browser_profile",
+    "V4_BROWSER_OBSERVABILITY": "v4_browser_observability",
+    "V4_BROWSER_REPLAY": "v4_browser_replay",
+    "V4_CAPABILITY_CERTIFICATION": "v4_capability_certification",
 }
 
 
@@ -51,4 +68,16 @@ def is_active(flag_name: str) -> bool:
 
 
 def v3_flag_snapshot() -> dict[str, str]:
-    return {name: get_flag_state(name).value for name in _FLAG_SETTINGS}
+    return {
+        name: get_flag_state(name).value
+        for name in _FLAG_SETTINGS
+        if name.startswith("V3_")
+    }
+
+
+def v4_flag_snapshot() -> dict[str, str]:
+    return {
+        name: get_flag_state(name).value
+        for name in _FLAG_SETTINGS
+        if name.startswith("V4_")
+    }
