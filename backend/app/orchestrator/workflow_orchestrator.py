@@ -631,6 +631,30 @@ class WorkflowOrchestrator:
             page_context=page_context,
             prior_steps=planner_prior_steps,
         )
+        from app.execution_orchestrator import (
+            enrich_planner_context_with_orchestrator,
+            observe_execution_orchestrator,
+            postprocess_with_orchestrator,
+        )
+
+        orchestrator_snapshot = observe_execution_orchestrator(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+        )
+        from app.semantic_execution_kernel import (
+            enrich_planner_context_with_kernel,
+            observe_semantic_execution_kernel,
+            postprocess_with_kernel,
+        )
+
+        kernel_snapshot = observe_semantic_execution_kernel(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+        )
 
         compressed_context = self.context_compressor.compress(
             task=task,
@@ -647,6 +671,8 @@ class WorkflowOrchestrator:
                 browser_intelligence_artifact
             )
         compressed_context = enrich_planner_context(compressed_context, continuity_snapshot)
+        compressed_context = enrich_planner_context_with_orchestrator(compressed_context, orchestrator_snapshot)
+        compressed_context = enrich_planner_context_with_kernel(compressed_context, kernel_snapshot)
         self._build_context_packet_shadow(
             task=task,
             page_context=page_context,
@@ -671,6 +697,14 @@ class WorkflowOrchestrator:
                 compressed_context=compressed_context,
             )
             result = postprocess_planner_response(result, continuity_snapshot)
+            result = postprocess_with_orchestrator(result, orchestrator_snapshot)
+            result = postprocess_with_kernel(
+                result=result,
+                session_id=self.session_id,
+                task=task,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+            )
             self._record_v3_event(
                 "planner.responded",
                 {
@@ -681,6 +715,25 @@ class WorkflowOrchestrator:
                     "execution_continuity": (
                         continuity_snapshot.progress_validation.to_dict()
                         if continuity_snapshot is not None
+                        else None
+                    ),
+                    "semantic_execution_kernel": (
+                        {
+                            "entity_count": len(kernel_snapshot.entities),
+                            "current_goal_id": kernel_snapshot.mission_state.current_goal_id,
+                            "loop_detected": kernel_snapshot.loop_prevention.get("detected"),
+                        }
+                        if kernel_snapshot is not None
+                        else None
+                    ),
+                    "execution_orchestrator": (
+                        {
+                            "active_phase": orchestrator_snapshot.active_phase.name,
+                            "workflow_category": orchestrator_snapshot.workflow_category,
+                            "artifact_counts": orchestrator_snapshot.artifacts.counts(),
+                            "budget_exhausted": orchestrator_snapshot.budgets.exhausted,
+                        }
+                        if orchestrator_snapshot is not None
                         else None
                     ),
                 },

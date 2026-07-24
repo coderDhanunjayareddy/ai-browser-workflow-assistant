@@ -88,6 +88,8 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V46_VISUAL_GROUNDING": "v46_visual_grounding",
     "V46_BROWSER_HEALTH": "v46_browser_health",
     "V47_EXECUTION_CONTINUITY": "v47_execution_continuity",
+    "V47_SEMANTIC_EXECUTION_KERNEL": "v47_semantic_execution_kernel",
+    "V48_EXECUTION_ORCHESTRATOR": "v48_execution_orchestrator",
 }
 
 
@@ -123,5 +125,5 @@ def v4_flag_snapshot() -> dict[str, str]:
     return {
         name: get_flag_state(name).value
         for name in _FLAG_SETTINGS
-        if name.startswith("V4_") or name.startswith("V45_") or name.startswith("V46_") or name.startswith("V47_")
+        if name.startswith("V4_") or name.startswith("V45_") or name.startswith("V46_") or name.startswith("V47_") or name.startswith("V48_")
     }

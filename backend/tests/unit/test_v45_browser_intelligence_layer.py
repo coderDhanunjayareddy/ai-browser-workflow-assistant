@@ -355,3 +355,99 @@ def test_google_navigation_after_opened_result_focuses_existing_serp_tab():
     assert repaired.suggested_actions[0].value == (
         "url:https://www.google.com/search?q=best+AI+browser+automation+tools+2026"
     )
+
+
+def test_google_url_less_result_open_uses_cached_serp_results_from_other_tab():
+    task = "Open Google Search and search for: `best AI browser automation tools 2026`. Open the top 5 relevant results."
+    seed = AnalyzeResponse(
+        session_id="s-cache",
+        analysis="Open the first relevant search result.",
+        outcome_kind="act",
+        clarification_question=None,
+        report=None,
+        replan=None,
+        suggested_actions=[
+            SuggestedAction(
+                action_id="open_first",
+                action_type="click",  # type: ignore[arg-type]
+                target_selector="div > div > div > ul > li:nth-of-type(1) > a",
+                value=None,
+                description="Open the first relevant search result in a new tab.",
+                reasoning="Open result one.",
+                confidence=1.0,
+                safety_level="safe",  # type: ignore[arg-type]
+            )
+        ],
+    )
+    _postprocess_planner_response(
+        seed,
+        page_context=_google_serp_context_with_five_results(),
+        task=task,
+    )
+    response = AnalyzeResponse(
+        session_id="s-cache",
+        analysis="Open the third relevant result.",
+        outcome_kind="act",
+        clarification_question=None,
+        report=None,
+        replan=None,
+        suggested_actions=[
+            SuggestedAction(
+                action_id="open_third_without_url",
+                action_type="open_new_tab",  # type: ignore[arg-type]
+                target_selector="",
+                value=None,
+                description="Open the third relevant result in a new tab.",
+                reasoning="The third result is still needed.",
+                confidence=0.8,
+                safety_level="safe",  # type: ignore[arg-type]
+            )
+        ],
+    )
+
+    repaired = _postprocess_planner_response(
+        response,
+        page_context=PageContext(
+            url="https://www.firecrawl.dev/",
+            title="Firecrawl",
+            metadata={},
+            interactive_elements=[
+                InteractiveElement(
+                    type="a",
+                    selector="nav > a:nth-of-type(3)",
+                    text="Pricing",
+                    href="https://www.firecrawl.dev/pricing",
+                    visible=True,
+                )
+            ],
+            content_blocks=[
+                ContentBlock(
+                    selector="#pricing-copy",
+                    text="Firecrawl is free for 1,000 pages every month and has paid plans.",
+                    href="https://www.firecrawl.dev/pricing",
+                )
+            ],
+            headings=[],
+            selected_text="",
+            visible_text="Firecrawl is free for 1,000 pages every month and has paid plans.",
+            images=[],
+        ),
+        task=task,
+        prior_steps=[
+            PriorStep(
+                action_type="open_new_tab",
+                description="Open organic Google result #1",
+                value="https://tool1.example/",
+                execution_result="success",
+            ),
+            PriorStep(
+                action_type="open_new_tab",
+                description="Open organic Google result #2",
+                value="https://tool2.example/",
+                execution_result="success",
+            ),
+        ],
+    )
+
+    assert repaired.suggested_actions[0].action_type == "open_new_tab"
+    assert repaired.suggested_actions[0].value == "https://tool3.example/"

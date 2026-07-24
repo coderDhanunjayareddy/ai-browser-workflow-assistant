@@ -755,7 +755,7 @@ def _postprocess_planner_response(
     if direct_search is not None:
         return direct_search
 
-    if _is_google_serp(page_context) and _looks_like_search_result_open(action):
+    if _looks_like_search_result_open(action):
         repaired = _repair_google_result_open(result, action, page_context, task=task, prior_steps=prior_steps)
         if repaired is not None:
             return repaired
@@ -852,12 +852,17 @@ def _repair_google_result_open(
     task: str = "",
     prior_steps: list[PriorStep] | None = None,
 ) -> AnalyzeResponse | None:
-    try:
-        from app.browser_intelligence.adapters import GoogleSearchAdapter
+    if _is_google_serp(page_context):
+        try:
+            from app.browser_intelligence.adapters import GoogleSearchAdapter
 
-        results = GoogleSearchAdapter().getOrganicResults(page_context)
-    except Exception:
-        results = []
+            results = GoogleSearchAdapter().getOrganicResults(page_context)
+        except Exception:
+            results = []
+        if results:
+            _remember_search_results(result.session_id, task, results)
+    else:
+        results = _cached_search_results(result.session_id, task)
 
     rank = _extract_result_rank(action)
     if rank is None:
@@ -868,9 +873,9 @@ def _repair_google_result_open(
     if results:
         if not (0 <= target_index < len(results)):
             target_index = 0
-        if _normalize_url_for_memory(results[target_index].url) in opened_urls:
+        if _normalize_url_for_memory(_search_result_url(results[target_index])) in opened_urls:
             for index, candidate in enumerate(results):
-                if _normalize_url_for_memory(candidate.url) not in opened_urls:
+                if _normalize_url_for_memory(_search_result_url(candidate)) not in opened_urls:
                     target_index = index
                     break
             else:
@@ -879,7 +884,9 @@ def _repair_google_result_open(
     if results and 0 <= target_index < len(results):
         target = results[target_index]
         repaired_rank = target_index + 1
-        _remember_opened_search_url(result.session_id, task, target.url)
+        target_url = _search_result_url(target)
+        target_title = _search_result_title(target)
+        _remember_opened_search_url(result.session_id, task, target_url)
         return AnalyzeResponse(
             session_id=result.session_id,
             analysis=(
@@ -895,8 +902,8 @@ def _repair_google_result_open(
                     action_id=f"open_google_organic_result_{repaired_rank}",
                     action_type="open_new_tab",  # type: ignore[arg-type]
                     target_selector="",
-                    value=target.url,
-                    description=f"Open organic Google result #{repaired_rank}: {target.title}",
+                    value=target_url,
+                    description=f"Open organic Google result #{repaired_rank}: {target_title}",
                     reasoning=(
                         "Google search results must be opened via the extracted external URL; "
                         "AI Overview, ads, Google navigation, and invented selectors are ignored."
@@ -907,7 +914,7 @@ def _repair_google_result_open(
             ],
         )
 
-    if not results:
+    if not results and _is_google_serp(page_context):
         return AnalyzeResponse(
             session_id=result.session_id,
             analysis=(
@@ -931,6 +938,9 @@ def _repair_google_result_open(
                 )
             ],
         )
+
+    if not results:
+        return None
 
     return AnalyzeResponse(
         session_id=result.session_id,
@@ -1015,6 +1025,41 @@ def _opened_search_urls(
     return {url for url in urls if url}
 
 
+def _remember_search_results(session_id: str, task: str, results: Iterable[Any]) -> None:
+    key = _search_memory_key(session_id, task)
+    if not key:
+        return
+    ranked: list[dict[str, str | int]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(results, 1):
+        url = _search_result_url(item)
+        normalized = _normalize_url_for_memory(url)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        ranked.append({
+            "rank": int(getattr(item, "rank", index) if not isinstance(item, dict) else item.get("rank", index)),
+            "title": _search_result_title(item),
+            "url": url,
+        })
+    if not ranked:
+        return
+    entry = _SEARCH_RESULT_OPEN_MEMORY.setdefault(key, {"urls": set(), "updated_at": time.time()})
+    entry["results"] = ranked[:20]
+    entry["updated_at"] = time.time()
+
+
+def _cached_search_results(session_id: str, task: str) -> list[dict[str, str | int]]:
+    key = _search_memory_key(session_id, task)
+    if not key:
+        return []
+    entry = _SEARCH_RESULT_OPEN_MEMORY.get(key, {})
+    cached = entry.get("results", [])
+    if isinstance(cached, list):
+        return [item for item in cached if isinstance(item, dict) and item.get("url")]
+    return []
+
+
 def _iter_opened_urls_from_prior_steps(prior_steps: Iterable[PriorStep]) -> Iterable[str]:
     for step in prior_steps:
         if (step.action_type or "").lower() != "open_new_tab":
@@ -1034,6 +1079,18 @@ def _remember_opened_search_url(session_id: str, task: str, value: str | None) -
     entry = _SEARCH_RESULT_OPEN_MEMORY.setdefault(key, {"urls": set(), "updated_at": time.time()})
     entry["urls"].add(_normalize_url_for_memory(url))
     entry["updated_at"] = time.time()
+
+
+def _search_result_url(result: Any) -> str:
+    if isinstance(result, dict):
+        return str(result.get("url") or "")
+    return str(getattr(result, "url", "") or "")
+
+
+def _search_result_title(result: Any) -> str:
+    if isinstance(result, dict):
+        return str(result.get("title") or result.get("url") or "search result")
+    return str(getattr(result, "title", "") or getattr(result, "url", "") or "search result")
 
 
 def _normalize_url_for_memory(url: str | None) -> str:

@@ -132,6 +132,8 @@ class Settings(BaseSettings):
     # Shadow records deterministic continuity state only. Active enriches planner
     # context and can return Planner Contract V2 replan outcomes for detected loops.
     v47_execution_continuity: str = "shadow"
+    v47_semantic_execution_kernel: str = "shadow"
+    v48_execution_orchestrator: str = "shadow"
 
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.
