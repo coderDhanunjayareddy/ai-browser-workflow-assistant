@@ -59,6 +59,26 @@ function errMsg(err: unknown): string {
   return String(err)
 }
 
+function formatErrorDetail(detail: unknown, fallback: string): string {
+  if (detail == null) return fallback
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail.map((item) => formatErrorDetail(item, fallback)).join(' | ')
+  }
+  if (typeof detail === 'object') {
+    const item = detail as Record<string, unknown>
+    if (typeof item.message === 'string') return item.message
+    if (typeof item.reason === 'string') return item.reason
+    if (typeof item.error === 'string') return item.error
+    try {
+      return JSON.stringify(detail)
+    } catch {
+      return fallback
+    }
+  }
+  return String(detail)
+}
+
 // Phase describes what the workflow engine is currently doing.
 export type WorkflowPhase =
   | 'idle'         // Nothing started yet
@@ -835,7 +855,7 @@ export function useWorkflow() {
           ? errBody.detail.map((e: { msg?: string; loc?: string[] }) =>
               `${(e.loc ?? []).slice(-1)[0] ?? 'field'}: ${e.msg ?? JSON.stringify(e)}`
             ).join(' | ')
-          : (errBody.detail ?? `HTTP ${response.status}`)
+          : formatErrorDetail(errBody.detail, `HTTP ${response.status}`)
         throw new Error(detail)
       }
       const result: AnalyzeResponse = await response.json()

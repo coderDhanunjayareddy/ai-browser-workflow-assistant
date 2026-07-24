@@ -7,7 +7,12 @@ from app.core.database import get_db
 from app.product.dependencies import ProductPrincipal, current_principal
 from app.product.repositories import ProductRepository
 from app.product.schemas import (
+    AdvancedAuditOut,
+    AdminPortalOut,
     AnalyticsOut,
+    ApiKeyCreate,
+    ApiKeyCreateOut,
+    ApiKeyOut,
     AuditOut,
     AssistantAssignRequest,
     AssistantAssignmentOut,
@@ -15,11 +20,25 @@ from app.product.schemas import (
     AssistantOut,
     AssistantUpdate,
     AssistantVersionOut,
+    BillingPlanOut,
+    BillingSettingsOut,
+    BillingSettingsUpdate,
+    BudgetAlertCreate,
+    BudgetAlertOut,
+    ComplianceExportCreate,
+    ComplianceExportOut,
+    EntitlementOut,
+    GovernanceDashboardOut,
+    GovernanceSettingsUpdate,
+    GovernanceWorkflowCreate,
+    GovernanceWorkflowOut,
     IntegrationCatalogOut,
     IntegrationConnectRequest,
     IntegrationConnectionOut,
     IntegrationHealthOut,
     IntegrationHealthRequest,
+    InvoiceCreate,
+    InvoiceOut,
     InvitationCreate,
     InvitationOut,
     LoginRequest,
@@ -32,10 +51,23 @@ from app.product.schemas import (
     ReplayShareOut,
     ResourceVersionCreate,
     ResourceVersionOut,
+    RetentionRuleCreate,
+    RetentionRuleOut,
     SavedTaskCreate,
     SavedTaskOut,
     SavedTaskUpdate,
     SettingsUpdate,
+    ScimConfigOut,
+    ScimConfigUpdate,
+    ScimSyncCreate,
+    ScimSyncOut,
+    SecurityDashboardOut,
+    SecurityPolicyCreate,
+    SecurityPolicyOut,
+    SsoConfigOut,
+    SsoConfigUpdate,
+    SubscriptionCreate,
+    SubscriptionOut,
     TaskRunRequest,
     TeamActivityOut,
     TeamCreate,
@@ -51,6 +83,7 @@ from app.product.schemas import (
     TokenResponse,
     UsageDashboardOut,
     UsageRecordCreate,
+    UsageRollupOut,
     UserOut,
     WorkflowCreate,
     WorkflowOut,
@@ -60,24 +93,40 @@ from app.product.schemas import (
     WorkspaceOut,
 )
 from app.product.serializers import (
-    audit_out,
+    advanced_audit_out,
     assistant_assignment_out,
     assistant_out,
     assistant_version_out,
+    api_key_out,
+    audit_out,
+    billing_plan_out,
+    billing_settings_out,
+    budget_alert_out,
+    compliance_export_out,
+    entitlement_out,
+    governance_workflow_out,
     integration_catalog_out,
     integration_connection_out,
     integration_health_out,
     invitation_out,
+    invoice_out,
     notification_out,
     org_out,
     replay_share_out,
     resource_version_out,
+    retention_rule_out,
     saved_task_out,
+    scim_config_out,
+    scim_sync_out,
+    security_policy_out,
+    sso_config_out,
     team_activity_out,
     team_member_out,
     team_out,
     template_out,
     template_version_out,
+    subscription_out,
+    usage_rollup_out,
     user_out,
     workflow_out,
     workspace_share_out,
@@ -427,6 +476,210 @@ def create_usage_record(payload: UsageRecordCreate, principal: ProductPrincipal 
 @router.get("/usage", response_model=UsageDashboardOut)
 def usage_dashboard(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
     return ProductService(db).usage_dashboard(user=principal.user, org_id=org_id)
+
+
+@router.get("/billing/plans", response_model=list[BillingPlanOut])
+def billing_plans(db: Session = Depends(get_db)) -> list[dict]:
+    return [billing_plan_out(plan) for plan in ProductRepository(db).ensure_billing_plans()]
+
+
+@router.post("/billing/subscriptions", response_model=SubscriptionOut)
+def create_subscription(payload: SubscriptionCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return subscription_out(ProductService(db).create_subscription(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/billing/subscription", response_model=SubscriptionOut | None)
+def get_subscription(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict | None:
+    service = ProductService(db)
+    service.require_org_member(principal.user.id, org_id)
+    subscription = service.repo.get_subscription(org_id)
+    return subscription_out(subscription) if subscription else None
+
+
+@router.patch("/billing/settings", response_model=BillingSettingsOut)
+def update_billing_settings(payload: BillingSettingsUpdate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return billing_settings_out(ProductService(db).update_billing_settings(user=principal.user, data=payload.model_dump()))
+
+
+@router.post("/billing/invoices", response_model=InvoiceOut)
+def create_invoice(payload: InvoiceCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return invoice_out(ProductService(db).create_invoice(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/billing/invoices", response_model=list[InvoiceOut])
+def list_invoices(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_member(principal.user.id, org_id)
+    return [invoice_out(invoice) for invoice in service.repo.list_invoices(org_id=org_id)]
+
+
+@router.post("/api-keys", response_model=ApiKeyCreateOut)
+def create_api_key(payload: ApiKeyCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    key, secret = ProductService(db).create_api_key(user=principal.user, data=payload.model_dump())
+    return {"api_key": api_key_out(key), "secret": secret}
+
+
+@router.get("/api-keys", response_model=list[ApiKeyOut])
+def list_api_keys(principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    repo = ProductRepository(db)
+    orgs = repo.list_user_orgs(principal.user.id)
+    return [api_key_out(key) for key in repo.list_api_keys(org_ids=[org.id for org in orgs])]
+
+
+@router.post("/api-keys/{key_id}/rotate", response_model=ApiKeyCreateOut)
+def rotate_api_key(key_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    key, secret = ProductService(db).rotate_api_key(user=principal.user, key_id=key_id)
+    return {"api_key": api_key_out(key), "secret": secret}
+
+
+@router.post("/api-keys/{key_id}/revoke", response_model=ApiKeyOut)
+def revoke_api_key(key_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return api_key_out(ProductService(db).revoke_api_key(user=principal.user, key_id=key_id))
+
+
+@router.post("/api-keys/{key_id}/touch", response_model=ApiKeyOut)
+def touch_api_key(key_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return api_key_out(ProductService(db).touch_api_key(user=principal.user, key_id=key_id))
+
+
+@router.get("/entitlements", response_model=EntitlementOut)
+def entitlements(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return entitlement_out(ProductService(db).entitlement_snapshot(user=principal.user, org_id=org_id))
+
+
+@router.get("/usage/rollups", response_model=list[UsageRollupOut])
+def usage_rollups(org_id: str, period: str | None = None, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_member(principal.user.id, org_id)
+    return [usage_rollup_out(rollup) for rollup in service.repo.list_usage_rollups(org_id=org_id, period=period)]
+
+
+@router.post("/budget-alerts", response_model=BudgetAlertOut)
+def create_budget_alert(payload: BudgetAlertCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return budget_alert_out(ProductService(db).create_budget_alert(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/budget-alerts", response_model=list[BudgetAlertOut])
+def list_budget_alerts(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_member(principal.user.id, org_id)
+    return [budget_alert_out(alert) for alert in service.repo.list_budget_alerts(org_id=org_id)]
+
+
+@router.patch("/enterprise/sso", response_model=SsoConfigOut)
+def update_sso(payload: SsoConfigUpdate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return sso_config_out(ProductService(db).update_sso_configuration(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/enterprise/sso", response_model=SsoConfigOut | None)
+def get_sso(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict | None:
+    service = ProductService(db)
+    service.require_org_role(principal.user.id, org_id, {"owner", "admin"})
+    config = service.repo.get_sso_configuration(org_id=org_id)
+    return sso_config_out(config) if config else None
+
+
+@router.patch("/enterprise/scim", response_model=ScimConfigOut)
+def update_scim(payload: ScimConfigUpdate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return scim_config_out(ProductService(db).update_scim_configuration(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/enterprise/scim", response_model=ScimConfigOut | None)
+def get_scim(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict | None:
+    service = ProductService(db)
+    service.require_org_role(principal.user.id, org_id, {"owner", "admin"})
+    config = service.repo.get_scim_configuration(org_id=org_id)
+    return scim_config_out(config) if config else None
+
+
+@router.post("/enterprise/scim/sync-events", response_model=ScimSyncOut)
+def create_scim_sync(payload: ScimSyncCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return scim_sync_out(ProductService(db).create_scim_sync_event(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/enterprise/scim/sync-events", response_model=list[ScimSyncOut])
+def list_scim_sync(org_id: str, limit: int = Query(default=50, ge=1, le=100), principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_role(principal.user.id, org_id, {"owner", "admin"})
+    return [scim_sync_out(event) for event in service.repo.list_scim_sync_events(org_id=org_id, limit=limit)]
+
+
+@router.get("/enterprise/audit", response_model=list[AdvancedAuditOut])
+def advanced_audit(
+    org_id: str,
+    event_type: str = "",
+    risk: str = "",
+    actor_user_id: str = "",
+    resource_type: str = "",
+    limit: int = Query(default=50, ge=1, le=200),
+    principal: ProductPrincipal = Depends(current_principal),
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_role(principal.user.id, org_id, {"owner", "admin"})
+    return [advanced_audit_out(record) for record in service.repo.search_advanced_audit_records(org_id=org_id, event_type=event_type, risk=risk, actor_user_id=actor_user_id, resource_type=resource_type, limit=limit)]
+
+
+@router.get("/enterprise/security-dashboard", response_model=SecurityDashboardOut)
+def security_dashboard(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return ProductService(db).security_dashboard(user=principal.user, org_id=org_id)
+
+
+@router.post("/enterprise/security-policies", response_model=SecurityPolicyOut)
+def create_security_policy(payload: SecurityPolicyCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return security_policy_out(ProductService(db).create_security_policy(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/enterprise/security-policies", response_model=list[SecurityPolicyOut])
+def list_security_policies(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_role(principal.user.id, org_id, {"owner", "admin"})
+    return [security_policy_out(policy) for policy in service.repo.list_security_policies(org_id=org_id)]
+
+
+@router.post("/enterprise/compliance-exports", response_model=ComplianceExportOut)
+def create_compliance_export(payload: ComplianceExportCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return compliance_export_out(ProductService(db).create_compliance_export(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/enterprise/compliance-exports", response_model=list[ComplianceExportOut])
+def list_compliance_exports(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_role(principal.user.id, org_id, {"owner", "admin"})
+    return [compliance_export_out(export) for export in service.repo.list_compliance_exports(org_id=org_id)]
+
+
+@router.post("/enterprise/retention-rules", response_model=RetentionRuleOut)
+def create_retention_rule(payload: RetentionRuleCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return retention_rule_out(ProductService(db).create_retention_rule(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/enterprise/retention-rules", response_model=list[RetentionRuleOut])
+def list_retention_rules(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_role(principal.user.id, org_id, {"owner", "admin"})
+    return [retention_rule_out(rule) for rule in service.repo.list_retention_rules(org_id=org_id)]
+
+
+@router.get("/enterprise/admin-portal", response_model=AdminPortalOut)
+def admin_portal(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return ProductService(db).admin_portal(user=principal.user, org_id=org_id)
+
+
+@router.patch("/enterprise/governance/settings")
+def update_governance_settings(payload: GovernanceSettingsUpdate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    settings = ProductService(db).update_governance_settings(user=principal.user, data=payload.model_dump())
+    return {"org_id": settings.org_id, "settings": settings.settings_json, "v3_governance_ref": settings.v3_governance_ref}
+
+
+@router.post("/enterprise/governance/workflows", response_model=GovernanceWorkflowOut)
+def create_governance_workflow(payload: GovernanceWorkflowCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return governance_workflow_out(ProductService(db).create_governance_workflow(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/enterprise/governance-dashboard", response_model=GovernanceDashboardOut)
+def governance_dashboard(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return ProductService(db).governance_dashboard(user=principal.user, org_id=org_id)
 
 
 @router.get("/audit-logs", response_model=list[AuditOut])

@@ -261,3 +261,115 @@ def test_v5_phase3_collaboration_assistants_integrations_analytics_and_usage(cli
     usage = client.get(f"/v5/usage?org_id={org['id']}", headers=headers).json()
     assert usage["totals"]["token_usage"] == 150
     assert usage["totals"]["api_usage"] == 3
+
+
+def test_v5_phase4_billing_api_keys_entitlements_metering_and_budget_alerts(client: TestClient):
+    token, _ = register(client, "phase4@example.test")
+    headers = auth_headers(token)
+    org = client.post("/v5/orgs", json={"name": "Phase Four"}, headers=headers).json()
+    workspace = client.post("/v5/workspaces", json={"org_id": org["id"], "name": "Platform APIs"}, headers=headers).json()
+
+    plans = client.get("/v5/billing/plans", headers=headers).json()
+    assert {plan["plan_key"] for plan in plans} == {"free", "pro", "team", "enterprise"}
+    subscription = client.post("/v5/billing/subscriptions", json={"org_id": org["id"], "plan_key": "team", "seat_count": 3, "trial": True}, headers=headers).json()
+    assert subscription["status"] == "trialing"
+    assert subscription["seat_count"] == 3
+    assert client.get(f"/v5/billing/subscription?org_id={org['id']}", headers=headers).json()["plan_key"] == "team"
+
+    settings = client.patch("/v5/billing/settings", json={"org_id": org["id"], "billing_email": "billing@example.test", "tax_metadata": {"country": "US"}}, headers=headers).json()
+    assert settings["billing_email"] == "billing@example.test"
+    invoice = client.post("/v5/billing/invoices", json={"org_id": org["id"], "amount_due_cents": 12345, "line_items": [{"label": "Seats", "amount_cents": 12345}]}, headers=headers).json()
+    assert invoice["amount_due_cents"] == 12345
+    assert client.get(f"/v5/billing/invoices?org_id={org['id']}", headers=headers).json()[0]["invoice_number"] == invoice["invoice_number"]
+
+    created_key = client.post("/v5/api-keys", json={"org_id": org["id"], "workspace_id": workspace["id"], "name": "CI key", "scopes": ["workflow:run"]}, headers=headers).json()
+    assert created_key["secret"].startswith("v5_")
+    key = created_key["api_key"]
+    assert key["key_preview"].startswith("v5_")
+    assert "..." in key["key_preview"]
+    assert "key_hash" not in key
+    touched = client.post(f"/v5/api-keys/{key['id']}/touch", headers=headers).json()
+    assert touched["usage_count"] == 1
+    rotated = client.post(f"/v5/api-keys/{key['id']}/rotate", headers=headers).json()
+    assert rotated["secret"].startswith("v5_")
+    revoked = client.post(f"/v5/api-keys/{rotated['api_key']['id']}/revoke", headers=headers).json()
+    assert revoked["status"] == "revoked"
+
+    client.post("/v5/usage/records", json={"org_id": org["id"], "workspace_id": workspace["id"], "usage_type": "token_usage", "quantity": 250, "unit": "tokens"}, headers=headers)
+    rollups = client.get(f"/v5/usage/rollups?org_id={org['id']}", headers=headers).json()
+    assert {rollup["usage_type"] for rollup in rollups} >= {"api_usage", "token_usage"}
+    entitlement = client.get(f"/v5/entitlements?org_id={org['id']}", headers=headers).json()
+    assert entitlement["plan_key"] == "team"
+    assert entitlement["enforcement"]["runtime_enforced"] is False
+
+    alert = client.post("/v5/budget-alerts", json={"org_id": org["id"], "workspace_id": workspace["id"], "name": "Monthly API budget", "monthly_budget_cents": 5000, "threshold_percent": 80}, headers=headers).json()
+    assert alert["monthly_budget_cents"] == 5000
+    assert client.get(f"/v5/budget-alerts?org_id={org['id']}", headers=headers).json()[0]["id"] == alert["id"]
+    notifications = client.get("/v5/notifications", headers=headers).json()
+    assert "budget_alert.created" in {item["event_type"] for item in notifications}
+
+
+def test_v5_phase5_enterprise_readiness_admin_security_and_governance(client: TestClient):
+    token, _ = register(client, "phase5@example.test")
+    headers = auth_headers(token)
+    org = client.post("/v5/orgs", json={"name": "Phase Five"}, headers=headers).json()
+    workspace = client.post("/v5/workspaces", json={"org_id": org["id"], "name": "Enterprise"}, headers=headers).json()
+
+    sso = client.patch("/v5/enterprise/sso", json={
+        "org_id": org["id"],
+        "saml_metadata": {"entity_id": "stub-saml"},
+        "oidc_metadata": {"issuer": "stub-issuer"},
+        "idp_metadata": {"provider": "stub"},
+        "login_policy": {"mode": "sso_required"},
+        "domain_verification": {"domain": "example.test", "status": "verified"},
+        "enforce_sso": True,
+    }, headers=headers).json()
+    assert sso["enforce_sso"] is True
+    assert client.get(f"/v5/enterprise/sso?org_id={org['id']}", headers=headers).json()["provider_mode"] == "stub"
+
+    scim = client.patch("/v5/enterprise/scim", json={
+        "org_id": org["id"],
+        "base_url": "https://scim.example.test/v2",
+        "bearer_token": "secret-token",
+        "user_mapping": {"email": "userName"},
+        "group_mapping": {"name": "displayName"},
+    }, headers=headers).json()
+    assert scim["provisioning_status"] == "enabled"
+    assert "bearer_token_hash" not in scim
+    sync = client.post("/v5/enterprise/scim/sync-events", json={"org_id": org["id"], "resource_type": "user", "external_id": "u-1", "action": "provision"}, headers=headers).json()
+    assert sync["action"] == "provision"
+
+    policy = client.post("/v5/enterprise/security-policies", json={
+        "org_id": org["id"],
+        "workspace_id": workspace["id"],
+        "policy_type": "mfa",
+        "name": "Require MFA",
+        "rules": {"mfa_required": True, "session_timeout_minutes": 60},
+    }, headers=headers).json()
+    assert policy["current_version"] == 1
+    assert client.get(f"/v5/enterprise/security-policies?org_id={org['id']}", headers=headers).json()[0]["id"] == policy["id"]
+
+    export = client.post("/v5/enterprise/compliance-exports", json={"org_id": org["id"], "export_type": "audit_logs", "filters": {"risk": "high"}}, headers=headers).json()
+    assert export["status"] == "completed"
+    assert export["artifact_ref"].startswith("stub-export:")
+    retention = client.post("/v5/enterprise/retention-rules", json={"org_id": org["id"], "workspace_id": workspace["id"], "data_type": "replay_metadata", "retention_days": 90}, headers=headers).json()
+    assert retention["retention_days"] == 90
+
+    client.patch("/v5/enterprise/governance/settings", json={"org_id": org["id"], "settings": {"high_risk_requires_approval": True}}, headers=headers)
+    workflow = client.post("/v5/enterprise/governance/workflows", json={"org_id": org["id"], "workspace_id": workspace["id"], "name": "High risk approval", "trigger_policy": {"risk": "high"}, "approver_rules": {"role": "admin"}}, headers=headers).json()
+    assert workflow["status"] == "active"
+    governance = client.get(f"/v5/enterprise/governance-dashboard?org_id={org['id']}", headers=headers).json()
+    assert governance["v3_governance_ref"] == "v3-governance"
+    assert governance["approval_workflows"][0]["name"] == "High risk approval"
+
+    security = client.get(f"/v5/enterprise/security-dashboard?org_id={org['id']}", headers=headers).json()
+    assert security["security_score"] < 100
+    assert security["risk_summary"]["high"] >= 1
+    audit = client.get(f"/v5/enterprise/audit?org_id={org['id']}&risk=high", headers=headers).json()
+    assert any(record["event_type"] == "compliance.export.created" for record in audit)
+    assert audit[0]["immutable_hash"]
+
+    admin = client.get(f"/v5/enterprise/admin-portal?org_id={org['id']}", headers=headers).json()
+    assert admin["users"] == 1
+    assert admin["workspaces"] == 1
+    assert admin["feature_flags"]["enterprise_governance"] == "metadata_only"

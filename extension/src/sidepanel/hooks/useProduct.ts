@@ -130,6 +130,63 @@ export interface ProductIntegrationCatalogItem {
   status: string
 }
 
+export interface ProductPlan {
+  plan_key: string
+  name: string
+  monthly_price_cents: number
+  limits: Record<string, unknown>
+  entitlements: Record<string, unknown>
+}
+
+export interface ProductSubscription {
+  id: string
+  org_id: string
+  plan_key: string
+  status: string
+  seat_count: number
+}
+
+export interface ProductApiKey {
+  id: string
+  name: string
+  key_preview: string
+  scopes: string[]
+  status: string
+  usage_count: number
+}
+
+export interface ProductInvoice {
+  id: string
+  invoice_number: string
+  status: string
+  amount_due_cents: number
+  issued_at: string
+}
+
+export interface ProductBudgetAlert {
+  id: string
+  name: string
+  monthly_budget_cents: number
+  threshold_percent: number
+  status: string
+}
+
+export interface ProductSecurityPolicy {
+  id: string
+  name: string
+  policy_type: string
+  status: string
+  current_version: number
+}
+
+export interface ProductComplianceExport {
+  id: string
+  export_type: string
+  status: string
+  artifact_ref: string
+  created_at: string
+}
+
 async function parseJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail = `HTTP ${res.status}`
@@ -161,6 +218,21 @@ export function useProduct() {
   const [integrations, setIntegrations] = useState<ProductIntegration[]>([])
   const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null)
   const [usage, setUsage] = useState<Record<string, unknown> | null>(null)
+  const [plans, setPlans] = useState<ProductPlan[]>([])
+  const [subscription, setSubscription] = useState<ProductSubscription | null>(null)
+  const [apiKeys, setApiKeys] = useState<ProductApiKey[]>([])
+  const [invoices, setInvoices] = useState<ProductInvoice[]>([])
+  const [budgetAlerts, setBudgetAlerts] = useState<ProductBudgetAlert[]>([])
+  const [entitlements, setEntitlements] = useState<Record<string, unknown> | null>(null)
+  const [lastApiSecret, setLastApiSecret] = useState('')
+  const [ssoConfig, setSsoConfig] = useState<Record<string, unknown> | null>(null)
+  const [scimConfig, setScimConfig] = useState<Record<string, unknown> | null>(null)
+  const [securityDashboard, setSecurityDashboard] = useState<Record<string, unknown> | null>(null)
+  const [securityPolicies, setSecurityPolicies] = useState<ProductSecurityPolicy[]>([])
+  const [complianceExports, setComplianceExports] = useState<ProductComplianceExport[]>([])
+  const [adminPortal, setAdminPortal] = useState<Record<string, unknown> | null>(null)
+  const [governanceDashboard, setGovernanceDashboard] = useState<Record<string, unknown> | null>(null)
+  const [advancedAudit, setAdvancedAudit] = useState<Array<Record<string, unknown>>>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -186,7 +258,7 @@ export function useProduct() {
     setLoading(true)
     setError(null)
     try {
-      const [me, orgList, workspaceList, workflowList, taskList, templateList, notificationList, assistantList, catalogList, integrationList] = await Promise.all([
+      const [me, orgList, workspaceList, workflowList, taskList, templateList, notificationList, assistantList, catalogList, integrationList, planList, apiKeyList] = await Promise.all([
         authedFetch<ProductUser>('/v5/me'),
         authedFetch<ProductOrg[]>('/v5/orgs'),
         authedFetch<ProductWorkspace[]>('/v5/workspaces'),
@@ -197,6 +269,8 @@ export function useProduct() {
         authedFetch<ProductAssistant[]>('/v5/assistants?limit=20'),
         authedFetch<ProductIntegrationCatalogItem[]>('/v5/integrations/catalog'),
         authedFetch<ProductIntegration[]>('/v5/integrations/connections'),
+        authedFetch<ProductPlan[]>('/v5/billing/plans'),
+        authedFetch<ProductApiKey[]>('/v5/api-keys'),
       ])
       setUser(me)
       setOrgs(orgList)
@@ -208,15 +282,41 @@ export function useProduct() {
       setAssistants(assistantList)
       setIntegrationCatalog(catalogList)
       setIntegrations(integrationList)
+      setPlans(planList)
+      setApiKeys(apiKeyList)
       if (orgList[0]) {
-        const [teamList, analyticsData, usageData] = await Promise.all([
+        const [teamList, analyticsData, usageData, subscriptionData, invoiceList, budgetList, entitlementData, ssoData, scimData, securityData, policyList, exportList, adminData, governanceData, auditData] = await Promise.all([
           authedFetch<ProductTeam[]>(`/v5/orgs/${orgList[0].id}/teams`),
           authedFetch<Record<string, unknown>>(`/v5/analytics?org_id=${orgList[0].id}`),
           authedFetch<Record<string, unknown>>(`/v5/usage?org_id=${orgList[0].id}`),
+          authedFetch<ProductSubscription | null>(`/v5/billing/subscription?org_id=${orgList[0].id}`),
+          authedFetch<ProductInvoice[]>(`/v5/billing/invoices?org_id=${orgList[0].id}`),
+          authedFetch<ProductBudgetAlert[]>(`/v5/budget-alerts?org_id=${orgList[0].id}`),
+          authedFetch<Record<string, unknown>>(`/v5/entitlements?org_id=${orgList[0].id}`),
+          authedFetch<Record<string, unknown> | null>(`/v5/enterprise/sso?org_id=${orgList[0].id}`),
+          authedFetch<Record<string, unknown> | null>(`/v5/enterprise/scim?org_id=${orgList[0].id}`),
+          authedFetch<Record<string, unknown>>(`/v5/enterprise/security-dashboard?org_id=${orgList[0].id}`),
+          authedFetch<ProductSecurityPolicy[]>(`/v5/enterprise/security-policies?org_id=${orgList[0].id}`),
+          authedFetch<ProductComplianceExport[]>(`/v5/enterprise/compliance-exports?org_id=${orgList[0].id}`),
+          authedFetch<Record<string, unknown>>(`/v5/enterprise/admin-portal?org_id=${orgList[0].id}`),
+          authedFetch<Record<string, unknown>>(`/v5/enterprise/governance-dashboard?org_id=${orgList[0].id}`),
+          authedFetch<Array<Record<string, unknown>>>(`/v5/enterprise/audit?org_id=${orgList[0].id}`),
         ])
         setTeams(teamList)
         setAnalytics(analyticsData)
         setUsage(usageData)
+        setSubscription(subscriptionData)
+        setInvoices(invoiceList)
+        setBudgetAlerts(budgetList)
+        setEntitlements(entitlementData)
+        setSsoConfig(ssoData)
+        setScimConfig(scimData)
+        setSecurityDashboard(securityData)
+        setSecurityPolicies(policyList)
+        setComplianceExports(exportList)
+        setAdminPortal(adminData)
+        setGovernanceDashboard(governanceData)
+        setAdvancedAudit(auditData)
       }
     } catch (err) {
       setError(String(err))
@@ -290,6 +390,21 @@ export function useProduct() {
     setIntegrations([])
     setAnalytics(null)
     setUsage(null)
+    setPlans([])
+    setSubscription(null)
+    setApiKeys([])
+    setInvoices([])
+    setBudgetAlerts([])
+    setEntitlements(null)
+    setLastApiSecret('')
+    setSsoConfig(null)
+    setScimConfig(null)
+    setSecurityDashboard(null)
+    setSecurityPolicies([])
+    setComplianceExports([])
+    setAdminPortal(null)
+    setGovernanceDashboard(null)
+    setAdvancedAudit([])
   }, [authedFetch, token])
 
   const createOrg = useCallback(async (name: string) => {
@@ -452,6 +567,76 @@ export function useProduct() {
     await refresh()
   }, [authedFetch, refresh])
 
+  const subscribe = useCallback(async (orgId: string, planKey: string, seatCount: number) => {
+    const data = await authedFetch<ProductSubscription>('/v5/billing/subscriptions', { method: 'POST', body: JSON.stringify({ org_id: orgId, plan_key: planKey, seat_count: seatCount, trial: planKey === 'free' }) })
+    setSubscription(data)
+    return data
+  }, [authedFetch])
+
+  const createInvoice = useCallback(async (orgId: string, amountDueCents: number) => {
+    const invoice = await authedFetch<ProductInvoice>('/v5/billing/invoices', { method: 'POST', body: JSON.stringify({ org_id: orgId, amount_due_cents: amountDueCents, line_items: [{ label: 'Stub platform charges', amount_cents: amountDueCents }] }) })
+    setInvoices((items) => [invoice, ...items])
+    return invoice
+  }, [authedFetch])
+
+  const createApiKey = useCallback(async (orgId: string, workspaceId: string | undefined, name: string) => {
+    const data = await authedFetch<{ api_key: ProductApiKey, secret: string }>('/v5/api-keys', { method: 'POST', body: JSON.stringify({ org_id: orgId, workspace_id: workspaceId || null, name, scopes: ['workflow:run', 'usage:read'] }) })
+    setApiKeys((items) => [data.api_key, ...items])
+    setLastApiSecret(data.secret)
+    return data
+  }, [authedFetch])
+
+  const rotateApiKey = useCallback(async (keyId: string) => {
+    const data = await authedFetch<{ api_key: ProductApiKey, secret: string }>(`/v5/api-keys/${keyId}/rotate`, { method: 'POST' })
+    setApiKeys((items) => [data.api_key, ...items.map((item) => item.id === keyId ? { ...item, status: 'rotated' } : item)])
+    setLastApiSecret(data.secret)
+  }, [authedFetch])
+
+  const revokeApiKey = useCallback(async (keyId: string) => {
+    const key = await authedFetch<ProductApiKey>(`/v5/api-keys/${keyId}/revoke`, { method: 'POST' })
+    setApiKeys((items) => items.map((item) => item.id === key.id ? key : item))
+  }, [authedFetch])
+
+  const createBudgetAlert = useCallback(async (orgId: string, workspaceId: string | undefined, name: string, monthlyBudgetCents: number) => {
+    const alert = await authedFetch<ProductBudgetAlert>('/v5/budget-alerts', { method: 'POST', body: JSON.stringify({ org_id: orgId, workspace_id: workspaceId || null, name, monthly_budget_cents: monthlyBudgetCents, threshold_percent: 80 }) })
+    setBudgetAlerts((items) => [alert, ...items])
+    return alert
+  }, [authedFetch])
+
+  const configureSso = useCallback(async (orgId: string, domain: string) => {
+    const data = await authedFetch<Record<string, unknown>>('/v5/enterprise/sso', { method: 'PATCH', body: JSON.stringify({ org_id: orgId, enforce_sso: true, domain_verification: { domain, status: 'stub_verified' }, saml_metadata: { entity_id: `stub:${domain}` }, oidc_metadata: {}, idp_metadata: { provider: 'stub' }, login_policy: { mode: 'sso_optional' } }) })
+    setSsoConfig(data)
+    return data
+  }, [authedFetch])
+
+  const configureScim = useCallback(async (orgId: string) => {
+    const data = await authedFetch<Record<string, unknown>>('/v5/enterprise/scim', { method: 'PATCH', body: JSON.stringify({ org_id: orgId, base_url: 'https://scim.example.test/v2', bearer_token: 'stub-token', user_mapping: { email: 'userName' }, group_mapping: { name: 'displayName' }, provisioning_status: 'enabled' }) })
+    setScimConfig(data)
+    return data
+  }, [authedFetch])
+
+  const createSecurityPolicy = useCallback(async (orgId: string, workspaceId: string | undefined, name: string) => {
+    const policy = await authedFetch<ProductSecurityPolicy>('/v5/enterprise/security-policies', { method: 'POST', body: JSON.stringify({ org_id: orgId, workspace_id: workspaceId || null, policy_type: 'session_timeout', name, rules: { timeout_minutes: 60, mfa_required: true } }) })
+    setSecurityPolicies((items) => [policy, ...items])
+    return policy
+  }, [authedFetch])
+
+  const createComplianceExport = useCallback(async (orgId: string, exportType: string) => {
+    const item = await authedFetch<ProductComplianceExport>('/v5/enterprise/compliance-exports', { method: 'POST', body: JSON.stringify({ org_id: orgId, export_type: exportType, filters: { format: 'json' } }) })
+    setComplianceExports((items) => [item, ...items])
+    return item
+  }, [authedFetch])
+
+  const createRetentionRule = useCallback(async (orgId: string, workspaceId: string | undefined, dataType: string) => {
+    return await authedFetch<Record<string, unknown>>('/v5/enterprise/retention-rules', { method: 'POST', body: JSON.stringify({ org_id: orgId, workspace_id: workspaceId || null, data_type: dataType, retention_days: 365, action: 'retain' }) })
+  }, [authedFetch])
+
+  const updateGovernance = useCallback(async (orgId: string) => {
+    await authedFetch<Record<string, unknown>>('/v5/enterprise/governance/settings', { method: 'PATCH', body: JSON.stringify({ org_id: orgId, settings: { high_risk_requires_approval: true, v3_reuse: true } }) })
+    await authedFetch<Record<string, unknown>>('/v5/enterprise/governance/workflows', { method: 'POST', body: JSON.stringify({ org_id: orgId, name: 'High risk approval', trigger_policy: { risk: 'high' }, approver_rules: { role: 'admin' } }) })
+    await refresh()
+  }, [authedFetch, refresh])
+
   return {
     token,
     user,
@@ -469,6 +654,21 @@ export function useProduct() {
     integrations,
     analytics,
     usage,
+    plans,
+    subscription,
+    apiKeys,
+    invoices,
+    budgetAlerts,
+    entitlements,
+    lastApiSecret,
+    ssoConfig,
+    scimConfig,
+    securityDashboard,
+    securityPolicies,
+    complianceExports,
+    adminPortal,
+    governanceDashboard,
+    advancedAudit,
     loading,
     error,
     refresh,
@@ -499,5 +699,17 @@ export function useProduct() {
     connectIntegration,
     checkIntegrationHealth,
     recordUsage,
+    subscribe,
+    createInvoice,
+    createApiKey,
+    rotateApiKey,
+    revokeApiKey,
+    createBudgetAlert,
+    configureSso,
+    configureScim,
+    createSecurityPolicy,
+    createComplianceExport,
+    createRetentionRule,
+    updateGovernance,
   }
 }

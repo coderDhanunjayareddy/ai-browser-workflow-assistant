@@ -7,7 +7,7 @@ import base64
 import sys
 import httpx
 import concurrent.futures
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Iterable
 
 from google import genai
 from google.genai import types
@@ -709,6 +709,350 @@ def fallback_parse_failure(session_id: str) -> AnalyzeResponse:
     )
 
 
+_ORDINAL_RANKS = {
+    "first": 1,
+    "1st": 1,
+    "second": 2,
+    "2nd": 2,
+    "third": 3,
+    "3rd": 3,
+    "fourth": 4,
+    "4th": 4,
+    "fifth": 5,
+    "5th": 5,
+}
+
+_SEARCH_RESULT_OPEN_MEMORY: dict[str, dict[str, Any]] = {}
+
+
+def _postprocess_planner_response(
+    result: AnalyzeResponse,
+    *,
+    page_context: PageContext,
+    task: str = "",
+    prior_steps: list[PriorStep] | None = None,
+) -> AnalyzeResponse:
+    """Fail closed on invented selectors and repair Google SERP result opens.
+
+    Planner Contract V2 is preserved: we still return normal actions. The
+    important difference is that a Google "open result N" intent becomes
+    `open_new_tab` with an explicit organic result URL instead of a brittle,
+    model-invented CSS selector.
+    """
+    if not result.suggested_actions:
+        return result
+
+    action = result.suggested_actions[0]
+    _normalize_open_new_tab_value(action)
+
+    direct_search = _repair_google_search_navigation(
+        result,
+        action,
+        task,
+        page_context=page_context,
+        prior_steps=prior_steps,
+    )
+    if direct_search is not None:
+        return direct_search
+
+    if _is_google_serp(page_context) and _looks_like_search_result_open(action):
+        repaired = _repair_google_result_open(result, action, page_context, task=task, prior_steps=prior_steps)
+        if repaired is not None:
+            return repaired
+
+    if action.action_type == "open_new_tab" and action.value:
+        _remember_opened_search_url(result.session_id, task, action.value)
+
+    return result
+
+
+def _repair_google_search_navigation(
+    result: AnalyzeResponse,
+    action: SuggestedAction,
+    task: str,
+    *,
+    page_context: PageContext,
+    prior_steps: list[PriorStep] | None = None,
+) -> AnalyzeResponse | None:
+    if action.action_type != "navigate":
+        return None
+    value = (action.value or "").strip().rstrip("/")
+    query = _extract_search_query(task)
+    if not query:
+        return None
+
+    from urllib.parse import quote_plus
+
+    serp_url = f"https://www.google.com/search?q={quote_plus(query)}"
+    opened_urls = _opened_search_urls(result.session_id, task, prior_steps)
+
+    if _is_google_serp(page_context):
+        repaired = _repair_google_result_open(result, action, page_context, task=task, prior_steps=prior_steps)
+        if repaired is not None:
+            return repaired
+
+    if opened_urls and _is_google_search_url(value):
+        action.action_type = "focus_existing_tab"  # type: ignore[assignment]
+        action.value = f"url:{serp_url}"
+        action.description = f"Focus the existing Google results tab for: {query}"
+        action.reasoning = (
+            "Browser Intelligence avoids repeating Google navigation after opening organic results; "
+            "the existing SERP tab should be focused to continue with the next unopened result."
+        )
+        return result
+
+    if not _is_google_home_url(value):
+        return None
+
+    action.value = serp_url
+    action.description = f"Open Google Search results for: {query}"
+    action.reasoning = "Browser Intelligence uses direct SERP navigation to avoid homepage fill/click loops."
+    return result
+
+
+def _extract_search_query(task: str) -> str | None:
+    patterns = (
+        r"search\s+for:\s*`([^`]+)`",
+        r"search\s+for:\s*['\"]([^'\"]+)['\"]",
+        r"search\s+for\s+`([^`]+)`",
+        r"search\s+for\s+(.+?)(?:\.|\n|$)",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, task, flags=re.IGNORECASE)
+        if match:
+            return " ".join(match.group(1).strip().split())
+    return None
+
+
+def _is_google_serp(page_context: PageContext) -> bool:
+    from urllib.parse import urlparse
+
+    parsed = urlparse(page_context.url or "")
+    return parsed.netloc.lower().endswith("google.com") and parsed.path.startswith("/search")
+
+
+def _looks_like_search_result_open(action: SuggestedAction) -> bool:
+    text = " ".join([
+        action.action_id or "",
+        action.description or "",
+        action.reasoning or "",
+        action.target_selector or "",
+    ]).lower()
+    return (
+        "result" in text
+        and any(term in text for term in ("open", "click", "new tab", "first", "second", "third", "fourth", "fifth", "nth-of-type"))
+    )
+
+
+def _repair_google_result_open(
+    result: AnalyzeResponse,
+    action: SuggestedAction,
+    page_context: PageContext,
+    *,
+    task: str = "",
+    prior_steps: list[PriorStep] | None = None,
+) -> AnalyzeResponse | None:
+    try:
+        from app.browser_intelligence.adapters import GoogleSearchAdapter
+
+        results = GoogleSearchAdapter().getOrganicResults(page_context)
+    except Exception:
+        results = []
+
+    rank = _extract_result_rank(action)
+    if rank is None:
+        rank = 1
+
+    opened_urls = _opened_search_urls(result.session_id, task, prior_steps)
+    target_index = rank - 1
+    if results:
+        if not (0 <= target_index < len(results)):
+            target_index = 0
+        if _normalize_url_for_memory(results[target_index].url) in opened_urls:
+            for index, candidate in enumerate(results):
+                if _normalize_url_for_memory(candidate.url) not in opened_urls:
+                    target_index = index
+                    break
+            else:
+                target_index = min(rank - 1, len(results) - 1)
+
+    if results and 0 <= target_index < len(results):
+        target = results[target_index]
+        repaired_rank = target_index + 1
+        _remember_opened_search_url(result.session_id, task, target.url)
+        return AnalyzeResponse(
+            session_id=result.session_id,
+            analysis=(
+                f"{result.analysis}\n\nBrowser Intelligence repaired the Google SERP action: "
+                f"organic result #{repaired_rank} is opened by explicit URL instead of a brittle selector."
+            ),
+            outcome_kind="act",
+            clarification_question=None,
+            report=None,
+            replan=None,
+            suggested_actions=[
+                SuggestedAction(
+                    action_id=f"open_google_organic_result_{repaired_rank}",
+                    action_type="open_new_tab",  # type: ignore[arg-type]
+                    target_selector="",
+                    value=target.url,
+                    description=f"Open organic Google result #{repaired_rank}: {target.title}",
+                    reasoning=(
+                        "Google search results must be opened via the extracted external URL; "
+                        "AI Overview, ads, Google navigation, and invented selectors are ignored."
+                    ),
+                    confidence=0.95,
+                    safety_level="safe",  # type: ignore[arg-type]
+                )
+            ],
+        )
+
+    if not results:
+        return AnalyzeResponse(
+            session_id=result.session_id,
+            analysis=(
+                f"{result.analysis}\n\nBrowser Intelligence could not yet see organic Google results. "
+                "Waiting for the SERP to finish rendering before selecting a result."
+            ),
+            outcome_kind="wait",
+            clarification_question=None,
+            report=None,
+            replan=None,
+            suggested_actions=[
+                SuggestedAction(
+                    action_id="wait_for_google_organic_results",
+                    action_type="wait",  # type: ignore[arg-type]
+                    target_selector="window",
+                    value="1000",
+                    description="Wait for organic Google search results to render.",
+                    reasoning="The current page context contains Google controls but no external organic result URLs yet.",
+                    confidence=0.8,
+                    safety_level="safe",  # type: ignore[arg-type]
+                )
+            ],
+        )
+
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nBrowser Intelligence found only {len(results)} organic result(s), "
+            f"less than requested rank #{rank}. Scrolling to reveal more results."
+        ),
+        outcome_kind="act",
+        clarification_question=None,
+        report=None,
+        replan=None,
+        suggested_actions=[
+            SuggestedAction(
+                action_id="scroll_for_more_google_results",
+                action_type="scroll",  # type: ignore[arg-type]
+                target_selector="window",
+                value="down",
+                description="Scroll down to reveal more organic Google results.",
+                reasoning="More organic result URLs are needed before opening the requested rank.",
+                confidence=0.75,
+                safety_level="safe",  # type: ignore[arg-type]
+            )
+        ],
+    )
+
+
+def _extract_result_rank(action: SuggestedAction) -> int | None:
+    text = " ".join([
+        action.action_id or "",
+        action.description or "",
+        action.reasoning or "",
+        action.target_selector or "",
+    ]).lower()
+    for word, rank in _ORDINAL_RANKS.items():
+        if re.search(rf"\b{re.escape(word)}\b", text):
+            return rank
+    nth = re.search(r"nth-of-type\((\d+)\)", text)
+    if nth:
+        return int(nth.group(1))
+    numbered = re.search(r"(?:result|#)\s*(\d+)", text)
+    if numbered:
+        return int(numbered.group(1))
+    return None
+
+
+def _normalize_open_new_tab_value(action: SuggestedAction) -> None:
+    if action.action_type != "open_new_tab" or not action.value:
+        return
+    extracted = _extract_http_url(action.value)
+    if extracted:
+        action.value = extracted
+
+
+def _extract_http_url(value: str | None) -> str | None:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    match = re.search(r"https?://[^\s<>'\"]+", raw, flags=re.IGNORECASE)
+    if not match:
+        return None
+    return match.group(0).rstrip("),.;]")
+
+
+def _search_memory_key(session_id: str, task: str) -> str | None:
+    query = _extract_search_query(task)
+    if not query:
+        return None
+    return f"{session_id}:{query.lower()}"
+
+
+def _opened_search_urls(
+    session_id: str,
+    task: str,
+    prior_steps: list[PriorStep] | None,
+) -> set[str]:
+    urls: set[str] = set()
+    key = _search_memory_key(session_id, task)
+    if key:
+        urls.update(_SEARCH_RESULT_OPEN_MEMORY.get(key, {}).get("urls", set()))
+    for url in _iter_opened_urls_from_prior_steps(prior_steps or []):
+        urls.add(_normalize_url_for_memory(url))
+    return {url for url in urls if url}
+
+
+def _iter_opened_urls_from_prior_steps(prior_steps: Iterable[PriorStep]) -> Iterable[str]:
+    for step in prior_steps:
+        if (step.action_type or "").lower() != "open_new_tab":
+            continue
+        if (step.execution_result or "").lower() != "success":
+            continue
+        extracted = _extract_http_url(step.value)
+        if extracted:
+            yield extracted
+
+
+def _remember_opened_search_url(session_id: str, task: str, value: str | None) -> None:
+    key = _search_memory_key(session_id, task)
+    url = _extract_http_url(value)
+    if not key or not url:
+        return
+    entry = _SEARCH_RESULT_OPEN_MEMORY.setdefault(key, {"urls": set(), "updated_at": time.time()})
+    entry["urls"].add(_normalize_url_for_memory(url))
+    entry["updated_at"] = time.time()
+
+
+def _normalize_url_for_memory(url: str | None) -> str:
+    extracted = _extract_http_url(url) or (url or "")
+    return extracted.strip().rstrip("/").lower()
+
+
+def _is_google_home_url(value: str) -> bool:
+    return value in {"https://www.google.com", "http://www.google.com", "https://google.com", "http://google.com"}
+
+
+def _is_google_search_url(value: str) -> bool:
+    from urllib.parse import urlparse
+
+    parsed = urlparse(value or "")
+    host = parsed.netloc.lower()
+    return host.endswith("google.com") and parsed.path.startswith("/search")
+
+
 # ── M1.3 — Reflection (capability spec: docs/m1-engineering-spec.md Part 6) ────
 #
 # Mechanism decision (Part 10, M1.3 step 2 — recorded here, not assumed in advance):
@@ -878,6 +1222,15 @@ def analyze(
             active_node_text=active_node_text,
             verified_state_text=verified_state_text,
         )
+
+    def finalize(result: AnalyzeResponse) -> AnalyzeResponse:
+        return _postprocess_planner_response(
+            result,
+            page_context=page_context,
+            task=task,
+            prior_steps=prior_steps,
+        )
+
     provider = selected_provider()
 
     is_extraction_task = any(k in task.lower() for k in ["extraction agent", "extract all", "structured json", "section 10", "product details", "output format", "section 19"])
@@ -1037,7 +1390,7 @@ def analyze(
                 result = parse_response(raw, session_id)
                 trigger = _detect_repeat_trigger(result, compressed_context)
                 if trigger is None:
-                    return result
+                    return finalize(result)
                 # M1.3: bounded, fail-safe reflection — one extra call, only when the
                 # primary candidate repeats a recent no-progress action (Part 6).
                 try:
@@ -1050,10 +1403,10 @@ def analyze(
                         max_tokens=512,
                     )
                     _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
-                    return parse_response(reflected_raw, session_id)
+                    return finalize(parse_response(reflected_raw, session_id))
                 except Exception as reflect_err:
                     _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")
-                    return result
+                    return finalize(result)
             except Exception as e:
                 try:
                     with open("debug_openrouter_raw.json", "w", encoding="utf-8") as f:
@@ -1092,7 +1445,7 @@ def analyze(
                 result = parse_response(raw, session_id)
                 trigger = _detect_repeat_trigger(result, compressed_context)
                 if trigger is None:
-                    return result
+                    return finalize(result)
                 try:
                     reflected_raw = _call_anthropic_messages(
                         [{"role": "user", "content": user_message + _reflection_directive(trigger)}],
@@ -1100,10 +1453,10 @@ def analyze(
                         max_tokens=512,
                     )
                     _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
-                    return parse_response(reflected_raw, session_id)
+                    return finalize(parse_response(reflected_raw, session_id))
                 except Exception as reflect_err:
                     _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")
-                    return result
+                    return finalize(result)
             except Exception as e:
                 try:
                     with open("debug_anthropic_raw.json", "w", encoding="utf-8") as f:
@@ -1182,7 +1535,7 @@ def analyze(
             result = parse_response(raw, session_id)
             trigger = _detect_repeat_trigger(result, compressed_context)
             if trigger is None:
-                return result
+                return finalize(result)
             # M1.3: bounded, fail-safe reflection — one extra call, only when the
             # primary candidate repeats a recent no-progress action (Part 6).
             try:
@@ -1212,10 +1565,10 @@ def analyze(
                     except Exception:
                         pass
                 _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
-                return parse_response(reflected_raw, session_id)
+                return finalize(parse_response(reflected_raw, session_id))
             except Exception as reflect_err:
                 _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")
-                return result
+                return finalize(result)
         except Exception as e:
             try:
                 with open("debug_gemini_raw.json", "w", encoding="utf-8") as f:

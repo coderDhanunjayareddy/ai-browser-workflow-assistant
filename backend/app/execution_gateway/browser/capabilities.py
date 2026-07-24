@@ -77,5 +77,36 @@ def get_capabilities() -> dict:
             "flags": v4_flag_snapshot(),
             "certification": certification_report(),
         },
+        "v4_5_browser_intelligence": {
+            "flags": {
+                name: state
+                for name, state in v4_flag_snapshot().items()
+                if name.startswith("V45_")
+            },
+            "supported_adapters": [
+                "generic", "google_search", "bing_search", "linkedin_jobs", "github",
+                "gmail", "outlook", "notion", "jira", "confluence", "documentation",
+                "generic_react_spa", "generic_dashboard", "generic_data_table",
+            ],
+            "planner_contract": "Planner Contract V2 preserved; V4.5 emits semantic context and explicit URLs, not new planner actions.",
+        },
+        "v4_6_adaptive_browser_intelligence": {
+            "flags": {
+                name: state
+                for name, state in v4_flag_snapshot().items()
+                if name.startswith("V46_")
+            },
+            "adaptive_capabilities": [
+                "dynamic_dom_tracking",
+                "intelligent_waiting",
+                "browser_memory",
+                "adaptive_recovery",
+                "universal_adapters",
+                "visual_grounding_metadata",
+                "cross_validation",
+                "browser_health_monitoring",
+            ],
+            "planner_contract": "Planner Contract V2 preserved; V4.6 adapts Browser Intelligence artifacts only.",
+        },
         "ai_free":            True,   # no Vision/OCR/LLM/self-healing selectors
     }

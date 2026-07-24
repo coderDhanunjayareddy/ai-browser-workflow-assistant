@@ -289,3 +289,225 @@ def usage_record_out(record: models.V5UsageRecord) -> dict:
         "metadata": record.metadata_json or {},
         "created_at": record.created_at,
     }
+
+
+def billing_plan_out(plan: models.V5BillingPlan) -> dict:
+    return {
+        "id": plan.id,
+        "plan_key": plan.plan_key,
+        "name": plan.name,
+        "tier": plan.tier,
+        "monthly_price_cents": plan.monthly_price_cents,
+        "seat_price_cents": plan.seat_price_cents,
+        "included_usage": plan.included_usage or {},
+        "limits": plan.limits_json or {},
+        "entitlements": plan.entitlements_json or {},
+        "billing_model": plan.billing_model,
+    }
+
+
+def subscription_out(subscription: models.V5Subscription) -> dict:
+    return {
+        "id": subscription.id,
+        "org_id": subscription.org_id,
+        "plan_key": subscription.plan_key,
+        "status": subscription.status,
+        "seat_count": subscription.seat_count,
+        "trial_ends_at": subscription.trial_ends_at,
+        "provider": subscription.provider,
+        "provider_ref": subscription.provider_ref,
+        "created_at": subscription.created_at,
+        "updated_at": subscription.updated_at,
+    }
+
+
+def invoice_out(invoice: models.V5Invoice) -> dict:
+    return {
+        "id": invoice.id,
+        "org_id": invoice.org_id,
+        "subscription_id": invoice.subscription_id,
+        "invoice_number": invoice.invoice_number,
+        "status": invoice.status,
+        "amount_due_cents": invoice.amount_due_cents,
+        "currency": invoice.currency,
+        "line_items": invoice.line_items or [],
+        "issued_at": invoice.issued_at,
+    }
+
+
+def billing_settings_out(settings: models.V5BillingSetting) -> dict:
+    return {
+        "org_id": settings.org_id,
+        "billing_email": settings.billing_email,
+        "tax_metadata": settings.tax_metadata or {},
+        "payment_provider": settings.payment_provider,
+        "updated_at": settings.updated_at,
+    }
+
+
+def api_key_out(key: models.V5ApiKey) -> dict:
+    return {
+        "id": key.id,
+        "org_id": key.org_id,
+        "workspace_id": key.workspace_id,
+        "name": key.name,
+        "key_preview": key.key_preview,
+        "scopes": key.scopes or [],
+        "status": key.status,
+        "usage_count": key.usage_count,
+        "last_used_at": key.last_used_at,
+        "created_at": key.created_at,
+    }
+
+
+def entitlement_out(snapshot: models.V5EntitlementSnapshot) -> dict:
+    return {
+        "id": snapshot.id,
+        "org_id": snapshot.org_id,
+        "plan_key": snapshot.plan_key,
+        "features": snapshot.features_json or {},
+        "limits": snapshot.limits_json or {},
+        "usage": snapshot.usage_json or {},
+        "enforcement": snapshot.enforcement_metadata or {},
+        "created_at": snapshot.created_at,
+    }
+
+
+def usage_rollup_out(rollup: models.V5UsageRollup) -> dict:
+    return {
+        "id": rollup.id,
+        "org_id": rollup.org_id,
+        "workspace_id": rollup.workspace_id,
+        "period": rollup.period,
+        "usage_type": rollup.usage_type,
+        "quantity": rollup.quantity,
+        "unit": rollup.unit,
+        "updated_at": rollup.updated_at,
+    }
+
+
+def budget_alert_out(alert: models.V5BudgetAlert) -> dict:
+    return {
+        "id": alert.id,
+        "org_id": alert.org_id,
+        "workspace_id": alert.workspace_id,
+        "name": alert.name,
+        "monthly_budget_cents": alert.monthly_budget_cents,
+        "threshold_percent": alert.threshold_percent,
+        "status": alert.status,
+        "last_triggered_at": alert.last_triggered_at,
+        "created_at": alert.created_at,
+    }
+
+
+def sso_config_out(config: models.V5SsoConfiguration) -> dict:
+    return {
+        "id": config.id,
+        "org_id": config.org_id,
+        "saml_metadata": config.saml_metadata or {},
+        "oidc_metadata": config.oidc_metadata or {},
+        "idp_metadata": config.idp_metadata or {},
+        "login_policy": config.login_policy or {},
+        "domain_verification": config.domain_verification or {},
+        "enforce_sso": config.enforce_sso,
+        "provider_mode": config.provider_mode,
+        "status": config.status,
+        "updated_at": config.updated_at,
+    }
+
+
+def scim_config_out(config: models.V5ScimConfiguration) -> dict:
+    return {
+        "id": config.id,
+        "org_id": config.org_id,
+        "base_url": config.base_url,
+        "user_mapping": config.user_mapping or {},
+        "group_mapping": config.group_mapping or {},
+        "provisioning_status": config.provisioning_status,
+        "metadata": config.metadata_json or {},
+        "updated_at": config.updated_at,
+    }
+
+
+def scim_sync_out(event: models.V5ScimSyncEvent) -> dict:
+    return {
+        "id": event.id,
+        "org_id": event.org_id,
+        "resource_type": event.resource_type,
+        "external_id": event.external_id,
+        "status": event.status,
+        "action": event.action,
+        "metadata": event.metadata_json or {},
+        "created_at": event.created_at,
+    }
+
+
+def advanced_audit_out(record: models.V5AdvancedAuditRecord) -> dict:
+    return {
+        "id": record.id,
+        "org_id": record.org_id,
+        "workspace_id": record.workspace_id,
+        "actor_user_id": record.actor_user_id,
+        "event_type": record.event_type,
+        "resource_type": record.resource_type,
+        "resource_id": record.resource_id,
+        "risk_classification": record.risk_classification,
+        "immutable_hash": record.immutable_hash,
+        "metadata": record.metadata_json or {},
+        "created_at": record.created_at,
+    }
+
+
+def security_policy_out(policy: models.V5SecurityPolicy) -> dict:
+    return {
+        "id": policy.id,
+        "org_id": policy.org_id,
+        "workspace_id": policy.workspace_id,
+        "policy_type": policy.policy_type,
+        "name": policy.name,
+        "rules": policy.rules_json or {},
+        "status": policy.status,
+        "current_version": policy.current_version,
+        "created_at": policy.created_at,
+        "updated_at": policy.updated_at,
+    }
+
+
+def compliance_export_out(export: models.V5ComplianceExport) -> dict:
+    return {
+        "id": export.id,
+        "org_id": export.org_id,
+        "export_type": export.export_type,
+        "status": export.status,
+        "filters": export.filters_json or {},
+        "artifact_ref": export.artifact_ref,
+        "retention_until": export.retention_until,
+        "created_at": export.created_at,
+        "completed_at": export.completed_at,
+    }
+
+
+def retention_rule_out(rule: models.V5RetentionRule) -> dict:
+    return {
+        "id": rule.id,
+        "org_id": rule.org_id,
+        "workspace_id": rule.workspace_id,
+        "data_type": rule.data_type,
+        "retention_days": rule.retention_days,
+        "action": rule.action,
+        "status": rule.status,
+        "created_at": rule.created_at,
+    }
+
+
+def governance_workflow_out(workflow: models.V5GovernanceApprovalWorkflow) -> dict:
+    return {
+        "id": workflow.id,
+        "org_id": workflow.org_id,
+        "workspace_id": workflow.workspace_id,
+        "name": workflow.name,
+        "trigger_policy": workflow.trigger_policy or {},
+        "approver_rules": workflow.approver_rules or {},
+        "status": workflow.status,
+        "created_at": workflow.created_at,
+    }

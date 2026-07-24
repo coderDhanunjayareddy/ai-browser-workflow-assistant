@@ -48,8 +48,12 @@ export function parseTabReference(action: TabControlAction): TabReference | null
 
 export function normalizeOpenTabUrl(value: string | null): string | null {
   const raw = compactText(value)
-  if (!/^https?:\/\//i.test(raw)) return null
-  return raw
+  const direct = raw.match(/^https?:\/\/\S+$/i)
+  if (direct) return stripTrailingPunctuation(direct[0])
+
+  const embedded = raw.match(/https?:\/\/[^\s<>"']+/i)
+  if (!embedded) return null
+  return stripTrailingPunctuation(embedded[0])
 }
 
 export function findTabEntryByReference(
@@ -69,7 +73,7 @@ export function findTabEntryByReference(
     return workspace.tabs.find((tab) => tab.purpose.toLowerCase() === value) ?? null
   }
   if (reference.kind === 'url') {
-    return workspace.tabs.find((tab) => tab.url.replace(/\/$/, '').toLowerCase() === value.replace(/\/$/, '')) ?? null
+    return workspace.tabs.find((tab) => urlsMatch(tab.url, value)) ?? null
   }
   return null
 }
@@ -92,4 +96,28 @@ export function isRestrictedTabUrl(url: string | undefined): boolean {
 
 function compactText(text: string | null | undefined): string {
   return (text || '').replace(/\s+/g, ' ').trim()
+}
+
+function stripTrailingPunctuation(url: string): string {
+  return url.replace(/[),.;\]]+$/g, '')
+}
+
+function urlsMatch(tabUrl: string, referenceUrl: string): boolean {
+  const normalizedTabUrl = compactText(tabUrl).replace(/\/$/, '').toLowerCase()
+  const normalizedReferenceUrl = compactText(referenceUrl).replace(/\/$/, '').toLowerCase()
+  if (normalizedTabUrl === normalizedReferenceUrl) return true
+  try {
+    const tab = new URL(tabUrl)
+    const reference = new URL(referenceUrl)
+    if (isGoogleSearchUrl(tab) && isGoogleSearchUrl(reference)) {
+      return compactText(tab.searchParams.get('q')).toLowerCase() === compactText(reference.searchParams.get('q')).toLowerCase()
+    }
+  } catch {
+    return false
+  }
+  return false
+}
+
+function isGoogleSearchUrl(url: URL): boolean {
+  return url.hostname.toLowerCase().endsWith('google.com') && url.pathname.startsWith('/search')
 }

@@ -18,6 +18,8 @@ from __future__ import annotations
 import json
 import logging
 import uuid
+import time
+from itertools import count
 from datetime import datetime
 from contextlib import contextmanager
 from typing import Optional
@@ -37,6 +39,7 @@ SNAPSHOT_TRIGGERS = {
 }
 
 _session_factory = None
+_snapshot_sequence = count()
 
 
 def _set_session_factory(factory) -> None:
@@ -95,7 +98,7 @@ def create(task: UnifiedTask, trigger: str) -> Optional[str]:
         return None
     # Timestamp-prefix ensures snapshot_ids are chronologically sortable,
     # giving deterministic ordering when two snapshots share a created_at second.
-    snapshot_id = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}-{str(uuid.uuid4())[:4]}"
+    snapshot_id = f"{time.time_ns():020d}-{next(_snapshot_sequence):08d}-{str(uuid.uuid4())[:4]}"
     context = _build_context(task)
     try:
         with _session_scope() as db:
@@ -125,12 +128,13 @@ def load_latest(task_id: str) -> Optional[dict]:
         return None
     try:
         with _session_scope() as db:
-            row = (
+            rows = (
                 db.query(TaskSnapshotRecord)
                 .filter(TaskSnapshotRecord.task_id == task_id)
                 .order_by(TaskSnapshotRecord.snapshot_id.desc())
-                .first()
+                .all()
             )
+            row = max(rows, key=lambda item: item.snapshot_id, default=None)
             if row is None:
                 return None
             ctx = json.loads(row.context_json or "{}")
@@ -155,6 +159,7 @@ def load_all(task_id: str) -> list[dict]:
                 .order_by(TaskSnapshotRecord.snapshot_id.desc())
                 .all()
             )
+            rows = sorted(rows, key=lambda row: row.snapshot_id, reverse=True)
             result = []
             for row in rows:
                 ctx = json.loads(row.context_json or "{}")

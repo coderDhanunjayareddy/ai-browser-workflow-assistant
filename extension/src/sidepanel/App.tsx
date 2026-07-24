@@ -59,7 +59,7 @@ type ProductProps = { product: ReturnType<typeof useProduct> }
 
 function ProductPanel({ product }: ProductProps) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [view, setView] = useState<'dashboard' | 'replay' | 'tasks' | 'templates' | 'teams' | 'assistants' | 'integrations' | 'analytics' | 'usage' | 'notifications' | 'versions'>('dashboard')
+  const [view, setView] = useState<'dashboard' | 'replay' | 'tasks' | 'templates' | 'teams' | 'assistants' | 'integrations' | 'analytics' | 'usage' | 'billing' | 'apiKeys' | 'limits' | 'budget' | 'admin' | 'security' | 'audit' | 'compliance' | 'policies' | 'sso' | 'scim' | 'notifications' | 'versions'>('dashboard')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -75,6 +75,11 @@ function ProductPanel({ product }: ProductProps) {
   const [inviteEmail, setInviteEmail] = useState('')
   const [assistantName, setAssistantName] = useState('')
   const [assistantInstructions, setAssistantInstructions] = useState('')
+  const [apiKeyName, setApiKeyName] = useState('')
+  const [budgetName, setBudgetName] = useState('')
+  const [budgetDollars, setBudgetDollars] = useState('100')
+  const [policyName, setPolicyName] = useState('')
+  const [ssoDomain, setSsoDomain] = useState('example.test')
   const [theme, setTheme] = useState(String(product.user?.preferences?.theme || 'system'))
 
   useEffect(() => {
@@ -173,7 +178,7 @@ function ProductPanel({ product }: ProductProps) {
       {product.error && <p style={s.error}>{product.error}</p>}
 
       <div style={productStyles.subnav}>
-        {(['dashboard', 'replay', 'tasks', 'templates', 'teams', 'assistants', 'integrations', 'analytics', 'usage', 'notifications', 'versions'] as const).map((tab) => (
+        {(['dashboard', 'replay', 'tasks', 'templates', 'teams', 'assistants', 'integrations', 'analytics', 'usage', 'billing', 'apiKeys', 'limits', 'budget', 'admin', 'security', 'audit', 'compliance', 'policies', 'sso', 'scim', 'notifications', 'versions'] as const).map((tab) => (
           <button key={tab} style={{ ...productStyles.subnavBtn, ...(view === tab ? productStyles.subnavActive : {}) }} onClick={() => setView(tab)}>
             {tab[0].toUpperCase() + tab.slice(1)}
           </button>
@@ -383,6 +388,157 @@ function ProductPanel({ product }: ProductProps) {
         </section>
       )}
 
+      {view === 'billing' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Billing and subscription</p>
+          <div style={productStyles.metricGrid}>
+            <Metric label="Plan" value={product.subscription?.plan_key || 'none'} />
+            <Metric label="Seats" value={product.subscription?.seat_count || 0} />
+            <Metric label="Invoices" value={product.invoices.length} />
+          </div>
+          <div style={productStyles.list}>
+            {product.plans.map((plan) => (
+              <div key={plan.plan_key} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{plan.name}</p>
+                <p style={productStyles.itemMeta}>${(plan.monthly_price_cents / 100).toFixed(2)} / month</p>
+                <button style={s.primaryBtn} onClick={() => void product.subscribe(primaryOrgId, plan.plan_key, Math.max(1, product.teams.length + 1))} disabled={!primaryOrgId}>Select</button>
+              </div>
+            ))}
+          </div>
+          <button style={s.resetBtn} onClick={() => void product.createInvoice(primaryOrgId, 2500)} disabled={!primaryOrgId}>Create stub invoice</button>
+          <SimpleList items={product.invoices} render={(invoice) => `${invoice.invoice_number} - $${(invoice.amount_due_cents / 100).toFixed(2)} - ${invoice.status}`} />
+        </section>
+      )}
+
+      {view === 'apiKeys' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>API keys</p>
+          <WorkspacePicker workspaces={product.workspaces} value={selectedWorkspaceId} onChange={setSelectedWorkspaceId} />
+          <div style={productStyles.row}>
+            <input style={productStyles.input} value={apiKeyName} onChange={(e) => setApiKeyName(e.target.value)} placeholder="API key name" />
+            <button style={s.primaryBtn} onClick={() => { if (apiKeyName) void product.createApiKey(primaryOrgId, selectedWorkspaceId, apiKeyName); setApiKeyName('') }} disabled={!apiKeyName.trim() || !primaryOrgId}>Create</button>
+          </div>
+          {product.lastApiSecret && <p style={productStyles.itemMeta}>New key secret: {product.lastApiSecret}</p>}
+          <div style={productStyles.list}>
+            {product.apiKeys.map((key) => (
+              <div key={key.id} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{key.name}</p>
+                <p style={productStyles.itemMeta}>{key.key_preview} - {key.status} - {key.usage_count} uses</p>
+                <div style={productStyles.row}>
+                  <button style={s.resetBtn} onClick={() => void product.rotateApiKey(key.id)}>Rotate</button>
+                  <button style={s.resetBtn} onClick={() => void product.revokeApiKey(key.id)}>Revoke</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {view === 'limits' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Usage limits and entitlements</p>
+          <DashboardMap title="Features" data={objectToNumberMap(product.entitlements?.features as Record<string, unknown> | undefined)} />
+          <DashboardMap title="Limits" data={objectToNumberMap(product.entitlements?.limits as Record<string, unknown> | undefined)} />
+          <DashboardMap title="Usage" data={objectToNumberMap(product.entitlements?.usage as Record<string, unknown> | undefined)} />
+          <p style={productStyles.itemMeta}>Runtime enforcement: metadata only</p>
+        </section>
+      )}
+
+      {view === 'budget' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Budget alerts</p>
+          <WorkspacePicker workspaces={product.workspaces} value={selectedWorkspaceId} onChange={setSelectedWorkspaceId} />
+          <input style={productStyles.input} value={budgetName} onChange={(e) => setBudgetName(e.target.value)} placeholder="Alert name" />
+          <input style={productStyles.input} value={budgetDollars} onChange={(e) => setBudgetDollars(e.target.value)} placeholder="Monthly budget dollars" />
+          <button style={s.primaryBtn} onClick={() => { if (budgetName) void product.createBudgetAlert(primaryOrgId, selectedWorkspaceId, budgetName, Math.round(Number(budgetDollars || 0) * 100)); setBudgetName('') }} disabled={!budgetName.trim() || !primaryOrgId}>Create alert</button>
+          <SimpleList items={product.budgetAlerts} render={(alert) => `${alert.name} - $${(alert.monthly_budget_cents / 100).toFixed(2)} at ${alert.threshold_percent}%`} />
+        </section>
+      )}
+
+      {view === 'admin' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Admin portal</p>
+          <div style={productStyles.metricGrid}>
+            <Metric label="Users" value={Number(product.adminPortal?.users || 0)} />
+            <Metric label="Workspaces" value={Number(product.adminPortal?.workspaces || 0)} />
+            <Metric label="Security" value={Number((product.adminPortal?.security as Record<string, unknown> | undefined)?.security_score || 0)} />
+          </div>
+          <DashboardMap title="Feature flags" data={objectToNumberMap(product.adminPortal?.feature_flags as Record<string, unknown> | undefined)} />
+        </section>
+      )}
+
+      {view === 'security' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Security dashboard</p>
+          <div style={productStyles.metricGrid}>
+            <Metric label="Score" value={Number(product.securityDashboard?.security_score || 0)} />
+            <Metric label="Events" value={Number(product.securityDashboard?.security_events || 0)} />
+            <Metric label="API activity" value={Number(product.securityDashboard?.api_key_activity || 0)} />
+          </div>
+          <DashboardMap title="Risk summary" data={(product.securityDashboard?.risk_summary as Record<string, number> | undefined) || {}} />
+        </section>
+      )}
+
+      {view === 'audit' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Advanced audit viewer</p>
+          <div style={productStyles.list}>
+            {product.advancedAudit.length === 0 ? <p style={s.histEmpty}>No enterprise audit records yet.</p> : product.advancedAudit.map((record) => (
+              <div key={String(record.id)} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{String(record.event_type)}</p>
+                <p style={productStyles.itemMeta}>{String(record.risk_classification)} - {String(record.resource_type)} - {String(record.immutable_hash).slice(0, 12)}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {view === 'compliance' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Compliance exports</p>
+          <div style={productStyles.row}>
+            {['audit_logs', 'security_events', 'workflow_history', 'replay_metadata', 'usage_records'].map((type) => (
+              <button key={type} style={s.resetBtn} onClick={() => void product.createComplianceExport(primaryOrgId, type)} disabled={!primaryOrgId}>{type}</button>
+            ))}
+          </div>
+          <SimpleList items={product.complianceExports} render={(item) => `${item.export_type} - ${item.status} - ${item.artifact_ref}`} />
+        </section>
+      )}
+
+      {view === 'policies' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Organization policies</p>
+          <WorkspacePicker workspaces={product.workspaces} value={selectedWorkspaceId} onChange={setSelectedWorkspaceId} />
+          <input style={productStyles.input} value={policyName} onChange={(e) => setPolicyName(e.target.value)} placeholder="Policy name" />
+          <div style={productStyles.row}>
+            <button style={s.primaryBtn} onClick={() => { if (policyName) void product.createSecurityPolicy(primaryOrgId, selectedWorkspaceId, policyName); setPolicyName('') }} disabled={!policyName.trim() || !primaryOrgId}>Create policy</button>
+            <button style={s.resetBtn} onClick={() => void product.createRetentionRule(primaryOrgId, selectedWorkspaceId, 'audit_logs')} disabled={!primaryOrgId}>Retention rule</button>
+            <button style={s.resetBtn} onClick={() => void product.updateGovernance(primaryOrgId)} disabled={!primaryOrgId}>Governance</button>
+          </div>
+          <SimpleList items={product.securityPolicies} render={(policy) => `${policy.name} - ${policy.policy_type} - v${policy.current_version}`} />
+          <DashboardMap title="Governance" data={objectToNumberMap(product.governanceDashboard?.settings as Record<string, unknown> | undefined)} />
+        </section>
+      )}
+
+      {view === 'sso' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>SSO configuration</p>
+          <input style={productStyles.input} value={ssoDomain} onChange={(e) => setSsoDomain(e.target.value)} placeholder="Verified domain" />
+          <button style={s.primaryBtn} onClick={() => void product.configureSso(primaryOrgId, ssoDomain)} disabled={!primaryOrgId}>Configure SSO stub</button>
+          <p style={productStyles.itemMeta}>Status: {String(product.ssoConfig?.status || 'not configured')}</p>
+          <p style={productStyles.itemMeta}>Enforced: {String(product.ssoConfig?.enforce_sso || false)}</p>
+        </section>
+      )}
+
+      {view === 'scim' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>SCIM configuration</p>
+          <button style={s.primaryBtn} onClick={() => void product.configureScim(primaryOrgId)} disabled={!primaryOrgId}>Configure SCIM stub</button>
+          <p style={productStyles.itemMeta}>Status: {String(product.scimConfig?.provisioning_status || 'not configured')}</p>
+          <p style={productStyles.itemMeta}>Base URL: {String(product.scimConfig?.base_url || '')}</p>
+        </section>
+      )}
+
       {view === 'notifications' && (
         <section style={productStyles.section}>
           <p style={productStyles.sectionTitle}>Notifications</p>
@@ -475,7 +631,17 @@ function DashboardMap({ title, data }: { title: string, data: Record<string, num
   )
 }
 
-function Metric({ label, value }: { label: string, value: number }) {
+function objectToNumberMap(data?: Record<string, unknown>): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const [key, value] of Object.entries(data || {})) {
+    if (typeof value === 'number') out[key] = value
+    else if (typeof value === 'boolean') out[key] = value ? 1 : 0
+    else if (typeof value === 'string') out[key] = Number(value) || 0
+  }
+  return out
+}
+
+function Metric({ label, value }: { label: string, value: number | string }) {
   return (
     <div style={productStyles.metric}>
       <span style={productStyles.metricValue}>{value}</span>

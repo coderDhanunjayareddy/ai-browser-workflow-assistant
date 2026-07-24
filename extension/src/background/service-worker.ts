@@ -212,6 +212,21 @@ async function waitForActiveTabComplete(tabId: number): Promise<void> {
   })
 }
 
+async function waitForTabUrlReady(tabId: number, expectedUrl: string): Promise<chrome.tabs.Tab | null> {
+  const expectedPrefix = expectedUrl.replace(/#.*$/, '')
+  const deadline = Date.now() + 8_000
+  let latest = await chrome.tabs.get(tabId).catch(() => null)
+  while (Date.now() < deadline) {
+    latest = await chrome.tabs.get(tabId).catch(() => null)
+    const current = latest?.url || ''
+    if (latest && current !== 'about:blank' && current.startsWith(expectedPrefix) && latest.status === 'complete') {
+      return latest
+    }
+    await sleep(150)
+  }
+  return latest
+}
+
 function isRestrictedUrl(url: string | undefined): boolean {
   if (!url) return true
   return (
@@ -554,16 +569,24 @@ async function executeTabControlAction(action: ExecutableAction): Promise<(Basic
       return { success: false, message: 'No safe http/https URL provided for new tab.', action_id: action.action_id }
     }
     const opened = await chrome.tabs.create({ url, active: true })
+    let loaded: chrome.tabs.Tab = opened
+    if (typeof opened.id === 'number') {
+      await waitForActiveTabComplete(opened.id)
+      loaded = await waitForTabUrlReady(opened.id, url) || opened
+    }
     tabWorkspace = registerTab(tabWorkspace, tabSnapshotFromChromeTab(opened))
-    if (typeof opened.id === 'number') tabWorkspace = activateTab(tabWorkspace, opened.id)
+    if (typeof loaded.id === 'number') {
+      tabWorkspace = registerTab(tabWorkspace, tabSnapshotFromChromeTab(loaded))
+      tabWorkspace = activateTab(tabWorkspace, loaded.id)
+    }
     return {
       success: true,
       message: `Opened new tab: ${url}`,
       action_id: action.action_id,
-      opened_tab_id: opened.id ?? null,
+      opened_tab_id: loaded.id ?? opened.id ?? null,
       previous_tab_id: previousTabId,
-      active_tab_id: opened.id ?? null,
-      tab_switch_verified: Boolean(opened.active),
+      active_tab_id: loaded.id ?? opened.id ?? null,
+      tab_switch_verified: Boolean(loaded.active),
     }
   }
 

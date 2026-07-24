@@ -69,11 +69,15 @@ export interface InteractiveElement {
     width: number
     height: number
   }
+  href?: string
+  semantic_kind?: string
+  selector_id?: string
 }
 
 export interface ContentBlock {
   text: string
   selector: string
+  href?: string
 }
 
 export interface PageContext {

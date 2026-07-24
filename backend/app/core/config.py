@@ -110,6 +110,29 @@ class Settings(BaseSettings):
     v4_enterprise_file_workflows: str = "shadow"
     v4_site_optimization_framework: str = "shadow"
 
+    # V4.5 Browser Intelligence Layer feature flags. States: off | shadow | active.
+    # Shadow builds deterministic artifacts and telemetry only. Active additionally
+    # enriches planner context while preserving Planner Contract V2 actions.
+    v45_browser_intelligence: str = "shadow"
+    v45_page_model: str = "shadow"
+    v45_selector_engine: str = "shadow"
+    v45_action_verification: str = "shadow"
+    v45_site_adapters: str = "shadow"
+    v45_serp_adapter: str = "shadow"
+
+    # V4.6 Adaptive Browser Intelligence feature flags. States: off | shadow | active.
+    v46_dynamic_dom: str = "shadow"
+    v46_intelligent_wait: str = "shadow"
+    v46_browser_memory: str = "shadow"
+    v46_recovery_engine: str = "shadow"
+    v46_visual_grounding: str = "shadow"
+    v46_browser_health: str = "shadow"
+
+    # V4.7 Execution Continuity Engine feature flag. States: off | shadow | active.
+    # Shadow records deterministic continuity state only. Active enriches planner
+    # context and can return Planner Contract V2 replan outcomes for detected loops.
+    v47_execution_continuity: str = "shadow"
+
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.
     model_config = SettingsConfigDict(

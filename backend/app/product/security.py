@@ -68,6 +68,11 @@ def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
+def create_api_key() -> tuple[str, str, str]:
+    secret = f"v5_{secrets.token_urlsafe(32)}"
+    return secret, token_hash(secret), f"{secret[:7]}...{secret[-4:]}"
+
+
 def session_expiry() -> datetime:
     return datetime.utcnow() + timedelta(hours=TOKEN_TTL_HOURS)
 

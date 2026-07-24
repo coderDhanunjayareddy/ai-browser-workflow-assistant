@@ -1,0 +1,43 @@
+from app.browser_intelligence.integration import (
+    BrowserIntelligenceRuntime,
+    build_browser_intelligence,
+    format_browser_intelligence_for_planner,
+)
+from app.browser_intelligence.models import (
+    ActionExpectation,
+    BrowserIntelligenceArtifact,
+    BrowserHealthSnapshot,
+    BrowserStateModel,
+    BrowserMemorySnapshot,
+    DomMutationSignal,
+    PageClassification,
+    RecoveryDecision,
+    SearchResult,
+    SemanticElement,
+    SemanticPageModel,
+    SemanticWaitPlan,
+    SelectorCandidate,
+    VerificationOutcome,
+    VisualGroundingTarget,
+)
+
+__all__ = [
+    "ActionExpectation",
+    "BrowserIntelligenceArtifact",
+    "BrowserHealthSnapshot",
+    "BrowserIntelligenceRuntime",
+    "BrowserMemorySnapshot",
+    "BrowserStateModel",
+    "DomMutationSignal",
+    "PageClassification",
+    "RecoveryDecision",
+    "SearchResult",
+    "SemanticElement",
+    "SemanticPageModel",
+    "SemanticWaitPlan",
+    "SelectorCandidate",
+    "VerificationOutcome",
+    "VisualGroundingTarget",
+    "build_browser_intelligence",
+    "format_browser_intelligence_for_planner",
+]

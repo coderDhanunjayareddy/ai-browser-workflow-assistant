@@ -56,6 +56,14 @@ function workspace() {
 test('open_new_tab is recognized and requires explicit safe URL', () => {
   assert.equal(isTabControlAction(action('open_new_tab', 'https://example.test')), true)
   assert.equal(normalizeOpenTabUrl('https://example.test'), 'https://example.test')
+  assert.equal(
+    normalizeOpenTabUrl('Top 25 AI Browsers & Extensions in 2026 https://pickaxe.co/post/top-ai-browsers-extensions'),
+    'https://pickaxe.co/post/top-ai-browsers-extensions',
+  )
+  assert.equal(
+    normalizeOpenTabUrl('Open result: https://www.skyvern.com/blog/best-free-open-source-browser-automation-tools.'),
+    'https://www.skyvern.com/blog/best-free-open-source-browser-automation-tools',
+  )
   assert.equal(normalizeOpenTabUrl('chrome://settings'), null)
   assert.equal(normalizeOpenTabUrl('example.test'), null)
 })
@@ -75,6 +83,23 @@ test('switch by explicit title parses and matches workspace', () => {
 
   assert.equal(ref.kind, 'title')
   assert.equal(match.tab_id, 2)
+})
+
+test('switch by Google SERP URL matches same query with extra parameters', () => {
+  let state = createMultiTabWorkspace()
+  state = registerTab(state, {
+    id: 1,
+    windowId: 1,
+    title: 'best AI browser automation tools 2026 - Google Search',
+    url: 'https://www.google.com/search?q=best+AI+browser+automation+tools+2026&sca_esv=abc&source=hp',
+    active: true,
+  }, 100)
+
+  const ref = parseTabReference(action('focus_existing_tab', 'url:https://www.google.com/search?q=best+AI+browser+automation+tools+2026'))
+  const match = findTabEntryByReference(state, ref)
+
+  assert.equal(ref.kind, 'url')
+  assert.equal(match.tab_id, 1)
 })
 
 test('switch by explicit purpose parses and matches workspace', () => {

@@ -15,11 +15,15 @@ class InteractiveElement(BaseModel):
     state: dict = Field(default_factory=dict)
     bounding_box: dict = Field(default_factory=dict)
     element_id: Optional[str] = None
+    href: Optional[str] = None
+    semantic_kind: Optional[str] = None
+    selector_id: Optional[str] = None
 
 
 class ContentBlock(BaseModel):
     text: str
     selector: str
+    href: Optional[str] = None
 
 
 class PageContext(BaseModel):

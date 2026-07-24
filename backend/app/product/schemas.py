@@ -182,6 +182,105 @@ class UsageRecordCreate(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class SubscriptionCreate(BaseModel):
+    org_id: str
+    plan_key: str = "free"
+    seat_count: int = 1
+    trial: bool = False
+
+
+class BillingSettingsUpdate(BaseModel):
+    org_id: str
+    billing_email: str = ""
+    tax_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class InvoiceCreate(BaseModel):
+    org_id: str
+    amount_due_cents: int
+    line_items: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ApiKeyCreate(BaseModel):
+    org_id: str
+    workspace_id: str | None = None
+    name: str = Field(min_length=1)
+    scopes: list[str] = Field(default_factory=list)
+
+
+class BudgetAlertCreate(BaseModel):
+    org_id: str
+    workspace_id: str | None = None
+    name: str = Field(min_length=1)
+    monthly_budget_cents: int
+    threshold_percent: int = 80
+
+
+class SsoConfigUpdate(BaseModel):
+    org_id: str
+    saml_metadata: dict[str, Any] = Field(default_factory=dict)
+    oidc_metadata: dict[str, Any] = Field(default_factory=dict)
+    idp_metadata: dict[str, Any] = Field(default_factory=dict)
+    login_policy: dict[str, Any] = Field(default_factory=dict)
+    domain_verification: dict[str, Any] = Field(default_factory=dict)
+    enforce_sso: bool = False
+    status: str = "configured"
+
+
+class ScimConfigUpdate(BaseModel):
+    org_id: str
+    base_url: str = ""
+    bearer_token: str = ""
+    user_mapping: dict[str, Any] = Field(default_factory=dict)
+    group_mapping: dict[str, Any] = Field(default_factory=dict)
+    provisioning_status: str = "enabled"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ScimSyncCreate(BaseModel):
+    org_id: str
+    resource_type: str = "user"
+    external_id: str = ""
+    status: str = "stubbed"
+    action: str = "sync"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SecurityPolicyCreate(BaseModel):
+    org_id: str
+    workspace_id: str | None = None
+    policy_type: str
+    name: str
+    rules: dict[str, Any] = Field(default_factory=dict)
+
+
+class ComplianceExportCreate(BaseModel):
+    org_id: str
+    export_type: str
+    filters: dict[str, Any] = Field(default_factory=dict)
+
+
+class RetentionRuleCreate(BaseModel):
+    org_id: str
+    workspace_id: str | None = None
+    data_type: str
+    retention_days: int
+    action: str = "retain"
+
+
+class GovernanceSettingsUpdate(BaseModel):
+    org_id: str
+    settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class GovernanceWorkflowCreate(BaseModel):
+    org_id: str
+    workspace_id: str | None = None
+    name: str
+    trigger_policy: dict[str, Any] = Field(default_factory=dict)
+    approver_rules: dict[str, Any] = Field(default_factory=dict)
+
+
 class UserOut(BaseModel):
     id: str
     email: str
@@ -445,3 +544,227 @@ class UsageDashboardOut(BaseModel):
     by_workspace: dict[str, dict[str, int]]
     by_user: dict[str, dict[str, int]]
     records: list[dict[str, Any]]
+
+
+class BillingPlanOut(BaseModel):
+    id: str
+    plan_key: str
+    name: str
+    tier: str
+    monthly_price_cents: int
+    seat_price_cents: int
+    included_usage: dict[str, Any]
+    limits: dict[str, Any]
+    entitlements: dict[str, Any]
+    billing_model: str
+
+
+class SubscriptionOut(BaseModel):
+    id: str
+    org_id: str
+    plan_key: str
+    status: str
+    seat_count: int
+    trial_ends_at: datetime | None
+    provider: str
+    provider_ref: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class InvoiceOut(BaseModel):
+    id: str
+    org_id: str
+    subscription_id: str | None
+    invoice_number: str
+    status: str
+    amount_due_cents: int
+    currency: str
+    line_items: list[dict[str, Any]]
+    issued_at: datetime
+
+
+class BillingSettingsOut(BaseModel):
+    org_id: str
+    billing_email: str
+    tax_metadata: dict[str, Any]
+    payment_provider: str
+    updated_at: datetime
+
+
+class ApiKeyOut(BaseModel):
+    id: str
+    org_id: str
+    workspace_id: str | None
+    name: str
+    key_preview: str
+    scopes: list[str]
+    status: str
+    usage_count: int
+    last_used_at: datetime | None
+    created_at: datetime
+
+
+class ApiKeyCreateOut(BaseModel):
+    api_key: dict[str, Any]
+    secret: str
+
+
+class EntitlementOut(BaseModel):
+    id: str
+    org_id: str
+    plan_key: str
+    features: dict[str, Any]
+    limits: dict[str, Any]
+    usage: dict[str, Any]
+    enforcement: dict[str, Any]
+    created_at: datetime
+
+
+class UsageRollupOut(BaseModel):
+    id: str
+    org_id: str
+    workspace_id: str | None
+    period: str
+    usage_type: str
+    quantity: int
+    unit: str
+    updated_at: datetime
+
+
+class BudgetAlertOut(BaseModel):
+    id: str
+    org_id: str
+    workspace_id: str | None
+    name: str
+    monthly_budget_cents: int
+    threshold_percent: int
+    status: str
+    last_triggered_at: datetime | None
+    created_at: datetime
+
+
+class SsoConfigOut(BaseModel):
+    id: str
+    org_id: str
+    saml_metadata: dict[str, Any]
+    oidc_metadata: dict[str, Any]
+    idp_metadata: dict[str, Any]
+    login_policy: dict[str, Any]
+    domain_verification: dict[str, Any]
+    enforce_sso: bool
+    provider_mode: str
+    status: str
+    updated_at: datetime
+
+
+class ScimConfigOut(BaseModel):
+    id: str
+    org_id: str
+    base_url: str
+    user_mapping: dict[str, Any]
+    group_mapping: dict[str, Any]
+    provisioning_status: str
+    metadata: dict[str, Any]
+    updated_at: datetime
+
+
+class ScimSyncOut(BaseModel):
+    id: str
+    org_id: str
+    resource_type: str
+    external_id: str
+    status: str
+    action: str
+    metadata: dict[str, Any]
+    created_at: datetime
+
+
+class AdvancedAuditOut(BaseModel):
+    id: str
+    org_id: str
+    workspace_id: str | None
+    actor_user_id: str | None
+    event_type: str
+    resource_type: str
+    resource_id: str
+    risk_classification: str
+    immutable_hash: str
+    metadata: dict[str, Any]
+    created_at: datetime
+
+
+class SecurityPolicyOut(BaseModel):
+    id: str
+    org_id: str
+    workspace_id: str | None
+    policy_type: str
+    name: str
+    rules: dict[str, Any]
+    status: str
+    current_version: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class ComplianceExportOut(BaseModel):
+    id: str
+    org_id: str
+    export_type: str
+    status: str
+    filters: dict[str, Any]
+    artifact_ref: str
+    retention_until: datetime | None
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class RetentionRuleOut(BaseModel):
+    id: str
+    org_id: str
+    workspace_id: str | None
+    data_type: str
+    retention_days: int
+    action: str
+    status: str
+    created_at: datetime
+
+
+class AdminPortalOut(BaseModel):
+    org_id: str
+    users: int
+    workspaces: int
+    billing: dict[str, Any]
+    security: dict[str, Any]
+    diagnostics: list[dict[str, Any]]
+    feature_flags: dict[str, Any]
+
+
+class SecurityDashboardOut(BaseModel):
+    org_id: str
+    login_activity: int
+    security_events: int
+    policy_violations: int
+    api_key_activity: int
+    integration_activity: int
+    risk_summary: dict[str, int]
+    security_score: int
+
+
+class GovernanceDashboardOut(BaseModel):
+    org_id: str
+    settings: dict[str, Any]
+    v3_governance_ref: str
+    approval_workflows: list[dict[str, Any]]
+    policy_assignments: list[dict[str, Any]]
+
+
+class GovernanceWorkflowOut(BaseModel):
+    id: str
+    org_id: str
+    workspace_id: str | None
+    name: str
+    trigger_policy: dict[str, Any]
+    approver_rules: dict[str, Any]
+    status: str
+    created_at: datetime

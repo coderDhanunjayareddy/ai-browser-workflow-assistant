@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -344,8 +344,217 @@ class ProductService:
         else:
             self.require_org_member(user.id, org_id)
         record = self.repo.create_usage_record(org_id=org_id, workspace_id=workspace_id, user_id=user.id, workflow_run_id=data.get("workflow_run_id"), usage_type=str(data["usage_type"]), quantity=int(data.get("quantity") or 0), unit=str(data.get("unit") or "count"), metadata=dict(data.get("metadata") or {}))
+        self.repo.upsert_usage_rollup(org_id=org_id, workspace_id=workspace_id, period=datetime.utcnow().strftime("%Y-%m"), usage_type=record.usage_type, quantity=record.quantity, unit=record.unit)
         self.db.commit()
         return record
+
+    def create_subscription(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5Subscription:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        self.repo.ensure_billing_plans()
+        plan = self.repo.get_plan(str(data.get("plan_key") or "free"))
+        if not plan:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="plan not found")
+        trial_ends_at = datetime.utcnow() + timedelta(days=14) if data.get("trial") else None
+        subscription = self.repo.upsert_subscription(org_id=org_id, plan_key=plan.plan_key, seat_count=max(1, int(data.get("seat_count") or 1)), status_value="trialing" if trial_ends_at else "active", trial_ends_at=trial_ends_at)
+        self.repo.create_billing_event(org_id=org_id, event_type="subscription.updated", resource_type="subscription", resource_id=subscription.id, metadata={"plan_key": plan.plan_key})
+        self.repo.write_audit(event_type="billing.subscription.updated", actor_user_id=user.id, org_id=org_id, resource_type="subscription", resource_id=subscription.id)
+        self.db.commit()
+        return subscription
+
+    def update_billing_settings(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5BillingSetting:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        settings = self.repo.update_billing_settings(org_id=org_id, billing_email=str(data.get("billing_email") or ""), tax_metadata=dict(data.get("tax_metadata") or {}))
+        self.repo.create_billing_event(org_id=org_id, event_type="billing.settings.updated", resource_type="billing_settings", resource_id=org_id)
+        self.db.commit()
+        return settings
+
+    def create_invoice(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5Invoice:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        subscription = self.repo.get_subscription(org_id)
+        invoice = self.repo.create_invoice(org_id=org_id, subscription_id=subscription.id if subscription else None, amount_due_cents=int(data.get("amount_due_cents") or 0), line_items=list(data.get("line_items") or []))
+        self.repo.create_billing_event(org_id=org_id, event_type="invoice.created", resource_type="invoice", resource_id=invoice.id)
+        self.db.commit()
+        return invoice
+
+    def create_api_key(self, *, user: models.V5User, data: dict[str, Any]) -> tuple[models.V5ApiKey, str]:
+        org_id = str(data["org_id"])
+        workspace_id = data.get("workspace_id")
+        if workspace_id:
+            workspace = self.require_workspace_role(user.id, str(workspace_id), {"owner", "admin"})
+            org_id = workspace.org_id
+        else:
+            self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        secret, key_hash, preview = security.create_api_key()
+        key = self.repo.create_api_key(org_id=org_id, workspace_id=workspace_id, user_id=user.id, name=str(data["name"]), key_hash=key_hash, key_preview=preview, scopes=list(data.get("scopes") or []))
+        self.repo.write_audit(event_type="api_key.created", actor_user_id=user.id, org_id=org_id, workspace_id=workspace_id, resource_type="api_key", resource_id=key.id)
+        self.db.commit()
+        return key, secret
+
+    def rotate_api_key(self, *, user: models.V5User, key_id: str) -> tuple[models.V5ApiKey, str]:
+        old = self.require_api_key_access(user.id, key_id, write=True)
+        old.status = "rotated"
+        old.revoked_at = datetime.utcnow()
+        secret, key_hash, preview = security.create_api_key()
+        key = self.repo.create_api_key(org_id=old.org_id, workspace_id=old.workspace_id, user_id=user.id, name=f"{old.name} rotated", key_hash=key_hash, key_preview=preview, scopes=list(old.scopes or []), rotated_from_key_id=old.id)
+        self.repo.write_audit(event_type="api_key.rotated", actor_user_id=user.id, org_id=old.org_id, workspace_id=old.workspace_id, resource_type="api_key", resource_id=key.id)
+        self.db.commit()
+        return key, secret
+
+    def revoke_api_key(self, *, user: models.V5User, key_id: str) -> models.V5ApiKey:
+        key = self.require_api_key_access(user.id, key_id, write=True)
+        key.status = "revoked"
+        key.revoked_at = datetime.utcnow()
+        self.repo.write_audit(event_type="api_key.revoked", actor_user_id=user.id, org_id=key.org_id, workspace_id=key.workspace_id, resource_type="api_key", resource_id=key.id)
+        self.db.commit()
+        return key
+
+    def touch_api_key(self, *, user: models.V5User, key_id: str) -> models.V5ApiKey:
+        key = self.require_api_key_access(user.id, key_id, write=False)
+        self.repo.touch_api_key_usage(key=key)
+        self.repo.upsert_usage_rollup(org_id=key.org_id, workspace_id=key.workspace_id, period=datetime.utcnow().strftime("%Y-%m"), usage_type="api_usage", quantity=1, unit="request")
+        self.db.commit()
+        return key
+
+    def entitlement_snapshot(self, *, user: models.V5User, org_id: str) -> models.V5EntitlementSnapshot:
+        self.require_org_member(user.id, org_id)
+        self.repo.ensure_billing_plans()
+        subscription = self.repo.get_subscription(org_id)
+        plan = self.repo.get_plan(subscription.plan_key if subscription else "free")
+        if not plan:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="plan not found")
+        usage = self.usage_dashboard(user=user, org_id=org_id)["totals"]
+        snapshot = self.repo.create_entitlement_snapshot(org_id=org_id, plan=plan, usage=usage)
+        self.db.commit()
+        return snapshot
+
+    def create_budget_alert(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5BudgetAlert:
+        org_id = str(data["org_id"])
+        workspace_id = data.get("workspace_id")
+        if workspace_id:
+            workspace = self.require_workspace_role(user.id, str(workspace_id), {"owner", "admin"})
+            org_id = workspace.org_id
+        else:
+            self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        alert = self.repo.create_budget_alert(org_id=org_id, workspace_id=workspace_id, user_id=user.id, name=str(data["name"]), monthly_budget_cents=int(data.get("monthly_budget_cents") or 0), threshold_percent=int(data.get("threshold_percent") or 80))
+        self.repo.create_notification(user_id=user.id, org_id=org_id, workspace_id=workspace_id, event_type="budget_alert.created", title="Budget alert created", body=alert.name, metadata={"budget_alert_id": alert.id})
+        self.repo.write_audit(event_type="budget_alert.created", actor_user_id=user.id, org_id=org_id, workspace_id=workspace_id, resource_type="budget_alert", resource_id=alert.id)
+        self.db.commit()
+        return alert
+
+    def update_sso_configuration(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5SsoConfiguration:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        config = self.repo.upsert_sso_configuration(org_id=org_id, user_id=user.id, data=data)
+        self.repo.create_advanced_audit_record(org_id=org_id, actor_user_id=user.id, event_type="sso.configuration.updated", resource_type="sso_configuration", resource_id=config.id, risk_classification="medium", metadata={"enforce_sso": config.enforce_sso})
+        self.repo.write_audit(event_type="sso.configuration.updated", actor_user_id=user.id, org_id=org_id, resource_type="sso_configuration", resource_id=config.id, risk_level="medium")
+        self.db.commit()
+        return config
+
+    def update_scim_configuration(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5ScimConfiguration:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        token_hash = security.token_hash(str(data.get("bearer_token") or "")) if data.get("bearer_token") else ""
+        config = self.repo.upsert_scim_configuration(org_id=org_id, user_id=user.id, data=data, token_hash=token_hash)
+        self.repo.create_advanced_audit_record(org_id=org_id, actor_user_id=user.id, event_type="scim.configuration.updated", resource_type="scim_configuration", resource_id=config.id, risk_classification="medium")
+        self.db.commit()
+        return config
+
+    def create_scim_sync_event(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5ScimSyncEvent:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        config = self.repo.get_scim_configuration(org_id=org_id)
+        event = self.repo.create_scim_sync_event(org_id=org_id, config_id=config.id if config else None, data=data)
+        self.repo.create_advanced_audit_record(org_id=org_id, actor_user_id=user.id, event_type="scim.sync.stubbed", resource_type=event.resource_type, resource_id=event.external_id, risk_classification="low", metadata={"action": event.action})
+        self.db.commit()
+        return event
+
+    def create_security_policy(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5SecurityPolicy:
+        org_id = str(data["org_id"])
+        workspace_id = data.get("workspace_id")
+        if workspace_id:
+            workspace = self.require_workspace_role(user.id, str(workspace_id), {"owner", "admin"})
+            org_id = workspace.org_id
+        else:
+            self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        policy = self.repo.create_security_policy(org_id=org_id, user_id=user.id, workspace_id=workspace_id, data=data)
+        self.repo.create_advanced_audit_record(org_id=org_id, workspace_id=workspace_id, actor_user_id=user.id, event_type="security.policy.created", resource_type="security_policy", resource_id=policy.id, risk_classification="medium", metadata={"policy_type": policy.policy_type})
+        self.db.commit()
+        return policy
+
+    def create_compliance_export(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5ComplianceExport:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        export = self.repo.create_compliance_export(org_id=org_id, user_id=user.id, export_type=str(data["export_type"]), filters=dict(data.get("filters") or {}))
+        self.repo.create_advanced_audit_record(org_id=org_id, actor_user_id=user.id, event_type="compliance.export.created", resource_type="compliance_export", resource_id=export.id, risk_classification="high", metadata={"export_type": export.export_type})
+        self.db.commit()
+        return export
+
+    def create_retention_rule(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5RetentionRule:
+        org_id = str(data["org_id"])
+        workspace_id = data.get("workspace_id")
+        if workspace_id:
+            workspace = self.require_workspace_role(user.id, str(workspace_id), {"owner", "admin"})
+            org_id = workspace.org_id
+        else:
+            self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        rule = self.repo.create_retention_rule(org_id=org_id, user_id=user.id, workspace_id=workspace_id, data_type=str(data["data_type"]), retention_days=int(data["retention_days"]), action=str(data.get("action") or "retain"))
+        self.repo.create_advanced_audit_record(org_id=org_id, workspace_id=workspace_id, actor_user_id=user.id, event_type="retention.rule.created", resource_type="retention_rule", resource_id=rule.id, risk_classification="medium")
+        self.db.commit()
+        return rule
+
+    def update_governance_settings(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5GovernanceSetting:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        settings = self.repo.upsert_governance_settings(org_id=org_id, user_id=user.id, settings=dict(data.get("settings") or {}))
+        self.repo.create_advanced_audit_record(org_id=org_id, actor_user_id=user.id, event_type="governance.settings.updated", resource_type="governance_settings", resource_id=org_id, risk_classification="medium", metadata={"v3_governance_ref": settings.v3_governance_ref})
+        self.db.commit()
+        return settings
+
+    def create_governance_workflow(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5GovernanceApprovalWorkflow:
+        org_id = str(data["org_id"])
+        workspace_id = data.get("workspace_id")
+        if workspace_id:
+            workspace = self.require_workspace_role(user.id, str(workspace_id), {"owner", "admin"})
+            org_id = workspace.org_id
+        else:
+            self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        workflow = self.repo.create_governance_workflow(org_id=org_id, user_id=user.id, workspace_id=workspace_id, data=data)
+        self.repo.create_advanced_audit_record(org_id=org_id, workspace_id=workspace_id, actor_user_id=user.id, event_type="governance.approval_workflow.created", resource_type="governance_workflow", resource_id=workflow.id, risk_classification="medium")
+        self.db.commit()
+        return workflow
+
+    def security_dashboard(self, *, user: models.V5User, org_id: str) -> dict[str, Any]:
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        records = self.repo.search_advanced_audit_records(org_id=org_id, limit=200)
+        risk_summary: dict[str, int] = {}
+        for record in records:
+            risk_summary[record.risk_classification] = risk_summary.get(record.risk_classification, 0) + 1
+        api_keys = self.repo.list_api_keys(org_ids=[org_id])
+        integrations = self.repo.list_integration_connections(org_ids=[org_id])
+        high_risk = risk_summary.get("high", 0)
+        medium_risk = risk_summary.get("medium", 0)
+        score = max(0, 100 - high_risk * 15 - medium_risk * 5)
+        return {"org_id": org_id, "login_activity": len([r for r in records if r.event_type.startswith("auth.")]), "security_events": len(records), "policy_violations": len([r for r in records if "violation" in r.event_type]), "api_key_activity": sum(key.usage_count for key in api_keys), "integration_activity": len(integrations), "risk_summary": risk_summary, "security_score": score}
+
+    def admin_portal(self, *, user: models.V5User, org_id: str) -> dict[str, Any]:
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        workspaces = self.repo.list_workspaces(user_id=user.id, org_id=org_id)
+        members = self.db.query(models.V5OrganizationMember).filter(models.V5OrganizationMember.org_id == org_id).count()
+        subscription = self.repo.get_subscription(org_id)
+        diagnostic = self.repo.create_admin_diagnostic(org_id=org_id, user_id=user.id, diagnostic_type="admin.portal.view", status_value="ok", summary="Admin portal metadata generated", metadata={"framework": "v5"})
+        security = self.security_dashboard(user=user, org_id=org_id)
+        self.db.commit()
+        return {"org_id": org_id, "users": members, "workspaces": len(workspaces), "billing": {"plan_key": subscription.plan_key if subscription else "free", "status": subscription.status if subscription else "none"}, "security": security, "diagnostics": [{"id": diagnostic.id, "status": diagnostic.status, "summary": diagnostic.summary}], "feature_flags": {"v5_product_layer": "enabled", "enterprise_governance": "metadata_only"}}
+
+    def governance_dashboard(self, *, user: models.V5User, org_id: str) -> dict[str, Any]:
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        settings = self.db.get(models.V5GovernanceSetting, org_id)
+        workflows = self.repo.list_governance_workflows(org_id=org_id)
+        policies = self.repo.list_security_policies(org_id=org_id)
+        return {"org_id": org_id, "settings": settings.settings_json if settings else {}, "v3_governance_ref": settings.v3_governance_ref if settings else "v3-governance", "approval_workflows": [{"id": workflow.id, "name": workflow.name, "status": workflow.status} for workflow in workflows], "policy_assignments": [{"id": policy.id, "name": policy.name, "policy_type": policy.policy_type} for policy in policies]}
 
     def analytics_dashboard(self, *, user: models.V5User, org_id: str) -> dict[str, Any]:
         self.require_org_member(user.id, org_id)
@@ -469,6 +678,16 @@ class ProductService:
         else:
             self.require_org_role(user_id, connection.org_id, ADMIN_ROLES if write else {"owner", "admin", "member"})
         return connection
+
+    def require_api_key_access(self, user_id: str, key_id: str, write: bool) -> models.V5ApiKey:
+        key = self.repo.get_api_key(key_id)
+        if not key:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="api key not found")
+        if key.workspace_id:
+            self.require_workspace_role(user_id, key.workspace_id, {"owner", "admin"} if write else {"owner", "admin", "member", "viewer"})
+        else:
+            self.require_org_role(user_id, key.org_id, ADMIN_ROLES if write else {"owner", "admin", "member"})
+        return key
 
     def _issue_token(self, user: models.V5User) -> str:
         expires_at = security.session_expiry()

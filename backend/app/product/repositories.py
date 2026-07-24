@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
+import hashlib
+import json
 from typing import Any
 
 from sqlalchemy import func, or_, select
@@ -456,6 +458,242 @@ class ProductRepository:
         self.db.add(record)
         self.db.flush()
         return record
+
+    def ensure_billing_plans(self) -> list[models.V5BillingPlan]:
+        defaults = [
+            ("free", "Free", 0, 0, {"workflows": 50, "api_calls": 100}, {"workspaces": 1, "assistants": 1}, {"replay": True, "api_keys": False}),
+            ("pro", "Pro", 2900, 0, {"workflows": 1000, "api_calls": 10000}, {"workspaces": 5, "assistants": 5}, {"replay": True, "api_keys": True}),
+            ("team", "Team", 9900, 1500, {"workflows": 10000, "api_calls": 100000}, {"workspaces": 50, "assistants": 25}, {"collaboration": True, "api_keys": True}),
+            ("enterprise", "Enterprise", 0, 0, {"workflows": -1, "api_calls": -1}, {"workspaces": -1, "assistants": -1}, {"sso": True, "advanced_governance": True}),
+        ]
+        for key, name, monthly, seat, included, limits, entitlements in defaults:
+            if not self.db.scalar(select(models.V5BillingPlan).where(models.V5BillingPlan.plan_key == key)):
+                self.db.add(models.V5BillingPlan(plan_key=key, name=name, tier=key, monthly_price_cents=monthly, seat_price_cents=seat, included_usage=included, limits_json=limits, entitlements_json=entitlements, billing_model="usage_based" if key in {"team", "enterprise"} else "flat"))
+        self.db.flush()
+        return list(self.db.scalars(select(models.V5BillingPlan).where(models.V5BillingPlan.active == True).order_by(models.V5BillingPlan.monthly_price_cents.asc())))  # noqa: E712
+
+    def get_plan(self, plan_key: str) -> models.V5BillingPlan | None:
+        return self.db.scalar(select(models.V5BillingPlan).where(models.V5BillingPlan.plan_key == plan_key, models.V5BillingPlan.active == True))  # noqa: E712
+
+    def get_subscription(self, org_id: str) -> models.V5Subscription | None:
+        return self.db.scalar(select(models.V5Subscription).where(models.V5Subscription.org_id == org_id))
+
+    def upsert_subscription(self, *, org_id: str, plan_key: str, seat_count: int, status_value: str = "active", trial_ends_at: datetime | None = None) -> models.V5Subscription:
+        subscription = self.get_subscription(org_id)
+        if not subscription:
+            subscription = models.V5Subscription(org_id=org_id, plan_key=plan_key, seat_count=seat_count, status=status_value, trial_ends_at=trial_ends_at, provider_ref=f"stub:{models.new_id()}")
+            self.db.add(subscription)
+            self.db.flush()
+        else:
+            subscription.plan_key = plan_key
+            subscription.seat_count = seat_count
+            subscription.status = status_value
+            subscription.trial_ends_at = trial_ends_at
+            subscription.updated_at = datetime.utcnow()
+        return subscription
+
+    def update_billing_settings(self, *, org_id: str, billing_email: str, tax_metadata: dict[str, Any]) -> models.V5BillingSetting:
+        settings = self.db.get(models.V5BillingSetting, org_id)
+        if not settings:
+            settings = models.V5BillingSetting(org_id=org_id)
+            self.db.add(settings)
+        settings.billing_email = billing_email
+        settings.tax_metadata = tax_metadata
+        settings.updated_at = datetime.utcnow()
+        return settings
+
+    def create_invoice(self, *, org_id: str, subscription_id: str | None, amount_due_cents: int, line_items: list[dict[str, Any]]) -> models.V5Invoice:
+        invoice = models.V5Invoice(org_id=org_id, subscription_id=subscription_id, invoice_number=f"INV-{datetime.utcnow().strftime('%Y%m%d')}-{models.new_id()[:8]}", amount_due_cents=amount_due_cents, line_items=line_items, status="open")
+        self.db.add(invoice)
+        self.db.flush()
+        return invoice
+
+    def list_invoices(self, *, org_id: str) -> list[models.V5Invoice]:
+        return list(self.db.scalars(select(models.V5Invoice).where(models.V5Invoice.org_id == org_id).order_by(models.V5Invoice.issued_at.desc())))
+
+    def create_billing_event(self, *, org_id: str, event_type: str, resource_type: str = "", resource_id: str = "", metadata: dict[str, Any] | None = None) -> models.V5BillingEvent:
+        event = models.V5BillingEvent(org_id=org_id, event_type=event_type, resource_type=resource_type, resource_id=resource_id, metadata_json=metadata or {})
+        self.db.add(event)
+        return event
+
+    def create_api_key(self, *, org_id: str, workspace_id: str | None, user_id: str, name: str, key_hash: str, key_preview: str, scopes: list[str], rotated_from_key_id: str | None = None) -> models.V5ApiKey:
+        key = models.V5ApiKey(org_id=org_id, workspace_id=workspace_id, created_by=user_id, name=name, key_hash=key_hash, key_preview=key_preview, scopes=scopes, rotated_from_key_id=rotated_from_key_id)
+        self.db.add(key)
+        self.db.flush()
+        return key
+
+    def get_api_key(self, key_id: str) -> models.V5ApiKey | None:
+        return self.db.get(models.V5ApiKey, key_id)
+
+    def list_api_keys(self, *, org_ids: list[str]) -> list[models.V5ApiKey]:
+        return list(self.db.scalars(select(models.V5ApiKey).where(models.V5ApiKey.org_id.in_(org_ids or [""])).order_by(models.V5ApiKey.created_at.desc())))
+
+    def touch_api_key_usage(self, *, key: models.V5ApiKey) -> models.V5ApiKey:
+        key.usage_count += 1
+        key.last_used_at = datetime.utcnow()
+        return key
+
+    def create_entitlement_snapshot(self, *, org_id: str, plan: models.V5BillingPlan, usage: dict[str, Any]) -> models.V5EntitlementSnapshot:
+        snapshot = models.V5EntitlementSnapshot(org_id=org_id, plan_key=plan.plan_key, features_json=dict(plan.entitlements_json or {}), limits_json=dict(plan.limits_json or {}), usage_json=usage, enforcement_metadata={"mode": "metadata_only", "runtime_enforced": False})
+        self.db.add(snapshot)
+        self.db.flush()
+        return snapshot
+
+    def latest_entitlement_snapshot(self, *, org_id: str) -> models.V5EntitlementSnapshot | None:
+        return self.db.scalar(select(models.V5EntitlementSnapshot).where(models.V5EntitlementSnapshot.org_id == org_id).order_by(models.V5EntitlementSnapshot.created_at.desc()))
+
+    def upsert_usage_rollup(self, *, org_id: str, period: str, usage_type: str, quantity: int, unit: str, workspace_id: str | None = None) -> models.V5UsageRollup:
+        rollup = self.db.scalar(select(models.V5UsageRollup).where(models.V5UsageRollup.org_id == org_id, models.V5UsageRollup.period == period, models.V5UsageRollup.usage_type == usage_type, models.V5UsageRollup.workspace_id == workspace_id))
+        if not rollup:
+            rollup = models.V5UsageRollup(org_id=org_id, workspace_id=workspace_id, period=period, usage_type=usage_type, quantity=0, unit=unit)
+            self.db.add(rollup)
+        rollup.quantity += quantity
+        rollup.updated_at = datetime.utcnow()
+        self.db.flush()
+        return rollup
+
+    def list_usage_rollups(self, *, org_id: str, period: str | None = None) -> list[models.V5UsageRollup]:
+        stmt = select(models.V5UsageRollup).where(models.V5UsageRollup.org_id == org_id)
+        if period:
+            stmt = stmt.where(models.V5UsageRollup.period == period)
+        return list(self.db.scalars(stmt.order_by(models.V5UsageRollup.updated_at.desc())))
+
+    def create_budget_alert(self, *, org_id: str, user_id: str, name: str, monthly_budget_cents: int, threshold_percent: int, workspace_id: str | None = None) -> models.V5BudgetAlert:
+        alert = models.V5BudgetAlert(org_id=org_id, workspace_id=workspace_id, created_by=user_id, name=name, monthly_budget_cents=monthly_budget_cents, threshold_percent=threshold_percent)
+        self.db.add(alert)
+        self.db.flush()
+        return alert
+
+    def list_budget_alerts(self, *, org_id: str) -> list[models.V5BudgetAlert]:
+        return list(self.db.scalars(select(models.V5BudgetAlert).where(models.V5BudgetAlert.org_id == org_id).order_by(models.V5BudgetAlert.created_at.desc())))
+
+    def upsert_sso_configuration(self, *, org_id: str, user_id: str, data: dict[str, Any]) -> models.V5SsoConfiguration:
+        config = self.db.scalar(select(models.V5SsoConfiguration).where(models.V5SsoConfiguration.org_id == org_id))
+        if not config:
+            config = models.V5SsoConfiguration(org_id=org_id, updated_by=user_id)
+            self.db.add(config)
+        config.saml_metadata = dict(data.get("saml_metadata") or {})
+        config.oidc_metadata = dict(data.get("oidc_metadata") or {})
+        config.idp_metadata = dict(data.get("idp_metadata") or {})
+        config.login_policy = dict(data.get("login_policy") or {})
+        config.domain_verification = dict(data.get("domain_verification") or {})
+        config.enforce_sso = bool(data.get("enforce_sso") or False)
+        config.status = str(data.get("status") or "configured")
+        config.updated_by = user_id
+        config.updated_at = datetime.utcnow()
+        self.db.flush()
+        return config
+
+    def get_sso_configuration(self, *, org_id: str) -> models.V5SsoConfiguration | None:
+        return self.db.scalar(select(models.V5SsoConfiguration).where(models.V5SsoConfiguration.org_id == org_id))
+
+    def upsert_scim_configuration(self, *, org_id: str, user_id: str, data: dict[str, Any], token_hash: str = "") -> models.V5ScimConfiguration:
+        config = self.db.scalar(select(models.V5ScimConfiguration).where(models.V5ScimConfiguration.org_id == org_id))
+        if not config:
+            config = models.V5ScimConfiguration(org_id=org_id, updated_by=user_id)
+            self.db.add(config)
+        config.base_url = str(data.get("base_url") or "")
+        if token_hash:
+            config.bearer_token_hash = token_hash
+        config.user_mapping = dict(data.get("user_mapping") or {})
+        config.group_mapping = dict(data.get("group_mapping") or {})
+        config.provisioning_status = str(data.get("provisioning_status") or "enabled")
+        config.metadata_json = dict(data.get("metadata") or {})
+        config.updated_by = user_id
+        config.updated_at = datetime.utcnow()
+        self.db.flush()
+        return config
+
+    def get_scim_configuration(self, *, org_id: str) -> models.V5ScimConfiguration | None:
+        return self.db.scalar(select(models.V5ScimConfiguration).where(models.V5ScimConfiguration.org_id == org_id))
+
+    def create_scim_sync_event(self, *, org_id: str, config_id: str | None, data: dict[str, Any]) -> models.V5ScimSyncEvent:
+        event = models.V5ScimSyncEvent(org_id=org_id, scim_config_id=config_id, resource_type=str(data.get("resource_type") or "user"), external_id=str(data.get("external_id") or ""), status=str(data.get("status") or "stubbed"), action=str(data.get("action") or "sync"), metadata_json=dict(data.get("metadata") or {}))
+        self.db.add(event)
+        self.db.flush()
+        return event
+
+    def list_scim_sync_events(self, *, org_id: str, limit: int = 50) -> list[models.V5ScimSyncEvent]:
+        return list(self.db.scalars(select(models.V5ScimSyncEvent).where(models.V5ScimSyncEvent.org_id == org_id).order_by(models.V5ScimSyncEvent.created_at.desc()).limit(max(1, min(limit, 100)))))
+
+    def create_advanced_audit_record(self, *, org_id: str, event_type: str, actor_user_id: str | None = None, workspace_id: str | None = None, resource_type: str = "", resource_id: str = "", risk_classification: str = "low", retention_until: datetime | None = None, metadata: dict[str, Any] | None = None, source_audit_event_id: str | None = None) -> models.V5AdvancedAuditRecord:
+        payload = {"org_id": org_id, "workspace_id": workspace_id, "actor_user_id": actor_user_id, "event_type": event_type, "resource_type": resource_type, "resource_id": resource_id, "risk": risk_classification, "metadata": metadata or {}, "ts": datetime.utcnow().isoformat()}
+        record = models.V5AdvancedAuditRecord(org_id=org_id, workspace_id=workspace_id, actor_user_id=actor_user_id, event_type=event_type, resource_type=resource_type, resource_id=resource_id, risk_classification=risk_classification, retention_until=retention_until, metadata_json=metadata or {}, source_audit_event_id=source_audit_event_id, immutable_hash=hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest())
+        self.db.add(record)
+        self.db.flush()
+        return record
+
+    def search_advanced_audit_records(self, *, org_id: str, event_type: str = "", risk: str = "", actor_user_id: str = "", resource_type: str = "", limit: int = 50) -> list[models.V5AdvancedAuditRecord]:
+        stmt = select(models.V5AdvancedAuditRecord).where(models.V5AdvancedAuditRecord.org_id == org_id)
+        if event_type:
+            stmt = stmt.where(models.V5AdvancedAuditRecord.event_type == event_type)
+        if risk:
+            stmt = stmt.where(models.V5AdvancedAuditRecord.risk_classification == risk)
+        if actor_user_id:
+            stmt = stmt.where(models.V5AdvancedAuditRecord.actor_user_id == actor_user_id)
+        if resource_type:
+            stmt = stmt.where(models.V5AdvancedAuditRecord.resource_type == resource_type)
+        return list(self.db.scalars(stmt.order_by(models.V5AdvancedAuditRecord.created_at.desc()).limit(max(1, min(limit, 200)))))
+
+    def create_security_policy(self, *, org_id: str, user_id: str, data: dict[str, Any], workspace_id: str | None = None) -> models.V5SecurityPolicy:
+        policy = models.V5SecurityPolicy(org_id=org_id, workspace_id=workspace_id, created_by=user_id, policy_type=str(data.get("policy_type") or "workspace"), name=str(data.get("name") or "Security policy"), rules_json=dict(data.get("rules") or {}))
+        self.db.add(policy)
+        self.db.flush()
+        self.add_security_policy_version(policy=policy, user_id=user_id, change_summary="Initial version")
+        return policy
+
+    def add_security_policy_version(self, *, policy: models.V5SecurityPolicy, user_id: str, change_summary: str = "") -> models.V5SecurityPolicyVersion:
+        version = models.V5SecurityPolicyVersion(policy_id=policy.id, version_number=policy.current_version, rules_json=dict(policy.rules_json or {}), change_summary=change_summary, created_by=user_id)
+        self.db.add(version)
+        return version
+
+    def list_security_policies(self, *, org_id: str) -> list[models.V5SecurityPolicy]:
+        return list(self.db.scalars(select(models.V5SecurityPolicy).where(models.V5SecurityPolicy.org_id == org_id).order_by(models.V5SecurityPolicy.updated_at.desc())))
+
+    def create_compliance_export(self, *, org_id: str, user_id: str, export_type: str, filters: dict[str, Any]) -> models.V5ComplianceExport:
+        export = models.V5ComplianceExport(org_id=org_id, requested_by=user_id, export_type=export_type, filters_json=filters, status="completed", artifact_ref=f"stub-export:{models.new_id()}", completed_at=datetime.utcnow(), retention_until=datetime.utcnow())
+        self.db.add(export)
+        self.db.flush()
+        return export
+
+    def list_compliance_exports(self, *, org_id: str) -> list[models.V5ComplianceExport]:
+        return list(self.db.scalars(select(models.V5ComplianceExport).where(models.V5ComplianceExport.org_id == org_id).order_by(models.V5ComplianceExport.created_at.desc())))
+
+    def create_retention_rule(self, *, org_id: str, user_id: str, data_type: str, retention_days: int, workspace_id: str | None = None, action: str = "retain") -> models.V5RetentionRule:
+        rule = models.V5RetentionRule(org_id=org_id, workspace_id=workspace_id, created_by=user_id, data_type=data_type, retention_days=retention_days, action=action)
+        self.db.add(rule)
+        self.db.flush()
+        self.db.add(models.V5RetentionJob(org_id=org_id, rule_id=rule.id, status="scheduled", metadata_json={"framework_only": True}))
+        return rule
+
+    def list_retention_rules(self, *, org_id: str) -> list[models.V5RetentionRule]:
+        return list(self.db.scalars(select(models.V5RetentionRule).where(models.V5RetentionRule.org_id == org_id).order_by(models.V5RetentionRule.created_at.desc())))
+
+    def create_admin_diagnostic(self, *, org_id: str, user_id: str, diagnostic_type: str, status_value: str, summary: str, metadata: dict[str, Any] | None = None) -> models.V5AdminDiagnostic:
+        diagnostic = models.V5AdminDiagnostic(org_id=org_id, created_by=user_id, diagnostic_type=diagnostic_type, status=status_value, summary=summary, metadata_json=metadata or {})
+        self.db.add(diagnostic)
+        self.db.flush()
+        return diagnostic
+
+    def upsert_governance_settings(self, *, org_id: str, user_id: str, settings: dict[str, Any]) -> models.V5GovernanceSetting:
+        config = self.db.get(models.V5GovernanceSetting, org_id)
+        if not config:
+            config = models.V5GovernanceSetting(org_id=org_id, updated_by=user_id)
+            self.db.add(config)
+        config.settings_json = settings
+        config.updated_by = user_id
+        config.updated_at = datetime.utcnow()
+        self.db.flush()
+        return config
+
+    def create_governance_workflow(self, *, org_id: str, user_id: str, data: dict[str, Any], workspace_id: str | None = None) -> models.V5GovernanceApprovalWorkflow:
+        workflow = models.V5GovernanceApprovalWorkflow(org_id=org_id, workspace_id=workspace_id, created_by=user_id, name=str(data.get("name") or "Approval workflow"), trigger_policy=dict(data.get("trigger_policy") or {}), approver_rules=dict(data.get("approver_rules") or {}))
+        self.db.add(workflow)
+        self.db.flush()
+        return workflow
+
+    def list_governance_workflows(self, *, org_id: str) -> list[models.V5GovernanceApprovalWorkflow]:
+        return list(self.db.scalars(select(models.V5GovernanceApprovalWorkflow).where(models.V5GovernanceApprovalWorkflow.org_id == org_id).order_by(models.V5GovernanceApprovalWorkflow.created_at.desc())))
 
     def list_usage_records(self, *, org_id: str) -> list[models.V5UsageRecord]:
         return list(self.db.scalars(select(models.V5UsageRecord).where(models.V5UsageRecord.org_id == org_id).order_by(models.V5UsageRecord.created_at.desc())))

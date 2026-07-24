@@ -17,7 +17,7 @@ from app.services.analytics_service import record_planner_call
 from app.run_ledger import RunLedgerWriter
 from app.observability.tracing import record_structured_trace
 from app.observability.metrics import default_metric_sink
-from app.feature_flags import is_shadow_or_active
+from app.feature_flags import is_active, is_shadow_or_active
 from app.context_packet import ContextPacketBuilder, PlannerV2Adapter
 from app.context_packet.telemetry import record_packet_metrics
 from app.evaluation import EvaluationEngine
@@ -41,6 +41,7 @@ _mission_intelligence = MissionIntelligenceEngine()
 _validation_engine = ValidationEngine()
 _governance_engine = GovernanceDecisionEngine()
 _evaluation_engine = EvaluationEngine()
+_browser_intelligence_artifacts: dict[str, Any] = {}
 
 
 class WorkflowOrchestrator:
@@ -199,6 +200,42 @@ class WorkflowOrchestrator:
             )
         except Exception:
             logger.debug("V3 semantic graph shadow build skipped", exc_info=True)
+
+    def _build_browser_intelligence_shadow(self, page_context: Any) -> Any | None:
+        """Build V4.5 Browser Intelligence artifacts without changing behavior.
+
+        Active mode may reuse this artifact to enrich compressed planner context,
+        but the planner action contract remains Planner Contract V2.
+        """
+        if not is_shadow_or_active("V45_BROWSER_INTELLIGENCE"):
+            return None
+        try:
+            from app.browser_intelligence import build_browser_intelligence
+
+            artifact = build_browser_intelligence(page_context, scope_id=self.session_id)
+            _browser_intelligence_artifacts[self.session_id] = artifact
+            payload = {
+                "schema_version": artifact.page_model.schema_version,
+                "url": artifact.page_model.url,
+                "title": artifact.page_model.title,
+                "page_type": artifact.page_model.classification.page_type,
+                "classification_confidence": artifact.page_model.classification.confidence,
+                "adapter": artifact.page_model.adapter,
+                "semantic_element_count": len(artifact.page_model.elements),
+                "search_result_count": len(artifact.page_model.search_results),
+                "selector_candidate_count": len(artifact.page_model.selector_candidates),
+                "telemetry": artifact.capability_report.get("telemetry", {}),
+                "replay_schema_version": artifact.replay.get("schema_version"),
+            }
+            self._record_v3_event(
+                "browser_intelligence.built",
+                payload,
+                links={"page_model_schema": artifact.page_model.schema_version},
+            )
+            return artifact
+        except Exception:
+            logger.debug("V4.5 browser intelligence shadow build skipped", exc_info=True)
+            return None
 
     def _build_context_packet_shadow(
         self,
@@ -546,6 +583,7 @@ class WorkflowOrchestrator:
             },
         )
         self._build_semantic_graph_shadow(page_context)
+        browser_intelligence_artifact = self._build_browser_intelligence_shadow(page_context)
 
         registry = GroundedElementRegistry(self.session_id)
         registry.register_elements([element.model_dump() for element in page_context.interactive_elements])
@@ -581,6 +619,18 @@ class WorkflowOrchestrator:
             prior_steps=planner_prior_steps,
             page_context=page_context,
         )
+        from app.execution_continuity import (
+            enrich_planner_context,
+            observe_execution_continuity,
+            postprocess_planner_response,
+        )
+
+        continuity_snapshot = observe_execution_continuity(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+        )
 
         compressed_context = self.context_compressor.compress(
             task=task,
@@ -590,6 +640,13 @@ class WorkflowOrchestrator:
             task_constraints=[supplemental_context] if supplemental_context else [],
             cognitive_context=cognitive_context,
         )
+        if browser_intelligence_artifact is not None and is_active("V45_BROWSER_INTELLIGENCE"):
+            from app.browser_intelligence import format_browser_intelligence_for_planner
+
+            compressed_context["browser_intelligence"] = format_browser_intelligence_for_planner(
+                browser_intelligence_artifact
+            )
+        compressed_context = enrich_planner_context(compressed_context, continuity_snapshot)
         self._build_context_packet_shadow(
             task=task,
             page_context=page_context,
@@ -613,6 +670,7 @@ class WorkflowOrchestrator:
                 verified_state=verified_state,
                 compressed_context=compressed_context,
             )
+            result = postprocess_planner_response(result, continuity_snapshot)
             self._record_v3_event(
                 "planner.responded",
                 {
@@ -620,6 +678,11 @@ class WorkflowOrchestrator:
                     "suggested_actions": len(result.suggested_actions),
                     "has_report": result.report is not None,
                     "has_replan": result.replan is not None,
+                    "execution_continuity": (
+                        continuity_snapshot.progress_validation.to_dict()
+                        if continuity_snapshot is not None
+                        else None
+                    ),
                 },
             )
             self._ground_intents_shadow(

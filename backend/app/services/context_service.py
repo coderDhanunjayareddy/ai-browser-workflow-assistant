@@ -41,6 +41,10 @@ def format_page_context(ctx: PageContext) -> str:
                 meta.append(f'aria-label="{el.aria_label}"')
             if el.accessibility_name:
                 meta.append(f'accessibility-name="{el.accessibility_name}"')
+            if el.href:
+                meta.append(f'href="{el.href[:240]}"')
+            if el.selector_id:
+                meta.append(f'selector-id="{el.selector_id}"')
             if el.state:
                 meta.append(f"state={el.state}")
 
@@ -51,6 +55,8 @@ def format_page_context(ctx: PageContext) -> str:
         lines.append("\nVISIBLE CONTENT BLOCKS (use these for reading/comparison; selectors may identify cards/rows):")
         for i, block in enumerate(ctx.content_blocks[:20], 1):
             lines.append(f"{i}. SELECTOR: {block.selector}")
+            if block.href:
+                lines.append(f"   URL: {block.href[:300]}")
             lines.append(f"   TEXT: {block.text[:500]}")
 
     if ctx.visible_text:

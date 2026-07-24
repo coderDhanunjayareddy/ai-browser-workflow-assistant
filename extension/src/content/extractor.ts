@@ -308,7 +308,70 @@ export function extractPageContext(): PageContext {
       .map(({ el, text }) => ({
         text,
         selector: buildSelector(el),
+        href: el instanceof HTMLAnchorElement ? el.href : undefined,
       }))
+  }
+
+  function collectGoogleOrganicResults(): { text: string; selector: string; href: string }[] {
+    if (!location.hostname.endsWith('google.com') || !location.pathname.startsWith('/search')) {
+      return []
+    }
+
+    const blockedHosts = new Set([
+      'google.com',
+      'www.google.com',
+      'accounts.google.com',
+      'maps.google.com',
+      'news.google.com',
+      'shopping.google.com',
+      'support.google.com',
+      'policies.google.com',
+      'translate.google.com',
+      'youtube.com',
+      'www.youtube.com',
+    ])
+    const excludedText = /(ai overview|ai mode|people also ask|sponsored|shopping|videos|images|news|maps|related searches)/i
+    const seen = new Set<string>()
+    const results: { text: string; selector: string; href: string }[] = []
+
+    const anchors = Array.from(document.querySelectorAll('#search a[href], #rso a[href], div[data-sokoban-container] a[href]'))
+    for (const anchor of anchors) {
+      if (!(anchor instanceof HTMLAnchorElement)) continue
+      if (!isVisible(anchor)) continue
+      const h3 = anchor.querySelector('h3')
+      const title = sanitizeText(((h3?.textContent || anchor.textContent || '')).replace(/\s+/g, ' ').trim())
+      if (!title || title.length < 3 || excludedText.test(title)) continue
+      if (anchor.closest('[aria-label*="Ads"], [data-text-ad], g-section-with-header, block-component')) {
+        const sectionText = sanitizeText((anchor.closest('div')?.textContent || '').slice(0, 300))
+        if (excludedText.test(sectionText)) continue
+      }
+
+      let href = anchor.href
+      try {
+        const parsed = new URL(href, location.href)
+        if (parsed.hostname.endsWith('google.com') && parsed.pathname === '/url') {
+          href = parsed.searchParams.get('q') || href
+        }
+        const finalUrl = new URL(href, location.href)
+        const host = finalUrl.hostname.replace(/^www\./, '')
+        if (blockedHosts.has(host) || blockedHosts.has(finalUrl.hostname)) continue
+        if (!/^https?:$/.test(finalUrl.protocol)) continue
+        href = finalUrl.href
+      } catch {
+        continue
+      }
+      if (seen.has(href)) continue
+      seen.add(href)
+
+      results.push({
+        text: title,
+        selector: buildSelector(anchor),
+        href,
+      })
+      if (results.length >= 10) break
+    }
+
+    return results
   }
 
   function collectImages(): string[] {
@@ -388,6 +451,8 @@ export function extractPageContext(): PageContext {
 
   // ── Extraction ────────────────────────────────────────────────────────────
 
+  const googleOrganicResults = collectGoogleOrganicResults()
+
   const interactiveElements: InteractiveElement[] = Array.from(
     document.querySelectorAll(INTERACTIVE_SELECTOR)
   )
@@ -404,11 +469,30 @@ export function extractPageContext(): PageContext {
         selector: buildSelector(el),
         visible: true,
       }
+      if (el instanceof HTMLAnchorElement) {
+        base.href = el.href
+      }
       if (el instanceof HTMLInputElement) {
         return { ...base, input_type: el.type, placeholder: el.placeholder || undefined }
       }
       return base
     })
+
+  const organicInteractiveElements: InteractiveElement[] = googleOrganicResults.map((result) => ({
+    type: 'a',
+    text: result.text,
+    selector: result.selector,
+    visible: true,
+    href: result.href,
+    semantic_kind: 'search_result',
+  }))
+
+  const mergedInteractiveElements = [
+    ...organicInteractiveElements,
+    ...interactiveElements.filter((element) => (
+      !organicInteractiveElements.some((organic) => organic.href && organic.href === element.href)
+    )),
+  ].slice(0, MAX_ELEMENTS)
 
   const headings = Array.from(document.querySelectorAll('h1, h2, h3'))
     .slice(0, MAX_HEADINGS)
@@ -422,8 +506,15 @@ export function extractPageContext(): PageContext {
     url: window.location.href,
     title: document.title,
     metadata: collectMetadata(),
-    interactive_elements: interactiveElements,
-    content_blocks: collectContentBlocks(),
+    interactive_elements: mergedInteractiveElements,
+    content_blocks: [
+      ...googleOrganicResults.map((result) => ({
+        text: result.text,
+        selector: result.selector,
+        href: result.href,
+      })),
+      ...collectContentBlocks(),
+    ].slice(0, MAX_CONTENT_BLOCKS),
     headings,
     selected_text: selectedText,
     visible_text: visibleText,
