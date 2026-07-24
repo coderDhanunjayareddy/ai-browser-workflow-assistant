@@ -7,7 +7,21 @@ from app.core.database import get_db
 from app.product.dependencies import ProductPrincipal, current_principal
 from app.product.repositories import ProductRepository
 from app.product.schemas import (
+    AnalyticsOut,
     AuditOut,
+    AssistantAssignRequest,
+    AssistantAssignmentOut,
+    AssistantCreate,
+    AssistantOut,
+    AssistantUpdate,
+    AssistantVersionOut,
+    IntegrationCatalogOut,
+    IntegrationConnectRequest,
+    IntegrationConnectionOut,
+    IntegrationHealthOut,
+    IntegrationHealthRequest,
+    InvitationCreate,
+    InvitationOut,
     LoginRequest,
     NotificationOut,
     OrganizationCreate,
@@ -23,7 +37,10 @@ from app.product.schemas import (
     SavedTaskUpdate,
     SettingsUpdate,
     TaskRunRequest,
+    TeamActivityOut,
     TeamCreate,
+    TeamMemberAdd,
+    TeamMemberOut,
     TeamOut,
     TemplateCreate,
     TemplateForkRequest,
@@ -32,24 +49,38 @@ from app.product.schemas import (
     TemplateUpdate,
     TemplateVersionOut,
     TokenResponse,
+    UsageDashboardOut,
+    UsageRecordCreate,
     UserOut,
     WorkflowCreate,
     WorkflowOut,
     WorkspaceCreate,
+    WorkspaceShareCreate,
+    WorkspaceShareOut,
     WorkspaceOut,
 )
 from app.product.serializers import (
     audit_out,
+    assistant_assignment_out,
+    assistant_out,
+    assistant_version_out,
+    integration_catalog_out,
+    integration_connection_out,
+    integration_health_out,
+    invitation_out,
     notification_out,
     org_out,
     replay_share_out,
     resource_version_out,
     saved_task_out,
+    team_activity_out,
+    team_member_out,
     team_out,
     template_out,
     template_version_out,
     user_out,
     workflow_out,
+    workspace_share_out,
     workspace_out,
 )
 from app.product.services import ProductService
@@ -111,6 +142,41 @@ def list_teams(org_id: str, principal: ProductPrincipal = Depends(current_princi
     return [team_out(team) for team in service.repo.list_teams(org_id)]
 
 
+@router.post("/teams/{team_id}/members", response_model=TeamMemberOut)
+def add_team_member(team_id: str, payload: TeamMemberAdd, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return team_member_out(ProductService(db).add_team_member(user=principal.user, team_id=team_id, member_user_id=payload.user_id, role=payload.role))
+
+
+@router.get("/teams/{team_id}/members", response_model=list[TeamMemberOut])
+def list_team_members(team_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    team = service.repo.get_team(team_id)
+    if not team:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="team not found")
+    service.require_org_member(principal.user.id, team.org_id)
+    return [team_member_out(member) for member in service.repo.list_team_members(team_id)]
+
+
+@router.post("/invitations", response_model=InvitationOut)
+def create_invitation(payload: InvitationCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return invitation_out(ProductService(db).invite_user(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/orgs/{org_id}/invitations", response_model=list[InvitationOut])
+def list_invitations(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_role(principal.user.id, org_id, {"owner", "admin"})
+    return [invitation_out(invitation) for invitation in service.repo.list_invitations(org_id=org_id)]
+
+
+@router.get("/orgs/{org_id}/activity", response_model=list[TeamActivityOut])
+def team_activity(org_id: str, team_id: str | None = None, limit: int = Query(default=50, ge=1, le=100), principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    service.require_org_member(principal.user.id, org_id)
+    return [team_activity_out(activity) for activity in service.repo.list_team_activity(org_id=org_id, team_id=team_id, limit=limit)]
+
+
 @router.post("/workspaces", response_model=WorkspaceOut)
 def create_workspace(payload: WorkspaceCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
     workspace = ProductService(db).create_workspace(user=principal.user, org_id=payload.org_id, name=payload.name, description=payload.description)
@@ -127,6 +193,11 @@ def list_workspaces(org_id: str | None = None, principal: ProductPrincipal = Dep
 def update_workspace_settings(workspace_id: str, payload: SettingsUpdate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
     settings = ProductService(db).update_workspace_settings(user=principal.user, workspace_id=workspace_id, settings=payload.settings)
     return {"settings": settings.settings}
+
+
+@router.post("/workspaces/{workspace_id}/shares", response_model=WorkspaceShareOut)
+def share_workspace(workspace_id: str, payload: WorkspaceShareCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return workspace_share_out(ProductService(db).share_workspace(user=principal.user, workspace_id=workspace_id, team_id=payload.team_id, role=payload.role))
 
 
 @router.post("/workflows", response_model=WorkflowOut)
@@ -279,6 +350,83 @@ def list_notifications(
 @router.post("/notifications/{notification_id}/read", response_model=NotificationOut)
 def mark_notification_read(notification_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
     return notification_out(ProductService(db).mark_notification_read(user=principal.user, notification_id=notification_id))
+
+
+@router.post("/assistants", response_model=AssistantOut)
+def create_assistant(payload: AssistantCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return assistant_out(ProductService(db).create_assistant(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/assistants", response_model=list[AssistantOut])
+def list_assistants(limit: int = Query(default=50, ge=1, le=100), principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    repo = ProductRepository(db)
+    orgs = repo.list_user_orgs(principal.user.id)
+    return [assistant_out(assistant) for assistant in repo.list_assistants(org_ids=[org.id for org in orgs], limit=limit)]
+
+
+@router.patch("/assistants/{assistant_id}", response_model=AssistantOut)
+def update_assistant(assistant_id: str, payload: AssistantUpdate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return assistant_out(ProductService(db).update_assistant(user=principal.user, assistant_id=assistant_id, data=payload.model_dump(exclude_unset=True)))
+
+
+@router.post("/assistants/{assistant_id}/publish", response_model=AssistantOut)
+def publish_assistant(assistant_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return assistant_out(ProductService(db).set_assistant_status(user=principal.user, assistant_id=assistant_id, status_value="published"))
+
+
+@router.post("/assistants/{assistant_id}/unpublish", response_model=AssistantOut)
+def unpublish_assistant(assistant_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return assistant_out(ProductService(db).set_assistant_status(user=principal.user, assistant_id=assistant_id, status_value="draft"))
+
+
+@router.post("/assistants/{assistant_id}/assignments", response_model=AssistantAssignmentOut)
+def assign_assistant(assistant_id: str, payload: AssistantAssignRequest, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return assistant_assignment_out(ProductService(db).assign_assistant(user=principal.user, assistant_id=assistant_id, workspace_id=payload.workspace_id, role=payload.role))
+
+
+@router.get("/assistants/{assistant_id}/versions", response_model=list[AssistantVersionOut])
+def assistant_versions(assistant_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    service = ProductService(db)
+    assistant = service.require_assistant_access(principal.user.id, assistant_id, write=False)
+    return [assistant_version_out(version) for version in sorted(assistant.versions, key=lambda item: item.version_number, reverse=True)]
+
+
+@router.get("/integrations/catalog", response_model=list[IntegrationCatalogOut])
+def integration_catalog(principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    return [integration_catalog_out(item) for item in ProductRepository(db).ensure_integration_catalog()]
+
+
+@router.post("/integrations/connections", response_model=IntegrationConnectionOut)
+def connect_integration(payload: IntegrationConnectRequest, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return integration_connection_out(ProductService(db).connect_integration(user=principal.user, data=payload.model_dump()))
+
+
+@router.get("/integrations/connections", response_model=list[IntegrationConnectionOut])
+def list_integrations(principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
+    repo = ProductRepository(db)
+    orgs = repo.list_user_orgs(principal.user.id)
+    return [integration_connection_out(connection) for connection in repo.list_integration_connections(org_ids=[org.id for org in orgs])]
+
+
+@router.post("/integrations/connections/{connection_id}/health", response_model=IntegrationHealthOut)
+def integration_health(connection_id: str, payload: IntegrationHealthRequest, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return integration_health_out(ProductService(db).record_integration_health(user=principal.user, connection_id=connection_id, status_value=payload.status, latency_ms=payload.latency_ms, message=payload.message))
+
+
+@router.get("/analytics", response_model=AnalyticsOut)
+def analytics(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return ProductService(db).analytics_dashboard(user=principal.user, org_id=org_id)
+
+
+@router.post("/usage/records")
+def create_usage_record(payload: UsageRecordCreate, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    record = ProductService(db).create_usage_record(user=principal.user, data=payload.model_dump())
+    return {"id": record.id}
+
+
+@router.get("/usage", response_model=UsageDashboardOut)
+def usage_dashboard(org_id: str, principal: ProductPrincipal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+    return ProductService(db).usage_dashboard(user=principal.user, org_id=org_id)
 
 
 @router.get("/audit-logs", response_model=list[AuditOut])

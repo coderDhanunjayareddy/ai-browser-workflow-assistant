@@ -54,9 +54,51 @@ class ProductService:
     def create_team(self, *, user: models.V5User, org_id: str, name: str) -> models.V5Team:
         self.require_org_role(user.id, org_id, ADMIN_ROLES)
         team = self.repo.create_team(org_id=org_id, user_id=user.id, name=name)
+        self.repo.add_team_activity(org_id=org_id, team_id=team.id, actor_user_id=user.id, activity_type="team.created", summary=f"Team {team.name} created")
         self.repo.write_audit(event_type="team.created", actor_user_id=user.id, org_id=org_id, resource_type="team", resource_id=team.id)
         self.db.commit()
         return team
+
+    def add_team_member(self, *, user: models.V5User, team_id: str, member_user_id: str, role: str) -> models.V5TeamMember:
+        team = self.require_team_admin(user.id, team_id)
+        if not self.repo.get_user(member_user_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+        self.require_org_member(member_user_id, team.org_id)
+        member = self.repo.add_team_member(team_id=team.id, user_id=member_user_id, role=role)
+        self.repo.add_team_activity(org_id=team.org_id, team_id=team.id, actor_user_id=user.id, activity_type="team.member.added", summary=f"Member added as {role}", metadata={"user_id": member_user_id})
+        self.repo.write_audit(event_type="team.member.added", actor_user_id=user.id, org_id=team.org_id, resource_type="team_member", resource_id=member.id)
+        self.db.commit()
+        return member
+
+    def invite_user(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5Invitation:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        workspace_id = data.get("workspace_id")
+        team_id = data.get("team_id")
+        if workspace_id:
+            workspace = self.require_workspace_role(user.id, str(workspace_id), {"owner", "admin"})
+            if workspace.org_id != org_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="workspace does not belong to org")
+        if team_id:
+            team = self.repo.get_team(str(team_id))
+            if not team or team.org_id != org_id:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="team not found")
+        invitation = self.repo.create_invitation(org_id=org_id, invited_by=user.id, email=str(data["email"]), role=str(data.get("role") or "member"), team_id=team_id, workspace_id=workspace_id)
+        self.repo.add_team_activity(org_id=org_id, team_id=team_id, workspace_id=workspace_id, actor_user_id=user.id, activity_type="invitation.created", summary=f"Invitation sent to {invitation.email}")
+        self.repo.write_audit(event_type="invitation.created", actor_user_id=user.id, org_id=org_id, workspace_id=workspace_id, resource_type="invitation", resource_id=invitation.id)
+        self.db.commit()
+        return invitation
+
+    def share_workspace(self, *, user: models.V5User, workspace_id: str, team_id: str, role: str) -> models.V5WorkspaceShare:
+        workspace = self.require_workspace_role(user.id, workspace_id, {"owner", "admin"})
+        team = self.repo.get_team(team_id)
+        if not team or team.org_id != workspace.org_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="team not found")
+        share = self.repo.share_workspace_with_team(workspace=workspace, team_id=team.id, role=role, user_id=user.id)
+        self.repo.add_team_activity(org_id=workspace.org_id, team_id=team.id, workspace_id=workspace.id, actor_user_id=user.id, activity_type="workspace.shared", summary=f"Workspace shared with {team.name} as {role}")
+        self.repo.write_audit(event_type="workspace.shared", actor_user_id=user.id, org_id=workspace.org_id, workspace_id=workspace.id, resource_type="workspace_share", resource_id=share.id)
+        self.db.commit()
+        return share
 
     def create_workspace(self, *, user: models.V5User, org_id: str, name: str, description: str = "") -> models.V5Workspace:
         self.require_org_member(user.id, org_id)
@@ -232,6 +274,112 @@ class ProductService:
         self.db.commit()
         return version
 
+    def create_assistant(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5Assistant:
+        org_id = str(data["org_id"])
+        self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        assistant = self.repo.create_assistant(user_id=user.id, org_id=org_id, data=data)
+        self.repo.write_audit(event_type="assistant.created", actor_user_id=user.id, org_id=org_id, resource_type="assistant", resource_id=assistant.id)
+        self.db.commit()
+        return assistant
+
+    def update_assistant(self, *, user: models.V5User, assistant_id: str, data: dict[str, Any]) -> models.V5Assistant:
+        assistant = self.require_assistant_access(user.id, assistant_id, write=True)
+        for field in ["name", "description", "instructions"]:
+            if field in data:
+                setattr(assistant, field, str(data[field]))
+        if "capability_permissions" in data:
+            assistant.capability_permissions = list(data["capability_permissions"] or [])
+        assistant.current_version += 1
+        assistant.updated_at = datetime.utcnow()
+        self.repo.add_assistant_version(assistant=assistant, user_id=user.id, change_summary=str(data.get("change_summary") or "Assistant updated"))
+        self.repo.write_audit(event_type="assistant.updated", actor_user_id=user.id, org_id=assistant.org_id, resource_type="assistant", resource_id=assistant.id)
+        self.db.commit()
+        return assistant
+
+    def set_assistant_status(self, *, user: models.V5User, assistant_id: str, status_value: str) -> models.V5Assistant:
+        assistant = self.require_assistant_access(user.id, assistant_id, write=True)
+        assistant.status = status_value
+        assistant.updated_at = datetime.utcnow()
+        self.repo.write_audit(event_type=f"assistant.{status_value}", actor_user_id=user.id, org_id=assistant.org_id, resource_type="assistant", resource_id=assistant.id)
+        self.db.commit()
+        return assistant
+
+    def assign_assistant(self, *, user: models.V5User, assistant_id: str, workspace_id: str, role: str) -> models.V5AssistantWorkspaceAssignment:
+        assistant = self.require_assistant_access(user.id, assistant_id, write=False)
+        workspace = self.require_workspace_role(user.id, workspace_id, {"owner", "admin"})
+        if workspace.org_id != assistant.org_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="workspace does not belong to assistant org")
+        assignment = self.repo.assign_assistant(assistant=assistant, workspace=workspace, user_id=user.id, role=role)
+        self.repo.write_audit(event_type="assistant.assigned", actor_user_id=user.id, org_id=assistant.org_id, workspace_id=workspace.id, resource_type="assistant_assignment", resource_id=assignment.id)
+        self.db.commit()
+        return assignment
+
+    def connect_integration(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5IntegrationConnection:
+        org_id = str(data["org_id"])
+        workspace_id = data.get("workspace_id")
+        if workspace_id:
+            workspace = self.require_workspace_role(user.id, str(workspace_id), {"owner", "admin"})
+            org_id = workspace.org_id
+        else:
+            self.require_org_role(user.id, org_id, ADMIN_ROLES)
+        self.repo.ensure_integration_catalog()
+        connection = self.repo.create_integration_connection(user_id=user.id, org_id=org_id, workspace_id=workspace_id, provider_key=str(data["provider_key"]), token_metadata=dict(data.get("token_metadata") or {}))
+        self.repo.write_audit(event_type="integration.connected", actor_user_id=user.id, org_id=org_id, workspace_id=workspace_id, resource_type="integration_connection", resource_id=connection.id, metadata={"provider_key": connection.provider_key})
+        self.db.commit()
+        return connection
+
+    def record_integration_health(self, *, user: models.V5User, connection_id: str, status_value: str, latency_ms: int, message: str) -> models.V5IntegrationHealthEvent:
+        connection = self.require_integration_access(user.id, connection_id, write=True)
+        event = self.repo.record_integration_health(connection=connection, status_value=status_value, latency_ms=latency_ms, message=message)
+        self.repo.write_audit(event_type="integration.health.checked", actor_user_id=user.id, org_id=connection.org_id, workspace_id=connection.workspace_id, resource_type="integration_connection", resource_id=connection.id)
+        self.db.commit()
+        return event
+
+    def create_usage_record(self, *, user: models.V5User, data: dict[str, Any]) -> models.V5UsageRecord:
+        org_id = str(data["org_id"])
+        workspace_id = data.get("workspace_id")
+        if workspace_id:
+            workspace = self.require_workspace_role(user.id, str(workspace_id), {"owner", "admin", "member"})
+            org_id = workspace.org_id
+        else:
+            self.require_org_member(user.id, org_id)
+        record = self.repo.create_usage_record(org_id=org_id, workspace_id=workspace_id, user_id=user.id, workflow_run_id=data.get("workflow_run_id"), usage_type=str(data["usage_type"]), quantity=int(data.get("quantity") or 0), unit=str(data.get("unit") or "count"), metadata=dict(data.get("metadata") or {}))
+        self.db.commit()
+        return record
+
+    def analytics_dashboard(self, *, user: models.V5User, org_id: str) -> dict[str, Any]:
+        self.require_org_member(user.id, org_id)
+        status_counts = self.repo.workflow_status_counts(org_id=org_id)
+        total = sum(status_counts.values())
+        successes = status_counts.get("completed", 0)
+        activities = self.repo.list_team_activity(org_id=org_id, limit=100)
+        return {
+            "org_id": org_id,
+            "workflow_status": status_counts,
+            "success_rate": (successes / total) if total else 0.0,
+            "capability_usage": self.repo.capability_usage_counts(org_id=org_id),
+            "workspace_workflows": self.repo.workspace_workflow_counts(org_id=org_id),
+            "team_activity_count": len(activities),
+            "trend": [{"label": status_value, "count": count} for status_value, count in sorted(status_counts.items())],
+            "export": {"format": "json", "generated_at": datetime.utcnow().isoformat(), "scope": "org"},
+        }
+
+    def usage_dashboard(self, *, user: models.V5User, org_id: str) -> dict[str, Any]:
+        self.require_org_member(user.id, org_id)
+        records = self.repo.list_usage_records(org_id=org_id)
+        totals: dict[str, int] = {}
+        by_workspace: dict[str, dict[str, int]] = {}
+        by_user: dict[str, dict[str, int]] = {}
+        for record in records:
+            totals[record.usage_type] = totals.get(record.usage_type, 0) + record.quantity
+            if record.workspace_id:
+                by_workspace.setdefault(record.workspace_id, {})
+                by_workspace[record.workspace_id][record.usage_type] = by_workspace[record.workspace_id].get(record.usage_type, 0) + record.quantity
+            if record.user_id:
+                by_user.setdefault(record.user_id, {})
+                by_user[record.user_id][record.usage_type] = by_user[record.user_id].get(record.usage_type, 0) + record.quantity
+        return {"org_id": org_id, "totals": totals, "by_workspace": by_workspace, "by_user": by_user, "records": [usage_record_snapshot(record) for record in records[:100]]}
+
     def mark_notification_read(self, *, user: models.V5User, notification_id: str) -> models.V5Notification:
         notification = self.repo.get_notification(notification_id)
         if not notification or notification.user_id != user.id:
@@ -298,6 +446,30 @@ class ProductService:
         self.require_workspace_role(user_id, template.workspace_id, WORKSPACE_WRITE_ROLES if write else {"owner", "admin", "member", "viewer"})
         return template
 
+    def require_team_admin(self, user_id: str, team_id: str) -> models.V5Team:
+        team = self.repo.get_team(team_id)
+        if not team:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="team not found")
+        self.require_org_role(user_id, team.org_id, ADMIN_ROLES)
+        return team
+
+    def require_assistant_access(self, user_id: str, assistant_id: str, write: bool) -> models.V5Assistant:
+        assistant = self.repo.get_assistant(assistant_id)
+        if not assistant:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="assistant not found")
+        self.require_org_role(user_id, assistant.org_id, ADMIN_ROLES if write else {"owner", "admin", "member"})
+        return assistant
+
+    def require_integration_access(self, user_id: str, connection_id: str, write: bool) -> models.V5IntegrationConnection:
+        connection = self.repo.get_integration_connection(connection_id)
+        if not connection:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="integration connection not found")
+        if connection.workspace_id:
+            self.require_workspace_role(user_id, connection.workspace_id, {"owner", "admin"} if write else {"owner", "admin", "member", "viewer"})
+        else:
+            self.require_org_role(user_id, connection.org_id, ADMIN_ROLES if write else {"owner", "admin", "member"})
+        return connection
+
     def _issue_token(self, user: models.V5User) -> str:
         expires_at = security.session_expiry()
         placeholder = self.repo.create_session(user_id=user.id, token_hash=f"pending:{models.new_id()}", expires_at=expires_at)
@@ -326,3 +498,16 @@ def _redact_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
         if key in redacted:
             redacted[key] = "[redacted]"
     return redacted
+
+
+def usage_record_snapshot(record: models.V5UsageRecord) -> dict[str, Any]:
+    return {
+        "id": record.id,
+        "workspace_id": record.workspace_id,
+        "user_id": record.user_id,
+        "workflow_run_id": record.workflow_run_id,
+        "usage_type": record.usage_type,
+        "quantity": record.quantity,
+        "unit": record.unit,
+        "created_at": record.created_at.isoformat(),
+    }

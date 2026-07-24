@@ -59,7 +59,7 @@ type ProductProps = { product: ReturnType<typeof useProduct> }
 
 function ProductPanel({ product }: ProductProps) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [view, setView] = useState<'dashboard' | 'replay' | 'tasks' | 'templates' | 'notifications' | 'versions'>('dashboard')
+  const [view, setView] = useState<'dashboard' | 'replay' | 'tasks' | 'templates' | 'teams' | 'assistants' | 'integrations' | 'analytics' | 'usage' | 'notifications' | 'versions'>('dashboard')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -71,6 +71,10 @@ function ProductPanel({ product }: ProductProps) {
   const [taskPrompt, setTaskPrompt] = useState('')
   const [templateTitle, setTemplateTitle] = useState('')
   const [templatePrompt, setTemplatePrompt] = useState('')
+  const [teamName, setTeamName] = useState('')
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [assistantName, setAssistantName] = useState('')
+  const [assistantInstructions, setAssistantInstructions] = useState('')
   const [theme, setTheme] = useState(String(product.user?.preferences?.theme || 'system'))
 
   useEffect(() => {
@@ -117,6 +121,22 @@ function ProductPanel({ product }: ProductProps) {
     setTemplatePrompt('')
   }
 
+  const primaryOrgId = selectedOrgId || product.orgs[0]?.id || ''
+
+  const createTeam = async () => {
+    if (!teamName.trim() || !primaryOrgId) return
+    const team = await product.createTeam(primaryOrgId, teamName.trim())
+    setTeamName('')
+    if (selectedWorkspaceId) void product.shareWorkspace(selectedWorkspaceId, team.id)
+  }
+
+  const createAssistant = async () => {
+    if (!assistantName.trim() || !primaryOrgId) return
+    await product.createAssistant(primaryOrgId, assistantName.trim(), assistantInstructions.trim())
+    setAssistantName('')
+    setAssistantInstructions('')
+  }
+
   if (!product.user) {
     return (
       <div style={productStyles.stack}>
@@ -153,7 +173,7 @@ function ProductPanel({ product }: ProductProps) {
       {product.error && <p style={s.error}>{product.error}</p>}
 
       <div style={productStyles.subnav}>
-        {(['dashboard', 'replay', 'tasks', 'templates', 'notifications', 'versions'] as const).map((tab) => (
+        {(['dashboard', 'replay', 'tasks', 'templates', 'teams', 'assistants', 'integrations', 'analytics', 'usage', 'notifications', 'versions'] as const).map((tab) => (
           <button key={tab} style={{ ...productStyles.subnavBtn, ...(view === tab ? productStyles.subnavActive : {}) }} onClick={() => setView(tab)}>
             {tab[0].toUpperCase() + tab.slice(1)}
           </button>
@@ -170,6 +190,9 @@ function ProductPanel({ product }: ProductProps) {
               <Metric label="Workflows" value={product.workflows.length} />
               <Metric label="Tasks" value={product.tasks.length} />
               <Metric label="Templates" value={product.templates.length} />
+              <Metric label="Teams" value={product.teams.length} />
+              <Metric label="Assistants" value={product.assistants.length} />
+              <Metric label="Integrations" value={product.integrations.length} />
               <Metric label="Unread" value={product.notifications.filter((item) => !item.read_at).length} />
             </div>
           </section>
@@ -273,6 +296,93 @@ function ProductPanel({ product }: ProductProps) {
         </section>
       )}
 
+      {view === 'teams' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Teams and collaboration</p>
+          <WorkspacePicker workspaces={product.workspaces} value={selectedWorkspaceId} onChange={setSelectedWorkspaceId} />
+          <div style={productStyles.row}>
+            <input style={productStyles.input} value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Team name" />
+            <button style={s.primaryBtn} onClick={() => void createTeam()} disabled={!teamName.trim() || !primaryOrgId}>Create</button>
+          </div>
+          <div style={productStyles.row}>
+            <input style={productStyles.input} value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="Invite email" />
+            <button style={s.resetBtn} onClick={() => { if (inviteEmail && primaryOrgId) void product.inviteUser(primaryOrgId, inviteEmail, product.teams[0]?.id, selectedWorkspaceId); setInviteEmail('') }}>Invite</button>
+          </div>
+          <div style={productStyles.list}>
+            {product.teams.map((team) => (
+              <div key={team.id} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{team.name}</p>
+                <p style={productStyles.itemMeta}>Created {formatDate(team.created_at)}</p>
+                {selectedWorkspaceId && <button style={s.resetBtn} onClick={() => void product.shareWorkspace(selectedWorkspaceId, team.id)}>Share workspace</button>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {view === 'assistants' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Assistant management</p>
+          <WorkspacePicker workspaces={product.workspaces} value={selectedWorkspaceId} onChange={setSelectedWorkspaceId} />
+          <input style={productStyles.input} value={assistantName} onChange={(e) => setAssistantName(e.target.value)} placeholder="Assistant name" />
+          <textarea style={productStyles.textarea} value={assistantInstructions} onChange={(e) => setAssistantInstructions(e.target.value)} placeholder="Assistant instructions" />
+          <button style={s.primaryBtn} onClick={() => void createAssistant()} disabled={!assistantName.trim() || !primaryOrgId}>Create assistant</button>
+          <div style={productStyles.list}>
+            {product.assistants.map((assistant) => (
+              <div key={assistant.id} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{assistant.name}</p>
+                <p style={productStyles.itemMeta}>{assistant.status} - v{assistant.current_version}</p>
+                <div style={productStyles.row}>
+                  <button style={s.resetBtn} onClick={() => void product.publishAssistant(assistant.id)}>Publish</button>
+                  {selectedWorkspaceId && <button style={s.primaryBtn} onClick={() => void product.assignAssistant(assistant.id, selectedWorkspaceId)}>Assign</button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {view === 'integrations' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Integrations</p>
+          <WorkspacePicker workspaces={product.workspaces} value={selectedWorkspaceId} onChange={setSelectedWorkspaceId} />
+          <div style={productStyles.list}>
+            {product.integrationCatalog.map((item) => (
+              <div key={item.provider_key} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{item.name}</p>
+                <p style={productStyles.itemMeta}>{item.category} - {item.auth_type}</p>
+                <button style={s.primaryBtn} onClick={() => void product.connectIntegration(primaryOrgId, item.provider_key, selectedWorkspaceId)} disabled={!primaryOrgId}>Connect stub</button>
+              </div>
+            ))}
+            {product.integrations.map((connection) => (
+              <div key={connection.id} style={productStyles.listItem}>
+                <p style={productStyles.itemTitle}>{connection.provider_key}</p>
+                <p style={productStyles.itemMeta}>{connection.status} - health {connection.health_status}</p>
+                <button style={s.resetBtn} onClick={() => void product.checkIntegrationHealth(connection.id)}>Check health</button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {view === 'analytics' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Analytics dashboard</p>
+          <DashboardMap title="Workflow status" data={(product.analytics?.workflow_status as Record<string, number> | undefined) || {}} />
+          <DashboardMap title="Capability usage" data={(product.analytics?.capability_usage as Record<string, number> | undefined) || {}} />
+          <p style={productStyles.itemMeta}>Success rate: {Math.round(Number(product.analytics?.success_rate || 0) * 100)}%</p>
+        </section>
+      )}
+
+      {view === 'usage' && (
+        <section style={productStyles.section}>
+          <p style={productStyles.sectionTitle}>Usage dashboard</p>
+          <button style={s.resetBtn} onClick={() => void product.recordUsage(primaryOrgId, selectedWorkspaceId)} disabled={!primaryOrgId}>Record API usage sample</button>
+          <DashboardMap title="Totals" data={(product.usage?.totals as Record<string, number> | undefined) || {}} />
+          <p style={productStyles.itemMeta}>Records: {Array.isArray(product.usage?.records) ? product.usage.records.length : 0}</p>
+        </section>
+      )}
+
       {view === 'notifications' && (
         <section style={productStyles.section}>
           <p style={productStyles.sectionTitle}>Notifications</p>
@@ -344,6 +454,21 @@ function WorkflowCards({ workflows, onReplay, onRerun, onClone, onShare }: {
             <button style={s.resetBtn} onClick={() => void onClone(run.id)}>Clone</button>
             <button style={s.primaryBtn} onClick={() => void onRerun(run.id)}>Rerun</button>
           </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function DashboardMap({ title, data }: { title: string, data: Record<string, number> }) {
+  const entries = Object.entries(data)
+  return (
+    <div style={productStyles.list}>
+      <p style={productStyles.itemTitle}>{title}</p>
+      {entries.length === 0 ? <p style={s.histEmpty}>No data yet.</p> : entries.map(([key, value]) => (
+        <div key={key} style={productStyles.timelineStep}>
+          <span style={productStyles.timelineIndex}>{value}</span>
+          <span style={productStyles.itemMeta}>{key}</span>
         </div>
       ))}
     </div>

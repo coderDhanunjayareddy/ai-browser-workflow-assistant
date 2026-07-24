@@ -92,6 +92,44 @@ export interface ProductVersion {
   created_at: string
 }
 
+export interface ProductTeam {
+  id: string
+  org_id: string
+  name: string
+  created_at: string
+}
+
+export interface ProductAssistant {
+  id: string
+  org_id: string
+  name: string
+  description: string
+  instructions: string
+  capability_permissions: string[]
+  status: string
+  current_version: number
+  metrics: Record<string, unknown>
+  updated_at: string
+}
+
+export interface ProductIntegration {
+  id: string
+  org_id: string
+  workspace_id?: string | null
+  provider_key: string
+  status: string
+  health_status: string
+  updated_at: string
+}
+
+export interface ProductIntegrationCatalogItem {
+  provider_key: string
+  name: string
+  category: string
+  auth_type: string
+  status: string
+}
+
 async function parseJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail = `HTTP ${res.status}`
@@ -117,6 +155,12 @@ export function useProduct() {
   const [notifications, setNotifications] = useState<ProductNotification[]>([])
   const [selectedReplay, setSelectedReplay] = useState<ProductReplay | null>(null)
   const [versions, setVersions] = useState<ProductVersion[]>([])
+  const [teams, setTeams] = useState<ProductTeam[]>([])
+  const [assistants, setAssistants] = useState<ProductAssistant[]>([])
+  const [integrationCatalog, setIntegrationCatalog] = useState<ProductIntegrationCatalogItem[]>([])
+  const [integrations, setIntegrations] = useState<ProductIntegration[]>([])
+  const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null)
+  const [usage, setUsage] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -142,7 +186,7 @@ export function useProduct() {
     setLoading(true)
     setError(null)
     try {
-      const [me, orgList, workspaceList, workflowList, taskList, templateList, notificationList] = await Promise.all([
+      const [me, orgList, workspaceList, workflowList, taskList, templateList, notificationList, assistantList, catalogList, integrationList] = await Promise.all([
         authedFetch<ProductUser>('/v5/me'),
         authedFetch<ProductOrg[]>('/v5/orgs'),
         authedFetch<ProductWorkspace[]>('/v5/workspaces'),
@@ -150,6 +194,9 @@ export function useProduct() {
         authedFetch<ProductTask[]>('/v5/tasks?limit=20'),
         authedFetch<ProductTemplate[]>('/v5/templates?limit=20'),
         authedFetch<ProductNotification[]>('/v5/notifications?limit=20'),
+        authedFetch<ProductAssistant[]>('/v5/assistants?limit=20'),
+        authedFetch<ProductIntegrationCatalogItem[]>('/v5/integrations/catalog'),
+        authedFetch<ProductIntegration[]>('/v5/integrations/connections'),
       ])
       setUser(me)
       setOrgs(orgList)
@@ -158,6 +205,19 @@ export function useProduct() {
       setTasks(taskList)
       setTemplates(templateList)
       setNotifications(notificationList)
+      setAssistants(assistantList)
+      setIntegrationCatalog(catalogList)
+      setIntegrations(integrationList)
+      if (orgList[0]) {
+        const [teamList, analyticsData, usageData] = await Promise.all([
+          authedFetch<ProductTeam[]>(`/v5/orgs/${orgList[0].id}/teams`),
+          authedFetch<Record<string, unknown>>(`/v5/analytics?org_id=${orgList[0].id}`),
+          authedFetch<Record<string, unknown>>(`/v5/usage?org_id=${orgList[0].id}`),
+        ])
+        setTeams(teamList)
+        setAnalytics(analyticsData)
+        setUsage(usageData)
+      }
     } catch (err) {
       setError(String(err))
     } finally {
@@ -224,6 +284,12 @@ export function useProduct() {
     setNotifications([])
     setSelectedReplay(null)
     setVersions([])
+    setTeams([])
+    setAssistants([])
+    setIntegrationCatalog([])
+    setIntegrations([])
+    setAnalytics(null)
+    setUsage(null)
   }, [authedFetch, token])
 
   const createOrg = useCallback(async (name: string) => {
@@ -332,6 +398,60 @@ export function useProduct() {
     setNotifications((items) => items.map((item) => item.id === updated.id ? updated : item))
   }, [authedFetch])
 
+  const createTeam = useCallback(async (orgId: string, name: string) => {
+    const team = await authedFetch<ProductTeam>(`/v5/orgs/${orgId}/teams`, { method: 'POST', body: JSON.stringify({ name }) })
+    setTeams((items) => [team, ...items])
+    return team
+  }, [authedFetch])
+
+  const inviteUser = useCallback(async (orgId: string, email: string, teamId?: string, workspaceId?: string) => {
+    return await authedFetch<Record<string, unknown>>('/v5/invitations', {
+      method: 'POST',
+      body: JSON.stringify({ org_id: orgId, email, role: 'member', team_id: teamId || null, workspace_id: workspaceId || null }),
+    })
+  }, [authedFetch])
+
+  const shareWorkspace = useCallback(async (workspaceId: string, teamId: string) => {
+    return await authedFetch<Record<string, unknown>>(`/v5/workspaces/${workspaceId}/shares`, { method: 'POST', body: JSON.stringify({ team_id: teamId, role: 'member' }) })
+  }, [authedFetch])
+
+  const createAssistant = useCallback(async (orgId: string, name: string, instructions: string) => {
+    const assistant = await authedFetch<ProductAssistant>('/v5/assistants', {
+      method: 'POST',
+      body: JSON.stringify({ org_id: orgId, name, instructions, capability_permissions: ['workflow.run', 'browser.observe'] }),
+    })
+    setAssistants((items) => [assistant, ...items])
+    return assistant
+  }, [authedFetch])
+
+  const publishAssistant = useCallback(async (assistantId: string) => {
+    const assistant = await authedFetch<ProductAssistant>(`/v5/assistants/${assistantId}/publish`, { method: 'POST' })
+    setAssistants((items) => items.map((item) => item.id === assistant.id ? assistant : item))
+  }, [authedFetch])
+
+  const assignAssistant = useCallback(async (assistantId: string, workspaceId: string) => {
+    return await authedFetch<Record<string, unknown>>(`/v5/assistants/${assistantId}/assignments`, { method: 'POST', body: JSON.stringify({ workspace_id: workspaceId, role: 'assistant' }) })
+  }, [authedFetch])
+
+  const connectIntegration = useCallback(async (orgId: string, providerKey: string, workspaceId?: string) => {
+    const connection = await authedFetch<ProductIntegration>('/v5/integrations/connections', {
+      method: 'POST',
+      body: JSON.stringify({ org_id: orgId, provider_key: providerKey, workspace_id: workspaceId || null, token_metadata: { mode: 'stub' } }),
+    })
+    setIntegrations((items) => [connection, ...items])
+    return connection
+  }, [authedFetch])
+
+  const checkIntegrationHealth = useCallback(async (connectionId: string) => {
+    await authedFetch<Record<string, unknown>>(`/v5/integrations/connections/${connectionId}/health`, { method: 'POST', body: JSON.stringify({ status: 'healthy', latency_ms: 25, message: 'stub ok' }) })
+    await refresh()
+  }, [authedFetch, refresh])
+
+  const recordUsage = useCallback(async (orgId: string, workspaceId?: string) => {
+    await authedFetch<Record<string, unknown>>('/v5/usage/records', { method: 'POST', body: JSON.stringify({ org_id: orgId, workspace_id: workspaceId || null, usage_type: 'api_calls', quantity: 1, unit: 'request' }) })
+    await refresh()
+  }, [authedFetch, refresh])
+
   return {
     token,
     user,
@@ -343,6 +463,12 @@ export function useProduct() {
     notifications,
     selectedReplay,
     versions,
+    teams,
+    assistants,
+    integrationCatalog,
+    integrations,
+    analytics,
+    usage,
     loading,
     error,
     refresh,
@@ -364,5 +490,14 @@ export function useProduct() {
     forkTemplate,
     loadVersions,
     markNotificationRead,
+    createTeam,
+    inviteUser,
+    shareWorkspace,
+    createAssistant,
+    publishAssistant,
+    assignAssistant,
+    connectIntegration,
+    checkIntegrationHealth,
+    recordUsage,
   }
 }

@@ -21,6 +21,42 @@ def team_out(team: models.V5Team) -> dict:
     return {"id": team.id, "org_id": team.org_id, "name": team.name, "created_at": team.created_at}
 
 
+def team_member_out(member: models.V5TeamMember) -> dict:
+    return {"id": member.id, "team_id": member.team_id, "user_id": member.user_id, "role": member.role, "joined_at": member.joined_at}
+
+
+def invitation_out(invitation: models.V5Invitation) -> dict:
+    return {
+        "id": invitation.id,
+        "org_id": invitation.org_id,
+        "team_id": invitation.team_id,
+        "workspace_id": invitation.workspace_id,
+        "email": invitation.email,
+        "role": invitation.role,
+        "status": invitation.status,
+        "token": invitation.token,
+        "created_at": invitation.created_at,
+    }
+
+
+def team_activity_out(activity: models.V5TeamActivity) -> dict:
+    return {
+        "id": activity.id,
+        "org_id": activity.org_id,
+        "team_id": activity.team_id,
+        "workspace_id": activity.workspace_id,
+        "actor_user_id": activity.actor_user_id,
+        "activity_type": activity.activity_type,
+        "summary": activity.summary,
+        "metadata": activity.metadata_json or {},
+        "created_at": activity.created_at,
+    }
+
+
+def workspace_share_out(share: models.V5WorkspaceShare) -> dict:
+    return {"id": share.id, "workspace_id": share.workspace_id, "org_id": share.org_id, "team_id": share.team_id, "role": share.role, "created_at": share.created_at}
+
+
 def workspace_out(workspace: models.V5Workspace, role: str | None = None) -> dict:
     return {
         "id": workspace.id,
@@ -160,4 +196,96 @@ def notification_out(notification: models.V5Notification) -> dict:
         "metadata": notification.metadata_json or {},
         "read_at": notification.read_at,
         "created_at": notification.created_at,
+    }
+
+
+def assistant_out(assistant: models.V5Assistant) -> dict:
+    return {
+        "id": assistant.id,
+        "org_id": assistant.org_id,
+        "name": assistant.name,
+        "description": assistant.description,
+        "instructions": assistant.instructions,
+        "capability_permissions": assistant.capability_permissions or [],
+        "status": assistant.status,
+        "current_version": assistant.current_version,
+        "metrics": assistant.metrics_json or {},
+        "created_at": assistant.created_at,
+        "updated_at": assistant.updated_at,
+    }
+
+
+def assistant_version_out(version: models.V5AssistantVersion) -> dict:
+    return {
+        "id": version.id,
+        "assistant_id": version.assistant_id,
+        "version_number": version.version_number,
+        "name": version.name,
+        "change_summary": version.change_summary,
+        "created_at": version.created_at,
+    }
+
+
+def assistant_assignment_out(assignment: models.V5AssistantWorkspaceAssignment) -> dict:
+    return {
+        "id": assignment.id,
+        "assistant_id": assignment.assistant_id,
+        "workspace_id": assignment.workspace_id,
+        "org_id": assignment.org_id,
+        "role": assignment.role,
+        "created_at": assignment.created_at,
+    }
+
+
+def integration_catalog_out(item: models.V5IntegrationCatalogItem) -> dict:
+    return {
+        "id": item.id,
+        "provider_key": item.provider_key,
+        "name": item.name,
+        "category": item.category,
+        "auth_type": item.auth_type,
+        "scopes": item.scopes or [],
+        "capabilities": item.capabilities or [],
+        "status": item.status,
+    }
+
+
+def integration_connection_out(connection: models.V5IntegrationConnection) -> dict:
+    return {
+        "id": connection.id,
+        "org_id": connection.org_id,
+        "workspace_id": connection.workspace_id,
+        "provider_key": connection.provider_key,
+        "status": connection.status,
+        "token_metadata": connection.token_metadata or {},
+        "health_status": connection.health_status,
+        "last_health_check_at": connection.last_health_check_at,
+        "created_at": connection.created_at,
+        "updated_at": connection.updated_at,
+    }
+
+
+def integration_health_out(event: models.V5IntegrationHealthEvent) -> dict:
+    return {
+        "id": event.id,
+        "connection_id": event.connection_id,
+        "status": event.status,
+        "latency_ms": event.latency_ms,
+        "message": event.message,
+        "created_at": event.created_at,
+    }
+
+
+def usage_record_out(record: models.V5UsageRecord) -> dict:
+    return {
+        "id": record.id,
+        "org_id": record.org_id,
+        "workspace_id": record.workspace_id,
+        "user_id": record.user_id,
+        "workflow_run_id": record.workflow_run_id,
+        "usage_type": record.usage_type,
+        "quantity": record.quantity,
+        "unit": record.unit,
+        "metadata": record.metadata_json or {},
+        "created_at": record.created_at,
     }

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.product import models
@@ -71,8 +71,55 @@ class ProductRepository:
         self.db.add(models.V5TeamMember(team_id=team.id, user_id=user_id, role="owner"))
         return team
 
+    def get_team(self, team_id: str) -> models.V5Team | None:
+        return self.db.get(models.V5Team, team_id)
+
     def list_teams(self, org_id: str) -> list[models.V5Team]:
         return list(self.db.scalars(select(models.V5Team).where(models.V5Team.org_id == org_id).order_by(models.V5Team.created_at.desc())))
+
+    def add_team_member(self, *, team_id: str, user_id: str, role: str) -> models.V5TeamMember:
+        member = self.db.scalar(select(models.V5TeamMember).where(models.V5TeamMember.team_id == team_id, models.V5TeamMember.user_id == user_id))
+        if member:
+            member.role = role
+            return member
+        member = models.V5TeamMember(team_id=team_id, user_id=user_id, role=role)
+        self.db.add(member)
+        self.db.flush()
+        return member
+
+    def list_team_members(self, team_id: str) -> list[models.V5TeamMember]:
+        return list(self.db.scalars(select(models.V5TeamMember).where(models.V5TeamMember.team_id == team_id).order_by(models.V5TeamMember.joined_at.desc())))
+
+    def create_invitation(self, *, org_id: str, invited_by: str, email: str, role: str, team_id: str | None = None, workspace_id: str | None = None) -> models.V5Invitation:
+        invitation = models.V5Invitation(org_id=org_id, team_id=team_id, workspace_id=workspace_id, invited_by=invited_by, email=email.lower(), role=role, token=models.new_id())
+        self.db.add(invitation)
+        self.db.flush()
+        return invitation
+
+    def list_invitations(self, *, org_id: str) -> list[models.V5Invitation]:
+        return list(self.db.scalars(select(models.V5Invitation).where(models.V5Invitation.org_id == org_id).order_by(models.V5Invitation.created_at.desc())))
+
+    def add_team_activity(self, *, org_id: str, activity_type: str, summary: str, actor_user_id: str | None = None, team_id: str | None = None, workspace_id: str | None = None, metadata: dict[str, Any] | None = None) -> models.V5TeamActivity:
+        activity = models.V5TeamActivity(org_id=org_id, team_id=team_id, workspace_id=workspace_id, actor_user_id=actor_user_id, activity_type=activity_type, summary=summary, metadata_json=metadata or {})
+        self.db.add(activity)
+        self.db.flush()
+        return activity
+
+    def list_team_activity(self, *, org_id: str, team_id: str | None = None, limit: int = 50) -> list[models.V5TeamActivity]:
+        stmt = select(models.V5TeamActivity).where(models.V5TeamActivity.org_id == org_id)
+        if team_id:
+            stmt = stmt.where(models.V5TeamActivity.team_id == team_id)
+        return list(self.db.scalars(stmt.order_by(models.V5TeamActivity.created_at.desc()).limit(max(1, min(limit, 100)))))
+
+    def share_workspace_with_team(self, *, workspace: models.V5Workspace, team_id: str, role: str, user_id: str) -> models.V5WorkspaceShare:
+        share = self.db.scalar(select(models.V5WorkspaceShare).where(models.V5WorkspaceShare.workspace_id == workspace.id, models.V5WorkspaceShare.team_id == team_id))
+        if share:
+            share.role = role
+            return share
+        share = models.V5WorkspaceShare(workspace_id=workspace.id, org_id=workspace.org_id, team_id=team_id, role=role, created_by=user_id)
+        self.db.add(share)
+        self.db.flush()
+        return share
 
     def create_workspace(self, *, org_id: str, user_id: str, name: str, description: str = "") -> models.V5Workspace:
         workspace = models.V5Workspace(org_id=org_id, name=name, description=description, created_by=user_id)
@@ -321,6 +368,109 @@ class ProductRepository:
 
     def get_notification(self, notification_id: str) -> models.V5Notification | None:
         return self.db.get(models.V5Notification, notification_id)
+
+    def create_assistant(self, *, user_id: str, org_id: str, data: dict[str, Any]) -> models.V5Assistant:
+        assistant = models.V5Assistant(
+            org_id=org_id,
+            owner_user_id=user_id,
+            name=str(data.get("name") or "Untitled assistant"),
+            description=str(data.get("description") or ""),
+            instructions=str(data.get("instructions") or ""),
+            capability_permissions=list(data.get("capability_permissions") or []),
+            metrics_json={"runs": 0, "successes": 0, "failures": 0},
+        )
+        self.db.add(assistant)
+        self.db.flush()
+        self.add_assistant_version(assistant=assistant, user_id=user_id, change_summary="Initial version")
+        return assistant
+
+    def add_assistant_version(self, *, assistant: models.V5Assistant, user_id: str, change_summary: str = "") -> models.V5AssistantVersion:
+        version = models.V5AssistantVersion(
+            assistant_id=assistant.id,
+            version_number=assistant.current_version,
+            name=assistant.name,
+            description=assistant.description,
+            instructions=assistant.instructions,
+            capability_permissions=list(assistant.capability_permissions or []),
+            change_summary=change_summary,
+            created_by=user_id,
+        )
+        self.db.add(version)
+        return version
+
+    def get_assistant(self, assistant_id: str) -> models.V5Assistant | None:
+        return self.db.get(models.V5Assistant, assistant_id)
+
+    def list_assistants(self, *, org_ids: list[str], limit: int = 50) -> list[models.V5Assistant]:
+        return list(self.db.scalars(select(models.V5Assistant).where(models.V5Assistant.org_id.in_(org_ids or [""])).order_by(models.V5Assistant.updated_at.desc()).limit(max(1, min(limit, 100)))))
+
+    def assign_assistant(self, *, assistant: models.V5Assistant, workspace: models.V5Workspace, user_id: str, role: str = "assistant") -> models.V5AssistantWorkspaceAssignment:
+        assignment = self.db.scalar(select(models.V5AssistantWorkspaceAssignment).where(
+            models.V5AssistantWorkspaceAssignment.assistant_id == assistant.id,
+            models.V5AssistantWorkspaceAssignment.workspace_id == workspace.id,
+        ))
+        if assignment:
+            assignment.role = role
+            return assignment
+        assignment = models.V5AssistantWorkspaceAssignment(assistant_id=assistant.id, workspace_id=workspace.id, org_id=workspace.org_id, assigned_by=user_id, role=role)
+        self.db.add(assignment)
+        self.db.flush()
+        return assignment
+
+    def ensure_integration_catalog(self) -> list[models.V5IntegrationCatalogItem]:
+        defaults = [
+            ("github", "GitHub", "development", ["repo", "workflow"], ["issues", "pull_requests"]),
+            ("google_workspace", "Google Workspace", "productivity", ["drive", "docs"], ["files", "docs"]),
+            ("slack", "Slack", "communication", ["channels", "messages"], ["notifications", "messages"]),
+            ("jira", "Jira", "project_management", ["issues"], ["tickets", "boards"]),
+        ]
+        for provider_key, name, category, scopes, capabilities in defaults:
+            if not self.db.scalar(select(models.V5IntegrationCatalogItem).where(models.V5IntegrationCatalogItem.provider_key == provider_key)):
+                self.db.add(models.V5IntegrationCatalogItem(provider_key=provider_key, name=name, category=category, scopes=scopes, capabilities=capabilities))
+        self.db.flush()
+        return list(self.db.scalars(select(models.V5IntegrationCatalogItem).order_by(models.V5IntegrationCatalogItem.name.asc())))
+
+    def create_integration_connection(self, *, user_id: str, org_id: str, provider_key: str, workspace_id: str | None = None, token_metadata: dict[str, Any] | None = None) -> models.V5IntegrationConnection:
+        connection = models.V5IntegrationConnection(org_id=org_id, workspace_id=workspace_id, provider_key=provider_key, connected_by=user_id, token_ref=f"stub:{models.new_id()}", token_metadata=token_metadata or {"mode": "oauth_stub"}, health_status="unknown")
+        self.db.add(connection)
+        self.db.flush()
+        return connection
+
+    def list_integration_connections(self, *, org_ids: list[str]) -> list[models.V5IntegrationConnection]:
+        return list(self.db.scalars(select(models.V5IntegrationConnection).where(models.V5IntegrationConnection.org_id.in_(org_ids or [""])).order_by(models.V5IntegrationConnection.updated_at.desc())))
+
+    def get_integration_connection(self, connection_id: str) -> models.V5IntegrationConnection | None:
+        return self.db.get(models.V5IntegrationConnection, connection_id)
+
+    def record_integration_health(self, *, connection: models.V5IntegrationConnection, status_value: str, latency_ms: int = 0, message: str = "") -> models.V5IntegrationHealthEvent:
+        connection.health_status = status_value
+        connection.last_health_check_at = datetime.utcnow()
+        connection.updated_at = datetime.utcnow()
+        event = models.V5IntegrationHealthEvent(connection_id=connection.id, status=status_value, latency_ms=latency_ms, message=message)
+        self.db.add(event)
+        self.db.flush()
+        return event
+
+    def create_usage_record(self, *, org_id: str, usage_type: str, quantity: int, unit: str = "count", workspace_id: str | None = None, user_id: str | None = None, workflow_run_id: str | None = None, metadata: dict[str, Any] | None = None) -> models.V5UsageRecord:
+        record = models.V5UsageRecord(org_id=org_id, workspace_id=workspace_id, user_id=user_id, workflow_run_id=workflow_run_id, usage_type=usage_type, quantity=quantity, unit=unit, metadata_json=metadata or {})
+        self.db.add(record)
+        self.db.flush()
+        return record
+
+    def list_usage_records(self, *, org_id: str) -> list[models.V5UsageRecord]:
+        return list(self.db.scalars(select(models.V5UsageRecord).where(models.V5UsageRecord.org_id == org_id).order_by(models.V5UsageRecord.created_at.desc())))
+
+    def workflow_status_counts(self, *, org_id: str) -> dict[str, int]:
+        rows = self.db.execute(select(models.V5WorkflowRun.status, func.count(models.V5WorkflowRun.id)).where(models.V5WorkflowRun.org_id == org_id).group_by(models.V5WorkflowRun.status)).all()
+        return {str(status): int(count) for status, count in rows}
+
+    def capability_usage_counts(self, *, org_id: str) -> dict[str, int]:
+        rows = self.db.execute(select(models.V5WorkflowStep.capability_id, func.count(models.V5WorkflowStep.id)).join(models.V5WorkflowRun).where(models.V5WorkflowRun.org_id == org_id).group_by(models.V5WorkflowStep.capability_id)).all()
+        return {str(capability or "unknown"): int(count) for capability, count in rows}
+
+    def workspace_workflow_counts(self, *, org_id: str) -> dict[str, int]:
+        rows = self.db.execute(select(models.V5WorkflowRun.workspace_id, func.count(models.V5WorkflowRun.id)).where(models.V5WorkflowRun.org_id == org_id).group_by(models.V5WorkflowRun.workspace_id)).all()
+        return {str(workspace_id): int(count) for workspace_id, count in rows}
 
     def write_audit(self, *, event_type: str, actor_user_id: str | None = None, org_id: str | None = None, workspace_id: str | None = None, resource_type: str = "", resource_id: str = "", risk_level: str = "low", metadata: dict[str, Any] | None = None) -> models.V5AuditEvent:
         event = models.V5AuditEvent(

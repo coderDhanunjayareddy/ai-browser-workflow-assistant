@@ -338,3 +338,156 @@ class V5Notification(Base):
     metadata_json = Column(JSON, default=dict, nullable=False)
     read_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class V5Invitation(Base):
+    __tablename__ = "v5_invitations"
+
+    id = Column(String, primary_key=True, default=new_id)
+    org_id = Column(String, ForeignKey("v5_organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    team_id = Column(String, ForeignKey("v5_teams.id", ondelete="CASCADE"), nullable=True, index=True)
+    workspace_id = Column(String, ForeignKey("v5_workspaces.id", ondelete="CASCADE"), nullable=True, index=True)
+    email = Column(String, nullable=False, index=True)
+    role = Column(String, default="member", nullable=False)
+    status = Column(String, default="pending", nullable=False, index=True)
+    invited_by = Column(String, ForeignKey("v5_users.id"), nullable=False)
+    token = Column(String, nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    accepted_at = Column(DateTime, nullable=True)
+
+
+class V5TeamActivity(Base):
+    __tablename__ = "v5_team_activity"
+
+    id = Column(String, primary_key=True, default=new_id)
+    org_id = Column(String, ForeignKey("v5_organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    team_id = Column(String, ForeignKey("v5_teams.id", ondelete="CASCADE"), nullable=True, index=True)
+    workspace_id = Column(String, ForeignKey("v5_workspaces.id", ondelete="CASCADE"), nullable=True, index=True)
+    actor_user_id = Column(String, ForeignKey("v5_users.id"), nullable=True, index=True)
+    activity_type = Column(String, nullable=False, index=True)
+    summary = Column(Text, default="")
+    metadata_json = Column(JSON, default=dict, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class V5WorkspaceShare(Base):
+    __tablename__ = "v5_workspace_shares"
+    __table_args__ = (UniqueConstraint("workspace_id", "team_id", name="uq_v5_workspace_team_share"),)
+
+    id = Column(String, primary_key=True, default=new_id)
+    workspace_id = Column(String, ForeignKey("v5_workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    org_id = Column(String, ForeignKey("v5_organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    team_id = Column(String, ForeignKey("v5_teams.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String, default="member", nullable=False)
+    created_by = Column(String, ForeignKey("v5_users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class V5Assistant(Base):
+    __tablename__ = "v5_assistants"
+
+    id = Column(String, primary_key=True, default=new_id)
+    org_id = Column(String, ForeignKey("v5_organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_user_id = Column(String, ForeignKey("v5_users.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, default="")
+    instructions = Column(Text, default="")
+    capability_permissions = Column(JSON, default=list, nullable=False)
+    status = Column(String, default="draft", nullable=False, index=True)
+    current_version = Column(Integer, default=1, nullable=False)
+    metrics_json = Column(JSON, default=dict, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    versions = relationship("V5AssistantVersion", back_populates="assistant", cascade="all, delete-orphan")
+
+
+class V5AssistantVersion(Base):
+    __tablename__ = "v5_assistant_versions"
+    __table_args__ = (UniqueConstraint("assistant_id", "version_number", name="uq_v5_assistant_version"),)
+
+    id = Column(String, primary_key=True, default=new_id)
+    assistant_id = Column(String, ForeignKey("v5_assistants.id", ondelete="CASCADE"), nullable=False, index=True)
+    version_number = Column(Integer, nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(Text, default="")
+    instructions = Column(Text, default="")
+    capability_permissions = Column(JSON, default=list, nullable=False)
+    change_summary = Column(Text, default="")
+    created_by = Column(String, ForeignKey("v5_users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    assistant = relationship("V5Assistant", back_populates="versions")
+
+
+class V5AssistantWorkspaceAssignment(Base):
+    __tablename__ = "v5_assistant_workspace_assignments"
+    __table_args__ = (UniqueConstraint("assistant_id", "workspace_id", name="uq_v5_assistant_workspace"),)
+
+    id = Column(String, primary_key=True, default=new_id)
+    assistant_id = Column(String, ForeignKey("v5_assistants.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(String, ForeignKey("v5_workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    org_id = Column(String, ForeignKey("v5_organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String, default="assistant", nullable=False)
+    assigned_by = Column(String, ForeignKey("v5_users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class V5IntegrationCatalogItem(Base):
+    __tablename__ = "v5_integration_catalog"
+
+    id = Column(String, primary_key=True, default=new_id)
+    provider_key = Column(String, nullable=False, unique=True, index=True)
+    name = Column(String, nullable=False)
+    category = Column(String, default="productivity", nullable=False)
+    auth_type = Column(String, default="oauth_stub", nullable=False)
+    scopes = Column(JSON, default=list, nullable=False)
+    capabilities = Column(JSON, default=list, nullable=False)
+    status = Column(String, default="available", nullable=False)
+    metadata_json = Column(JSON, default=dict, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class V5IntegrationConnection(Base):
+    __tablename__ = "v5_integration_connections"
+
+    id = Column(String, primary_key=True, default=new_id)
+    org_id = Column(String, ForeignKey("v5_organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(String, ForeignKey("v5_workspaces.id", ondelete="CASCADE"), nullable=True, index=True)
+    provider_key = Column(String, nullable=False, index=True)
+    connected_by = Column(String, ForeignKey("v5_users.id"), nullable=False)
+    status = Column(String, default="connected", nullable=False, index=True)
+    token_ref = Column(String, default="", nullable=False)
+    token_metadata = Column(JSON, default=dict, nullable=False)
+    health_status = Column(String, default="unknown", nullable=False)
+    last_health_check_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class V5IntegrationHealthEvent(Base):
+    __tablename__ = "v5_integration_health_events"
+
+    id = Column(String, primary_key=True, default=new_id)
+    connection_id = Column(String, ForeignKey("v5_integration_connections.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(String, nullable=False)
+    latency_ms = Column(Integer, default=0, nullable=False)
+    message = Column(Text, default="")
+    metadata_json = Column(JSON, default=dict, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class V5UsageRecord(Base):
+    __tablename__ = "v5_usage_records"
+
+    id = Column(String, primary_key=True, default=new_id)
+    org_id = Column(String, ForeignKey("v5_organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(String, ForeignKey("v5_workspaces.id", ondelete="CASCADE"), nullable=True, index=True)
+    user_id = Column(String, ForeignKey("v5_users.id"), nullable=True, index=True)
+    workflow_run_id = Column(String, ForeignKey("v5_workflow_runs.id", ondelete="CASCADE"), nullable=True, index=True)
+    usage_type = Column(String, nullable=False, index=True)
+    quantity = Column(Integer, default=0, nullable=False)
+    unit = Column(String, default="count", nullable=False)
+    metadata_json = Column(JSON, default=dict, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)

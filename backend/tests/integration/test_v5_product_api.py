@@ -201,3 +201,63 @@ def test_v5_phase2_replay_tasks_templates_versions_notifications_and_rerun(clien
     unread = [item for item in notifications if not item["read_at"]]
     marked = client.post(f"/v5/notifications/{unread[0]['id']}/read", headers=headers).json()
     assert marked["read_at"]
+
+
+def test_v5_phase3_collaboration_assistants_integrations_analytics_and_usage(client: TestClient):
+    token, user = register(client, "phase3@example.test")
+    headers = auth_headers(token)
+    org = client.post("/v5/orgs", json={"name": "Phase Three"}, headers=headers).json()
+    workspace = client.post("/v5/workspaces", json={"org_id": org["id"], "name": "Collab Space"}, headers=headers).json()
+
+    team = client.post(f"/v5/orgs/{org['id']}/teams", json={"name": "Operators"}, headers=headers).json()
+    assert team["name"] == "Operators"
+    members = client.get(f"/v5/teams/{team['id']}/members", headers=headers).json()
+    assert members[0]["user_id"] == user["id"]
+    member = client.post(f"/v5/teams/{team['id']}/members", json={"user_id": user["id"], "role": "admin"}, headers=headers).json()
+    assert member["role"] == "admin"
+
+    invite = client.post("/v5/invitations", json={"org_id": org["id"], "team_id": team["id"], "workspace_id": workspace["id"], "email": "new@example.test"}, headers=headers).json()
+    assert invite["status"] == "pending"
+    share = client.post(f"/v5/workspaces/{workspace['id']}/shares", json={"team_id": team["id"], "role": "member"}, headers=headers).json()
+    assert share["team_id"] == team["id"]
+    activity = client.get(f"/v5/orgs/{org['id']}/activity", headers=headers).json()
+    assert {item["activity_type"] for item in activity} >= {"team.created", "workspace.shared", "invitation.created"}
+
+    assistant = client.post("/v5/assistants", json={
+        "org_id": org["id"],
+        "name": "Release Assistant",
+        "instructions": "Help with release workflows",
+        "capability_permissions": ["workflow.run", "browser.observe"],
+    }, headers=headers).json()
+    assert assistant["current_version"] == 1
+    updated = client.patch(f"/v5/assistants/{assistant['id']}", json={"description": "Updated", "change_summary": "Add description"}, headers=headers).json()
+    assert updated["current_version"] == 2
+    assert client.post(f"/v5/assistants/{assistant['id']}/publish", headers=headers).json()["status"] == "published"
+    assignment = client.post(f"/v5/assistants/{assistant['id']}/assignments", json={"workspace_id": workspace["id"]}, headers=headers).json()
+    assert assignment["workspace_id"] == workspace["id"]
+    assert len(client.get(f"/v5/assistants/{assistant['id']}/versions", headers=headers).json()) == 2
+
+    catalog = client.get("/v5/integrations/catalog", headers=headers).json()
+    assert {item["provider_key"] for item in catalog} >= {"github", "slack"}
+    connection = client.post("/v5/integrations/connections", json={"org_id": org["id"], "workspace_id": workspace["id"], "provider_key": "github"}, headers=headers).json()
+    assert connection["provider_key"] == "github"
+    health = client.post(f"/v5/integrations/connections/{connection['id']}/health", json={"status": "healthy", "latency_ms": 42}, headers=headers).json()
+    assert health["status"] == "healthy"
+
+    client.post("/v5/workflows", json={
+        "workspace_id": workspace["id"],
+        "title": "Analytics workflow",
+        "status": "completed",
+        "steps": [{"capability_id": "browser.navigation", "action_type": "navigate"}],
+    }, headers=headers)
+    client.post("/v5/usage/records", json={"org_id": org["id"], "workspace_id": workspace["id"], "usage_type": "token_usage", "quantity": 150, "unit": "tokens"}, headers=headers)
+    client.post("/v5/usage/records", json={"org_id": org["id"], "workspace_id": workspace["id"], "usage_type": "api_usage", "quantity": 3, "unit": "requests"}, headers=headers)
+
+    analytics = client.get(f"/v5/analytics?org_id={org['id']}", headers=headers).json()
+    assert analytics["workflow_status"]["completed"] == 1
+    assert analytics["capability_usage"]["browser.navigation"] == 1
+    assert analytics["success_rate"] == 1.0
+
+    usage = client.get(f"/v5/usage?org_id={org['id']}", headers=headers).json()
+    assert usage["totals"]["token_usage"] == 150
+    assert usage["totals"]["api_usage"] == 3

@@ -32,6 +32,24 @@ class TeamCreate(BaseModel):
     name: str = Field(min_length=1)
 
 
+class TeamMemberAdd(BaseModel):
+    user_id: str
+    role: str = "member"
+
+
+class InvitationCreate(BaseModel):
+    org_id: str
+    email: str = Field(min_length=3)
+    role: str = "member"
+    team_id: str | None = None
+    workspace_id: str | None = None
+
+
+class WorkspaceShareCreate(BaseModel):
+    team_id: str
+    role: str = "member"
+
+
 class WorkspaceCreate(BaseModel):
     org_id: str
     name: str = Field(min_length=1)
@@ -120,6 +138,50 @@ class ResourceVersionCreate(BaseModel):
     rollback_of_version_id: str | None = None
 
 
+class AssistantCreate(BaseModel):
+    org_id: str
+    name: str = Field(min_length=1)
+    description: str = ""
+    instructions: str = ""
+    capability_permissions: list[str] = Field(default_factory=list)
+
+
+class AssistantUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    instructions: str | None = None
+    capability_permissions: list[str] | None = None
+    change_summary: str = ""
+
+
+class AssistantAssignRequest(BaseModel):
+    workspace_id: str
+    role: str = "assistant"
+
+
+class IntegrationConnectRequest(BaseModel):
+    org_id: str
+    provider_key: str
+    workspace_id: str | None = None
+    token_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class IntegrationHealthRequest(BaseModel):
+    status: str = "healthy"
+    latency_ms: int = 0
+    message: str = ""
+
+
+class UsageRecordCreate(BaseModel):
+    org_id: str
+    workspace_id: str | None = None
+    workflow_run_id: str | None = None
+    usage_type: str
+    quantity: int = 0
+    unit: str = "count"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class UserOut(BaseModel):
     id: str
     email: str
@@ -139,6 +201,47 @@ class TeamOut(BaseModel):
     id: str
     org_id: str
     name: str
+    created_at: datetime
+
+
+class TeamMemberOut(BaseModel):
+    id: str
+    team_id: str
+    user_id: str
+    role: str
+    joined_at: datetime
+
+
+class InvitationOut(BaseModel):
+    id: str
+    org_id: str
+    team_id: str | None
+    workspace_id: str | None
+    email: str
+    role: str
+    status: str
+    token: str
+    created_at: datetime
+
+
+class TeamActivityOut(BaseModel):
+    id: str
+    org_id: str
+    team_id: str | None
+    workspace_id: str | None
+    actor_user_id: str | None
+    activity_type: str
+    summary: str
+    metadata: dict[str, Any]
+    created_at: datetime
+
+
+class WorkspaceShareOut(BaseModel):
+    id: str
+    workspace_id: str
+    org_id: str
+    team_id: str
+    role: str
     created_at: datetime
 
 
@@ -258,3 +361,87 @@ class NotificationOut(BaseModel):
     metadata: dict[str, Any]
     read_at: datetime | None
     created_at: datetime
+
+
+class AssistantOut(BaseModel):
+    id: str
+    org_id: str
+    name: str
+    description: str
+    instructions: str
+    capability_permissions: list[str]
+    status: str
+    current_version: int
+    metrics: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+
+class AssistantVersionOut(BaseModel):
+    id: str
+    assistant_id: str
+    version_number: int
+    name: str
+    change_summary: str
+    created_at: datetime
+
+
+class AssistantAssignmentOut(BaseModel):
+    id: str
+    assistant_id: str
+    workspace_id: str
+    org_id: str
+    role: str
+    created_at: datetime
+
+
+class IntegrationCatalogOut(BaseModel):
+    id: str
+    provider_key: str
+    name: str
+    category: str
+    auth_type: str
+    scopes: list[str]
+    capabilities: list[str]
+    status: str
+
+
+class IntegrationConnectionOut(BaseModel):
+    id: str
+    org_id: str
+    workspace_id: str | None
+    provider_key: str
+    status: str
+    token_metadata: dict[str, Any]
+    health_status: str
+    last_health_check_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class IntegrationHealthOut(BaseModel):
+    id: str
+    connection_id: str
+    status: str
+    latency_ms: int
+    message: str
+    created_at: datetime
+
+
+class AnalyticsOut(BaseModel):
+    org_id: str
+    workflow_status: dict[str, int]
+    success_rate: float
+    capability_usage: dict[str, int]
+    workspace_workflows: dict[str, int]
+    team_activity_count: int
+    trend: list[dict[str, Any]]
+    export: dict[str, Any]
+
+
+class UsageDashboardOut(BaseModel):
+    org_id: str
+    totals: dict[str, int]
+    by_workspace: dict[str, dict[str, int]]
+    by_user: dict[str, dict[str, int]]
+    records: list[dict[str, Any]]
