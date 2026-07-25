@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from app.runtime_state_manager.models import LogicalResource, RuntimeArtifact, RuntimeTab, RuntimeWindow
+from app.runtime_state_manager.entity_binding import resolve_entity
 
 
 def build_logical_resources(
     *,
+    session_id: str,
     tabs: list[RuntimeTab],
     windows: list[RuntimeWindow],
     artifacts: list[RuntimeArtifact],
@@ -24,13 +26,14 @@ def build_logical_resources(
             )
         )
     for tab in tabs:
+        entity = resolve_entity(session_id, canonical_url=tab.url)
         resources.append(
             LogicalResource(
                 logical_id=tab.logical_id,
                 resource_type="tab",
                 runtime_id=tab.runtime_id,
                 current_url=tab.url,
-                mission_entity_id=None,
+                mission_entity_id=entity.entity_id if entity else None,
                 page_type=tab.page_type,
                 status="active" if tab.active else "available",
                 metadata={"title": tab.title[:160], "window_id": tab.window_id},

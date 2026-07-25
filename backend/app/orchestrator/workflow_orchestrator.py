@@ -655,6 +655,40 @@ class WorkflowOrchestrator:
             prior_steps=planner_prior_steps,
             current_phase=orchestrator_snapshot.active_phase.name if orchestrator_snapshot is not None else None,
         )
+        from app.knowledge_extraction import (
+            enrich_planner_context_with_knowledge,
+            observe_knowledge_pipeline,
+            postprocess_with_knowledge,
+        )
+
+        knowledge_snapshot = observe_knowledge_pipeline(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            current_phase=orchestrator_snapshot.active_phase.name if orchestrator_snapshot is not None else None,
+        )
+        from app.mission_completion import (
+            completion_response,
+            enrich_planner_context_with_completion,
+            observe_mission_completion,
+            postprocess_with_mission_completion,
+            should_terminate_before_planner,
+        )
+
+        mission_completion_snapshot = observe_mission_completion(
+            session_id=self.session_id,
+            task=task,
+            knowledge_snapshot=knowledge_snapshot,
+            phase_state=orchestrator_snapshot,
+            runtime_state=runtime_state_snapshot,
+            execution_state=None,
+        )
+        if should_terminate_before_planner(mission_completion_snapshot):
+            self._record_v3_event(
+                "mission_completion.terminated_before_planner",
+                mission_completion_snapshot.to_compact_context() if mission_completion_snapshot else {},
+            )
+            return completion_response(self.session_id, mission_completion_snapshot)
         from app.semantic_execution_kernel import (
             enrich_planner_context_with_kernel,
             observe_semantic_execution_kernel,
@@ -685,6 +719,8 @@ class WorkflowOrchestrator:
         compressed_context = enrich_planner_context(compressed_context, continuity_snapshot)
         compressed_context = enrich_planner_context_with_orchestrator(compressed_context, orchestrator_snapshot)
         compressed_context = enrich_planner_context_with_runtime_state(compressed_context, runtime_state_snapshot)
+        compressed_context = enrich_planner_context_with_knowledge(compressed_context, knowledge_snapshot)
+        compressed_context = enrich_planner_context_with_completion(compressed_context, mission_completion_snapshot)
         compressed_context = enrich_planner_context_with_kernel(compressed_context, kernel_snapshot)
         self._build_context_packet_shadow(
             task=task,
@@ -719,6 +755,13 @@ class WorkflowOrchestrator:
                 planner_response=result,
             )
             result = postprocess_with_runtime_state(result, runtime_state_snapshot)
+            knowledge_snapshot = observe_knowledge_pipeline(
+                session_id=self.session_id,
+                task=task,
+                page_context=page_context,
+                current_phase=orchestrator_snapshot.active_phase.name if orchestrator_snapshot is not None else None,
+            )
+            result = postprocess_with_knowledge(result, knowledge_snapshot)
             result = postprocess_with_kernel(
                 result=result,
                 session_id=self.session_id,
@@ -726,6 +769,16 @@ class WorkflowOrchestrator:
                 page_context=page_context,
                 prior_steps=planner_prior_steps,
             )
+            mission_completion_snapshot = observe_mission_completion(
+                session_id=self.session_id,
+                task=task,
+                knowledge_snapshot=knowledge_snapshot,
+                phase_state=orchestrator_snapshot,
+                runtime_state=runtime_state_snapshot,
+                execution_state=kernel_snapshot,
+                planner_response=result,
+            )
+            result = postprocess_with_mission_completion(result, mission_completion_snapshot)
             self._record_v3_event(
                 "planner.responded",
                 {
@@ -765,6 +818,21 @@ class WorkflowOrchestrator:
                             "consistency": runtime_state_snapshot.consistency.to_dict(),
                         }
                         if runtime_state_snapshot is not None
+                        else None
+                    ),
+                    "knowledge_extraction": (
+                        {
+                            "read_count": len(knowledge_snapshot.read_artifacts),
+                            "record_count": len(knowledge_snapshot.extraction_records),
+                            "missing_artifacts": knowledge_snapshot.missing_artifacts,
+                            "completion_status": knowledge_snapshot.completion_status,
+                        }
+                        if knowledge_snapshot is not None
+                        else None
+                    ),
+                    "mission_completion": (
+                        mission_completion_snapshot.to_compact_context()
+                        if mission_completion_snapshot is not None
                         else None
                     ),
                 },

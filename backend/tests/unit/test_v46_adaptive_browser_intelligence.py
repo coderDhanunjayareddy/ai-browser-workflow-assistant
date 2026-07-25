@@ -9,7 +9,7 @@ from app.browser_intelligence.page_understanding import PageUnderstandingEngine
 from app.browser_intelligence.recovery import AdaptiveRecoveryEngine
 from app.browser_intelligence.waits import IntelligentWaitingEngine
 from app.capability_platform.browser_registry import get_browser_capability
-from app.feature_flags import get_flag_state, v4_flag_snapshot
+from app.core.config import settings
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext
 
 
@@ -32,13 +32,12 @@ def _button(label: str, selector: str, *, role: str = "button") -> InteractiveEl
 
 
 def test_v46_flags_default_to_shadow():
-    flags = v4_flag_snapshot()
-    assert flags["V46_DYNAMIC_DOM"] == "shadow"
-    assert flags["V46_INTELLIGENT_WAIT"] == "shadow"
-    assert flags["V46_BROWSER_MEMORY"] == "shadow"
-    assert flags["V46_RECOVERY_ENGINE"] == "shadow"
-    assert flags["V46_VISUAL_GROUNDING"] == "shadow"
-    assert get_flag_state("V46_BROWSER_HEALTH").value == "shadow"
+    assert settings.__class__.model_fields["v46_dynamic_dom"].default == "shadow"
+    assert settings.__class__.model_fields["v46_intelligent_wait"].default == "shadow"
+    assert settings.__class__.model_fields["v46_browser_memory"].default == "shadow"
+    assert settings.__class__.model_fields["v46_recovery_engine"].default == "shadow"
+    assert settings.__class__.model_fields["v46_visual_grounding"].default == "shadow"
+    assert settings.__class__.model_fields["v46_browser_health"].default == "shadow"
 
 
 def test_v46_capability_registry_records_are_complete():

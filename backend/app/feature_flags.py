@@ -95,6 +95,12 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V49_ARTIFACT_ENGINE": "v49_artifact_engine",
     "V49_RUNTIME_SYNC": "v49_runtime_sync",
     "V49_RUNTIME_CHECKPOINTS": "v49_runtime_checkpoints",
+    "V50_PAGE_READER": "v50_page_reader",
+    "V50_EXTRACTION_ENGINE": "v50_extraction_engine",
+    "V50_SYNTHESIS": "v50_synthesis",
+    "V50_REPORT_ENGINE": "v50_report_engine",
+    "V50_EXTRACTION_VALIDATION": "v50_extraction_validation",
+    "V51_MISSION_COMPLETION_CONTROLLER": "v51_mission_completion_controller",
 }
 
 
@@ -130,5 +136,5 @@ def v4_flag_snapshot() -> dict[str, str]:
     return {
         name: get_flag_state(name).value
         for name in _FLAG_SETTINGS
-        if name.startswith("V4_") or name.startswith("V45_") or name.startswith("V46_") or name.startswith("V47_") or name.startswith("V48_") or name.startswith("V49_")
+        if name.startswith("V4_") or name.startswith("V45_") or name.startswith("V46_") or name.startswith("V47_") or name.startswith("V48_") or name.startswith("V49_") or name.startswith("V50_") or name.startswith("V51_")
     }

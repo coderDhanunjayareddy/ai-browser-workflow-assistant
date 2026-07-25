@@ -34,7 +34,7 @@ class SemanticExecutionKernel:
         if not is_shadow_or_active("V47_SEMANTIC_EXECUTION_KERNEL"):
             return None
         started = time.perf_counter()
-        entities = build_entity_registry(page_context)
+        entities = build_entity_registry(page_context, session_id=session_id)
         mission_state = build_mission_state(task, prior_steps)
         browser_context = build_browser_context(page_context, prior_steps)
         proposal = None
@@ -105,6 +105,7 @@ class SemanticExecutionKernel:
         if snapshot.eligibility and not snapshot.eligibility.eligible:
             return _replan_from_kernel(result, snapshot.recovery, snapshot.eligibility.reason)
         if snapshot.grounding and snapshot.grounding.grounded and result.suggested_actions:
+            _mark_grounded(session_id, snapshot)
             result.suggested_actions[0] = apply_grounding_to_action(result.suggested_actions[0], snapshot.grounding)
         return result
 
@@ -118,6 +119,30 @@ def _replan_from_kernel(result: AnalyzeResponse, recovery: RecoveryDecision, rea
         report=None,
         replan=ReplanOutcome(reason=f"{reason}. Recovery strategy: {recovery.strategy} ({recovery.reason})."),
         suggested_actions=[],
+    )
+
+
+def _mark_grounded(session_id: str, snapshot: KernelSnapshot) -> None:
+    if snapshot.proposal is None or snapshot.proposal.entity_id is None:
+        return
+    entity = next((item for item in snapshot.entities if item.id == snapshot.proposal.entity_id), None)
+    if entity is None:
+        return
+    from app.runtime_state_manager.entity_binding import register_entity
+
+    register_entity(
+        session_id,
+        entity_type=entity.semantic_type,
+        source_layer=entity.source_layer,
+        title=entity.title,
+        canonical_url=entity.canonical_url or entity.url,
+        artifact_id=entity.artifact_id,
+        runtime_resource_id=entity.runtime_resource_id,
+        selector_ids=entity.selector_ids,
+        confidence=entity.confidence,
+        source_page=entity.source_page,
+        metadata=entity.metadata,
+        state="GROUNDED",
     )
 
 

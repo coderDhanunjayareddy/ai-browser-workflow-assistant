@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from app.core.config import settings
-from app.feature_flags import get_flag_state
 from app.runtime_state_manager.completion import artifact_completion_status
 from app.runtime_state_manager.engine import RuntimeStateManager
 from app.runtime_state_manager.registry import BrowserRuntimeRegistry
@@ -38,11 +37,11 @@ def _open_step(index: int) -> PriorStep:
 
 
 def test_v49_flags_default_to_shadow():
-    assert get_flag_state("V49_RUNTIME_STATE_MANAGER").value == "shadow"
-    assert get_flag_state("V49_RUNTIME_REGISTRY").value == "shadow"
-    assert get_flag_state("V49_ARTIFACT_ENGINE").value == "shadow"
-    assert get_flag_state("V49_RUNTIME_SYNC").value == "shadow"
-    assert get_flag_state("V49_RUNTIME_CHECKPOINTS").value == "shadow"
+    assert settings.__class__.model_fields["v49_runtime_state_manager"].default == "shadow"
+    assert settings.__class__.model_fields["v49_runtime_registry"].default == "shadow"
+    assert settings.__class__.model_fields["v49_artifact_engine"].default == "shadow"
+    assert settings.__class__.model_fields["v49_runtime_sync"].default == "shadow"
+    assert settings.__class__.model_fields["v49_runtime_checkpoints"].default == "shadow"
 
 
 def test_runtime_registry_builds_logical_tabs_for_multi_tab_workflow(monkeypatch):

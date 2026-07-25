@@ -54,7 +54,7 @@ class RuntimeStateManager:
         )
         if is_shadow_or_active("V49_RUNTIME_CHECKPOINTS"):
             self.checkpoints.save(session_id, checkpoint)
-        logical_resources = build_logical_resources(tabs=tabs, windows=windows, artifacts=artifacts)
+        logical_resources = build_logical_resources(session_id=session_id, tabs=tabs, windows=windows, artifacts=artifacts)
         telemetry = build_runtime_telemetry(
             started_at=started,
             sync_ms=sync_ms,

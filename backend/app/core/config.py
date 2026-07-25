@@ -139,6 +139,12 @@ class Settings(BaseSettings):
     v49_artifact_engine: str = "shadow"
     v49_runtime_sync: str = "shadow"
     v49_runtime_checkpoints: str = "shadow"
+    v50_page_reader: str = "shadow"
+    v50_extraction_engine: str = "shadow"
+    v50_synthesis: str = "shadow"
+    v50_report_engine: str = "shadow"
+    v50_extraction_validation: str = "shadow"
+    v51_mission_completion_controller: str = "shadow"
 
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.

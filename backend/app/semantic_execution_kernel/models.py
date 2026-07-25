@@ -56,6 +56,7 @@ class BrowserBinding:
     selector: str | None = None
     selector_id: str | None = None
     href: str | None = None
+    runtime_resource_id: str | None = None
     tab_id: str | None = None
     frame_id: str | None = None
 
@@ -73,16 +74,25 @@ class SemanticEntity:
     source_page: str
     metadata: dict[str, str]
     browser_bindings: BrowserBinding
-    lifecycle_status: Literal["discovered", "opened", "read", "completed", "failed", "skipped"] = "discovered"
+    artifact_id: str | None = None
+    canonical_url: str | None = None
+    runtime_resource_id: str | None = None
+    selector_ids: list[str] = field(default_factory=list)
+    source_layer: str = "semantic_execution_kernel"
+    lifecycle_status: Literal["discovered", "registered", "grounded", "executing", "executed", "verified", "archived", "opened", "read", "completed", "failed", "skipped"] = "discovered"
 
     def to_compact_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
+            "artifact_id": self.artifact_id,
             "type": self.semantic_type,
             "title": self.title[:140],
-            "url": self.url,
+            "url": self.canonical_url or self.url,
+            "runtime_resource_id": self.runtime_resource_id,
+            "selector_ids": self.selector_ids[:5],
             "confidence": self.confidence,
             "source_page": self.source_page,
+            "source_layer": self.source_layer,
             "bindings": self.browser_bindings.to_dict(),
             "status": self.lifecycle_status,
         }

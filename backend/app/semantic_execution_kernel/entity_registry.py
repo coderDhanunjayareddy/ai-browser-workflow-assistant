@@ -3,67 +3,158 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from app.runtime_state_manager.entity_binding import list_entities, register_entity
 from app.semantic_execution_kernel.models import BrowserBinding, SemanticEntity
 
 
-def build_entity_registry(page_context: Any) -> list[SemanticEntity]:
+def build_entity_registry(page_context: Any, *, session_id: str | None = None) -> list[SemanticEntity]:
     entities: list[SemanticEntity] = []
     source_page = str(getattr(page_context, "url", "") or "")
     for element in list(getattr(page_context, "interactive_elements", []) or [])[:120]:
         data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
-        title = _title(data)
-        entity_type = _semantic_type(data)
-        url = str(data.get("href") or "") or None
-        selector = str(data.get("selector") or "") or None
-        if not title and not url and not selector:
+        entity = _entity_from_element(data, source_page)
+        if entity is None:
             continue
-        entities.append(
-            SemanticEntity(
-                id=_entity_id(entity_type, title, url, selector),
-                semantic_type=entity_type,
-                title=title or entity_type,
-                url=url,
-                confidence=_confidence(data),
-                source_page=source_page,
-                metadata=_metadata(data),
-                browser_bindings=BrowserBinding(
-                    selector=selector,
-                    selector_id=str(data.get("selector_id") or "") or None,
-                    href=url,
-                ),
-            )
-        )
+        entities.append(entity)
+        _register_if_scoped(session_id, entity)
     for block in list(getattr(page_context, "content_blocks", []) or [])[:60]:
         data = block.model_dump() if hasattr(block, "model_dump") else dict(block)
-        text = " ".join(str(data.get("text") or "").split())
-        href = str(data.get("href") or "") or None
-        if not text and not href:
+        entity = _entity_from_block(data, source_page)
+        if entity is None:
             continue
-        entity_type = "link" if href else "document"
-        entities.append(
-            SemanticEntity(
-                id=_entity_id(entity_type, text[:120], href, data.get("selector")),
-                semantic_type=entity_type,
-                title=text[:180] or href or entity_type,
-                url=href,
-                confidence=0.78 if href else 0.65,
-                source_page=source_page,
-                metadata={"text": text[:300]},
-                browser_bindings=BrowserBinding(selector=str(data.get("selector") or "") or None, href=href),
-            )
-        )
-    return _dedupe_entities(entities)[:80]
+        entities.append(entity)
+        _register_if_scoped(session_id, entity)
+    if session_id:
+        entities.extend(_from_unified_entity(entity) for entity in list_entities(session_id))
+    return _dedupe_entities(entities)[:120]
 
 
-def find_entity(entities: list[SemanticEntity], *, entity_id: str | None = None, url: str | None = None, selector: str | None = None) -> SemanticEntity | None:
+def find_entity(
+    entities: list[SemanticEntity],
+    *,
+    entity_id: str | None = None,
+    artifact_id: str | None = None,
+    url: str | None = None,
+    runtime_resource_id: str | None = None,
+    selector: str | None = None,
+) -> SemanticEntity | None:
     for entity in entities:
         if entity_id and entity.id == entity_id:
             return entity
-        if url and entity.url and entity.url.rstrip("/") == url.rstrip("/"):
+    for entity in entities:
+        if artifact_id and entity.artifact_id == artifact_id:
             return entity
-        if selector and entity.browser_bindings.selector == selector:
+    for entity in entities:
+        candidate_url = entity.canonical_url or entity.url
+        if url and candidate_url and candidate_url.rstrip("/") == url.rstrip("/"):
+            return entity
+    for entity in entities:
+        if runtime_resource_id and (
+            entity.runtime_resource_id == runtime_resource_id
+            or entity.browser_bindings.runtime_resource_id == runtime_resource_id
+        ):
+            return entity
+    for entity in entities:
+        if selector and (entity.browser_bindings.selector == selector or selector in entity.selector_ids):
             return entity
     return None
+
+
+def _entity_from_element(data: dict[str, Any], source_page: str) -> SemanticEntity | None:
+    title = _title(data)
+    entity_type = _semantic_type(data)
+    url = str(data.get("href") or "") or None
+    selector = str(data.get("selector") or "") or None
+    selector_id = str(data.get("selector_id") or "") or None
+    if not title and not url and not selector and not selector_id:
+        return None
+    selector_ids = [item for item in (selector_id, selector) if item]
+    artifact_id = _artifact_id("page_context", entity_type, url, selector, title)
+    return SemanticEntity(
+        id=_entity_id(entity_type, title, url, selector),
+        semantic_type=entity_type,
+        title=title or entity_type,
+        url=url,
+        confidence=_confidence(data),
+        source_page=source_page,
+        metadata=_metadata(data),
+        browser_bindings=BrowserBinding(selector=selector, selector_id=selector_id, href=url),
+        artifact_id=artifact_id,
+        canonical_url=url,
+        selector_ids=selector_ids,
+        source_layer="page_context",
+        lifecycle_status="registered",
+    )
+
+
+def _entity_from_block(data: dict[str, Any], source_page: str) -> SemanticEntity | None:
+    text = " ".join(str(data.get("text") or "").split())
+    href = str(data.get("href") or "") or None
+    selector = str(data.get("selector") or "") or None
+    if not text and not href and not selector:
+        return None
+    entity_type = "link" if href else "document"
+    title = text[:180] or href or entity_type
+    artifact_id = _artifact_id("page_context", entity_type, href, selector, text[:120])
+    return SemanticEntity(
+        id=_entity_id(entity_type, text[:120], href, selector),
+        semantic_type=entity_type,
+        title=title,
+        url=href,
+        confidence=0.78 if href else 0.65,
+        source_page=source_page,
+        metadata={"text": text[:300]},
+        browser_bindings=BrowserBinding(selector=selector, href=href),
+        artifact_id=artifact_id,
+        canonical_url=href,
+        selector_ids=[selector] if selector else [],
+        source_layer="page_context",
+        lifecycle_status="registered",
+    )
+
+
+def _from_unified_entity(entity: Any) -> SemanticEntity:
+    selector = entity.selector_ids[0] if entity.selector_ids else None
+    lifecycle = str(entity.state or "REGISTERED").lower()
+    allowed = {"discovered", "registered", "grounded", "executing", "executed", "verified", "archived"}
+    return SemanticEntity(
+        id=entity.entity_id,
+        semantic_type=entity.entity_type,
+        title=entity.title or entity.entity_type,
+        url=entity.canonical_url,
+        confidence=entity.confidence,
+        source_page=entity.source_page or "",
+        metadata=entity.metadata,
+        browser_bindings=BrowserBinding(
+            selector=selector,
+            selector_id=selector,
+            href=entity.canonical_url,
+            runtime_resource_id=entity.runtime_resource_id,
+        ),
+        artifact_id=entity.artifact_id,
+        canonical_url=entity.canonical_url,
+        runtime_resource_id=entity.runtime_resource_id,
+        selector_ids=entity.selector_ids,
+        source_layer=entity.source_layer,
+        lifecycle_status=lifecycle if lifecycle in allowed else "registered",  # type: ignore[arg-type]
+    )
+
+
+def _register_if_scoped(session_id: str | None, entity: SemanticEntity) -> None:
+    if not session_id:
+        return
+    register_entity(
+        session_id,
+        entity_type=entity.semantic_type,
+        source_layer=entity.source_layer,
+        title=entity.title,
+        canonical_url=entity.canonical_url,
+        artifact_id=entity.artifact_id,
+        selector_ids=entity.selector_ids,
+        confidence=entity.confidence,
+        source_page=entity.source_page,
+        metadata=entity.metadata,
+    )
 
 
 def _semantic_type(data: dict[str, Any]) -> str:
@@ -117,15 +208,20 @@ def _metadata(data: dict[str, Any]) -> dict[str, str]:
 
 
 def _entity_id(entity_type: str, title: Any, url: Any, selector: Any) -> str:
-    raw = "|".join([entity_type, str(title or ""), str(url or ""), str(selector or "")])
+    raw = "|".join([entity_type, str(url or ""), str(selector or ""), str(title or "")])
     return f"ent_{hashlib.sha1(raw.encode('utf-8')).hexdigest()[:12]}"
+
+
+def _artifact_id(source_layer: str, entity_type: str, url: Any, selector: Any, title: Any) -> str:
+    raw = "|".join([source_layer, entity_type, str(url or ""), str(selector or ""), str(title or "")])
+    return f"{source_layer}:{entity_type}:{hashlib.sha1(raw.encode('utf-8')).hexdigest()[:12]}"
 
 
 def _dedupe_entities(entities: list[SemanticEntity]) -> list[SemanticEntity]:
     seen: set[str] = set()
     out: list[SemanticEntity] = []
     for entity in entities:
-        key = (entity.url or entity.browser_bindings.selector or entity.title).lower().rstrip("/")
+        key = (entity.canonical_url or entity.url or entity.artifact_id or entity.browser_bindings.selector or entity.title).lower().rstrip("/")
         if key in seen:
             continue
         seen.add(key)

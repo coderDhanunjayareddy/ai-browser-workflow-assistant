@@ -124,7 +124,7 @@ class BrowserIntelligenceRuntime:
             },
             "telemetry": telemetry,
         }
-        return BrowserIntelligenceArtifact(
+        artifact = BrowserIntelligenceArtifact(
             page_model=page_model,
             browser_state=browser_state,
             replay=replay,
@@ -136,6 +136,14 @@ class BrowserIntelligenceRuntime:
             visual_targets=visual_targets,
             health=health,
         )
+        try:
+            from app.runtime_state_manager.entity_binding import register_browser_intelligence_artifact
+
+            registered = register_browser_intelligence_artifact(scope_id, artifact)
+            capability_report["telemetry"]["entity_registered"] = len(registered)
+        except Exception:
+            capability_report["telemetry"]["entity_registered"] = 0
+        return artifact
 
 
 _runtime = BrowserIntelligenceRuntime()

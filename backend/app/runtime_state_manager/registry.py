@@ -6,6 +6,7 @@ import time
 from typing import Any
 
 from app.runtime_state_manager.models import RuntimeTab, RuntimeWindow
+from app.runtime_state_manager.entity_binding import bind_runtime_resource, resolve_entity
 
 
 class BrowserRuntimeRegistry:
@@ -33,6 +34,7 @@ class BrowserRuntimeRegistry:
                 previous=tabs.get(_logical_tab_id(active_url or active_title)),
             )
             tabs[active_tab.logical_id] = active_tab
+            _bind_url_entity(session_id, active_tab.url, active_tab.logical_id)
             for step in prior_steps:
                 data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
                 action_type = str(data.get("action_type") or "").lower()
@@ -53,6 +55,7 @@ class BrowserRuntimeRegistry:
                     previous=existing,
                     opener_logical_id=None,
                 )
+                _bind_url_entity(session_id, url, logical_id)
             tab_ids = list(tabs)
             windows[window_id] = RuntimeWindow(logical_id=window_id, runtime_id=None, active=True, tab_ids=tab_ids)
             self._tabs[session_id] = tabs
@@ -125,3 +128,11 @@ def _extract_url(value: str) -> str | None:
     if value.startswith(("http://", "https://")):
         return value
     return None
+
+
+def _bind_url_entity(session_id: str, url: str, logical_tab_id: str) -> None:
+    if not url.startswith(("http://", "https://")):
+        return
+    entity = resolve_entity(session_id, canonical_url=url)
+    if entity is not None:
+        bind_runtime_resource(session_id, entity_id=entity.entity_id, runtime_resource_id=logical_tab_id)

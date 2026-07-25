@@ -9,7 +9,7 @@ from app.browser_intelligence.adapters import GoogleSearchAdapter
 from app.browser_intelligence.page_understanding import PageUnderstandingEngine
 from app.browser_intelligence.selector_engine import SelectorIntelligenceEngine
 from app.capability_platform.browser_registry import get_browser_capability
-from app.feature_flags import get_flag_state, v4_flag_snapshot
+from app.core.config import settings
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, SuggestedAction
 from app.services.ai_service import _postprocess_planner_response
@@ -112,10 +112,9 @@ def _google_serp_context_with_five_results() -> PageContext:
 
 
 def test_v45_flags_default_to_shadow():
-    flags = v4_flag_snapshot()
-    assert flags["V45_BROWSER_INTELLIGENCE"] == "shadow"
-    assert flags["V45_SERP_ADAPTER"] == "shadow"
-    assert get_flag_state("V45_PAGE_MODEL").value == "shadow"
+    assert settings.__class__.model_fields["v45_browser_intelligence"].default == "shadow"
+    assert settings.__class__.model_fields["v45_serp_adapter"].default == "shadow"
+    assert settings.__class__.model_fields["v45_page_model"].default == "shadow"
 
 
 def test_v45_capability_registry_has_browser_intelligence_records():

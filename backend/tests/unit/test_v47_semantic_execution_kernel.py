@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from app.core.config import settings
-from app.feature_flags import get_flag_state
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, SuggestedAction
 from app.semantic_execution_kernel.engine import SemanticExecutionKernel
@@ -65,7 +64,7 @@ def _response(action_type: str, *, value: str | None = None, selector: str = "")
 
 
 def test_semantic_kernel_feature_flag_defaults_to_shadow():
-    assert get_flag_state("V47_SEMANTIC_EXECUTION_KERNEL").value == "shadow"
+    assert settings.__class__.model_fields["v47_semantic_execution_kernel"].default == "shadow"
 
 
 def test_shadow_kernel_builds_entities_without_context_enrichment(monkeypatch):

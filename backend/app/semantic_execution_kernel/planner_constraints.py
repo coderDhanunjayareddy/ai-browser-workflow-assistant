@@ -11,7 +11,14 @@ def proposal_from_planner_action(action: Any, entities: list[SemanticEntity]) ->
     value = str(getattr(action, "value", "") or "")
     selector = str(getattr(action, "target_selector", "") or "")
     description = str(getattr(action, "description", "") or "")
-    entity = find_entity(entities, url=value if value.startswith(("http://", "https://")) else None, selector=selector)
+    entity = find_entity(
+        entities,
+        entity_id=_strip_prefix(value, "entity:"),
+        artifact_id=_strip_prefix(value, "artifact:"),
+        url=value if value.startswith(("http://", "https://")) else None,
+        runtime_resource_id=_strip_prefix(value, "runtime:"),
+        selector=selector or _strip_prefix(value, "selector:"),
+    )
 
     if action_type == "navigate":
         semantic_type = "SEARCH_WEB" if value.startswith(("http://", "https://")) else "WAIT_FOR_STATE"
@@ -37,6 +44,9 @@ def proposal_from_planner_action(action: Any, entities: list[SemanticEntity]) ->
             "value": value,
             "selector": selector,
             "description": description,
+            "artifact_id": entity.artifact_id if entity else "",
+            "canonical_url": (entity.canonical_url or entity.url) if entity else "",
+            "runtime_resource_id": entity.runtime_resource_id if entity else "",
         },
         source_action_type=action_type,
         source_description=description,
@@ -58,3 +68,7 @@ def legal_action_prompt(entities: list[SemanticEntity]) -> list[dict[str, str]]:
         {"action": "MARK_COMPLETE", "reason": "allowed only with evidence"},
     ])
     return actions[:12]
+
+
+def _strip_prefix(value: str, prefix: str) -> str | None:
+    return value[len(prefix):] if value.startswith(prefix) and len(value) > len(prefix) else None
