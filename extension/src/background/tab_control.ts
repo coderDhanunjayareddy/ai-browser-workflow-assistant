@@ -11,7 +11,7 @@ export interface TabControlAction {
 }
 
 export interface TabReference {
-  kind: 'id' | 'title' | 'purpose' | 'url'
+  kind: 'id' | 'ordinal' | 'title' | 'purpose' | 'url'
   value: string
 }
 
@@ -31,12 +31,13 @@ export function isTabControlAction(action: TabControlAction): action is TabContr
 export function parseTabReference(action: TabControlAction): TabReference | null {
   const raw = compactText(action.value || action.target_selector || '')
   if (!raw) return null
-  const prefixed = raw.match(/^(tab|id|title|purpose|url)\s*:\s*(.+)$/i)
+  const prefixed = raw.match(/^(tab|id|ordinal|title|purpose|url)\s*:\s*(.+)$/i)
   if (prefixed) {
     const prefix = prefixed[1].toLowerCase()
     const value = compactText(prefixed[2])
     if (!value) return null
     if (prefix === 'tab' || prefix === 'id') return { kind: 'id', value }
+    if (prefix === 'ordinal') return { kind: 'ordinal', value }
     if (prefix === 'title') return { kind: 'title', value }
     if (prefix === 'purpose') return { kind: 'purpose', value }
     if (prefix === 'url') return { kind: 'url', value }
@@ -64,7 +65,10 @@ export function findTabEntryByReference(
   if (!value) return null
   if (reference.kind === 'id') {
     const id = Number(value)
-    return workspace.tabs.find((tab) => tab.tab_id === id) ?? null
+    return workspace.tabs.find((tab) => tab.tab_id === id) ?? tabByOrdinal(workspace, id)
+  }
+  if (reference.kind === 'ordinal') {
+    return tabByOrdinal(workspace, Number(value))
   }
   if (reference.kind === 'title') {
     return workspace.tabs.find((tab) => tab.title.toLowerCase() === value) ?? null
@@ -76,6 +80,18 @@ export function findTabEntryByReference(
     return workspace.tabs.find((tab) => urlsMatch(tab.url, value)) ?? null
   }
   return null
+}
+
+function tabByOrdinal(workspace: MultiTabWorkspace, ordinal: number): TabWorkspaceEntry | null {
+  if (!Number.isInteger(ordinal) || ordinal < 1) return null
+  const candidates = workspace.tabs
+    .filter((tab) => tab.status !== 'closed' && !isRestrictedTabUrl(tab.url))
+    .filter((tab) => !isSearchResultsUrl(tab.url))
+    .sort((a, b) => a.last_visited - b.last_visited)
+  const pool = candidates.length > 0
+    ? candidates
+    : workspace.tabs.filter((tab) => tab.status !== 'closed' && !isRestrictedTabUrl(tab.url)).sort((a, b) => a.last_visited - b.last_visited)
+  return pool[ordinal - 1] ?? null
 }
 
 export function canCloseTab(tab: ClosableTabLike | null | undefined, openTabCount: number): { allowed: boolean; reason: string } {
@@ -120,4 +136,13 @@ function urlsMatch(tabUrl: string, referenceUrl: string): boolean {
 
 function isGoogleSearchUrl(url: URL): boolean {
   return url.hostname.toLowerCase().endsWith('google.com') && url.pathname.startsWith('/search')
+}
+
+function isSearchResultsUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.pathname.startsWith('/search') || parsed.searchParams.has('q')
+  } catch {
+    return false
+  }
 }

@@ -1258,5 +1258,25 @@
     "safety_constraints": ["website_agnostic", "shadow_mode_no_behavior_change", "planner_contract_v2_preserved", "phase_authority_above_kernel", "no_browser_control_changes"],
     "failure_classes": ["phase_stall", "phase_budget_exhausted", "planner_phase_violation", "artifact_missing", "transition_blocked"],
     "owner": "browser-platform"
+  },
+  {
+    "capability_id": "browser.runtime_state_manager",
+    "version": "1.0.0",
+    "category": "runtime_state",
+    "description": "Canonical website-independent runtime state layer between V4.7 Semantic Execution Kernel and Browser Intelligence. Owns browser runtime registry, logical resource registry, runtime synchronization, consistency validation, artifact registry, artifact completion, checkpoints, runtime recovery, telemetry, and logical-id replay.",
+    "dependencies": ["browser.execution_orchestrator", "browser.semantic_execution_kernel", "browser_intelligence.state_model", "browser.replay", "V3_VALIDATION", "V5_WORKFLOW_HISTORY"],
+    "feature_flag": "V49_RUNTIME_STATE_MANAGER",
+    "maturity_level": 4,
+    "target_maturity_level": 5,
+    "supported_browsers": ["chromium-extension", "playwright-chromium"],
+    "supported_websites": ["all-websites"],
+    "site_adapters": [],
+    "benchmarks": ["v49.registry.lookup", "v49.runtime_sync", "v49.focus_resolution", "v49.artifact_completion", "v49.checkpoint_restore", "v49.logical_replay"],
+    "metrics": ["registry_lookup_ms", "synchronization_ms", "tab_lifetime", "focus_latency", "registry_repairs", "artifact_production", "consistency_violations", "checkpoint_restores"],
+    "known_limitations": ["Live Chrome tab ids are represented by logical ids until the extension supplies authoritative tab id snapshots to the backend."],
+    "rollout_status": "shadow",
+    "safety_constraints": ["website_agnostic", "logical_ids_only_for_planner", "no_planner_contract_change", "no_browser_control_redesign", "shadow_mode_no_behavior_change"],
+    "failure_classes": ["missing_logical_tab", "stale_runtime_reference", "artifact_missing", "checkpoint_restore_failed", "runtime_sync_gap", "focus_resolution_failed"],
+    "owner": "browser-platform"
   }
 ]

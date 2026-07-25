@@ -643,6 +643,18 @@ class WorkflowOrchestrator:
             page_context=page_context,
             prior_steps=planner_prior_steps,
         )
+        from app.runtime_state_manager import (
+            enrich_planner_context_with_runtime_state,
+            observe_runtime_state,
+            postprocess_with_runtime_state,
+        )
+
+        runtime_state_snapshot = observe_runtime_state(
+            session_id=self.session_id,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+            current_phase=orchestrator_snapshot.active_phase.name if orchestrator_snapshot is not None else None,
+        )
         from app.semantic_execution_kernel import (
             enrich_planner_context_with_kernel,
             observe_semantic_execution_kernel,
@@ -672,6 +684,7 @@ class WorkflowOrchestrator:
             )
         compressed_context = enrich_planner_context(compressed_context, continuity_snapshot)
         compressed_context = enrich_planner_context_with_orchestrator(compressed_context, orchestrator_snapshot)
+        compressed_context = enrich_planner_context_with_runtime_state(compressed_context, runtime_state_snapshot)
         compressed_context = enrich_planner_context_with_kernel(compressed_context, kernel_snapshot)
         self._build_context_packet_shadow(
             task=task,
@@ -698,6 +711,14 @@ class WorkflowOrchestrator:
             )
             result = postprocess_planner_response(result, continuity_snapshot)
             result = postprocess_with_orchestrator(result, orchestrator_snapshot)
+            runtime_state_snapshot = observe_runtime_state(
+                session_id=self.session_id,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+                current_phase=orchestrator_snapshot.active_phase.name if orchestrator_snapshot is not None else None,
+                planner_response=result,
+            )
+            result = postprocess_with_runtime_state(result, runtime_state_snapshot)
             result = postprocess_with_kernel(
                 result=result,
                 session_id=self.session_id,
@@ -734,6 +755,16 @@ class WorkflowOrchestrator:
                             "budget_exhausted": orchestrator_snapshot.budgets.exhausted,
                         }
                         if orchestrator_snapshot is not None
+                        else None
+                    ),
+                    "runtime_state_manager": (
+                        {
+                            "tab_count": len(runtime_state_snapshot.tabs),
+                            "artifact_count": len(runtime_state_snapshot.artifacts),
+                            "focused_tab_id": runtime_state_snapshot.focused_tab_id,
+                            "consistency": runtime_state_snapshot.consistency.to_dict(),
+                        }
+                        if runtime_state_snapshot is not None
                         else None
                     ),
                 },

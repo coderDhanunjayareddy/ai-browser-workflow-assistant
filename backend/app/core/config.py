@@ -134,6 +134,11 @@ class Settings(BaseSettings):
     v47_execution_continuity: str = "shadow"
     v47_semantic_execution_kernel: str = "shadow"
     v48_execution_orchestrator: str = "shadow"
+    v49_runtime_state_manager: str = "shadow"
+    v49_runtime_registry: str = "shadow"
+    v49_artifact_engine: str = "shadow"
+    v49_runtime_sync: str = "shadow"
+    v49_runtime_checkpoints: str = "shadow"
 
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.

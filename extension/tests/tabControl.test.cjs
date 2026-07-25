@@ -77,6 +77,34 @@ test('switch by explicit id parses and matches workspace', () => {
   assert.equal(match.title, 'Cursor Pricing')
 })
 
+test('numeric tab reference falls back to opened content tab ordinal', () => {
+  let state = createMultiTabWorkspace()
+  state = registerTab(state, { id: 41, windowId: 1, title: 'Search', url: 'https://www.google.com/search?q=tools', active: false }, 100)
+  state = registerTab(state, { id: 52, windowId: 1, title: 'Pickaxe', url: 'https://pickaxe.co/', active: false }, 110)
+  state = registerTab(state, { id: 63, windowId: 1, title: 'Firecrawl', url: 'https://www.firecrawl.dev/', active: true }, 120)
+
+  const ref = parseTabReference(action('focus_existing_tab', 'tab:1'))
+  const match = findTabEntryByReference(state, ref)
+
+  assert.equal(ref.kind, 'id')
+  assert.equal(match.tab_id, 52)
+  assert.equal(match.title, 'Pickaxe')
+})
+
+test('ordinal tab reference resolves second opened content tab', () => {
+  let state = createMultiTabWorkspace()
+  state = registerTab(state, { id: 41, windowId: 1, title: 'Search', url: 'https://www.google.com/search?q=tools', active: false }, 100)
+  state = registerTab(state, { id: 52, windowId: 1, title: 'Pickaxe', url: 'https://pickaxe.co/', active: false }, 110)
+  state = registerTab(state, { id: 63, windowId: 1, title: 'Firecrawl', url: 'https://www.firecrawl.dev/', active: true }, 120)
+
+  const ref = parseTabReference(action('focus_existing_tab', 'ordinal:2'))
+  const match = findTabEntryByReference(state, ref)
+
+  assert.equal(ref.kind, 'ordinal')
+  assert.equal(match.tab_id, 63)
+  assert.equal(match.title, 'Firecrawl')
+})
+
 test('switch by explicit title parses and matches workspace', () => {
   const ref = parseTabReference(action('switch_tab', 'title:Cursor Pricing'))
   const match = findTabEntryByReference(workspace(), ref)
