@@ -119,6 +119,7 @@ class Settings(BaseSettings):
     v45_action_verification: str = "shadow"
     v45_site_adapters: str = "shadow"
     v45_serp_adapter: str = "shadow"
+    v451_browser_intelligence_planner_context: str = "shadow"
 
     # V4.6 Adaptive Browser Intelligence feature flags. States: off | shadow | active.
     v46_dynamic_dom: str = "shadow"

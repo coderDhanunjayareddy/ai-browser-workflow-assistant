@@ -138,10 +138,12 @@ class BrowserIntelligenceRuntime:
         )
         try:
             from app.runtime_state_manager.entity_binding import register_browser_intelligence_artifact, registry_identity
-            from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_telemetry
+            from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_telemetry, record_browser_intelligence_output
 
             registered = register_browser_intelligence_artifact(scope_id, artifact)
+            bi_entities = record_browser_intelligence_output(scope_id, artifact)
             capability_report["telemetry"]["entity_registered"] = len(registered)
+            capability_report["telemetry"]["browser_intelligence_entities"] = len(bi_entities)
             capability_report["telemetry"]["entity_registry"] = registry_identity(scope_id)
             capability_report["telemetry"]["entity_pipeline"] = entity_pipeline_telemetry(scope_id)
         except Exception:
@@ -171,6 +173,7 @@ def build_browser_intelligence(
 def format_browser_intelligence_for_planner(artifact: BrowserIntelligenceArtifact, *, scope_id: str = "default") -> dict[str, Any]:
     page_model = artifact.page_model
     from app.runtime_state_manager.entity_binding import resolve_entity
+    from app.runtime_state_manager.entity_pipeline_trace import browser_intelligence_entity_summary
 
     search_results = [
         _search_result_context(result, resolve_entity(scope_id, canonical_url=result.url))
@@ -196,6 +199,7 @@ def format_browser_intelligence_for_planner(artifact: BrowserIntelligenceArtifac
         "adapter": page_model.adapter,
         "browser_state": artifact.browser_state.to_dict(),
         "semantic_elements": semantic_elements,
+        "semantic_entities": browser_intelligence_entity_summary(scope_id, artifact)[:80],
         "search_results": search_results,
         "memory": artifact.memory.to_dict() if artifact.memory else None,
         "health": artifact.health.to_dict() if artifact.health else None,

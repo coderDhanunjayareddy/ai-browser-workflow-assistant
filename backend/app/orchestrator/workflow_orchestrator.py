@@ -208,13 +208,74 @@ class WorkflowOrchestrator:
         Active mode may reuse this artifact to enrich compressed planner context,
         but the planner action contract remains Planner Contract V2.
         """
+        print(
+            "[V4.5.1 live-path] ORCHESTRATOR_BEFORE_BROWSER_INTELLIGENCE "
+            + json.dumps(
+                {
+                    "session_id": self.session_id,
+                    "v45_browser_intelligence": "enabled" if is_shadow_or_active("V45_BROWSER_INTELLIGENCE") else "disabled",
+                    "url": str(getattr(page_context, "url", "") or ""),
+                    "interactive_count": len(getattr(page_context, "interactive_elements", []) or []),
+                    "content_block_count": len(getattr(page_context, "content_blocks", []) or []),
+                    "metadata_keys": list((getattr(page_context, "metadata", {}) or {}).keys()),
+                    "has_semantic_entities_attr": hasattr(page_context, "semantic_entities"),
+                    "first_content_blocks": [
+                        {
+                            "text": str(getattr(block, "text", "") or "")[:120],
+                            "href": getattr(block, "href", None),
+                            "selector": getattr(block, "selector", None),
+                        }
+                        for block in list(getattr(page_context, "content_blocks", []) or [])[:6]
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
         if not is_shadow_or_active("V45_BROWSER_INTELLIGENCE"):
+            print(
+                "[V4.5.1 live-path] ORCHESTRATOR_BROWSER_INTELLIGENCE_NOT_EXECUTED "
+                + json.dumps({"session_id": self.session_id, "reason": "V45_BROWSER_INTELLIGENCE is off"}),
+                flush=True,
+            )
             return None
         try:
             from app.browser_intelligence import build_browser_intelligence
 
             artifact = build_browser_intelligence(page_context, scope_id=self.session_id)
             _browser_intelligence_artifacts[self.session_id] = artifact
+            print(
+                "[V4.5.1 live-path] ORCHESTRATOR_BROWSER_INTELLIGENCE_EXECUTED "
+                + json.dumps(
+                    {
+                        "session_id": self.session_id,
+                        "adapter": artifact.page_model.adapter,
+                        "semantic_element_count": len(artifact.page_model.elements),
+                        "search_result_count": len(artifact.page_model.search_results),
+                        "semantic_elements": [
+                            {
+                                "kind": element.kind,
+                                "label": element.label[:120],
+                                "href": element.href,
+                                "selector_id": element.selector_id,
+                                "confidence": element.confidence,
+                            }
+                            for element in artifact.page_model.elements[:12]
+                        ],
+                        "search_results": [
+                            {
+                                "rank": result.rank,
+                                "title": result.title[:120],
+                                "url": result.url,
+                                "selector_id": result.selector_id,
+                            }
+                            for result in artifact.page_model.search_results[:12]
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                flush=True,
+            )
             payload = {
                 "schema_version": artifact.page_model.schema_version,
                 "url": artifact.page_model.url,
@@ -711,19 +772,61 @@ class WorkflowOrchestrator:
             task_constraints=[supplemental_context] if supplemental_context else [],
             cognitive_context=cognitive_context,
         )
-        if browser_intelligence_artifact is not None and is_active("V45_BROWSER_INTELLIGENCE"):
+        if browser_intelligence_artifact is not None and (
+            is_active("V45_BROWSER_INTELLIGENCE")
+            or is_shadow_or_active("V451_BROWSER_INTELLIGENCE_PLANNER_CONTEXT")
+        ):
             from app.browser_intelligence import format_browser_intelligence_for_planner
 
             compressed_context["browser_intelligence"] = format_browser_intelligence_for_planner(
                 browser_intelligence_artifact,
                 scope_id=self.session_id,
             )
+        bi_context = compressed_context.get("browser_intelligence") if isinstance(compressed_context, dict) else None
+        bi_entities = bi_context.get("semantic_entities", []) if isinstance(bi_context, dict) else []
+        print(
+            "[V4.5.1 live-path] ORCHESTRATOR_PLANNER_CONTEXT_BOUNDARY "
+            + json.dumps(
+                {
+                    "session_id": self.session_id,
+                    "has_browser_intelligence_artifact": browser_intelligence_artifact is not None,
+                    "has_browser_intelligence_context": isinstance(bi_context, dict),
+                    "semantic_entity_count": len(bi_entities) if isinstance(bi_entities, list) else 0,
+                    "search_result_count": len(bi_context.get("search_results", [])) if isinstance(bi_context, dict) and isinstance(bi_context.get("search_results"), list) else 0,
+                    "semantic_element_count": len(bi_context.get("semantic_elements", [])) if isinstance(bi_context, dict) and isinstance(bi_context.get("semantic_elements"), list) else 0,
+                    "context_keys": list(compressed_context.keys()),
+                    "first_semantic_entities": [
+                        {
+                            "entity_id": entity.get("entity_id"),
+                            "title": entity.get("title"),
+                            "canonical_url": entity.get("canonical_url"),
+                            "source_adapter": entity.get("source_adapter"),
+                        }
+                        for entity in (bi_entities[:8] if isinstance(bi_entities, list) else [])
+                        if isinstance(entity, dict)
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
         compressed_context = enrich_planner_context(compressed_context, continuity_snapshot)
         compressed_context = enrich_planner_context_with_orchestrator(compressed_context, orchestrator_snapshot)
         compressed_context = enrich_planner_context_with_runtime_state(compressed_context, runtime_state_snapshot)
         compressed_context = enrich_planner_context_with_knowledge(compressed_context, knowledge_snapshot)
         compressed_context = enrich_planner_context_with_completion(compressed_context, mission_completion_snapshot)
         compressed_context = enrich_planner_context_with_kernel(compressed_context, kernel_snapshot)
+        if browser_intelligence_artifact is not None:
+            from app.runtime_state_manager.entity_pipeline_trace import (
+                browser_intelligence_entity_summary,
+                record_planner_context_entities,
+            )
+
+            record_planner_context_entities(
+                self.session_id,
+                compressed_context,
+                browser_entity_count=len(browser_intelligence_entity_summary(self.session_id, browser_intelligence_artifact)),
+            )
         from app.runtime_state_manager.entity_binding import entity_binding_trace, list_entities, registry_identity
 
         registered_entities = list_entities(self.session_id)

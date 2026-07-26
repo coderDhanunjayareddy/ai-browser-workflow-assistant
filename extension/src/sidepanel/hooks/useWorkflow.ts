@@ -426,13 +426,42 @@ export function buildAnalyzeRequestBody(
 ): AnalyzeRequestBody {
   const actionPriorSteps = completedActions.length > 0 ? buildPriorSteps(completedActions) : []
   const priorSteps = [...actionPriorSteps, ...validationPriorSteps]
-  return {
+  const body = {
     session_id: sessionId,
     task,
     page_context: pageContext,
     prior_steps: priorSteps.length > 0 ? priorSteps : undefined,
     supplemental_context: buildSupplementalContext(task, userInputs, workspace, tabWorkspace, missionSnapshot),
   }
+  logAnalyzePayloadDiagnostics(body)
+  return body
+}
+
+function logAnalyzePayloadDiagnostics(body: AnalyzeRequestBody): void {
+  const ctx: any = body.page_context
+  const semanticKeys = Object.keys(ctx || {}).filter((key) => /semantic|entity|browser_intelligence|page_model/i.test(key))
+  const interactive = Array.isArray(ctx?.interactive_elements) ? ctx.interactive_elements : []
+  const blocks = Array.isArray(ctx?.content_blocks) ? ctx.content_blocks : []
+  console.info('[V4.5.1 live-path] SIDEPANEL_POST_ANALYZE_BODY', {
+    session_id: body.session_id,
+    pageContextKeys: Object.keys(ctx || {}),
+    semanticKeys,
+    interactiveCount: interactive.length,
+    contentBlockCount: blocks.length,
+    hasSemanticEntities: Array.isArray(ctx?.semantic_entities),
+    semanticEntityCount: Array.isArray(ctx?.semantic_entities) ? ctx.semantic_entities.length : 0,
+    firstInteractive: interactive.slice(0, 6).map((item: any) => ({
+      text: item?.text,
+      href: item?.href,
+      semantic_kind: item?.semantic_kind,
+      selector_id: item?.selector_id,
+    })),
+    firstContentBlocks: blocks.slice(0, 6).map((item: any) => ({
+      text: String(item?.text || '').slice(0, 120),
+      href: item?.href,
+      selector: item?.selector,
+    })),
+  })
 }
 
 function normalizeActionValue(action: SuggestedAction): string {

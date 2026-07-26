@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import json
 from typing import Any
 
 from app.feature_flags import is_active, is_shadow_or_active
@@ -149,6 +150,8 @@ class SemanticExecutionKernel:
         page_context: Any,
         prior_steps: list[Any],
     ) -> AnalyzeResponse:
+        current_request_timestamp = int(time.time() * 1000)
+        planner_turn_id = _planner_turn_id(session_id, result)
         snapshot = self.build_snapshot(
             session_id=session_id,
             task=task,
@@ -158,7 +161,40 @@ class SemanticExecutionKernel:
         )
         if snapshot is None or not is_active("V47_SEMANTIC_EXECUTION_KERNEL"):
             return result
-        pipeline_failure = get_entity_pipeline_tracer().active_failure_response(result, session_id)
+        tracer = get_entity_pipeline_tracer()
+        failures_before = tracer.failures(session_id)
+        latest_failure_before = failures_before[-1] if failures_before else None
+        current_lookup_succeeded = bool(snapshot.proposal and snapshot.proposal.entity_id)
+        current_lookup_entity_id = snapshot.proposal.entity_id if snapshot.proposal else None
+        current_lookup_url = snapshot.proposal.parameters.get("canonical_url") or snapshot.proposal.parameters.get("value") if snapshot.proposal else None
+        pipeline_failure = tracer.active_failure_response(result, session_id)
+        if pipeline_failure is not None:
+            origin = latest_failure_before.to_dict() if latest_failure_before else {}
+            created_at = int(origin.get("created_at") or 0)
+            print(
+                "[V4.9.3 proof] SEMANTIC_KERNEL_ACTIVE_FAILURE_RESPONSE "
+                + json.dumps(
+                    {
+                        "mission_id": session_id,
+                        "planner_turn_id": planner_turn_id,
+                        "failure_creation_timestamp": created_at or None,
+                        "current_request_timestamp": current_request_timestamp,
+                        "when_originally_recorded": created_at or None,
+                        "origin_file": origin.get("origin_file"),
+                        "origin_function": origin.get("origin_function"),
+                        "failure_stage": origin.get("stage"),
+                        "failure_reason": origin.get("reason"),
+                        "originated_during_this_request": bool(created_at and created_at >= current_request_timestamp),
+                        "originated_during_previous_request": bool(created_at and created_at < current_request_timestamp),
+                        "current_lookup_succeeded_before_replay": current_lookup_succeeded,
+                        "current_lookup_entity_id": current_lookup_entity_id,
+                        "current_lookup_url": current_lookup_url,
+                        "returned_replan_reason": pipeline_failure.replan.reason if pipeline_failure.replan else None,
+                    },
+                    ensure_ascii=False,
+                ),
+                flush=True,
+            )
         if pipeline_failure is not None:
             return pipeline_failure
         if snapshot.eligibility and not snapshot.eligibility.eligible:
@@ -190,6 +226,14 @@ def _replan_from_kernel(result: AnalyzeResponse, recovery: RecoveryDecision, rea
         replan=ReplanOutcome(reason=f"{reason}. Recovery strategy: {recovery.strategy} ({recovery.reason})."),
         suggested_actions=[],
     )
+
+
+def _planner_turn_id(session_id: str, result: AnalyzeResponse) -> str:
+    action = result.suggested_actions[0] if result.suggested_actions else None
+    action_id = getattr(action, "action_id", "") if action else ""
+    action_type = getattr(action, "action_type", "") if action else ""
+    value = getattr(action, "value", "") if action else ""
+    return f"{session_id}:{action_id}:{action_type}:{value}"
 
 
 def _mark_grounded(session_id: str, snapshot: KernelSnapshot) -> None:

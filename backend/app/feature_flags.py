@@ -81,6 +81,7 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V45_ACTION_VERIFICATION": "v45_action_verification",
     "V45_SITE_ADAPTERS": "v45_site_adapters",
     "V45_SERP_ADAPTER": "v45_serp_adapter",
+    "V451_BROWSER_INTELLIGENCE_PLANNER_CONTEXT": "v451_browser_intelligence_planner_context",
     "V46_DYNAMIC_DOM": "v46_dynamic_dom",
     "V46_INTELLIGENT_WAIT": "v46_intelligent_wait",
     "V46_BROWSER_MEMORY": "v46_browser_memory",
@@ -137,5 +138,5 @@ def v4_flag_snapshot() -> dict[str, str]:
     return {
         name: get_flag_state(name).value
         for name in _FLAG_SETTINGS
-        if name.startswith("V4_") or name.startswith("V45_") or name.startswith("V46_") or name.startswith("V47_") or name.startswith("V48_") or name.startswith("V49_") or name.startswith("V50_") or name.startswith("V51_")
+        if name.startswith("V4_") or name.startswith("V45_") or name.startswith("V451_") or name.startswith("V46_") or name.startswith("V47_") or name.startswith("V48_") or name.startswith("V49_") or name.startswith("V50_") or name.startswith("V51_")
     }

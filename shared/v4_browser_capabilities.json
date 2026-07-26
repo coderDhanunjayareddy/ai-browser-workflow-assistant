@@ -1060,6 +1060,26 @@
     "owner": "browser-platform"
   },
   {
+    "capability_id": "browser_intelligence.planner_context_verification",
+    "version": "1.0.0",
+    "category": "browser_intelligence",
+    "description": "V4.5.1 verification and repair layer proving Browser Intelligence semantic entities are preserved into planner context, prompt metadata, planner response references, and semantic kernel resolution without logging full prompts or weakening semantic validation.",
+    "dependencies": ["browser_intelligence.page_understanding", "browser_intelligence.site_adapters", "browser.unified_entity_identity_binding", "browser.entity_pipeline_trace"],
+    "feature_flag": "V451_BROWSER_INTELLIGENCE_PLANNER_CONTEXT",
+    "maturity_level": 4,
+    "target_maturity_level": 5,
+    "supported_browsers": ["chromium-extension", "playwright-chromium"],
+    "supported_websites": ["all-websites"],
+    "site_adapters": ["generic", "google_search", "bing_search", "linkedin_jobs", "github", "documentation", "generic_data_table", "generic_dashboard"],
+    "benchmarks": ["v451.bi_output_entities", "v451.planner_context_entity_parity", "v451.prompt_entity_metadata", "v451.planner_response_observed_entity", "v451.kernel_resolution_from_bi_entity", "v451.semantic_content_not_controls_only"],
+    "metrics": ["browser_intelligence_entities", "semantic_element_count", "planner_context_entity_count", "prompt_entity_count", "planner_response_entity_reference_valid", "semantic_content_extraction_failures"],
+    "known_limitations": ["Prompt diagnostics log only entity metadata counts, ids, urls, and titles; full prompt logging remains restricted to existing trace mode."],
+    "rollout_status": "shadow",
+    "safety_constraints": ["no_full_prompt_logging", "no_kernel_fallbacks", "no_runtime_layer", "no_semantic_validation_weakening", "website_agnostic", "observed_entities_only"],
+    "failure_classes": ["BrowserIntelligence", "SemanticExtraction", "PlannerContext", "PromptBuilder", "PlannerResponse"],
+    "owner": "browser-platform"
+  },
+  {
     "capability_id": "browser_intelligence.search.google_serp",
     "version": "1.0.0",
     "category": "search_engine_intelligence",

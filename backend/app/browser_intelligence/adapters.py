@@ -142,6 +142,35 @@ class SiteAdapter:
                     },
                 )
             )
+        for index, block in enumerate(getattr(page_context, "content_blocks", []) or []):
+            text = " ".join(str(_getattr(block, "text", "") or "").split())
+            href = _normalize_url(str(_getattr(block, "href", "") or ""), str(getattr(page_context, "url", "") or ""))
+            selector = str(_getattr(block, "selector", "") or "")
+            if not text and not href and not selector:
+                continue
+            kind = classify_content_kind(block, text)
+            label = _title_from_block(text) or _display_url(href) or kind
+            key = (kind, label[:80], selector or href or None)
+            if key in seen:
+                continue
+            seen.add(key)
+            elements.append(
+                SemanticElement(
+                    element_id=stable_id("content", f"{kind}|{label}|{href}|{selector}|{index}"),
+                    kind=kind,
+                    label=label[:180],
+                    selector_id=selectors_id_for(selector) if selector else None,
+                    selector=selector or None,
+                    role=str(_getattr(block, "role", "") or "") or None,
+                    href=href or None,
+                    visible=True,
+                    confidence=0.82 if href else 0.72,
+                    metadata={
+                        "text": text[:500],
+                        "source": "content_block",
+                    },
+                )
+            )
         return AdapterResult(self.name, elements, [], {"adapter_confidence": 0.5})
 
 
@@ -329,6 +358,23 @@ def classify_element_kind(element: Any) -> str:
     if "search result" in text:
         return "search_result"
     return "widget"
+
+
+def classify_content_kind(block: Any, text: str) -> str:
+    role = str(_getattr(block, "role", "") or "").lower()
+    selector = str(_getattr(block, "selector", "") or "").lower()
+    lower = text.lower()
+    if role in {"row", "gridcell"} or "row" in selector or any(term in lower for term in ("rows per page", "sort by", "filter")):
+        return "table"
+    if role in {"listitem", "option"} or "list" in selector:
+        return "list"
+    if any(term in lower for term in ("quickstart", "api reference", "documentation", "guide", "tutorial")):
+        return "text"
+    if any(term in lower for term in ("price", "plan", "$", "per month", "enterprise")):
+        return "card"
+    if any(term in lower for term in ("job", "salary", "remote", "apply")):
+        return "card"
+    return "card"
 
 
 def extract_search_results(page_context: Any, *, engine_hosts: set[str], limit: int) -> list[SearchResult]:

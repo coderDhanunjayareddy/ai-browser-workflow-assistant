@@ -1281,6 +1281,40 @@ def generate_text(system_prompt: str, user_message: str) -> str:
     return response.text or ""
 
 
+def _log_live_path_prompt_context(session_id: str, compressed_context: dict[str, Any]) -> None:
+    try:
+        bi_context = compressed_context.get("browser_intelligence") if isinstance(compressed_context, dict) else None
+        semantic_entities = bi_context.get("semantic_entities", []) if isinstance(bi_context, dict) else []
+        search_results = bi_context.get("search_results", []) if isinstance(bi_context, dict) else []
+        semantic_elements = bi_context.get("semantic_elements", []) if isinstance(bi_context, dict) else []
+        _safe_debug_print(
+            "[V4.5.1 live-path] AI_SERVICE_PROMPT_CONTEXT "
+            + json.dumps(
+                {
+                    "session_id": session_id,
+                    "compressed_context_keys": list(compressed_context.keys()),
+                    "has_browser_intelligence": isinstance(bi_context, dict),
+                    "semantic_entity_count": len(semantic_entities) if isinstance(semantic_entities, list) else 0,
+                    "search_result_count": len(search_results) if isinstance(search_results, list) else 0,
+                    "semantic_element_count": len(semantic_elements) if isinstance(semantic_elements, list) else 0,
+                    "first_semantic_entities": [
+                        {
+                            "entity_id": entity.get("entity_id"),
+                            "title": entity.get("title"),
+                            "canonical_url": entity.get("canonical_url"),
+                            "source_adapter": entity.get("source_adapter"),
+                        }
+                        for entity in (semantic_entities[:8] if isinstance(semantic_entities, list) else [])
+                        if isinstance(entity, dict)
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        )
+    except Exception as exc:
+        _safe_debug_print(f"[V4.5.1 live-path] AI_SERVICE_PROMPT_CONTEXT_LOG_FAILED {exc}")
+
+
 def analyze(
     session_id: str,
     task: str,
@@ -1310,6 +1344,13 @@ def analyze(
     if compressed_context is not None:
         # Interactive planning receives no full DOM/tree/replay. The five-key
         # contract keeps planner input stable and auditable.
+        _log_live_path_prompt_context(session_id, compressed_context)
+        try:
+            from app.runtime_state_manager.entity_pipeline_trace import record_prompt_entities
+
+            record_prompt_entities(session_id, compressed_context)
+        except Exception:
+            pass
         user_message = "COMPRESSED PLANNER CONTEXT:\n" + json.dumps(compressed_context, ensure_ascii=False)
     else:
         user_message = build_user_message(
@@ -1322,6 +1363,15 @@ def analyze(
         )
 
     def finalize(result: AnalyzeResponse) -> AnalyzeResponse:
+        try:
+            from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer, verify_planner_response_entities
+
+            verify_planner_response_entities(session_id, result, compressed_context)
+            pipeline_failure = get_entity_pipeline_tracer().active_failure_response(result, session_id)
+            if pipeline_failure is not None:
+                return pipeline_failure
+        except Exception:
+            pass
         return _postprocess_planner_response(
             result,
             page_context=page_context,

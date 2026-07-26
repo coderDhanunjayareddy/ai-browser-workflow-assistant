@@ -2,7 +2,7 @@ import json
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from sqlalchemy.orm import Session
 from google.genai import errors
 
@@ -27,7 +27,7 @@ def analyze_usage() -> dict:
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
-def analyze(request: AnalyzeRequest, db: Session = Depends(get_db),
+async def analyze(request: Request, payload: AnalyzeRequest, db: Session = Depends(get_db),
             x_trace_id: Optional[str] = Header(default=None, alias="X-Trace-Id")) -> AnalyzeResponse:
     """
     Analyze a page context and task. Returns AI-suggested browser actions.
@@ -40,12 +40,14 @@ def analyze(request: AnalyzeRequest, db: Session = Depends(get_db),
         from app.diagnostics import trace_sink
         trace_sink.set_current(x_trace_id)
 
-    page_context_text = context_service.format_page_context(request.page_context)
+    await _log_live_path_analyze_receipt(request, payload)
+
+    page_context_text = context_service.format_page_context(payload.page_context)
     
     print("\n================= PAGE CONTEXT =================")
-    print(f"URL: {request.page_context.url}")
+    print(f"URL: {payload.page_context.url}")
     print("INTERACTIVE ELEMENTS:")
-    for el in request.page_context.interactive_elements[:15]:
+    for el in payload.page_context.interactive_elements[:15]:
         try:
             print(f"- Tag: {el.type} | Text: {el.text} | Selector: {el.selector}")
         except Exception:
@@ -58,13 +60,13 @@ def analyze(request: AnalyzeRequest, db: Session = Depends(get_db),
 
     try:
         from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
-        orchestrator = WorkflowOrchestrator(request.session_id, db)
+        orchestrator = WorkflowOrchestrator(payload.session_id, db)
         return orchestrator.orchestrate_analysis(
-            task=request.task,
-            page_context=request.page_context,
-            prior_steps=request.prior_steps or [],
-            supplemental_context=request.supplemental_context or "",
-            handoff_payload=request.handoff_payload,
+            task=payload.task,
+            page_context=payload.page_context,
+            prior_steps=payload.prior_steps or [],
+            supplemental_context=payload.supplemental_context or "",
+            handoff_payload=payload.handoff_payload,
         )
     except errors.APIError as e:
         status_code = e.code or 502
@@ -107,3 +109,49 @@ def analyze(request: AnalyzeRequest, db: Session = Depends(get_db),
                 detail=f"AI service connection was interrupted. Retry the analysis. Details: {str(e)}",
             )
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+async def _log_live_path_analyze_receipt(request: Request, payload: AnalyzeRequest) -> None:
+    try:
+        raw = await request.json()
+        raw_page_context = raw.get("page_context", {}) if isinstance(raw, dict) else {}
+        raw_keys = list(raw_page_context.keys()) if isinstance(raw_page_context, dict) else []
+        raw_semantic_keys = [key for key in raw_keys if any(term in key.lower() for term in ("semantic", "entity", "browser_intelligence", "page_model"))]
+        interactive = payload.page_context.interactive_elements
+        blocks = payload.page_context.content_blocks
+        print(
+            "[V4.5.1 live-path] BACKEND_ANALYZE_RECEIVED "
+            + json.dumps(
+                {
+                    "session_id": payload.session_id,
+                    "raw_page_context_keys": raw_keys,
+                    "raw_semantic_keys": raw_semantic_keys,
+                    "validated_page_context_keys": list(payload.page_context.model_dump().keys()),
+                    "interactive_count": len(interactive),
+                    "content_block_count": len(blocks),
+                    "has_raw_semantic_entities": isinstance(raw_page_context, dict) and isinstance(raw_page_context.get("semantic_entities"), list),
+                    "raw_semantic_entity_count": len(raw_page_context.get("semantic_entities", [])) if isinstance(raw_page_context, dict) and isinstance(raw_page_context.get("semantic_entities"), list) else 0,
+                    "first_interactive": [
+                        {
+                            "text": item.text,
+                            "href": item.href,
+                            "semantic_kind": item.semantic_kind,
+                            "selector_id": item.selector_id,
+                        }
+                        for item in interactive[:6]
+                    ],
+                    "first_content_blocks": [
+                        {
+                            "text": item.text[:120],
+                            "href": item.href,
+                            "selector": item.selector,
+                        }
+                        for item in blocks[:6]
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+    except Exception as exc:
+        print(f"[V4.5.1 live-path] BACKEND_ANALYZE_RECEIPT_LOG_FAILED {exc}", flush=True)

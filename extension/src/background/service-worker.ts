@@ -252,6 +252,35 @@ function getMockContext(url: string | undefined, title: string | undefined) {
   }
 }
 
+function logExtractionDiagnostics(boundary: string, context: any) {
+  const semanticKeys = Object.keys(context || {}).filter((key) => /semantic|entity|browser_intelligence|page_model/i.test(key))
+  const interactive = Array.isArray(context?.interactive_elements) ? context.interactive_elements : []
+  const blocks = Array.isArray(context?.content_blocks) ? context.content_blocks : []
+  const semanticInteractive = interactive.filter((item: any) => item?.semantic_kind || item?.selector_id)
+  const hrefBlocks = blocks.filter((item: any) => item?.href)
+  console.info(`[V4.5.1 live-path] ${boundary}`, {
+    url: context?.url,
+    title: context?.title,
+    topLevelKeys: Object.keys(context || {}),
+    semanticKeys,
+    interactiveCount: interactive.length,
+    contentBlockCount: blocks.length,
+    semanticInteractiveCount: semanticInteractive.length,
+    hrefContentBlockCount: hrefBlocks.length,
+    firstInteractive: interactive.slice(0, 6).map((item: any) => ({
+      text: item?.text,
+      href: item?.href,
+      semantic_kind: item?.semantic_kind,
+      selector_id: item?.selector_id,
+    })),
+    firstContentBlocks: blocks.slice(0, 6).map((item: any) => ({
+      text: String(item?.text || '').slice(0, 120),
+      href: item?.href,
+      selector: item?.selector,
+    })),
+  })
+}
+
 async function extractContextWithRetry() {
   let lastError = ''
 
@@ -284,7 +313,9 @@ async function extractContextWithRetry() {
         const v2Context = v2Results[0]?.result
         const v1Context = v1Results[0]?.result
         if (v2Context && v1Context) {
-          return {
+          logExtractionDiagnostics('EXTRACT_CONTEXT_V1', v1Context)
+          logExtractionDiagnostics('EXTRACT_CONTEXT_V2', v2Context)
+          const merged = {
             ...v1Context,
             ...v2Context,
             metadata: v1Context.metadata,
@@ -292,6 +323,8 @@ async function extractContextWithRetry() {
             images: v1Context.images,
             visible_text: v1Context.visible_text || v2Context.visible_text,
           }
+          logExtractionDiagnostics('EXTRACT_CONTEXT_MERGED_RETURNED_TO_SIDEPANEL', merged)
+          return merged
         }
         results = v2Results
       } catch (e2) {
@@ -302,7 +335,10 @@ async function extractContextWithRetry() {
         })
       }
       const context = results[0]?.result
-      if (context) return context
+      if (context) {
+        logExtractionDiagnostics('EXTRACT_CONTEXT_RETURNED_TO_SIDEPANEL', context)
+        return context
+      }
     } catch (err) {
       lastError = String(err)
       if (lastError.includes('Cannot access') || lastError.includes('not allowed')) {
