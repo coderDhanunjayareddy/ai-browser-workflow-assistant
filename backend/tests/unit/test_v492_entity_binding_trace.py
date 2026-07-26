@@ -213,7 +213,7 @@ def test_ai_service_repaired_open_url_is_registered_before_kernel(monkeypatch):
     assert result.suggested_actions[0].value == "https://pickaxe.co"
 
 
-def test_kernel_registers_safe_open_new_tab_url_when_binding_missing(monkeypatch):
+def test_kernel_rejects_open_new_tab_url_when_binding_missing(monkeypatch):
     monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
     response = _open_response()
     response.session_id = "trace-kernel-url-fallback"
@@ -227,6 +227,5 @@ def test_kernel_registers_safe_open_new_tab_url_when_binding_missing(monkeypatch
     )
 
     entity = resolve_entity("trace-kernel-url-fallback", canonical_url="https://pickaxe.co")
-    assert result.outcome_kind == "act", result.replan.reason if result.replan else result.analysis
-    assert entity is not None
-    assert entity.source_layer == "semantic_execution_kernel"
+    assert result.outcome_kind == "replan"
+    assert entity is None

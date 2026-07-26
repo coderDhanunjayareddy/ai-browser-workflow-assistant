@@ -152,6 +152,15 @@ class SemanticExecutionKernel:
     ) -> AnalyzeResponse:
         current_request_timestamp = int(time.time() * 1000)
         planner_turn_id = _planner_turn_id(session_id, result)
+        _debug_v494_kernel(
+            "POSTPROCESS_RESPONSE_RECEIVED",
+            {
+                "mission_id": session_id,
+                "planner_turn_id": planner_turn_id,
+                "suggested_actions": [action.model_dump() if hasattr(action, "model_dump") else getattr(action, "__dict__", {}) for action in result.suggested_actions[:3]],
+                "page_url": str(getattr(page_context, "url", "") or ""),
+            },
+        )
         snapshot = self.build_snapshot(
             session_id=session_id,
             task=task,
@@ -160,8 +169,30 @@ class SemanticExecutionKernel:
             planner_response=result,
         )
         if snapshot is None or not is_active("V47_SEMANTIC_EXECUTION_KERNEL"):
+            _debug_v494_kernel(
+                "KERNEL_INACTIVE_BRANCH",
+                {
+                    "mission_id": session_id,
+                    "snapshot_is_none": snapshot is None,
+                    "v47_active": is_active("V47_SEMANTIC_EXECUTION_KERNEL"),
+                    "branch_reason": "snapshot is None or V47_SEMANTIC_EXECUTION_KERNEL is not active",
+                },
+            )
             return result
         tracer = get_entity_pipeline_tracer()
+        _debug_v494_kernel(
+            "SNAPSHOT_BUILT",
+            {
+                "mission_id": session_id,
+                "planner_turn_id": planner_turn_id,
+                "semantic_entity_count": len(snapshot.entities),
+                "proposal": snapshot.proposal.to_dict() if snapshot.proposal else None,
+                "eligibility": snapshot.eligibility.to_dict() if snapshot.eligibility else None,
+                "grounding": snapshot.grounding.to_dict() if snapshot.grounding else None,
+                "entity_ids": [entity.id for entity in snapshot.entities[:40]],
+                "entity_urls": [(entity.canonical_url or entity.url) for entity in snapshot.entities[:40]],
+            },
+        )
         failures_before = tracer.failures(session_id)
         latest_failure_before = failures_before[-1] if failures_before else None
         current_lookup_succeeded = bool(snapshot.proposal and snapshot.proposal.entity_id)
@@ -196,10 +227,32 @@ class SemanticExecutionKernel:
                 flush=True,
             )
         if pipeline_failure is not None:
+            _debug_v494_kernel(
+                "FINAL_REJECTION_ACTIVE_PIPELINE_FAILURE",
+                {
+                    "mission_id": session_id,
+                    "planner_turn_id": planner_turn_id,
+                    "branch_reason": "active_failure_response returned a replan before eligibility rejection branch",
+                    "current_lookup_succeeded_before_replay": current_lookup_succeeded,
+                    "current_lookup_entity_id": current_lookup_entity_id,
+                    "current_lookup_url": current_lookup_url,
+                    "returned_replan_reason": pipeline_failure.replan.reason if pipeline_failure.replan else None,
+                },
+            )
             return pipeline_failure
         if snapshot.eligibility and not snapshot.eligibility.eligible:
             failure_reason = snapshot.eligibility.reason
             if "entity_missing" in snapshot.eligibility.failures:
+                _debug_v494_kernel(
+                    "ENTITY_MISSING_REJECTION_BRANCH",
+                    {
+                        "mission_id": session_id,
+                        "planner_turn_id": planner_turn_id,
+                        "branch_reason": "snapshot.eligibility is ineligible and failures contains entity_missing",
+                        "proposal": snapshot.proposal.to_dict() if snapshot.proposal else None,
+                        "eligibility": snapshot.eligibility.to_dict(),
+                    },
+                )
                 get_entity_pipeline_tracer().verify_exists(
                     session_id,
                     stage="SEMANTIC_KERNEL",
@@ -208,10 +261,38 @@ class SemanticExecutionKernel:
                     entity_id=snapshot.proposal.entity_id if snapshot.proposal else None,
                 )
                 failure_reason = "ENTITY_PIPELINE_FAILURE stage=SemanticKernel reason=entity lookup failed"
+            _debug_v494_kernel(
+                "FINAL_REJECTION_ELIGIBILITY",
+                {
+                    "mission_id": session_id,
+                    "planner_turn_id": planner_turn_id,
+                    "branch_reason": "snapshot.eligibility.eligible is false",
+                    "failure_reason": failure_reason,
+                    "eligibility": snapshot.eligibility.to_dict(),
+                },
+            )
             return _replan_from_kernel(result, snapshot.recovery, failure_reason)
         if snapshot.grounding and snapshot.grounding.grounded and result.suggested_actions:
+            _debug_v494_kernel(
+                "GROUNDING_APPLY_BRANCH",
+                {
+                    "mission_id": session_id,
+                    "planner_turn_id": planner_turn_id,
+                    "branch_reason": "snapshot.grounding.grounded is true and suggested action exists",
+                    "grounding": snapshot.grounding.to_dict(),
+                },
+            )
             _mark_grounded(session_id, snapshot)
             result.suggested_actions[0] = apply_grounding_to_action(result.suggested_actions[0], snapshot.grounding)
+        _debug_v494_kernel(
+            "POSTPROCESS_RETURN_ACTION",
+            {
+                "mission_id": session_id,
+                "planner_turn_id": planner_turn_id,
+                "outcome_kind": result.outcome_kind,
+                "suggested_actions": [action.model_dump() if hasattr(action, "model_dump") else getattr(action, "__dict__", {}) for action in result.suggested_actions[:3]],
+            },
+        )
         return result
 
 
@@ -234,6 +315,17 @@ def _planner_turn_id(session_id: str, result: AnalyzeResponse) -> str:
     action_type = getattr(action, "action_type", "") if action else ""
     value = getattr(action, "value", "") if action else ""
     return f"{session_id}:{action_id}:{action_type}:{value}"
+
+
+def _debug_v494_kernel(event: str, payload: dict[str, Any]) -> None:
+    try:
+        print(
+            "[V4.9.4 kernel-lookup] SEMANTIC_KERNEL "
+            + json.dumps({"event": event, **payload}, ensure_ascii=False),
+            flush=True,
+        )
+    except Exception as exc:
+        print(f"[V4.9.4 kernel-lookup] SEMANTIC_KERNEL_LOG_FAILED {exc}", flush=True)
 
 
 def _mark_grounded(session_id: str, snapshot: KernelSnapshot) -> None:

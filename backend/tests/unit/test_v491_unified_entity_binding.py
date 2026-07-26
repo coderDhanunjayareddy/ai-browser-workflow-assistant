@@ -74,7 +74,7 @@ def test_registered_canonical_url_survives_kernel_turn_and_grounds_open_new_tab(
     assert entity.state == "GROUNDED"
 
 
-def test_safe_explicit_url_is_registered_by_kernel_instead_of_entity_missing(monkeypatch):
+def test_unregistered_explicit_url_is_rejected_without_kernel_entity_creation(monkeypatch):
     monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
 
     result = SemanticExecutionKernel().postprocess_response(
@@ -85,9 +85,9 @@ def test_safe_explicit_url_is_registered_by_kernel_instead_of_entity_missing(mon
         prior_steps=[],
     )
 
-    assert result.outcome_kind == "act"
-    assert result.suggested_actions[0].action_type == "open_new_tab"
-    assert result.suggested_actions[0].value == "https://untrusted.example.test"
+    assert result.outcome_kind == "replan"
+    assert result.suggested_actions == []
+    assert resolve_entity("binding-unregistered", canonical_url="https://untrusted.example.test") is None
 
 
 def test_runtime_state_maps_opened_tab_to_registered_entity(monkeypatch):

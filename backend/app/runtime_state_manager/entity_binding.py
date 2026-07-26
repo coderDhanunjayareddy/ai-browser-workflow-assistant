@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import threading
 import time
@@ -185,31 +186,58 @@ class EntityBindingRegistry:
         entities = list(self._entities.get(session_id, {}).values())
         self._trace("REGISTRY_INSTANCE", session_id, outcome="lookup_start", reason=f"entity_count={len(entities)}")
         normalized_url = _normalize_url(canonical_url)
+        _debug_v494_registry_lookup(
+            "START",
+            session_id=session_id,
+            registry_name=self.name,
+            registry_instance=hex(id(self)),
+            registry_version=self._version,
+            entities=entities,
+            requested={
+                "entity_id": entity_id,
+                "artifact_id": artifact_id,
+                "canonical_url_raw": canonical_url,
+                "canonical_url_normalized": normalized_url,
+                "runtime_resource_id": runtime_resource_id,
+                "selector_id": selector_id,
+            },
+        )
         for entity in entities:
             if entity_id and entity.entity_id == entity_id:
                 self._trace_lookup(session_id, "LOOKUP_ENTITY_ID", "HIT", entity=entity, entity_id=entity_id, resolved_by="entity_id")
+                _debug_v494_registry_lookup("LOOKUP_ENTITY_ID", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"entity_id": entity_id}, matched=entity, failure_reason=None)
                 return entity
+        _debug_v494_registry_lookup("LOOKUP_ENTITY_ID", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"entity_id": entity_id}, matched=None, failure_reason="requested entity_id missing or no registry entity_id matched")
         self._trace_lookup(session_id, "LOOKUP_ENTITY_ID", "MISS", entity_id=entity_id)
         for entity in entities:
             if artifact_id and entity.artifact_id == artifact_id:
                 self._trace_lookup(session_id, "LOOKUP_ARTIFACT_ID", "HIT", entity=entity, artifact_id=artifact_id, resolved_by="artifact_id")
+                _debug_v494_registry_lookup("LOOKUP_ARTIFACT_ID", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"artifact_id": artifact_id}, matched=entity, failure_reason=None)
                 return entity
+        _debug_v494_registry_lookup("LOOKUP_ARTIFACT_ID", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"artifact_id": artifact_id}, matched=None, failure_reason="requested artifact_id missing or no registry artifact_id matched")
         self._trace_lookup(session_id, "LOOKUP_ARTIFACT_ID", "MISS", artifact_id=artifact_id)
         for entity in entities:
             if normalized_url and entity.canonical_url == normalized_url:
                 self._trace_lookup(session_id, "LOOKUP_CANONICAL_URL", "HIT", entity=entity, canonical_url=normalized_url, resolved_by="canonical_url")
+                _debug_v494_registry_lookup("LOOKUP_CANONICAL_URL", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"canonical_url_raw": canonical_url, "canonical_url_normalized": normalized_url}, matched=entity, failure_reason=None)
                 return entity
+        _debug_v494_registry_lookup("LOOKUP_CANONICAL_URL", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"canonical_url_raw": canonical_url, "canonical_url_normalized": normalized_url}, matched=None, failure_reason="requested canonical_url missing, failed URL normalization, or no registry canonical_url matched")
         self._trace_lookup(session_id, "LOOKUP_CANONICAL_URL", "MISS", canonical_url=normalized_url)
         for entity in entities:
             if runtime_resource_id and entity.runtime_resource_id == runtime_resource_id:
                 self._trace_lookup(session_id, "LOOKUP_RUNTIME_RESOURCE_ID", "HIT", entity=entity, runtime_resource_id=runtime_resource_id, resolved_by="runtime_resource_id")
+                _debug_v494_registry_lookup("LOOKUP_RUNTIME_RESOURCE_ID", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"runtime_resource_id": runtime_resource_id}, matched=entity, failure_reason=None)
                 return entity
+        _debug_v494_registry_lookup("LOOKUP_RUNTIME_RESOURCE_ID", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"runtime_resource_id": runtime_resource_id}, matched=None, failure_reason="requested runtime_resource_id missing or no registry runtime_resource_id matched")
         self._trace_lookup(session_id, "LOOKUP_RUNTIME_RESOURCE_ID", "MISS", runtime_resource_id=runtime_resource_id)
         for entity in entities:
             if selector_id and selector_id in entity.selector_ids:
                 self._trace_lookup(session_id, "LOOKUP_SELECTOR_ID", "HIT", entity=entity, selector_id=selector_id, resolved_by="selector_id")
+                _debug_v494_registry_lookup("LOOKUP_SELECTOR_ID", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"selector_id": selector_id}, matched=entity, failure_reason=None)
                 return entity
+        _debug_v494_registry_lookup("LOOKUP_SELECTOR_ID", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"selector_id": selector_id}, matched=None, failure_reason="requested selector_id missing or no registry selector_ids contained it")
         self._trace_lookup(session_id, "LOOKUP_SELECTOR_ID", "MISS", selector_id=selector_id)
+        _debug_v494_registry_lookup("FINAL_MISS", session_id=session_id, registry_name=self.name, registry_instance=hex(id(self)), registry_version=self._version, entities=entities, requested={"entity_id": entity_id, "artifact_id": artifact_id, "canonical_url_raw": canonical_url, "canonical_url_normalized": normalized_url, "runtime_resource_id": runtime_resource_id, "selector_id": selector_id}, matched=None, failure_reason="all registry lookup strategies missed")
         return None
 
     def bind_runtime_resource(
@@ -495,6 +523,67 @@ def _artifact_id(source_layer: str, entity_type: str, canonical_url: str | None,
 
 def _hash(value: str) -> str:
     return hashlib.sha1(str(value).encode("utf-8")).hexdigest()[:12]
+
+
+def _debug_v494_registry_lookup(
+    lookup_type: str,
+    *,
+    session_id: str,
+    registry_name: str,
+    registry_instance: str,
+    registry_version: int,
+    entities: list[UnifiedEntity],
+    requested: dict[str, Any],
+    matched: UnifiedEntity | None = None,
+    failure_reason: str | None = None,
+) -> None:
+    try:
+        requested_entity_id = requested.get("entity_id")
+        requested_artifact_id = requested.get("artifact_id")
+        requested_url = requested.get("canonical_url_normalized")
+        requested_selector_id = requested.get("selector_id")
+        requested_runtime_resource_id = requested.get("runtime_resource_id")
+        comparisons = [
+            {
+                "entity_id": entity.entity_id,
+                "canonical_url": entity.canonical_url,
+                "selector_ids": entity.selector_ids[:4],
+                "artifact_id": entity.artifact_id,
+                "runtime_resource_id": entity.runtime_resource_id,
+                "entity_id_match": bool(requested_entity_id and entity.entity_id == requested_entity_id),
+                "canonical_url_match": bool(requested_url and entity.canonical_url == requested_url),
+                "selector_id_match": bool(requested_selector_id and requested_selector_id in entity.selector_ids),
+                "artifact_id_match": bool(requested_artifact_id and entity.artifact_id == requested_artifact_id),
+                "runtime_resource_id_match": bool(requested_runtime_resource_id and entity.runtime_resource_id == requested_runtime_resource_id),
+            }
+            for entity in entities[:120]
+        ]
+        print(
+            "[V4.9.4 kernel-lookup] RUNTIME_REGISTRY_LOOKUP "
+            + json.dumps(
+                {
+                    "lookup_type": lookup_type,
+                    "mission_id": session_id,
+                    "lookup_input": requested,
+                    "lookup_output": "hit" if matched else "miss",
+                    "registry_name": registry_name,
+                    "registry_instance": registry_instance,
+                    "registry_version": registry_version,
+                    "registry_size": len(entities),
+                    "matched_entity_id": matched.entity_id if matched else None,
+                    "matched_canonical_url": matched.canonical_url if matched else None,
+                    "matched_selector_id": matched.selector_ids[0] if matched and matched.selector_ids else None,
+                    "matched_artifact_id": matched.artifact_id if matched else None,
+                    "matched_runtime_resource_id": matched.runtime_resource_id if matched else None,
+                    "failure_reason": failure_reason,
+                    "registry_contents": comparisons,
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+    except Exception as exc:
+        print(f"[V4.9.4 kernel-lookup] RUNTIME_REGISTRY_LOOKUP_LOG_FAILED {exc}", flush=True)
 
 
 _registry = EntityBindingRegistry()
