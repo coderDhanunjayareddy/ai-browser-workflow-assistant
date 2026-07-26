@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+import threading
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 
 EntityState = Literal[
@@ -40,9 +44,37 @@ class UnifiedEntity:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class EntityBindingTraceEvent:
+    event: str
+    mission_id: str
+    registry_name: str
+    registry_instance: str
+    registry_version: int
+    entity_count: int
+    thread_id: int
+    timestamp: int
+    entity_id: str | None = None
+    artifact_id: str | None = None
+    canonical_url: str | None = None
+    runtime_resource_id: str | None = None
+    selector_id: str | None = None
+    entity_type: str | None = None
+    source_layer: str | None = None
+    resolved_by: str | None = None
+    outcome: str | None = None
+    reason: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
 class EntityBindingRegistry:
     def __init__(self) -> None:
         self._entities: dict[str, dict[str, UnifiedEntity]] = {}
+        self._traces: dict[str, list[EntityBindingTraceEvent]] = {}
+        self._version = 0
+        self.name = "runtime_state_manager.entity_binding"
 
     def register(
         self,
@@ -86,10 +118,20 @@ class EntityBindingRegistry:
             metadata=merged_metadata,
         )
         scoped[entity.entity_id] = entity
+        self._version += 1
+        self._trace(
+            "REGISTER_ENTITY",
+            session_id,
+            entity=entity,
+            outcome="success",
+            reason=f"{source_layer}:{entity_type}",
+        )
         return entity
 
     def list(self, session_id: str) -> list[UnifiedEntity]:
-        return list(self._entities.get(session_id, {}).values())
+        entities = list(self._entities.get(session_id, {}).values())
+        self._trace("REGISTRY_INSTANCE", session_id, outcome="snapshot", reason=f"entity_count={len(entities)}")
+        return entities
 
     def resolve(
         self,
@@ -101,23 +143,34 @@ class EntityBindingRegistry:
         runtime_resource_id: str | None = None,
         selector_id: str | None = None,
     ) -> UnifiedEntity | None:
-        entities = self.list(session_id)
+        entities = list(self._entities.get(session_id, {}).values())
+        self._trace("REGISTRY_INSTANCE", session_id, outcome="lookup_start", reason=f"entity_count={len(entities)}")
         normalized_url = _normalize_url(canonical_url)
         for entity in entities:
             if entity_id and entity.entity_id == entity_id:
+                self._trace_lookup(session_id, "LOOKUP_ENTITY_ID", "HIT", entity=entity, entity_id=entity_id, resolved_by="entity_id")
                 return entity
+        self._trace_lookup(session_id, "LOOKUP_ENTITY_ID", "MISS", entity_id=entity_id)
         for entity in entities:
             if artifact_id and entity.artifact_id == artifact_id:
+                self._trace_lookup(session_id, "LOOKUP_ARTIFACT_ID", "HIT", entity=entity, artifact_id=artifact_id, resolved_by="artifact_id")
                 return entity
+        self._trace_lookup(session_id, "LOOKUP_ARTIFACT_ID", "MISS", artifact_id=artifact_id)
         for entity in entities:
             if normalized_url and entity.canonical_url == normalized_url:
+                self._trace_lookup(session_id, "LOOKUP_CANONICAL_URL", "HIT", entity=entity, canonical_url=normalized_url, resolved_by="canonical_url")
                 return entity
+        self._trace_lookup(session_id, "LOOKUP_CANONICAL_URL", "MISS", canonical_url=normalized_url)
         for entity in entities:
             if runtime_resource_id and entity.runtime_resource_id == runtime_resource_id:
+                self._trace_lookup(session_id, "LOOKUP_RUNTIME_RESOURCE_ID", "HIT", entity=entity, runtime_resource_id=runtime_resource_id, resolved_by="runtime_resource_id")
                 return entity
+        self._trace_lookup(session_id, "LOOKUP_RUNTIME_RESOURCE_ID", "MISS", runtime_resource_id=runtime_resource_id)
         for entity in entities:
             if selector_id and selector_id in entity.selector_ids:
+                self._trace_lookup(session_id, "LOOKUP_SELECTOR_ID", "HIT", entity=entity, selector_id=selector_id, resolved_by="selector_id")
                 return entity
+        self._trace_lookup(session_id, "LOOKUP_SELECTOR_ID", "MISS", selector_id=selector_id)
         return None
 
     def bind_runtime_resource(
@@ -130,8 +183,9 @@ class EntityBindingRegistry:
     ) -> UnifiedEntity | None:
         entity = self.resolve(session_id, entity_id=entity_id)
         if entity is None:
+            self._trace("RUNTIME_BINDING", session_id, entity_id=entity_id, runtime_resource_id=runtime_resource_id, outcome="failure", reason="entity_missing")
             return None
-        return self.register(
+        bound = self.register(
             session_id,
             entity_type=entity.entity_type,
             source_layer=entity.source_layer,
@@ -145,6 +199,8 @@ class EntityBindingRegistry:
             metadata=entity.metadata,
             state=state,
         )
+        self._trace("RUNTIME_BINDING", session_id, entity=bound, runtime_resource_id=runtime_resource_id, outcome="success")
+        return bound
 
     def invalidate_runtime_resource(self, session_id: str, runtime_resource_id: str) -> int:
         count = 0
@@ -166,6 +222,87 @@ class EntityBindingRegistry:
                 )
                 count += 1
         return count
+
+    def trace(self, session_id: str, *, limit: int = 80) -> list[EntityBindingTraceEvent]:
+        return self._traces.get(session_id, [])[-limit:]
+
+    def registry_identity(self, session_id: str) -> dict[str, Any]:
+        return {
+            "registry_name": self.name,
+            "registry_instance": hex(id(self)),
+            "registry_version": self._version,
+            "mission_id": session_id,
+            "entity_count": len(self._entities.get(session_id, {})),
+            "thread_id": threading.get_ident(),
+        }
+
+    def _trace(
+        self,
+        event: str,
+        session_id: str,
+        *,
+        entity: UnifiedEntity | None = None,
+        entity_id: str | None = None,
+        artifact_id: str | None = None,
+        canonical_url: str | None = None,
+        runtime_resource_id: str | None = None,
+        selector_id: str | None = None,
+        entity_type: str | None = None,
+        source_layer: str | None = None,
+        resolved_by: str | None = None,
+        outcome: str | None = None,
+        reason: str | None = None,
+    ) -> None:
+        trace = EntityBindingTraceEvent(
+            event=event,
+            mission_id=session_id,
+            registry_name=self.name,
+            registry_instance=hex(id(self)),
+            registry_version=self._version,
+            entity_count=len(self._entities.get(session_id, {})),
+            thread_id=threading.get_ident(),
+            timestamp=int(time.time() * 1000),
+            entity_id=entity.entity_id if entity else entity_id,
+            artifact_id=entity.artifact_id if entity else artifact_id,
+            canonical_url=entity.canonical_url if entity else canonical_url,
+            runtime_resource_id=entity.runtime_resource_id if entity else runtime_resource_id,
+            selector_id=(entity.selector_ids[0] if entity and entity.selector_ids else selector_id),
+            entity_type=entity.entity_type if entity else entity_type,
+            source_layer=entity.source_layer if entity else source_layer,
+            resolved_by=resolved_by,
+            outcome=outcome,
+            reason=reason,
+        )
+        self._traces.setdefault(session_id, []).append(trace)
+        self._traces[session_id] = self._traces[session_id][-300:]
+        logger.info("V4.9.2 entity trace: %s", trace.to_dict())
+
+    def _trace_lookup(
+        self,
+        session_id: str,
+        event: str,
+        outcome: str,
+        *,
+        entity: UnifiedEntity | None = None,
+        entity_id: str | None = None,
+        artifact_id: str | None = None,
+        canonical_url: str | None = None,
+        runtime_resource_id: str | None = None,
+        selector_id: str | None = None,
+        resolved_by: str | None = None,
+    ) -> None:
+        self._trace(
+            event,
+            session_id,
+            entity=entity,
+            entity_id=entity_id,
+            artifact_id=artifact_id,
+            canonical_url=canonical_url,
+            runtime_resource_id=runtime_resource_id,
+            selector_id=selector_id,
+            resolved_by=resolved_by,
+            outcome=outcome,
+        )
 
 
 def register_browser_intelligence_artifact(session_id: str, artifact: Any) -> list[UnifiedEntity]:
@@ -228,6 +365,14 @@ def list_entities(session_id: str) -> list[UnifiedEntity]:
     return _registry.list(session_id)
 
 
+def entity_binding_trace(session_id: str, *, limit: int = 80) -> list[dict[str, Any]]:
+    return [event.to_dict() for event in _registry.trace(session_id, limit=limit)]
+
+
+def registry_identity(session_id: str) -> dict[str, Any]:
+    return _registry.registry_identity(session_id)
+
+
 def bind_runtime_resource(session_id: str, **kwargs: Any) -> UnifiedEntity | None:
     return _registry.bind_runtime_resource(session_id, **kwargs)
 
@@ -238,19 +383,23 @@ def invalidate_runtime_resource(session_id: str, runtime_resource_id: str) -> in
 
 def binding_telemetry(session_id: str) -> dict[str, Any]:
     entities = list_entities(session_id)
+    traces = entity_binding_trace(session_id, limit=120)
+    hits = [trace for trace in traces if str(trace.get("event", "")).startswith("LOOKUP_") and trace.get("outcome") == "HIT"]
+    misses = [trace for trace in traces if str(trace.get("event", "")).startswith("LOOKUP_") and trace.get("outcome") == "MISS"]
     bound = [entity for entity in entities if entity.runtime_resource_id]
     stale = [entity for entity in entities if entity.state in {"ARCHIVED", "INVALID"}]
     return {
         "entity_registered": len(entities),
-        "entity_resolved": 0,
+        "entity_resolved": len(hits),
         "entity_binding_latency": 0,
         "registry_lookup_latency": 0,
-        "binding_failures": 0,
+        "binding_failures": len([trace for trace in traces if trace.get("event") == "RUNTIME_BINDING" and trace.get("outcome") == "failure"]),
         "runtime_sync_failures": 0,
         "stale_entity_count": len(stale),
-        "identity_resolution_success_rate": 1.0 if entities else 0.0,
+        "identity_resolution_success_rate": round(len(hits) / max(1, len(hits) + len(misses)), 3),
         "cross_layer_sync_latency": 0,
         "runtime_bound_entity_count": len(bound),
+        "registry_instance": registry_identity(session_id),
     }
 
 

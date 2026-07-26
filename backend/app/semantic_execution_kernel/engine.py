@@ -39,7 +39,7 @@ class SemanticExecutionKernel:
         browser_context = build_browser_context(page_context, prior_steps)
         proposal = None
         if planner_response and planner_response.suggested_actions:
-            proposal = proposal_from_planner_action(planner_response.suggested_actions[0], entities)
+            proposal = proposal_from_planner_action(planner_response.suggested_actions[0], entities, session_id=session_id)
         loop_status = loop_prevention_status(proposal, prior_steps)
         eligibility = check_eligibility(
             proposal,
@@ -59,6 +59,10 @@ class SemanticExecutionKernel:
             loop_status=loop_status,
             sync=sync,
         )
+        from app.runtime_state_manager.entity_binding import binding_telemetry, entity_binding_trace, registry_identity
+
+        telemetry["entity_binding"] = binding_telemetry(session_id)
+        telemetry["registry_identity"] = registry_identity(session_id)
         return KernelSnapshot(
             schema_version="semantic_execution_kernel.v1",
             session_id=session_id,
@@ -73,7 +77,21 @@ class SemanticExecutionKernel:
             loop_prevention=loop_status,
             recovery=recovery,
             telemetry=telemetry,
-            replay=semantic_replay_frames(ledger),
+            replay=[
+                *semantic_replay_frames(ledger),
+                *[
+                    {
+                        "frame_id": f"entity_binding_trace_{index}",
+                        "event": event.get("event"),
+                        "entity_id": event.get("entity_id"),
+                        "artifact_id": event.get("artifact_id"),
+                        "runtime_resource_id": event.get("runtime_resource_id"),
+                        "resolved_by": event.get("resolved_by"),
+                        "registry_version": event.get("registry_version"),
+                    }
+                    for index, event in enumerate(entity_binding_trace(session_id, limit=12), 1)
+                ],
+            ],
         )
 
     def enrich_context(self, compressed_context: dict[str, Any], snapshot: KernelSnapshot | None) -> dict[str, Any]:

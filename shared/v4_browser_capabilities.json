@@ -1300,6 +1300,26 @@
     "owner": "browser-platform"
   },
   {
+    "capability_id": "browser.runtime_integration_trace",
+    "version": "1.0.0",
+    "category": "runtime_state",
+    "description": "Trace and verification instrumentation for the V4.9.1 unified entity binding contract. Records mission-scoped entity lifecycle transitions, registry instance identity, ordered lookup hit/miss chains, grounding decisions, runtime tab binding, and replay references without changing architecture or browser capabilities.",
+    "dependencies": ["browser.unified_entity_identity_binding", "browser.runtime_state_manager", "browser.semantic_execution_kernel", "browser_intelligence.page_understanding"],
+    "feature_flag": "V49_RUNTIME_STATE_MANAGER",
+    "maturity_level": 4,
+    "target_maturity_level": 5,
+    "supported_browsers": ["chromium-extension", "playwright-chromium"],
+    "supported_websites": ["all-websites"],
+    "site_adapters": [],
+    "benchmarks": ["v492.trace.registry_instance", "v492.trace.lookup_chain", "v492.trace.canonical_url_hit", "v492.trace.runtime_binding", "v492.trace.replay_frames"],
+    "metrics": ["entity_registered", "entity_resolved", "entity_binding_latency", "registry_lookup_latency", "binding_failures", "runtime_sync_failures", "stale_entity_count", "identity_resolution_success_rate", "cross_layer_sync_latency"],
+    "known_limitations": ["Trace storage is in-memory and mission-scoped for runtime debugging; long-term trace persistence should use the existing workflow history or run ledger sinks."],
+    "rollout_status": "shadow",
+    "safety_constraints": ["diagnostic_only", "website_agnostic", "no_planner_contract_change", "no_browser_control_bypass", "no_architecture_redesign"],
+    "failure_classes": ["registry_instance_mismatch", "registration_missing", "lookup_chain_miss", "grounding_trace_missing", "runtime_binding_missing", "replay_binding_missing"],
+    "owner": "browser-platform"
+  },
+  {
     "capability_id": "browser.knowledge_extraction_reporting",
     "version": "1.0.0",
     "category": "knowledge_pipeline",

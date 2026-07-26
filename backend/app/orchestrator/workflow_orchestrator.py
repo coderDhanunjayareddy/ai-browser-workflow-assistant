@@ -1,5 +1,6 @@
 import logging
 import json
+import hashlib
 import time
 from typing import Any
 
@@ -714,7 +715,8 @@ class WorkflowOrchestrator:
             from app.browser_intelligence import format_browser_intelligence_for_planner
 
             compressed_context["browser_intelligence"] = format_browser_intelligence_for_planner(
-                browser_intelligence_artifact
+                browser_intelligence_artifact,
+                scope_id=self.session_id,
             )
         compressed_context = enrich_planner_context(compressed_context, continuity_snapshot)
         compressed_context = enrich_planner_context_with_orchestrator(compressed_context, orchestrator_snapshot)
@@ -722,6 +724,27 @@ class WorkflowOrchestrator:
         compressed_context = enrich_planner_context_with_knowledge(compressed_context, knowledge_snapshot)
         compressed_context = enrich_planner_context_with_completion(compressed_context, mission_completion_snapshot)
         compressed_context = enrich_planner_context_with_kernel(compressed_context, kernel_snapshot)
+        from app.runtime_state_manager.entity_binding import entity_binding_trace, list_entities, registry_identity
+
+        registered_entities = list_entities(self.session_id)
+        self._record_v3_event(
+            "entity_binding.planner_context",
+            {
+                "registry": registry_identity(self.session_id),
+                "entities": [
+                    {
+                        "entity_id": entity.entity_id,
+                        "artifact_id": entity.artifact_id,
+                        "canonical_url": entity.canonical_url,
+                        "entity_type": entity.entity_type,
+                        "source_layer": entity.source_layer,
+                        "state": entity.state,
+                    }
+                    for entity in registered_entities[:30]
+                ],
+                "trace_tail": entity_binding_trace(self.session_id, limit=12),
+            },
+        )
         self._build_context_packet_shadow(
             task=task,
             page_context=page_context,
@@ -1001,6 +1024,31 @@ class WorkflowOrchestrator:
             },
             step_index=events_count,
         )
+        if success and action_type.lower() in {"open_new_tab", "navigate"} and value.startswith(("http://", "https://")):
+            from app.runtime_state_manager.entity_binding import bind_runtime_resource, resolve_entity
+
+            entity = resolve_entity(self.session_id, canonical_url=value)
+            if entity is not None:
+                logical_tab_id = "logical_tab_" + hashlib.sha1(value.encode("utf-8")).hexdigest()[:10]
+                bound = bind_runtime_resource(
+                    self.session_id,
+                    entity_id=entity.entity_id,
+                    runtime_resource_id=logical_tab_id,
+                )
+                self._record_v3_event(
+                    "entity_binding.browser_execution",
+                    {
+                        "entity_id": entity.entity_id,
+                        "artifact_id": entity.artifact_id,
+                        "canonical_url": entity.canonical_url,
+                        "runtime_resource_id": logical_tab_id,
+                        "tab_id": logical_tab_id,
+                        "window_id": "logical_window_1",
+                        "url": value,
+                        "binding_success": bound is not None,
+                    },
+                    step_index=events_count,
+                )
         if is_shadow_or_active("V3_VALIDATION"):
             validation, validation_ms = _validation_engine.validate_execution(
                 run_id=self.session_id,

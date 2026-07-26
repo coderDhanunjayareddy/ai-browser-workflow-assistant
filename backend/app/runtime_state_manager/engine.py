@@ -64,7 +64,7 @@ class RuntimeStateManager:
             consistency=consistency,
             recovery=recovery,
         )
-        replay = runtime_replay_frames(tabs, artifacts, checkpoint)
+        replay = runtime_replay_frames(tabs, artifacts, checkpoint, session_id=session_id)
         return RuntimeStateSnapshot(
             schema_version="runtime_state_manager.v1",
             session_id=session_id,

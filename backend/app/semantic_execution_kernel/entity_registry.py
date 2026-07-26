@@ -218,12 +218,15 @@ def _artifact_id(source_layer: str, entity_type: str, url: Any, selector: Any, t
 
 
 def _dedupe_entities(entities: list[SemanticEntity]) -> list[SemanticEntity]:
-    seen: set[str] = set()
+    index_by_key: dict[str, int] = {}
     out: list[SemanticEntity] = []
     for entity in entities:
         key = (entity.canonical_url or entity.url or entity.artifact_id or entity.browser_bindings.selector or entity.title).lower().rstrip("/")
-        if key in seen:
+        if key in index_by_key:
+            existing = out[index_by_key[key]]
+            if existing.source_layer == "page_context" and entity.source_layer != "page_context":
+                out[index_by_key[key]] = entity
             continue
-        seen.add(key)
+        index_by_key[key] = len(out)
         out.append(entity)
     return out

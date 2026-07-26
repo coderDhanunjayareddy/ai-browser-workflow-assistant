@@ -887,6 +887,15 @@ def _repair_google_result_open(
         target_url = _search_result_url(target)
         target_title = _search_result_title(target)
         _remember_opened_search_url(result.session_id, task, target_url)
+        _register_repaired_open_entity(
+            session_id=result.session_id,
+            entity_type="search_result",
+            title=target_title,
+            canonical_url=target_url,
+            source_page=page_context.url,
+            source_layer="browser_intelligence_repair",
+            metadata={"rank": str(repaired_rank), "task": task[:240]},
+        )
         return AnalyzeResponse(
             session_id=result.session_id,
             analysis=(
@@ -965,6 +974,38 @@ def _repair_google_result_open(
             )
         ],
     )
+
+
+def _register_repaired_open_entity(
+    *,
+    session_id: str,
+    entity_type: str,
+    title: str,
+    canonical_url: str,
+    source_page: str,
+    source_layer: str,
+    metadata: dict[str, str] | None = None,
+) -> None:
+    if not canonical_url.startswith(("http://", "https://")):
+        return
+    try:
+        import hashlib
+
+        from app.runtime_state_manager.entity_binding import register_entity
+
+        register_entity(
+            session_id,
+            entity_type=entity_type,
+            source_layer=source_layer,
+            title=title,
+            canonical_url=canonical_url,
+            artifact_id=f"{source_layer}:{entity_type}:{hashlib.sha1(canonical_url.encode('utf-8')).hexdigest()[:12]}",
+            confidence=0.94,
+            source_page=source_page,
+            metadata=metadata or {},
+        )
+    except Exception:
+        logger.exception("Failed to register repaired open entity for %s", canonical_url)
 
 
 def _extract_result_rank(action: SuggestedAction) -> int | None:

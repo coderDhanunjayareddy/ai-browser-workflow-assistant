@@ -2,23 +2,69 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.runtime_state_manager.entity_binding import register_entity, resolve_entity
 from app.semantic_execution_kernel.entity_registry import find_entity
-from app.semantic_execution_kernel.models import SemanticActionProposal, SemanticEntity
+from app.semantic_execution_kernel.models import BrowserBinding, SemanticActionProposal, SemanticEntity
 
 
-def proposal_from_planner_action(action: Any, entities: list[SemanticEntity]) -> SemanticActionProposal | None:
+def proposal_from_planner_action(action: Any, entities: list[SemanticEntity], *, session_id: str | None = None) -> SemanticActionProposal | None:
     action_type = str(getattr(action, "action_type", "") or "").lower()
     value = str(getattr(action, "value", "") or "")
     selector = str(getattr(action, "target_selector", "") or "")
     description = str(getattr(action, "description", "") or "")
-    entity = find_entity(
-        entities,
+    unified = resolve_entity(
+        session_id,
         entity_id=_strip_prefix(value, "entity:"),
         artifact_id=_strip_prefix(value, "artifact:"),
-        url=value if value.startswith(("http://", "https://")) else None,
+        canonical_url=value if value.startswith(("http://", "https://")) else None,
         runtime_resource_id=_strip_prefix(value, "runtime:"),
-        selector=selector or _strip_prefix(value, "selector:"),
-    )
+        selector_id=selector or _strip_prefix(value, "selector:"),
+    ) if session_id else None
+    entity = None
+    if unified:
+        entity = find_entity(entities, entity_id=unified.entity_id)
+        if entity is None:
+            entity = find_entity(entities, url=unified.canonical_url)
+    if entity is None:
+        entity = find_entity(
+            entities,
+            entity_id=_strip_prefix(value, "entity:"),
+            artifact_id=_strip_prefix(value, "artifact:"),
+            url=value if value.startswith(("http://", "https://")) else None,
+            runtime_resource_id=_strip_prefix(value, "runtime:"),
+            selector=selector or _strip_prefix(value, "selector:"),
+        )
+    if entity is None and session_id and action_type == "open_new_tab" and value.startswith(("http://", "https://")):
+        unified = register_entity(
+            session_id,
+            entity_type="url_candidate",
+            source_layer="semantic_execution_kernel",
+            title=description or value,
+            canonical_url=value,
+            artifact_id=f"semantic_execution_kernel:url_candidate:{_stable_hash(value)}",
+            confidence=0.72,
+            source_page="planner_proposal",
+            metadata={"source_action_type": action_type, "description": description[:240]},
+        )
+        entities.append(
+            SemanticEntity(
+                id=unified.entity_id,
+                semantic_type=unified.entity_type,
+                title=unified.title,
+                url=unified.canonical_url,
+                confidence=unified.confidence,
+                source_page=unified.source_page or "",
+                metadata=unified.metadata,
+                browser_bindings=BrowserBinding(href=unified.canonical_url),
+                artifact_id=unified.artifact_id,
+                canonical_url=unified.canonical_url,
+                runtime_resource_id=unified.runtime_resource_id,
+                selector_ids=unified.selector_ids,
+                source_layer=unified.source_layer,
+                lifecycle_status="registered",
+            )
+        )
+        entity = find_entity(entities, entity_id=unified.entity_id) or find_entity(entities, url=unified.canonical_url)
 
     if action_type == "navigate":
         semantic_type = "SEARCH_WEB" if value.startswith(("http://", "https://")) else "WAIT_FOR_STATE"
@@ -72,3 +118,9 @@ def legal_action_prompt(entities: list[SemanticEntity]) -> list[dict[str, str]]:
 
 def _strip_prefix(value: str, prefix: str) -> str | None:
     return value[len(prefix):] if value.startswith(prefix) and len(value) > len(prefix) else None
+
+
+def _stable_hash(value: str) -> str:
+    import hashlib
+
+    return hashlib.sha1(value.encode("utf-8")).hexdigest()[:12]

@@ -137,12 +137,14 @@ class BrowserIntelligenceRuntime:
             health=health,
         )
         try:
-            from app.runtime_state_manager.entity_binding import register_browser_intelligence_artifact
+            from app.runtime_state_manager.entity_binding import register_browser_intelligence_artifact, registry_identity
 
             registered = register_browser_intelligence_artifact(scope_id, artifact)
             capability_report["telemetry"]["entity_registered"] = len(registered)
+            capability_report["telemetry"]["entity_registry"] = registry_identity(scope_id)
         except Exception:
             capability_report["telemetry"]["entity_registered"] = 0
+            capability_report["telemetry"]["entity_registration_failure"] = True
         return artifact
 
 
@@ -164,22 +166,12 @@ def build_browser_intelligence(
     )
 
 
-def format_browser_intelligence_for_planner(artifact: BrowserIntelligenceArtifact) -> dict[str, Any]:
+def format_browser_intelligence_for_planner(artifact: BrowserIntelligenceArtifact, *, scope_id: str = "default") -> dict[str, Any]:
     page_model = artifact.page_model
+    from app.runtime_state_manager.entity_binding import resolve_entity
+
     search_results = [
-        {
-            "rank": result.rank,
-            "title": result.title,
-            "url": result.url,
-            "displayed_url": result.displayed_url,
-            "description": result.description,
-            "open_action": {
-                "action_type": "open_new_tab",
-                "target_selector": None,
-                "value": result.url,
-                "expected": {"tab_count_delta": 1, "new_tab_url": result.url},
-            },
-        }
+        _search_result_context(result, resolve_entity(scope_id, canonical_url=result.url))
         for result in page_model.search_results[:10]
     ]
     semantic_elements = [
@@ -211,6 +203,28 @@ def format_browser_intelligence_for_planner(artifact: BrowserIntelligenceArtifac
             "For search results, prefer open_new_tab with the explicit result URL.",
             "Ignore AI panels, ads, navigation tabs, related searches, and duplicate URLs.",
         ],
+    }
+
+
+def _search_result_context(result: Any, entity: Any) -> dict[str, Any]:
+    return {
+        "rank": result.rank,
+        "entity_id": entity.entity_id if entity else None,
+        "artifact_id": entity.artifact_id if entity else None,
+        "title": result.title,
+        "url": result.url,
+        "canonical_url": entity.canonical_url if entity else result.url,
+        "displayed_url": result.displayed_url,
+        "description": result.description,
+        "entity_type": entity.entity_type if entity else "search_result",
+        "state": entity.state if entity else "REGISTERED",
+        "confidence": entity.confidence if entity else 0.92,
+        "open_action": {
+            "action_type": "open_new_tab",
+            "target_selector": None,
+            "value": result.url,
+            "expected": {"tab_count_delta": 1, "new_tab_url": result.url},
+        },
     }
 
 
