@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.semantic_execution_kernel.entity_registry import find_entity
+from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
 from app.semantic_execution_kernel.models import EligibilityResult, GroundingResult, SemanticActionProposal, SemanticEntity
 from app.schemas.response import SuggestedAction
 
@@ -16,6 +17,16 @@ def ground_semantic_action(
     if not eligibility.eligible:
         return GroundingResult(False, None, None, None, eligibility.reason)
     entity = find_entity(entities, entity_id=proposal.entity_id) if proposal.entity_id else None
+    mission_id = str(proposal.parameters.get("session_id") or "")
+    if mission_id:
+        get_entity_pipeline_tracer().verify_exists(
+            mission_id,
+            stage="GROUNDING",
+            reason="Kernel -> Grounding resolved_entity exists",
+            exists=entity is not None or proposal.action_type in {"WAIT_FOR_STATE", "COLLECT_RESULTS", "FOCUS_TAB"},
+            trace_id=entity.trace_id if entity else None,
+            entity_id=proposal.entity_id,
+        )
 
     if proposal.action_type == "OPEN_ENTITY":
         value = entity.url if entity and entity.url else proposal.parameters.get("value")

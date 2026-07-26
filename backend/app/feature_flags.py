@@ -95,6 +95,7 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V49_ARTIFACT_ENGINE": "v49_artifact_engine",
     "V49_RUNTIME_SYNC": "v49_runtime_sync",
     "V49_RUNTIME_CHECKPOINTS": "v49_runtime_checkpoints",
+    "V493_ENTITY_PIPELINE_TRACE": "v493_entity_pipeline_trace",
     "V50_PAGE_READER": "v50_page_reader",
     "V50_EXTRACTION_ENGINE": "v50_extraction_engine",
     "V50_SYNTHESIS": "v50_synthesis",

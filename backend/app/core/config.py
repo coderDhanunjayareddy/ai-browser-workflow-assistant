@@ -139,6 +139,7 @@ class Settings(BaseSettings):
     v49_artifact_engine: str = "shadow"
     v49_runtime_sync: str = "shadow"
     v49_runtime_checkpoints: str = "shadow"
+    v493_entity_pipeline_trace: str = "shadow"
     v50_page_reader: str = "shadow"
     v50_extraction_engine: str = "shadow"
     v50_synthesis: str = "shadow"

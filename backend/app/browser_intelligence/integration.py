@@ -138,10 +138,12 @@ class BrowserIntelligenceRuntime:
         )
         try:
             from app.runtime_state_manager.entity_binding import register_browser_intelligence_artifact, registry_identity
+            from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_telemetry
 
             registered = register_browser_intelligence_artifact(scope_id, artifact)
             capability_report["telemetry"]["entity_registered"] = len(registered)
             capability_report["telemetry"]["entity_registry"] = registry_identity(scope_id)
+            capability_report["telemetry"]["entity_pipeline"] = entity_pipeline_telemetry(scope_id)
         except Exception:
             capability_report["telemetry"]["entity_registered"] = 0
             capability_report["telemetry"]["entity_registration_failure"] = True

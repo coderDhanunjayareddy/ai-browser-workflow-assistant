@@ -25,6 +25,7 @@ EntityState = Literal[
 
 @dataclass(frozen=True)
 class UnifiedEntity:
+    trace_id: str
     entity_id: str
     artifact_id: str
     canonical_url: str | None
@@ -101,7 +102,21 @@ class EntityBindingRegistry:
         created_at = previous.created_at if previous else now
         merged_metadata = dict(previous.metadata) if previous else {}
         merged_metadata.update({str(k): str(v)[:300] for k, v in dict(metadata or {}).items() if v is not None})
+        trace_id = previous.trace_id if previous else str(merged_metadata.get("trace_id") or "")
+        if not trace_id:
+            from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
+
+            trace_id = get_entity_pipeline_tracer().trace_id(
+                mission_id=session_id,
+                entity_id=entity_id,
+                artifact_id=artifact_id,
+                canonical_url=normalized_url,
+                selector_id=selectors[0] if selectors else None,
+                source=source_layer,
+            )
+        merged_metadata["trace_id"] = trace_id
         entity = UnifiedEntity(
+            trace_id=trace_id,
             entity_id=entity_id,
             artifact_id=artifact_id or _artifact_id(source_layer, entity_type, normalized_url, selectors, title),
             canonical_url=normalized_url,
@@ -126,11 +141,35 @@ class EntityBindingRegistry:
             outcome="success",
             reason=f"{source_layer}:{entity_type}",
         )
+        from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
+
+        get_entity_pipeline_tracer().emit(
+            session_id,
+            "ENTITY_REGISTRY",
+            success=True,
+            reason="stored",
+            trace_id=entity.trace_id,
+            entity_id=entity.entity_id,
+            artifact_id=entity.artifact_id,
+            canonical_url=entity.canonical_url,
+            selector_id=entity.selector_ids[0] if entity.selector_ids else None,
+            runtime_resource_id=entity.runtime_resource_id,
+            source=entity.source_layer,
+        )
         return entity
 
     def list(self, session_id: str) -> list[UnifiedEntity]:
         entities = list(self._entities.get(session_id, {}).values())
         self._trace("REGISTRY_INSTANCE", session_id, outcome="snapshot", reason=f"entity_count={len(entities)}")
+        from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
+
+        get_entity_pipeline_tracer().emit(
+            session_id,
+            "ENTITY_REGISTRY",
+            success=True,
+            reason="snapshot",
+            count=len(entities),
+        )
         return entities
 
     def resolve(
@@ -200,6 +239,20 @@ class EntityBindingRegistry:
             state=state,
         )
         self._trace("RUNTIME_BINDING", session_id, entity=bound, runtime_resource_id=runtime_resource_id, outcome="success")
+        from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
+
+        get_entity_pipeline_tracer().emit(
+            session_id,
+            "RUNTIME",
+            success=True,
+            reason="bound",
+            trace_id=bound.trace_id,
+            entity_id=bound.entity_id,
+            artifact_id=bound.artifact_id,
+            canonical_url=bound.canonical_url,
+            runtime_resource_id=runtime_resource_id,
+            source=bound.source_layer,
+        )
         return bound
 
     def invalidate_runtime_resource(self, session_id: str, runtime_resource_id: str) -> int:
@@ -310,6 +363,15 @@ def register_browser_intelligence_artifact(session_id: str, artifact: Any) -> li
     if page_model is None:
         return []
     source_page = str(getattr(page_model, "url", "") or "")
+    from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
+
+    tracer = get_entity_pipeline_tracer()
+    discovered_count = len(list(getattr(page_model, "search_results", []) or [])[:40]) + len([
+        element
+        for element in list(getattr(page_model, "elements", []) or [])[:120]
+        if str(getattr(element, "href", "") or "") or str(getattr(element, "selector", "") or "") or str(getattr(element, "selector_id", "") or "")
+    ])
+    tracer.emit(session_id, "DOM_SCAN", success=True, reason="entity found", count=discovered_count, source="browser_intelligence")
     registered: list[UnifiedEntity] = []
     for result in list(getattr(page_model, "search_results", []) or [])[:40]:
         registered.append(
@@ -350,6 +412,13 @@ def register_browser_intelligence_artifact(session_id: str, artifact: Any) -> li
                 metadata={"role": getattr(element, "role", "") or ""},
             )
         )
+    tracer.verify_count(
+        session_id,
+        stage="ENTITY_REGISTRY",
+        reason="BrowserIntelligence -> EntityRegistry registered_count == discovered_count",
+        expected=discovered_count,
+        actual=len(registered),
+    )
     return registered
 
 

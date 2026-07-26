@@ -19,6 +19,7 @@ from app.semantic_execution_kernel.recovery import recovery_decision
 from app.semantic_execution_kernel.replay import semantic_replay_frames
 from app.semantic_execution_kernel.semantic_action_registry import semantic_action_registry
 from app.semantic_execution_kernel.state_sync import synchronization_summary
+from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
 
 
 class SemanticExecutionKernel:
@@ -35,6 +36,8 @@ class SemanticExecutionKernel:
             return None
         started = time.perf_counter()
         entities = build_entity_registry(page_context, session_id=session_id)
+        tracer = get_entity_pipeline_tracer()
+        tracer.emit(session_id, "SEMANTIC_KERNEL", success=True, reason="received", count=len(entities))
         mission_state = build_mission_state(task, prior_steps)
         browser_context = build_browser_context(page_context, prior_steps)
         proposal = None
@@ -63,6 +66,7 @@ class SemanticExecutionKernel:
 
         telemetry["entity_binding"] = binding_telemetry(session_id)
         telemetry["registry_identity"] = registry_identity(session_id)
+        telemetry["entity_pipeline"] = tracer.telemetry(session_id)
         return KernelSnapshot(
             schema_version="semantic_execution_kernel.v1",
             session_id=session_id,
@@ -91,11 +95,45 @@ class SemanticExecutionKernel:
                     }
                     for index, event in enumerate(entity_binding_trace(session_id, limit=12), 1)
                 ],
+                {
+                    "frame_id": "entity_pipeline_replay",
+                    "event": "entity_pipeline",
+                    "pipeline": tracer.replay(session_id),
+                },
             ],
         )
 
     def enrich_context(self, compressed_context: dict[str, Any], snapshot: KernelSnapshot | None) -> dict[str, Any]:
-        if snapshot is None or not is_active("V47_SEMANTIC_EXECUTION_KERNEL"):
+        if snapshot is None:
+            return compressed_context
+        tracer = get_entity_pipeline_tracer()
+        from app.runtime_state_manager.entity_binding import list_entities
+
+        registered_count = len(list_entities(snapshot.session_id))
+        planner_count = len(snapshot.entities)
+        tracer.verify_count(
+            snapshot.session_id,
+            stage="PLANNER_CONTEXT",
+            reason="EntityRegistry -> PlannerContext planner_entities >= registered_entities",
+            expected=registered_count,
+            actual=planner_count,
+            comparator="gte",
+        )
+        for entity in snapshot.entities:
+            tracer.emit(
+                snapshot.session_id,
+                "PLANNER_CONTEXT",
+                success=True,
+                reason="included",
+                trace_id=entity.trace_id,
+                entity_id=entity.id,
+                artifact_id=entity.artifact_id,
+                canonical_url=entity.canonical_url or entity.url,
+                selector_id=entity.selector_ids[0] if entity.selector_ids else None,
+                runtime_resource_id=entity.runtime_resource_id,
+                source=entity.source_layer,
+            )
+        if not is_active("V47_SEMANTIC_EXECUTION_KERNEL"):
             return compressed_context
         enriched = dict(compressed_context)
         enriched["semantic_execution_kernel"] = snapshot.to_compact_context()
@@ -120,8 +158,21 @@ class SemanticExecutionKernel:
         )
         if snapshot is None or not is_active("V47_SEMANTIC_EXECUTION_KERNEL"):
             return result
+        pipeline_failure = get_entity_pipeline_tracer().active_failure_response(result, session_id)
+        if pipeline_failure is not None:
+            return pipeline_failure
         if snapshot.eligibility and not snapshot.eligibility.eligible:
-            return _replan_from_kernel(result, snapshot.recovery, snapshot.eligibility.reason)
+            failure_reason = snapshot.eligibility.reason
+            if "entity_missing" in snapshot.eligibility.failures:
+                get_entity_pipeline_tracer().verify_exists(
+                    session_id,
+                    stage="SEMANTIC_KERNEL",
+                    reason="SemanticKernel entity lookup failed",
+                    exists=False,
+                    entity_id=snapshot.proposal.entity_id if snapshot.proposal else None,
+                )
+                failure_reason = "ENTITY_PIPELINE_FAILURE stage=SemanticKernel reason=entity lookup failed"
+            return _replan_from_kernel(result, snapshot.recovery, failure_reason)
         if snapshot.grounding and snapshot.grounding.grounded and result.suggested_actions:
             _mark_grounded(session_id, snapshot)
             result.suggested_actions[0] = apply_grounding_to_action(result.suggested_actions[0], snapshot.grounding)
@@ -129,9 +180,10 @@ class SemanticExecutionKernel:
 
 
 def _replan_from_kernel(result: AnalyzeResponse, recovery: RecoveryDecision, reason: str) -> AnalyzeResponse:
+    diagnostic = reason if reason.startswith("ENTITY_PIPELINE_FAILURE") else "Semantic Execution Kernel rejected the proposal before browser execution."
     return AnalyzeResponse(
         session_id=result.session_id,
-        analysis=f"{result.analysis}\n\nSemantic Execution Kernel rejected the proposal before browser execution.",
+        analysis=f"{result.analysis}\n\n{diagnostic}",
         outcome_kind="replan",
         clarification_question=None,
         report=None,
@@ -161,6 +213,21 @@ def _mark_grounded(session_id: str, snapshot: KernelSnapshot) -> None:
         source_page=entity.source_page,
         metadata=entity.metadata,
         state="GROUNDED",
+    )
+    from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
+
+    get_entity_pipeline_tracer().emit(
+        session_id,
+        "GROUNDING",
+        success=True,
+        reason="resolved",
+        trace_id=entity.trace_id,
+        entity_id=entity.id,
+        artifact_id=entity.artifact_id,
+        canonical_url=entity.canonical_url or entity.url,
+        selector_id=entity.selector_ids[0] if entity.selector_ids else None,
+        runtime_resource_id=entity.runtime_resource_id,
+        source=entity.source_layer,
     )
 
 

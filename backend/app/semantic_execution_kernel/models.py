@@ -80,10 +80,12 @@ class SemanticEntity:
     selector_ids: list[str] = field(default_factory=list)
     source_layer: str = "semantic_execution_kernel"
     lifecycle_status: Literal["discovered", "registered", "grounded", "executing", "executed", "verified", "archived", "opened", "read", "completed", "failed", "skipped"] = "discovered"
+    trace_id: str | None = None
 
     def to_compact_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
+            "trace_id": self.trace_id,
             "artifact_id": self.artifact_id,
             "type": self.semantic_type,
             "title": self.title[:140],

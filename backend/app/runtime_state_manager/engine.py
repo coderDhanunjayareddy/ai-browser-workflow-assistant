@@ -64,6 +64,10 @@ class RuntimeStateManager:
             consistency=consistency,
             recovery=recovery,
         )
+        from dataclasses import replace
+        from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_telemetry
+
+        telemetry = replace(telemetry, entity_pipeline=entity_pipeline_telemetry(session_id))
         replay = runtime_replay_frames(tabs, artifacts, checkpoint, session_id=session_id)
         return RuntimeStateSnapshot(
             schema_version="runtime_state_manager.v1",

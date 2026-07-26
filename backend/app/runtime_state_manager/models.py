@@ -113,6 +113,7 @@ class RuntimeTelemetry:
     recovery_events: int
     consistency_violations: int
     checkpoint_restores: int
+    entity_pipeline: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

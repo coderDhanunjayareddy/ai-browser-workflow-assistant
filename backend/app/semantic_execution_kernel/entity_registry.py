@@ -1,32 +1,52 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 from typing import Any
 
 from app.runtime_state_manager.entity_binding import list_entities, register_entity
+from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
 from app.semantic_execution_kernel.models import BrowserBinding, SemanticEntity
 
 
 def build_entity_registry(page_context: Any, *, session_id: str | None = None) -> list[SemanticEntity]:
     entities: list[SemanticEntity] = []
     source_page = str(getattr(page_context, "url", "") or "")
+    tracer = get_entity_pipeline_tracer()
+    extracted_count = 0
     for element in list(getattr(page_context, "interactive_elements", []) or [])[:120]:
         data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
         entity = _entity_from_element(data, source_page)
         if entity is None:
             continue
-        entities.append(entity)
-        _register_if_scoped(session_id, entity)
+        extracted_count += 1
+        tracer.emit(session_id or "default", "ENTITY_EXTRACTION", success=True, reason="page_context interactive element extracted", entity_id=entity.id, artifact_id=entity.artifact_id, canonical_url=entity.canonical_url, selector_id=entity.selector_ids[0] if entity.selector_ids else None, source=entity.source_layer)
+        entities.append(_register_if_scoped(session_id, entity))
     for block in list(getattr(page_context, "content_blocks", []) or [])[:60]:
         data = block.model_dump() if hasattr(block, "model_dump") else dict(block)
         entity = _entity_from_block(data, source_page)
         if entity is None:
             continue
-        entities.append(entity)
-        _register_if_scoped(session_id, entity)
+        extracted_count += 1
+        tracer.emit(session_id or "default", "ENTITY_EXTRACTION", success=True, reason="page_context content block extracted", entity_id=entity.id, artifact_id=entity.artifact_id, canonical_url=entity.canonical_url, selector_id=entity.selector_ids[0] if entity.selector_ids else None, source=entity.source_layer)
+        entities.append(_register_if_scoped(session_id, entity))
     if session_id:
-        entities.extend(_from_unified_entity(entity) for entity in list_entities(session_id))
-    return _dedupe_entities(entities)[:120]
+        unified_entities = list_entities(session_id)
+        entities.extend(_from_unified_entity(entity) for entity in unified_entities)
+        tracer.verify_count(
+            session_id,
+            stage="SEMANTIC_KERNEL",
+            reason="EntityRegistry -> SemanticKernel kernel_received >= registered_entities",
+            expected=len(unified_entities),
+            actual=len(_dedupe_entities(entities)),
+            comparator="gte",
+        )
+    deduped = _dedupe_entities(entities)[:120]
+    if session_id:
+        tracer.emit(session_id, "SEMANTIC_KERNEL", success=True, reason="received", count=len(deduped))
+        for entity in deduped:
+            tracer.emit(session_id, "SEMANTIC_KERNEL", success=True, reason="received", trace_id=entity.trace_id, entity_id=entity.id, artifact_id=entity.artifact_id, canonical_url=entity.canonical_url or entity.url, selector_id=entity.selector_ids[0] if entity.selector_ids else None, runtime_resource_id=entity.runtime_resource_id, source=entity.source_layer)
+    return deduped
 
 
 def find_entity(
@@ -119,6 +139,7 @@ def _from_unified_entity(entity: Any) -> SemanticEntity:
     allowed = {"discovered", "registered", "grounded", "executing", "executed", "verified", "archived"}
     return SemanticEntity(
         id=entity.entity_id,
+        trace_id=entity.trace_id,
         semantic_type=entity.entity_type,
         title=entity.title or entity.entity_type,
         url=entity.canonical_url,
@@ -140,10 +161,10 @@ def _from_unified_entity(entity: Any) -> SemanticEntity:
     )
 
 
-def _register_if_scoped(session_id: str | None, entity: SemanticEntity) -> None:
+def _register_if_scoped(session_id: str | None, entity: SemanticEntity) -> SemanticEntity:
     if not session_id:
-        return
-    register_entity(
+        return entity
+    unified = register_entity(
         session_id,
         entity_type=entity.semantic_type,
         source_layer=entity.source_layer,
@@ -155,6 +176,7 @@ def _register_if_scoped(session_id: str | None, entity: SemanticEntity) -> None:
         source_page=entity.source_page,
         metadata=entity.metadata,
     )
+    return replace(entity, id=unified.entity_id, artifact_id=unified.artifact_id, trace_id=unified.trace_id)
 
 
 def _semantic_type(data: dict[str, Any]) -> str:

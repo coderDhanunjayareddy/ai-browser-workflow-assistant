@@ -1026,6 +1026,7 @@ class WorkflowOrchestrator:
         )
         if success and action_type.lower() in {"open_new_tab", "navigate"} and value.startswith(("http://", "https://")):
             from app.runtime_state_manager.entity_binding import bind_runtime_resource, resolve_entity
+            from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
 
             entity = resolve_entity(self.session_id, canonical_url=value)
             if entity is not None:
@@ -1048,6 +1049,25 @@ class WorkflowOrchestrator:
                         "binding_success": bound is not None,
                     },
                     step_index=events_count,
+                )
+                get_entity_pipeline_tracer().emit(
+                    self.session_id,
+                    "BROWSER_CONTROL",
+                    success=True,
+                    reason="executed",
+                    trace_id=entity.trace_id,
+                    entity_id=entity.entity_id,
+                    artifact_id=entity.artifact_id,
+                    canonical_url=entity.canonical_url,
+                    runtime_resource_id=logical_tab_id,
+                    source=entity.source_layer,
+                )
+            else:
+                get_entity_pipeline_tracer().verify_exists(
+                    self.session_id,
+                    stage="BROWSER_CONTROL",
+                    reason="Runtime -> Browser resource binding exists",
+                    exists=False,
                 )
         if is_shadow_or_active("V3_VALIDATION"):
             validation, validation_ms = _validation_engine.validate_execution(

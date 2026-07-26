@@ -25,6 +25,7 @@ def runtime_replay_frames(tabs: list[RuntimeTab], artifacts: list[RuntimeArtifac
     frames.append({"event": "runtime.checkpoint", "checkpoint_id": checkpoint.checkpoint_id, "phase": checkpoint.current_phase})
     if session_id:
         from app.runtime_state_manager.entity_binding import entity_binding_trace
+        from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_replay
 
         for index, event in enumerate(entity_binding_trace(session_id, limit=12), 1):
             frames.append({
@@ -37,4 +38,9 @@ def runtime_replay_frames(tabs: list[RuntimeTab], artifacts: list[RuntimeArtifac
                 "registry_version": event.get("registry_version"),
                 "outcome": event.get("outcome"),
             })
+        frames.append({
+            "event": "runtime.entity_pipeline",
+            "frame_id": "runtime_entity_pipeline_replay",
+            "pipeline": entity_pipeline_replay(session_id),
+        })
     return frames[-30:]

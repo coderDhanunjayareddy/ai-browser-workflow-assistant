@@ -1320,6 +1320,26 @@
     "owner": "browser-platform"
   },
   {
+    "capability_id": "browser.entity_pipeline_trace",
+    "version": "1.0.0",
+    "category": "runtime_state",
+    "description": "Mission-scoped V4.9.3 diagnostic and contract verification layer for tracing semantic entity identity across DOM scan, Browser Intelligence extraction, Entity Registry storage, Planner Context inclusion, Semantic Kernel receipt, grounding, runtime binding, and Browser Control execution.",
+    "dependencies": ["browser.unified_entity_identity_binding", "browser.runtime_integration_trace", "browser.runtime_state_manager", "browser.semantic_execution_kernel", "browser_intelligence.page_understanding"],
+    "feature_flag": "V493_ENTITY_PIPELINE_TRACE",
+    "maturity_level": 4,
+    "target_maturity_level": 5,
+    "supported_browsers": ["chromium-extension", "playwright-chromium"],
+    "supported_websites": ["all-websites"],
+    "site_adapters": [],
+    "benchmarks": ["v493.pipeline.trace_id_stability", "v493.pipeline.browser_intelligence_to_registry_contract", "v493.pipeline.registry_to_planner_contract", "v493.pipeline.planner_to_kernel_contract", "v493.pipeline.kernel_to_runtime_contract", "v493.pipeline.runtime_to_browser_contract", "v493.pipeline.replay_timeline"],
+    "metrics": ["entities_discovered", "entities_registered", "entities_sent_to_planner", "entities_received_by_kernel", "entities_grounded", "entities_bound", "entities_executed", "contract_failures", "pipeline_stage_failure"],
+    "known_limitations": ["Trace storage is in-memory and mission-scoped; active mode enforces diagnostics at observed backend boundaries and extension execution results are recorded when workflow execution events are posted back."],
+    "rollout_status": "shadow",
+    "safety_constraints": ["diagnostic_only", "no_kernel_side_entity_creation", "no_planner_contract_change", "no_browser_intelligence_redesign", "no_semantic_kernel_redesign", "no_runtime_state_redesign", "no_browser_control_redesign", "no_silent_recovery", "website_agnostic"],
+    "failure_classes": ["ENTITY_PIPELINE_FAILURE", "entity_registration_skipped", "entity_omitted_from_planner_payload", "kernel_entity_lookup_failed", "grounding_resolution_missing", "runtime_binding_missing", "browser_resource_binding_missing"],
+    "owner": "browser-platform"
+  },
+  {
     "capability_id": "browser.knowledge_extraction_reporting",
     "version": "1.0.0",
     "category": "knowledge_pipeline",

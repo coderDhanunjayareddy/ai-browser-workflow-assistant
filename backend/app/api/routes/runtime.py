@@ -106,6 +106,20 @@ def get_analytics():
     return anal.get_analytics(wall_now=time.time())
 
 
+# ── GET /runtime/entity-pipeline ──────────────────────────────────────────────
+
+@router.get("/entity-pipeline")
+def get_entity_pipeline(mission_id: str = Query(...)):
+    from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_replay, entity_pipeline_telemetry
+
+    return {
+        "schema_version": "entity_pipeline_trace.v493",
+        "mission_id": mission_id,
+        "telemetry": entity_pipeline_telemetry(mission_id),
+        "replay": entity_pipeline_replay(mission_id),
+    }
+
+
 # ── GET /runtime/inspect ──────────────────────────────────────────────────────
 
 @router.get("/inspect")

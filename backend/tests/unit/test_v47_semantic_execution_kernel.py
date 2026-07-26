@@ -3,6 +3,8 @@ from __future__ import annotations
 from app.core.config import settings
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, SuggestedAction
+from app.runtime_state_manager.entity_binding import list_entities
+from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_replay, entity_pipeline_telemetry
 from app.semantic_execution_kernel.engine import SemanticExecutionKernel
 
 
@@ -65,6 +67,7 @@ def _response(action_type: str, *, value: str | None = None, selector: str = "")
 
 def test_semantic_kernel_feature_flag_defaults_to_shadow():
     assert settings.__class__.model_fields["v47_semantic_execution_kernel"].default == "shadow"
+    assert settings.__class__.model_fields["v493_entity_pipeline_trace"].default == "shadow"
 
 
 def test_shadow_kernel_builds_entities_without_context_enrichment(monkeypatch):
@@ -80,6 +83,7 @@ def test_shadow_kernel_builds_entities_without_context_enrichment(monkeypatch):
 
     assert snapshot is not None
     assert any(entity.url == "https://example.test/result/1" for entity in snapshot.entities)
+    assert all(entity.trace_id for entity in snapshot.entities)
     assert engine.enrich_context({"active_goal": "x"}, snapshot) == {"active_goal": "x"}
 
 
@@ -135,7 +139,57 @@ def test_active_kernel_rejects_unregistered_entity_before_browser_execution(monk
     assert result.outcome_kind == "replan"
     assert result.suggested_actions == []
     assert result.replan is not None
-    assert "entity_missing" in result.replan.reason
+    assert "ENTITY_PIPELINE_FAILURE stage=SemanticKernel" in result.replan.reason
+    assert "entity lookup failed" in result.replan.reason
+
+
+def test_entity_pipeline_replay_groups_contract_boundaries(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "shadow")
+    monkeypatch.setattr(settings, "v493_entity_pipeline_trace", "shadow")
+    engine = SemanticExecutionKernel()
+    session_id = "kernel-pipeline-replay"
+    snapshot = engine.build_snapshot(
+        session_id=session_id,
+        task="Open a result. Read the page. Return final answer.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+    engine.enrich_context({"active_goal": "x"}, snapshot)
+
+    telemetry = entity_pipeline_telemetry(session_id)
+    replay = entity_pipeline_replay(session_id)
+
+    assert telemetry["entities_registered"] >= 1
+    assert telemetry["entities_sent_to_planner"] >= 1
+    assert telemetry["entities_received_by_kernel"] >= 1
+    assert replay["registered_entities"]
+    assert replay["planner_entities"]
+    assert replay["kernel_entities"]
+    assert replay["timeline"]
+
+
+def test_active_entity_pipeline_reports_exact_stage_for_missing_planner_url(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    monkeypatch.setattr(settings, "v493_entity_pipeline_trace", "active")
+    engine = SemanticExecutionKernel()
+    session_id = "kernel-url-missing-contract"
+    response = _response("open_new_tab", value="https://missing.example.test/not-registered")
+
+    result = engine.postprocess_response(
+        result=response,
+        session_id=session_id,
+        task="Open the external result. Return final answer.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "replan"
+    assert result.replan is not None
+    assert "ENTITY_PIPELINE_FAILURE stage=SEMANTIC_KERNEL" in result.replan.reason
+    assert not [
+        entity for entity in list_entities(session_id)
+        if entity.source_layer == "semantic_execution_kernel" and entity.entity_type == "url_candidate"
+    ]
 
 
 def test_kernel_loop_prevention_rejects_duplicate_proposal(monkeypatch):
