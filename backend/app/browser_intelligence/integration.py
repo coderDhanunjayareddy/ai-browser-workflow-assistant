@@ -17,6 +17,11 @@ from app.browser_intelligence.waits import IntelligentWaitingEngine
 from app.feature_flags import is_shadow_or_active
 
 
+_PLANNER_SEARCH_RESULT_LIMIT = 8
+_PLANNER_SEMANTIC_ENTITY_LIMIT = 24
+_PLANNER_SEMANTIC_ELEMENT_LIMIT = 12
+
+
 class BrowserIntelligenceRuntime:
     def __init__(self) -> None:
         self.page_understanding = PageUnderstandingEngine()
@@ -177,19 +182,29 @@ def format_browser_intelligence_for_planner(artifact: BrowserIntelligenceArtifac
 
     search_results = [
         _search_result_context(result, resolve_entity(scope_id, canonical_url=result.url))
-        for result in page_model.search_results[:10]
+        for result in page_model.search_results[:_PLANNER_SEARCH_RESULT_LIMIT]
     ]
+    search_result_urls = {str(item.get("canonical_url") or item.get("url") or "").rstrip("/") for item in search_results}
+    entity_summaries = browser_intelligence_entity_summary(scope_id, artifact)
+    ranked_entity_summaries = sorted(
+        entity_summaries,
+        key=lambda item: (
+            0 if str(item.get("canonical_url") or "").rstrip("/") in search_result_urls else 1,
+            0 if item.get("canonical_url") else 1,
+            str(item.get("title") or ""),
+        ),
+    )
     semantic_elements = [
         {
             "element_id": element.element_id,
             "kind": element.kind,
-            "label": element.label,
+            "label": str(element.label or "")[:120],
             "selector_id": element.selector_id,
-            "selector": element.selector,
+            "selector": str(element.selector or "")[:180],
             "href": element.href,
             "confidence": element.confidence,
         }
-        for element in page_model.elements[:40]
+        for element in page_model.elements[:_PLANNER_SEMANTIC_ELEMENT_LIMIT]
         if element.visible
     ]
     return {
@@ -199,7 +214,7 @@ def format_browser_intelligence_for_planner(artifact: BrowserIntelligenceArtifac
         "adapter": page_model.adapter,
         "browser_state": artifact.browser_state.to_dict(),
         "semantic_elements": semantic_elements,
-        "semantic_entities": browser_intelligence_entity_summary(scope_id, artifact)[:80],
+        "semantic_entities": ranked_entity_summaries[:_PLANNER_SEMANTIC_ENTITY_LIMIT],
         "search_results": search_results,
         "memory": artifact.memory.to_dict() if artifact.memory else None,
         "health": artifact.health.to_dict() if artifact.health else None,
@@ -217,11 +232,11 @@ def _search_result_context(result: Any, entity: Any) -> dict[str, Any]:
         "rank": result.rank,
         "entity_id": entity.entity_id if entity else None,
         "artifact_id": entity.artifact_id if entity else None,
-        "title": result.title,
+        "title": str(result.title or "")[:160],
         "url": result.url,
         "canonical_url": entity.canonical_url if entity else result.url,
         "displayed_url": result.displayed_url,
-        "description": result.description,
+        "description": str(result.description or "")[:220],
         "entity_type": entity.entity_type if entity else "search_result",
         "state": entity.state if entity else "REGISTERED",
         "confidence": entity.confidence if entity else 0.92,

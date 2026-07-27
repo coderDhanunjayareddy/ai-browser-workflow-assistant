@@ -136,6 +136,15 @@ export interface AnalyzeResponse {
    * Presentation-only in the extension; it does not change execution.
    */
   goal_convergence?: boolean
+  execution_orchestrator?: PhaseExecutionDirective | null
+}
+
+export interface PhaseExecutionDirective {
+  schema_version?: string
+  active_phase: string
+  should_replan?: boolean
+  reason: string
+  continuation_actions: SuggestedAction[]
 }
 
 export interface PriorStep {

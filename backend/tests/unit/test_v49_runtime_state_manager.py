@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from app.core.config import settings
+from app.runtime_state_manager.browser_action_reference import to_browser_tab_reference
 from app.runtime_state_manager.completion import artifact_completion_status
 from app.runtime_state_manager.engine import RuntimeStateManager
+from app.runtime_state_manager.entity_binding import bind_runtime_resource, register_entity, resolve_entity
+from app.runtime_state_manager import observe_runtime_state, resolve_logical_tab_url
 from app.runtime_state_manager.registry import BrowserRuntimeRegistry
 from app.schemas.request import ContentBlock, PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, SuggestedAction
@@ -143,3 +146,58 @@ def test_registry_restore_survives_runtime_id_changes():
 
     assert same_tab is not None
     assert same_tab.logical_id == tabs[0].logical_id
+
+
+def test_logical_tab_id_stays_internal_but_browser_reference_uses_url():
+    session_id = "runtime-tab-reference-contract"
+    logical_tab_id = "logical_tab_contract"
+    entity = register_entity(
+        session_id,
+        entity_type="result",
+        title="Contract Page",
+        canonical_url="https://example.test/contract",
+        source_layer="test",
+    )
+
+    bind_runtime_resource(
+        session_id,
+        entity_id=entity.entity_id,
+        runtime_resource_id=logical_tab_id,
+    )
+
+    stored = resolve_entity(session_id, runtime_resource_id=logical_tab_id)
+
+    assert stored is not None
+    assert stored.runtime_resource_id == logical_tab_id
+    assert to_browser_tab_reference(session_id, logical_tab_id) == "url:https://example.test/contract"
+    assert to_browser_tab_reference(session_id, "https://example.test/contract") == "url:https://example.test/contract"
+    assert to_browser_tab_reference(session_id, "title:Contract Page") == "title:Contract Page"
+
+
+def test_logical_tab_reference_resolves_from_runtime_state_without_entity_binding(monkeypatch):
+    monkeypatch.setattr(settings, "v49_runtime_state_manager", "shadow")
+    monkeypatch.setattr(settings, "v49_runtime_sync", "shadow")
+    session_id = "runtime-tab-reference-from-tabs"
+    prior = [
+        PriorStep(
+            action_type="open_new_tab",
+            description="Open result",
+            target_selector="",
+            value="https://example.test/opened",
+            execution_result="Opened new tab: https://example.test/opened",
+            page_url="https://search.example/results",
+            page_title="Search Results",
+        )
+    ]
+    snapshot = observe_runtime_state(
+        session_id=session_id,
+        page_context=_page("https://search.example/results"),
+        prior_steps=prior,
+        current_phase="READ",
+    )
+
+    opened_tab = next(tab for tab in snapshot.tabs if tab.url == "https://example.test/opened")
+
+    assert opened_tab.logical_id.startswith("logical_tab_")
+    assert resolve_logical_tab_url(session_id, opened_tab.logical_id) == "https://example.test/opened"
+    assert to_browser_tab_reference(session_id, opened_tab.logical_id) == "url:https://example.test/opened"

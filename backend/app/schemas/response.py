@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Literal, Optional
 
 
@@ -41,7 +41,22 @@ class ReplanOutcome(BaseModel):
     reason: str
 
 
+class PhaseExecutionDirective(BaseModel):
+    """Execution Orchestrator-owned deterministic work for the active phase.
+
+    This is not planner output. It is an additive directive built from the
+    mission entity graph after the planner has selected the phase action.
+    """
+    schema_version: str = "execution_orchestrator.phase_execution.v1"
+    active_phase: str
+    should_replan: bool = False
+    reason: str
+    continuation_actions: list[SuggestedAction] = []
+
+
 class AnalyzeResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     session_id: str
     analysis: str
     # Planner Contract V2: which kind of turn this is. Defaults to 'act' so every
@@ -58,3 +73,6 @@ class AnalyzeResponse(BaseModel):
     # Production Goal Convergence GC-1: passive semantic stagnation signal.
     # This never changes planner intent, actions, prompts, or recovery behavior.
     goal_convergence: bool = False
+    # Backend-owned deterministic report artifacts are produced from validated
+    # pipeline evidence, not a planner claim against only the current page.
+    backend_authoritative_report: bool = False

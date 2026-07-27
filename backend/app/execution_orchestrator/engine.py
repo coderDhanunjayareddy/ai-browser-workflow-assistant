@@ -7,6 +7,7 @@ from app.execution_orchestrator.artifact_registry import build_artifacts
 from app.execution_orchestrator.budgets import build_budgets
 from app.execution_orchestrator.completion_engine import build_progress_ledger
 from app.execution_orchestrator.models import ExecutionOrchestratorSnapshot
+from app.execution_orchestrator.phase_execution import attach_phase_execution_directive
 from app.execution_orchestrator.phase_state_machine import build_phases, workflow_category
 from app.execution_orchestrator.planner_gating import action_allowed, planner_constraints, reject_for_phase
 from app.execution_orchestrator.recovery import route_recovery
@@ -83,7 +84,7 @@ class ExecutionOrchestrator:
         action = result.suggested_actions[0]
         if not action_allowed(action.action_type, snapshot.active_phase):
             return reject_for_phase(result, snapshot, f"action {action.action_type} is not allowed in phase {snapshot.active_phase.name}")
-        return result
+        return attach_phase_execution_directive(result, snapshot)
 
 
 _orchestrator = ExecutionOrchestrator()

@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import json
 
+from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
+from app.runtime_state_manager.browser_action_reference import (
+    exposes_backend_logical_tab,
+    to_browser_tab_reference,
+)
 from app.semantic_execution_kernel.entity_registry import find_entity
 from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
 from app.semantic_execution_kernel.models import EligibilityResult, GroundingResult, SemanticActionProposal, SemanticEntity
@@ -51,8 +56,24 @@ def ground_semantic_action(
         return result
     if proposal.action_type == "FOCUS_TAB":
         value = proposal.parameters.get("value")
-        result = GroundingResult(bool(value), "focus_existing_tab", "", value or None, "tab reference resolved")
-        _debug_v494_grounding("BRANCH_FOCUS_TAB", {"result": result.to_dict()})
+        browser_reference = to_browser_tab_reference(mission_id, value)
+        grounded = bool(browser_reference) and not exposes_backend_logical_tab(browser_reference)
+        result = GroundingResult(
+            grounded,
+            "focus_existing_tab" if grounded else None,
+            "",
+            browser_reference if grounded else None,
+            "tab reference resolved" if grounded else "logical tab reference unresolved",
+        )
+        _debug_v494_grounding(
+            "BRANCH_FOCUS_TAB",
+            {
+                "input_value": value,
+                "browser_reference": browser_reference,
+                "exposed_backend_logical_tab": exposes_backend_logical_tab(browser_reference),
+                "result": result.to_dict(),
+            },
+        )
         return result
     if proposal.action_type == "CLICK_ENTITY":
         selector = entity.browser_bindings.selector if entity else proposal.parameters.get("selector")
@@ -88,11 +109,12 @@ def apply_grounding_to_action(action: SuggestedAction, grounding: GroundingResul
 
 
 def _debug_v494_grounding(event: str, payload: dict) -> None:
+    if not diagnostic_terminal_enabled("AI_BROWSER_KERNEL_LOOKUP_TRACE"):
+        return
     try:
-        print(
+        safe_print(
             "[V4.9.4 kernel-lookup] GROUNDING "
-            + json.dumps({"event": event, **payload}, ensure_ascii=False),
-            flush=True,
+            + json.dumps({"event": event, **payload}, ensure_ascii=True)
         )
     except Exception as exc:
-        print(f"[V4.9.4 kernel-lookup] GROUNDING_LOG_FAILED {exc}", flush=True)
+        safe_print(f"[V4.9.4 kernel-lookup] GROUNDING_LOG_FAILED {exc}")

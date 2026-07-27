@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
 from app.runtime_state_manager.entity_binding import resolve_entity
 from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
 from app.semantic_execution_kernel.entity_registry import find_entity
@@ -182,8 +183,10 @@ def _strip_prefix(value: str, prefix: str) -> str | None:
 
 
 def _debug_v494_proposal(event: str, *, session_id: str | None, payload: dict[str, Any]) -> None:
+    if not diagnostic_terminal_enabled("AI_BROWSER_KERNEL_LOOKUP_TRACE"):
+        return
     try:
-        print(
+        safe_print(
             "[V4.9.4 kernel-lookup] PLANNER_PROPOSAL "
             + json.dumps(
                 {
@@ -191,9 +194,8 @@ def _debug_v494_proposal(event: str, *, session_id: str | None, payload: dict[st
                     "mission_id": session_id,
                     **payload,
                 },
-                ensure_ascii=False,
-            ),
-            flush=True,
+                ensure_ascii=True,
+            )
         )
     except Exception as exc:
-        print(f"[V4.9.4 kernel-lookup] PLANNER_PROPOSAL_LOG_FAILED {exc}", flush=True)
+        safe_print(f"[V4.9.4 kernel-lookup] PLANNER_PROPOSAL_LOG_FAILED {exc}")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 from app.runtime_state_manager.models import RuntimeArtifact
 
 
@@ -63,7 +64,7 @@ def _owner_phase(artifact_type: str) -> str:
 
 
 def _success(result: str) -> bool:
-    return result.lower().startswith(("success", "opened", "clicked", "filled", "navigating", "waited", "scrolled"))
+    return is_successful_execution_result(result)
 
 
 def _dedupe(artifacts: list[RuntimeArtifact]) -> list[RuntimeArtifact]:

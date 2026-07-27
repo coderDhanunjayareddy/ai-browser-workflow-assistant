@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models.db import FailureRecord, WorkflowBudgetRecord, WorkflowCostMetric, WorkflowEvent, WorkflowSession
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 from app.schemas.analytics import CostMetrics, WorkflowAnalytics
 
 
@@ -36,7 +37,7 @@ def get_analytics(db: Session, session_id: str) -> WorkflowAnalytics:
     events = db.query(WorkflowEvent).filter(WorkflowEvent.session_id == session_id).all()
     failures = db.query(FailureRecord).filter(FailureRecord.session_id == session_id).all()
     executed = [event for event in events if event.event_type == "executed"]
-    successful = [event for event in executed if event.execution_result == "success"]
+    successful = [event for event in executed if is_successful_execution_result(event.execution_result)]
     success_rate = len(successful) / len(executed) if executed else 0.0
     recovered = sum(1 for failure in failures if failure.recovery_success)
     false_successes = sum(1 for failure in failures if failure.error_code == "FALSE_SUCCESS")

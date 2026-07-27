@@ -120,6 +120,12 @@ class RuntimeStateManager:
             return {"phase": phase, "complete": False, "required_count": required_count, "complete_count": 0, "artifact_ids": []}
         return artifact_completion_status(phase, snapshot.artifacts, required_count)
 
+    def resolve_logical_tab_url(self, session_id: str, logical_tab_id: str) -> str | None:
+        tab = self.registry.get_tab(session_id, logical_tab_id)
+        if tab and tab.url.startswith(("http://", "https://")):
+            return tab.url
+        return None
+
 
 _manager = RuntimeStateManager()
 
@@ -151,3 +157,7 @@ def postprocess_with_runtime_state(result: AnalyzeResponse, snapshot: RuntimeSta
 
 def runtime_phase_completion(snapshot: RuntimeStateSnapshot | None, phase: str, required_count: int = 1) -> dict[str, object]:
     return _manager.phase_completion_evidence(snapshot, phase, required_count)
+
+
+def resolve_logical_tab_url(session_id: str, logical_tab_id: str) -> str | None:
+    return _manager.resolve_logical_tab_url(session_id, logical_tab_id)

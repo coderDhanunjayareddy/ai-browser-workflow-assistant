@@ -9,6 +9,8 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 from urllib.parse import urlparse
 
+from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
+
 logger = logging.getLogger(__name__)
 
 
@@ -537,6 +539,8 @@ def _debug_v494_registry_lookup(
     matched: UnifiedEntity | None = None,
     failure_reason: str | None = None,
 ) -> None:
+    if not diagnostic_terminal_enabled("AI_BROWSER_KERNEL_LOOKUP_TRACE"):
+        return
     try:
         requested_entity_id = requested.get("entity_id")
         requested_artifact_id = requested.get("artifact_id")
@@ -558,7 +562,7 @@ def _debug_v494_registry_lookup(
             }
             for entity in entities[:120]
         ]
-        print(
+        safe_print(
             "[V4.9.4 kernel-lookup] RUNTIME_REGISTRY_LOOKUP "
             + json.dumps(
                 {
@@ -578,12 +582,11 @@ def _debug_v494_registry_lookup(
                     "failure_reason": failure_reason,
                     "registry_contents": comparisons,
                 },
-                ensure_ascii=False,
-            ),
-            flush=True,
+                ensure_ascii=True,
+            )
         )
     except Exception as exc:
-        print(f"[V4.9.4 kernel-lookup] RUNTIME_REGISTRY_LOOKUP_LOG_FAILED {exc}", flush=True)
+        safe_print(f"[V4.9.4 kernel-lookup] RUNTIME_REGISTRY_LOOKUP_LOG_FAILED {exc}")
 
 
 _registry = EntityBindingRegistry()

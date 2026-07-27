@@ -1,5 +1,7 @@
 from typing import Any, Optional
 
+from app.runtime_state_manager.execution_result import is_successful_execution_result
+
 
 def _infer_page_changed(execution_result: str) -> Optional[bool]:
     """
@@ -29,7 +31,7 @@ class StateSummarizer:
         for step in prior_steps[-10:]:
             data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
             summary = data.get("description") or data.get("action_type") or "workflow step"
-            if str(data.get("execution_result", "")).lower() == "success":
+            if is_successful_execution_result(data.get("execution_result")):
                 # M1.1: preserve the selector/action/value so this successful step is
                 # usable as episodic memory, not just a name in a completed-count.
                 completed.append({

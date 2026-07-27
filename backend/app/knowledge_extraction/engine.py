@@ -12,7 +12,7 @@ from app.knowledge_extraction.replay import build_replay
 from app.knowledge_extraction.report_engine import generate_report
 from app.knowledge_extraction.synthesizer import synthesize_knowledge
 from app.knowledge_extraction.validator import validate_records, validation_summary
-from app.schemas.response import AnalyzeResponse, ReportOutcome
+from app.schemas.response import AnalyzeResponse
 
 
 class KnowledgeExtractionPipeline:
@@ -87,20 +87,6 @@ class KnowledgeExtractionPipeline:
         return enriched
 
     def postprocess_response(self, result: AnalyzeResponse, snapshot: KnowledgePipelineSnapshot | None) -> AnalyzeResponse:
-        if snapshot is None or not _active() or snapshot.report_artifact is None:
-            return result
-        if result.outcome_kind == "report" or snapshot.current_phase in {"REPORT", "COMPLETE"}:
-            return AnalyzeResponse(
-                session_id=result.session_id,
-                analysis=f"{result.analysis}\n\nKnowledge Extraction Pipeline produced the authoritative report artifact.",
-                outcome_kind="report",
-                clarification_question=None,
-                report=ReportOutcome(answer=snapshot.report_artifact.content, claim="Report generated from validated extraction artifacts."),
-                replan=None,
-                suggested_actions=[],
-                sgv_verified=result.sgv_verified,
-                goal_convergence=result.goal_convergence,
-            )
         return result
 
 

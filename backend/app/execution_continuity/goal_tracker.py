@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from app.execution_continuity.action_history import SUCCESS_PREFIXES
 from app.execution_continuity.models import Checkpoint, MissionProgress
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 
 
 def build_mission_progress(task: str, prior_steps: list[Any]) -> MissionProgress:
@@ -85,7 +85,7 @@ def _completed_descriptions(prior_steps: list[Any]) -> list[str]:
     items: list[str] = []
     for step in prior_steps:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
-        if str(data.get("execution_result") or "").lower().startswith(SUCCESS_PREFIXES):
+        if is_successful_execution_result(data.get("execution_result")):
             items.append(_clean(data.get("description") or data.get("action_type") or "completed step"))
     return items
 
@@ -95,7 +95,7 @@ def _failed_descriptions(prior_steps: list[Any]) -> list[str]:
     for step in prior_steps:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
         result = str(data.get("execution_result") or "")
-        if result and not result.lower().startswith(SUCCESS_PREFIXES):
+        if result and not is_successful_execution_result(result):
             items.append(_clean(data.get("description") or data.get("action_type") or "failed step"))
     return items
 

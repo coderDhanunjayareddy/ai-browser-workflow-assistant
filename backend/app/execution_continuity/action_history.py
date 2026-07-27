@@ -5,9 +5,7 @@ import time
 from typing import Any
 
 from app.execution_continuity.models import ActionRecord, LoopSignal
-
-
-SUCCESS_PREFIXES = ("success", "clicked", "filled", "navigating", "waited", "scrolled", "opened")
+from app.runtime_state_manager.execution_result import SUCCESS_PREFIXES, is_successful_execution_result
 
 
 def build_action_history(prior_steps: list[Any]) -> list[ActionRecord]:
@@ -117,4 +115,4 @@ def _verification_result(data: dict[str, Any]) -> str | None:
 
 
 def _is_success(record: ActionRecord) -> bool:
-    return record.result.lower().startswith(SUCCESS_PREFIXES)
+    return is_successful_execution_result(record.result)

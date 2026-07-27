@@ -21,8 +21,8 @@ ALLOWED_ACTIONS: dict[PhaseName, list[str]] = {
     "READ": ["focus_existing_tab", "switch_tab", "scroll", "wait"],
     "EXTRACT": ["focus_existing_tab", "switch_tab", "scroll", "wait"],
     "VALIDATE": ["focus_existing_tab", "switch_tab", "wait", "scroll"],
-    "SYNTHESIZE": ["wait"],
-    "REPORT": ["wait"],
+    "SYNTHESIZE": [],
+    "REPORT": [],
     "COMPLETE": [],
 }
 
@@ -34,8 +34,8 @@ FORBIDDEN_ACTIONS: dict[PhaseName, list[str]] = {
     "READ": ["navigate", "open_new_tab", "fill", "click"],
     "EXTRACT": ["navigate", "open_new_tab", "fill", "click"],
     "VALIDATE": ["navigate", "open_new_tab"],
-    "SYNTHESIZE": ["navigate", "open_new_tab", "click", "fill", "scroll"],
-    "REPORT": ["navigate", "open_new_tab", "click", "fill", "scroll"],
+    "SYNTHESIZE": ["navigate", "open_new_tab", "click", "fill", "scroll", "wait"],
+    "REPORT": ["navigate", "open_new_tab", "click", "fill", "scroll", "wait"],
     "COMPLETE": ["navigate", "open_new_tab", "click", "fill", "scroll", "wait"],
 }
 

@@ -6,10 +6,15 @@ from urllib.parse import urlparse
 
 from app.feature_flags import is_active, is_shadow_or_active
 from app.knowledge_extraction.models import KnowledgePipelineSnapshot
+from app.mission.intelligence.mission_plan import create_mission_plan
+from app.mission_completion.criteria import evaluate_success_criteria
 from app.mission_completion.models import (
     CompletionDecision,
     CompletionEvidence,
     CompletionStatus,
+    CriterionEvaluation,
+    CriterionKind,
+    MissionPlan,
     MissionCompletionSnapshot,
     WorkflowResult,
 )
@@ -33,8 +38,26 @@ class MissionCompletionController:
         if not is_shadow_or_active("V51_MISSION_COMPLETION_CONTROLLER"):
             return None
         started = time.perf_counter()
-        evidence = _evidence(knowledge_snapshot)
-        decision, status, reason, confidence, retry_target = _decide(evidence, knowledge_snapshot)
+        mission_plan = create_mission_plan(
+            mission_id=session_id,
+            objective=task,
+            phase_state=phase_state,
+        )
+        evaluations = evaluate_success_criteria(
+            mission_plan=mission_plan,
+            knowledge_snapshot=knowledge_snapshot,
+            runtime_state=runtime_state,
+            phase_state=phase_state,
+        )
+        evidence = _evidence(knowledge_snapshot, evaluations)
+        decision, status, reason, confidence, retry_target = _decide(
+            evidence=evidence,
+            mission_plan=mission_plan,
+            evaluations=evaluations,
+            knowledge_snapshot=knowledge_snapshot,
+            phase_state=phase_state,
+            runtime_state=runtime_state,
+        )
         workflow_result = _workflow_result(
             decision=decision,
             status=status,
@@ -66,6 +89,7 @@ class MissionCompletionController:
         return MissionCompletionSnapshot(
             schema_version="mission_completion.v1",
             session_id=session_id,
+            mission_plan=mission_plan,
             decision=decision,
             status=status,
             reason=reason,
@@ -110,7 +134,8 @@ class MissionCompletionController:
             replan=None,
             suggested_actions=[],
             sgv_verified=snapshot.decision == CompletionDecision.COMPLETE,
-            goal_convergence=False,
+            goal_convergence=True,
+            backend_authoritative_report=True,
         )
 
     def postprocess_response(
@@ -122,7 +147,7 @@ class MissionCompletionController:
             return result
         if snapshot.workflow_result is not None:
             return self.completion_response(result.session_id, snapshot)
-        if snapshot.decision == CompletionDecision.RETRY and result.outcome_kind == "wait":
+        if snapshot.decision == CompletionDecision.INCOMPLETE and snapshot.retry_target != "none" and _is_wait_outcome(result):
             return AnalyzeResponse(
                 session_id=result.session_id,
                 analysis=f"Mission Completion Controller selected retry target: {snapshot.retry_target}",
@@ -137,7 +162,11 @@ class MissionCompletionController:
         return result
 
 
-def _evidence(snapshot: KnowledgePipelineSnapshot | None) -> CompletionEvidence:
+def _evidence(
+    snapshot: KnowledgePipelineSnapshot | None,
+    evaluations: list[CriterionEvaluation] | None = None,
+) -> CompletionEvidence:
+    evaluations = list(evaluations or [])
     if snapshot is None:
         return CompletionEvidence(
             required_fields=[],
@@ -149,6 +178,7 @@ def _evidence(snapshot: KnowledgePipelineSnapshot | None) -> CompletionEvidence:
             missing_artifacts=["knowledge_snapshot"],
             completion_status={},
             source_urls=[],
+            criteria_evaluations=evaluations,
         )
     valid_records = [
         record for record in snapshot.extraction_records
@@ -165,6 +195,17 @@ def _evidence(snapshot: KnowledgePipelineSnapshot | None) -> CompletionEvidence:
         missing_artifacts=list(snapshot.missing_artifacts),
         completion_status=dict(snapshot.completion_status),
         source_urls=urls,
+        criteria_evaluations=evaluations,
+    )
+
+
+def _is_wait_outcome(result: AnalyzeResponse) -> bool:
+    if result.outcome_kind == "wait":
+        return True
+    return bool(
+        result.outcome_kind == "act"
+        and result.suggested_actions
+        and str(result.suggested_actions[0].action_type or "").lower() == "wait"
     )
 
 
@@ -174,27 +215,43 @@ def _is_web_url(url: str) -> bool:
 
 
 def _decide(
+    *,
     evidence: CompletionEvidence,
-    snapshot: KnowledgePipelineSnapshot | None,
+    mission_plan: MissionPlan,
+    evaluations: list[CriterionEvaluation],
+    knowledge_snapshot: KnowledgePipelineSnapshot | None,
+    phase_state: Any,
+    runtime_state: Any,
 ) -> tuple[CompletionDecision, CompletionStatus, str, float, str]:
-    if snapshot is None:
-        return CompletionDecision.CONTINUE, CompletionStatus.RUNNING, "Knowledge extraction has not produced evidence yet.", 0.0, "none"
-    report_ready = bool(snapshot.report_artifact and snapshot.report_artifact.completion_status == "complete")
-    validated = bool(snapshot.completion_status.get("extract"))
-    has_records = evidence.extraction_record_count > 0
-    has_valid_records = evidence.valid_record_count > 0
-    has_valid_sources = bool(evidence.source_urls)
-    if report_ready and validated and not evidence.missing_artifacts:
-        return CompletionDecision.COMPLETE, CompletionStatus.COMPLETE, "Validated report artifact satisfies mission completion criteria.", 0.97, "none"
-    if report_ready and has_valid_records and has_valid_sources:
-        return CompletionDecision.PARTIAL_SUCCESS, CompletionStatus.PARTIAL_SUCCESS, "Report artifact exists with partial validated evidence.", 0.78, "none"
-    if has_records and not report_ready:
-        return CompletionDecision.RETRY, CompletionStatus.RUNNING, "Extracted records exist but final report artifact is missing.", 0.62, "report"
-    if has_records and not has_valid_records:
-        return CompletionDecision.RETRY, CompletionStatus.RUNNING, "Extraction records exist but none are valid completion evidence.", 0.46, "extract"
-    if evidence.read_count and not has_records:
-        return CompletionDecision.RETRY, CompletionStatus.RUNNING, "Readable page evidence exists but extraction records are missing.", 0.52, "extract"
-    return CompletionDecision.CONTINUE, CompletionStatus.RUNNING, "Mission evidence is still being collected.", 0.35, "none"
+    if _budget_exhausted(phase_state):
+        return CompletionDecision.FAILED, CompletionStatus.FAILED, "Execution budget exhausted before mission success criteria were satisfied.", 0.0, "none"
+    if _runtime_blocked(runtime_state):
+        return CompletionDecision.BLOCKED, CompletionStatus.BLOCKED, "Runtime state is inconsistent and blocks reliable completion evaluation.", 0.0, "recovery"
+
+    blocking = [evaluation for evaluation in evaluations if _criterion(mission_plan, evaluation.criterion_id).blocking]
+    missing_blocking = [evaluation for evaluation in blocking if not evaluation.satisfied]
+    if blocking and not missing_blocking:
+        return CompletionDecision.COMPLETE, CompletionStatus.COMPLETE, "All blocking mission success criteria are satisfied by provider evidence.", _confidence(evaluations), "none"
+
+    approval_missing = next((evaluation for evaluation in missing_blocking if evaluation.kind == CriterionKind.APPROVAL_OBTAINED), None)
+    if approval_missing is not None:
+        return CompletionDecision.NEEDS_USER, CompletionStatus.NEEDS_USER, approval_missing.blocking_reason or "User approval is required.", approval_missing.confidence, "none"
+
+    external_missing = next((evaluation for evaluation in missing_blocking if evaluation.kind == CriterionKind.EXTERNAL_CONFIRMATION_RECEIVED), None)
+    if external_missing is not None:
+        return CompletionDecision.WAITING_EXTERNAL, CompletionStatus.WAITING_EXTERNAL, external_missing.blocking_reason or "External confirmation is still pending.", external_missing.confidence, "none"
+
+    if _has_partial_success(evaluations, knowledge_snapshot):
+        return CompletionDecision.PARTIAL_SUCCESS, CompletionStatus.PARTIAL_SUCCESS, "Some mission success criteria are satisfied, but required evidence is incomplete.", _confidence(evaluations), "none"
+
+    retry_target = _retry_target(missing_blocking, evidence)
+    if retry_target != "none":
+        reason = "; ".join(evaluation.blocking_reason or evaluation.criterion_id for evaluation in missing_blocking[:3])
+        return CompletionDecision.INCOMPLETE, CompletionStatus.INCOMPLETE, reason or "Mission success criteria require more evidence.", _confidence(evaluations), retry_target
+
+    if knowledge_snapshot is None:
+        return CompletionDecision.INCOMPLETE, CompletionStatus.INCOMPLETE, "Mission evidence is still being collected.", 0.0, "none"
+    return CompletionDecision.INCOMPLETE, CompletionStatus.INCOMPLETE, "Mission success criteria are not satisfied yet.", _confidence(evaluations), "none"
 
 
 def _workflow_result(
@@ -233,6 +290,54 @@ def _workflow_result(
         },
         confidence=confidence,
     )
+
+
+def _criterion(mission_plan: MissionPlan, criterion_id: str):
+    return next((criterion for criterion in mission_plan.success_criteria if criterion.criterion_id == criterion_id), mission_plan.success_criteria[0])
+
+
+def _budget_exhausted(phase_state: Any) -> bool:
+    budgets = getattr(phase_state, "budgets", None)
+    return bool(getattr(budgets, "exhausted", []) or [])
+
+
+def _runtime_blocked(runtime_state: Any) -> bool:
+    consistency = getattr(runtime_state, "consistency", None)
+    return bool(consistency is not None and getattr(consistency, "valid", True) is False)
+
+
+def _has_partial_success(evaluations: list[CriterionEvaluation], snapshot: KnowledgePipelineSnapshot | None) -> bool:
+    if snapshot is None or snapshot.report_artifact is None:
+        return False
+    if snapshot.report_artifact.completion_status != "complete":
+        return False
+    return any(evaluation.satisfied for evaluation in evaluations)
+
+
+def _retry_target(
+    missing_blocking: list[CriterionEvaluation],
+    evidence: CompletionEvidence,
+) -> str:
+    missing_kinds = {evaluation.kind for evaluation in missing_blocking}
+    if CriterionKind.REPORT_DELIVERED in missing_kinds:
+        return "report"
+    if CriterionKind.ARTIFACT_CREATED in missing_kinds:
+        return "synthesize"
+    if CriterionKind.ARTIFACT_VALIDATED in missing_kinds:
+        return "validate" if evidence.extraction_record_count else "extract"
+    if CriterionKind.FIELD_EXTRACTED in missing_kinds:
+        return "extract" if evidence.read_count else "read"
+    if CriterionKind.PAGE_READ in missing_kinds:
+        return "read"
+    if CriterionKind.BROWSER_STATE_REACHED in missing_kinds:
+        return "recovery"
+    return "none"
+
+
+def _confidence(evaluations: list[CriterionEvaluation]) -> float:
+    if not evaluations:
+        return 0.0
+    return sum(evaluation.confidence for evaluation in evaluations) / len(evaluations)
 
 
 def observe_mission_completion(

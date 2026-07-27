@@ -44,6 +44,7 @@ const {
   createMissionSnapshot,
   createMultiTabWorkspace,
   createTaskWorkspace,
+  phaseContinuationActions,
   registerTab,
   routeAnalyzeOutcome,
   PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET,
@@ -133,6 +134,46 @@ test('routes act outcomes through the existing action path', () => {
   assert.equal(routed.goalConvergence, true)
   assert.equal(routed.report, null)
   assert.equal(routed.replan, null)
+})
+
+test('routes orchestrator phase continuation actions into the execution queue', () => {
+  const first = action({
+    action_id: 'open-1',
+    action_type: 'open_new_tab',
+    value: 'https://tool1.example/',
+    description: 'Open result 1',
+  })
+  const second = action({
+    action_id: 'open-2',
+    action_type: 'open_new_tab',
+    value: 'https://tool2.example/',
+    description: 'Open result 2',
+  })
+  const third = action({
+    action_id: 'open-3',
+    action_type: 'open_new_tab',
+    value: 'https://tool3.example/',
+    description: 'Open result 3',
+  })
+
+  const result = response({
+    outcome_kind: 'act',
+    suggested_actions: [first],
+    execution_orchestrator: {
+      active_phase: 'OPEN',
+      should_replan: false,
+      reason: 'Continue OPEN phase',
+      continuation_actions: [second, third],
+    },
+  })
+  const routed = route(result)
+
+  assert.equal(routed.phase, 'awaiting_execution')
+  assert.deepEqual(routed.pendingActions.map((item) => item.action_id), ['open-1', 'open-2', 'open-3'])
+  assert.deepEqual(
+    phaseContinuationActions(result, [], 'https://example.test').map((item) => item.action_id),
+    ['open-2', 'open-3'],
+  )
 })
 
 test('routes wait outcomes through the existing wait action path', () => {

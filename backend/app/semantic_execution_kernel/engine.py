@@ -4,6 +4,7 @@ import time
 import json
 from typing import Any
 
+from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
 from app.feature_flags import is_active, is_shadow_or_active
 from app.schemas.response import AnalyzeResponse, ReplanOutcome
 from app.semantic_execution_kernel.browser_context_registry import build_browser_context
@@ -202,30 +203,30 @@ class SemanticExecutionKernel:
         if pipeline_failure is not None:
             origin = latest_failure_before.to_dict() if latest_failure_before else {}
             created_at = int(origin.get("created_at") or 0)
-            print(
-                "[V4.9.3 proof] SEMANTIC_KERNEL_ACTIVE_FAILURE_RESPONSE "
-                + json.dumps(
-                    {
-                        "mission_id": session_id,
-                        "planner_turn_id": planner_turn_id,
-                        "failure_creation_timestamp": created_at or None,
-                        "current_request_timestamp": current_request_timestamp,
-                        "when_originally_recorded": created_at or None,
-                        "origin_file": origin.get("origin_file"),
-                        "origin_function": origin.get("origin_function"),
-                        "failure_stage": origin.get("stage"),
-                        "failure_reason": origin.get("reason"),
-                        "originated_during_this_request": bool(created_at and created_at >= current_request_timestamp),
-                        "originated_during_previous_request": bool(created_at and created_at < current_request_timestamp),
-                        "current_lookup_succeeded_before_replay": current_lookup_succeeded,
-                        "current_lookup_entity_id": current_lookup_entity_id,
-                        "current_lookup_url": current_lookup_url,
-                        "returned_replan_reason": pipeline_failure.replan.reason if pipeline_failure.replan else None,
-                    },
-                    ensure_ascii=False,
-                ),
-                flush=True,
-            )
+            if diagnostic_terminal_enabled("AI_BROWSER_KERNEL_LOOKUP_TRACE"):
+                safe_print(
+                    "[V4.9.3 proof] SEMANTIC_KERNEL_ACTIVE_FAILURE_RESPONSE "
+                    + json.dumps(
+                        {
+                            "mission_id": session_id,
+                            "planner_turn_id": planner_turn_id,
+                            "failure_creation_timestamp": created_at or None,
+                            "current_request_timestamp": current_request_timestamp,
+                            "when_originally_recorded": created_at or None,
+                            "origin_file": origin.get("origin_file"),
+                            "origin_function": origin.get("origin_function"),
+                            "failure_stage": origin.get("stage"),
+                            "failure_reason": origin.get("reason"),
+                            "originated_during_this_request": bool(created_at and created_at >= current_request_timestamp),
+                            "originated_during_previous_request": bool(created_at and created_at < current_request_timestamp),
+                            "current_lookup_succeeded_before_replay": current_lookup_succeeded,
+                            "current_lookup_entity_id": current_lookup_entity_id,
+                            "current_lookup_url": current_lookup_url,
+                            "returned_replan_reason": pipeline_failure.replan.reason if pipeline_failure.replan else None,
+                        },
+                        ensure_ascii=True,
+                    )
+                )
         if pipeline_failure is not None:
             _debug_v494_kernel(
                 "FINAL_REJECTION_ACTIVE_PIPELINE_FAILURE",
@@ -284,6 +285,17 @@ class SemanticExecutionKernel:
             )
             _mark_grounded(session_id, snapshot)
             result.suggested_actions[0] = apply_grounding_to_action(result.suggested_actions[0], snapshot.grounding)
+        elif snapshot.proposal and snapshot.proposal.action_type == "FOCUS_TAB" and snapshot.grounding and not snapshot.grounding.grounded:
+            _debug_v494_kernel(
+                "FINAL_REJECTION_GROUNDING",
+                {
+                    "mission_id": session_id,
+                    "planner_turn_id": planner_turn_id,
+                    "branch_reason": "FOCUS_TAB grounding failed before browser boundary",
+                    "grounding": snapshot.grounding.to_dict(),
+                },
+            )
+            return _replan_from_kernel(result, snapshot.recovery, snapshot.grounding.reason)
         _debug_v494_kernel(
             "POSTPROCESS_RETURN_ACTION",
             {
@@ -318,14 +330,15 @@ def _planner_turn_id(session_id: str, result: AnalyzeResponse) -> str:
 
 
 def _debug_v494_kernel(event: str, payload: dict[str, Any]) -> None:
+    if not diagnostic_terminal_enabled("AI_BROWSER_KERNEL_LOOKUP_TRACE"):
+        return
     try:
-        print(
+        safe_print(
             "[V4.9.4 kernel-lookup] SEMANTIC_KERNEL "
-            + json.dumps({"event": event, **payload}, ensure_ascii=False),
-            flush=True,
+            + json.dumps({"event": event, **payload}, ensure_ascii=True)
         )
     except Exception as exc:
-        print(f"[V4.9.4 kernel-lookup] SEMANTIC_KERNEL_LOG_FAILED {exc}", flush=True)
+        safe_print(f"[V4.9.4 kernel-lookup] SEMANTIC_KERNEL_LOG_FAILED {exc}")
 
 
 def _mark_grounded(session_id: str, snapshot: KernelSnapshot) -> None:

@@ -8,6 +8,7 @@ from google.genai import errors
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
 from app.schemas.request import AnalyzeRequest
 from app.schemas.response import AnalyzeResponse
 from app.services import ai_service, context_service
@@ -44,19 +45,13 @@ async def analyze(request: Request, payload: AnalyzeRequest, db: Session = Depen
 
     page_context_text = context_service.format_page_context(payload.page_context)
     
-    print("\n================= PAGE CONTEXT =================")
-    print(f"URL: {payload.page_context.url}")
-    print("INTERACTIVE ELEMENTS:")
-    for el in payload.page_context.interactive_elements[:15]:
-        try:
-            print(f"- Tag: {el.type} | Text: {el.text} | Selector: {el.selector}")
-        except Exception:
-            try:
-                text_safe = el.text.encode('ascii', errors='replace').decode('ascii') if el.text else ""
-                print(f"- Tag: {el.type} | Text: {text_safe} | Selector: {el.selector}")
-            except Exception:
-                pass
-    print("================================================\n", flush=True)
+    if diagnostic_terminal_enabled("AI_BROWSER_VERBOSE_TERMINAL"):
+        safe_print("\n================= PAGE CONTEXT =================")
+        safe_print(f"URL: {payload.page_context.url}")
+        safe_print("INTERACTIVE ELEMENTS:")
+        for el in payload.page_context.interactive_elements[:15]:
+            safe_print(f"- Tag: {el.type} | Text: {el.text} | Selector: {el.selector}")
+        safe_print("================================================\n")
 
     try:
         from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
@@ -119,7 +114,9 @@ async def _log_live_path_analyze_receipt(request: Request, payload: AnalyzeReque
         raw_semantic_keys = [key for key in raw_keys if any(term in key.lower() for term in ("semantic", "entity", "browser_intelligence", "page_model"))]
         interactive = payload.page_context.interactive_elements
         blocks = payload.page_context.content_blocks
-        print(
+        if not diagnostic_terminal_enabled("AI_BROWSER_LIVE_PATH_TRACE"):
+            return
+        safe_print(
             "[V4.5.1 live-path] BACKEND_ANALYZE_RECEIVED "
             + json.dumps(
                 {
@@ -149,9 +146,8 @@ async def _log_live_path_analyze_receipt(request: Request, payload: AnalyzeReque
                         for item in blocks[:6]
                     ],
                 },
-                ensure_ascii=False,
+                ensure_ascii=True,
             ),
-            flush=True,
         )
     except Exception as exc:
-        print(f"[V4.5.1 live-path] BACKEND_ANALYZE_RECEIPT_LOG_FAILED {exc}", flush=True)
+        safe_print(f"[V4.5.1 live-path] BACKEND_ANALYZE_RECEIPT_LOG_FAILED {exc}")

@@ -3,9 +3,10 @@ from __future__ import annotations
 from app.core.config import settings
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, SuggestedAction
-from app.runtime_state_manager.entity_binding import list_entities
+from app.runtime_state_manager.entity_binding import bind_runtime_resource, list_entities, register_entity
 from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_replay, entity_pipeline_telemetry
 from app.semantic_execution_kernel.engine import SemanticExecutionKernel
+from app.semantic_execution_kernel.mission_state import build_mission_state
 
 
 def _page() -> PageContext:
@@ -228,3 +229,94 @@ def test_kernel_loop_prevention_rejects_duplicate_proposal(monkeypatch):
     assert result.outcome_kind == "replan"
     assert result.replan is not None
     assert "loop_detected" in result.replan.reason
+
+
+def test_opened_browser_actions_are_successful_and_do_not_block_read_phase(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    task = """
+    Open Google Search and search for: best AI browser automation tools 2026.
+    From the first page of results:
+    1. Open the top 5 relevant results in new tabs.
+    2. Read each page.
+    3. Extract Tool, Purpose, Pricing, Limitation, URL.
+    4. Produce a comparison table.
+    """
+    prior = [
+        PriorStep(
+            action_type="open_new_tab",
+            description=f"Open phase entity #{index}: Tool {index}",
+            target_selector="",
+            value=f"https://tool{index}.example/",
+            execution_result=f"Opened new tab: https://tool{index}.example/",
+            page_url=f"https://tool{index}.example/",
+            page_title=f"Tool {index}",
+        )
+        for index in range(1, 6)
+    ]
+
+    mission_state = build_mission_state(task, prior)
+
+    assert mission_state.blocked is False
+    assert mission_state.goals[0].status == "completed"
+    assert mission_state.goals[0].retries == 0
+    assert mission_state.current_goal_id == "goal_2"
+
+    result = SemanticExecutionKernel().postprocess_response(
+        result=_response("focus_existing_tab", value="url:https://tool1.example/"),
+        session_id="kernel-opened-success-read",
+        task=task,
+        page_context=_page(),
+        prior_steps=prior,
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "focus_existing_tab"
+
+
+def test_focus_tab_grounding_translates_logical_tab_to_browser_url_reference(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    session_id = "kernel-logical-tab-boundary"
+    logical_tab_id = "logical_tab_cd9c0daa61"
+    register_entity(
+        session_id,
+        entity_type="result",
+        title="Pickaxe",
+        canonical_url="https://pickaxe.co/post/top-ai-browsers-extensions",
+        source_layer="test",
+    )
+    entity = list_entities(session_id)[0]
+    bind_runtime_resource(
+        session_id,
+        entity_id=entity.entity_id,
+        runtime_resource_id=logical_tab_id,
+    )
+
+    result = SemanticExecutionKernel().postprocess_response(
+        result=_response("focus_existing_tab", value=logical_tab_id),
+        session_id=session_id,
+        task="Read the opened Pickaxe tab.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    action = result.suggested_actions[0]
+    assert action.action_type == "focus_existing_tab"
+    assert action.value == "url:https://pickaxe.co/post/top-ai-browsers-extensions"
+    assert "logical_tab_" not in (action.value or "")
+
+
+def test_focus_tab_grounding_rejects_unresolved_logical_tab_before_browser_boundary(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    result = SemanticExecutionKernel().postprocess_response(
+        result=_response("focus_existing_tab", value="logical_tab_missing"),
+        session_id="kernel-logical-tab-missing",
+        task="Read the opened tab.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "replan"
+    assert result.suggested_actions == []
+    assert result.replan is not None
+    assert "logical tab reference unresolved" in result.replan.reason

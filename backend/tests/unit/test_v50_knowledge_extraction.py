@@ -8,6 +8,7 @@ from app.knowledge_extraction.report_engine import generate_report
 from app.knowledge_extraction.synthesizer import synthesize_knowledge
 from app.knowledge_extraction.validator import validate_records, validation_summary
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext
+from app.schemas.response import AnalyzeResponse, SuggestedAction
 
 
 def _page(text: str, *, title: str = "Example Tool", url: str = "https://example.test/tool") -> PageContext:
@@ -140,3 +141,43 @@ def test_synthesis_uses_validated_records_only():
     assert validation_summary(records)["record_count"] >= 1
     assert knowledge is not None
     assert knowledge.content["rows"]
+
+
+def test_synthesize_phase_produces_report_evidence_without_declaring_completion(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    monkeypatch.setattr(settings, "v50_report_engine", "active")
+    pipeline = KnowledgeExtractionPipeline()
+    snapshot = pipeline.observe(
+        session_id="synthesize-report-owner",
+        task="Extract Tool, Purpose, Pricing, Limitation, URL.",
+        page_context=_page("Example Tool automates browsers. Free plan available. Limited support."),
+        current_phase="SYNTHESIZE",
+    )
+    planner_wait = AnalyzeResponse(
+        session_id="synthesize-report-owner",
+        analysis="Wait for extraction to complete.",
+        outcome_kind="act",
+        suggested_actions=[
+            SuggestedAction(
+                action_id="wait",
+                action_type="wait",  # type: ignore[arg-type]
+                target_selector="window",
+                value="1000",
+                description="Wait",
+                reasoning="Planner wants to wait.",
+                confidence=0.7,
+                safety_level="safe",  # type: ignore[arg-type]
+            )
+        ],
+    )
+
+    result = pipeline.postprocess_response(planner_wait, snapshot)
+
+    assert snapshot.report_artifact is not None
+    assert snapshot.report_artifact.completion_status == "complete"
+    assert result is planner_wait
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "wait"

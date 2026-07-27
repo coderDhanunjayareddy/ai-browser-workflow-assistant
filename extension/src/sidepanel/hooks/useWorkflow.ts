@@ -517,9 +517,17 @@ function isRepeatedAction(action: SuggestedAction, completed: CompletedAction[],
 }
 
 function nextAllowedActions(actions: SuggestedAction[], completed: CompletedAction[], currentUrl?: string): SuggestedAction[] {
-  const nextAction = actions[0]
-  if (!nextAction) return []
-  return isRepeatedAction(nextAction, completed, currentUrl) ? [] : [nextAction]
+  const allowed: SuggestedAction[] = []
+  const seen = new Set<string>()
+  for (const action of actions) {
+    const signature = actionSignature(action)
+    if (seen.has(signature)) continue
+    seen.add(signature)
+    if (!isRepeatedAction(action, completed, currentUrl)) {
+      allowed.push(action)
+    }
+  }
+  return allowed
 }
 
 function repeatedClarificationQuestion(question: string | null | undefined, userInputs: string[]): string | null {
@@ -530,6 +538,17 @@ function repeatedClarificationQuestion(question: string | null | undefined, user
   return repeatedQuestion
     ? `I already have an answer for "${question}". If it is wrong, provide the corrected value; otherwise click Continue to retry using the saved answer.`
     : question
+}
+
+export function phaseContinuationActions(
+  result: AnalyzeResponse,
+  completed: CompletedAction[],
+  currentUrl?: string,
+): SuggestedAction[] {
+  const directive = result.execution_orchestrator
+  if (!directive || directive.should_replan) return []
+  if (!Array.isArray(directive.continuation_actions)) return []
+  return nextAllowedActions(directive.continuation_actions, completed, currentUrl)
 }
 
 function buildReportAnalysis(result: AnalyzeResponse): string {
@@ -614,6 +633,11 @@ export function routeAnalyzeOutcome(
   const outcomeKind = result.outcome_kind ?? (result.clarification_question ? 'ask' : 'act')
   const allowedActions = nextAllowedActions(
     result.suggested_actions,
+    options.completedActions,
+    options.currentUrl,
+  )
+  const continuationActions = phaseContinuationActions(
+    result,
     options.completedActions,
     options.currentUrl,
   )
@@ -713,7 +737,7 @@ export function routeAnalyzeOutcome(
   return {
     phase: 'awaiting_execution',
     analysisText: result.analysis,
-    pendingActions: allowedActions,
+    pendingActions: [...allowedActions, ...continuationActions],
     clarificationQuestion: null,
     contractOutcome: outcomeKind,
     report: null,
@@ -1118,6 +1142,18 @@ export function useWorkflow() {
         userInputs,
         refresh: true,
       })
+      return
+    }
+
+    if (remaining.length > 0) {
+      setState((s) => ({
+        ...s,
+        phase: 'awaiting_execution',
+        activeAction: null,
+        pendingActions: remaining,
+        completedActions: newCompleted,
+        error: null,
+      }))
       return
     }
 

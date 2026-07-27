@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from app.execution_orchestrator.models import ArtifactRegistry
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 
 
 def build_artifacts(page_context: Any, prior_steps: list[Any]) -> ArtifactRegistry:
@@ -83,7 +84,7 @@ def _append_unique(items: list[str], value: str) -> None:
 
 
 def _success(result: str) -> bool:
-    return result.lower().startswith(("success", "clicked", "filled", "navigating", "opened", "waited", "scrolled"))
+    return is_successful_execution_result(result)
 
 
 def _url(value: str) -> str | None:

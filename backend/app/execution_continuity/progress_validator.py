@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from app.execution_continuity.action_history import detect_loop
 from app.execution_continuity.models import ActionRecord, MissionProgress, ProgressValidation
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 
 
 def validate_progress(records: list[ActionRecord], mission: MissionProgress) -> ProgressValidation:
     loop = detect_loop(records)
     recent = records[-5:]
-    successful_recent = [record for record in recent if record.result.lower().startswith(("success", "clicked", "filled", "navigating", "opened"))]
+    successful_recent = [record for record in recent if is_successful_execution_result(record.result)]
     unique_recent = {record.signature for record in recent}
     progress_increased = bool(successful_recent) and (len(unique_recent) > 1 or mission.progress_percent > 0)
     no_progress_count = _no_progress_count(records)
@@ -49,7 +50,7 @@ def _no_progress_count(records: list[ActionRecord]) -> int:
     count = 0
     last_signature = None
     for record in reversed(records):
-        successful = record.result.lower().startswith(("success", "clicked", "filled", "navigating", "opened"))
+        successful = is_successful_execution_result(record.result)
         if successful and record.signature != last_signature:
             break
         count += 1

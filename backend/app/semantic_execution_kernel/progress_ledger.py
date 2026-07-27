@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 from app.semantic_execution_kernel.evidence import evidence_for_step
 from app.semantic_execution_kernel.models import ProgressLedgerEntry, SemanticActionProposal
 
@@ -11,7 +12,7 @@ def build_progress_ledger(prior_steps: list[Any], proposal: SemanticActionPropos
     for step in prior_steps[-20:]:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
         evidence = evidence_for_step(step)
-        success = bool(evidence) and str(data.get("execution_result") or "").lower().startswith(("success", "clicked", "filled", "navigating", "opened", "waited", "scrolled"))
+        success = bool(evidence) and is_successful_execution_result(data.get("execution_result"))
         entries.append(
             ProgressLedgerEntry(
                 semantic_action=_semantic_from_browser_action(str(data.get("action_type") or "")),

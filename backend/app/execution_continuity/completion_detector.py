@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.runtime_state_manager.execution_result import is_successful_execution_result
+
 
 def expected_outcomes(action_type: str) -> list[str]:
     expectations = {
@@ -24,10 +26,10 @@ def expected_outcomes(action_type: str) -> list[str]:
 
 def action_completed(step: Any) -> bool:
     data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
-    result = str(data.get("execution_result") or "").lower()
+    result = str(data.get("execution_result") or "")
     if not result:
         return False
-    if result.startswith(("success", "clicked", "filled", "navigating", "waited", "scrolled", "opened")):
+    if is_successful_execution_result(result):
         return True
     verification = (data.get("page_metadata") or {}).get("verification_result") if isinstance(data.get("page_metadata"), dict) else None
     return str(verification or "").lower() in {"true", "success", "verified"}

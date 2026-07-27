@@ -324,6 +324,42 @@ def test_validation_shadow_preserves_report_sgv_compatibility(db_session, monkey
     assert response.report is expected.report
 
 
+def test_backend_authoritative_report_is_not_downgraded_by_page_local_sgv(db_session, monkeypatch):
+    expected = AnalyzeResponse(
+        session_id="backend-authoritative-report-session",
+        analysis="Knowledge Extraction Pipeline produced the authoritative report artifact.",
+        outcome_kind="report",
+        suggested_actions=[],
+        report=ReportOutcome(
+            answer="| tool | purpose |\n| --- | --- |\n| Tool A | Multi-page evidence |",
+            claim="Report generated from validated extraction artifacts.",
+        ),
+        sgv_verified=True,
+        goal_convergence=True,
+        backend_authoritative_report=True,
+    )
+
+    def fake_analyze(**_kwargs):
+        return expected
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("backend-authoritative-report-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Produce a comparison table",
+        page_context=page("https://example.test/current"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response is expected
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.goal_convergence is True
+    assert response.backend_authoritative_report is True
+
+
 def test_governance_shadow_does_not_change_planner_response(db_session, monkeypatch):
     from app.core.config import settings
 

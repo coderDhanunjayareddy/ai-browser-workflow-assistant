@@ -14,6 +14,8 @@ from google.genai import types
 from google.genai import errors as _genai_errors
 
 from app.core.config import settings
+from app.diagnostics.console import diagnostic_terminal_enabled
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 from app.schemas.request import PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, SuggestedAction, ReportOutcome, ReplanOutcome
 
@@ -1105,7 +1107,7 @@ def _iter_opened_urls_from_prior_steps(prior_steps: Iterable[PriorStep]) -> Iter
     for step in prior_steps:
         if (step.action_type or "").lower() != "open_new_tab":
             continue
-        if (step.execution_result or "").lower() != "success":
+        if not is_successful_execution_result(step.execution_result):
             continue
         extracted = _extract_http_url(step.value)
         if extracted:
@@ -1282,6 +1284,8 @@ def generate_text(system_prompt: str, user_message: str) -> str:
 
 
 def _log_live_path_prompt_context(session_id: str, compressed_context: dict[str, Any]) -> None:
+    if not diagnostic_terminal_enabled("AI_BROWSER_LIVE_PATH_TRACE"):
+        return
     try:
         bi_context = compressed_context.get("browser_intelligence") if isinstance(compressed_context, dict) else None
         semantic_entities = bi_context.get("semantic_entities", []) if isinstance(bi_context, dict) else []
@@ -1308,7 +1312,7 @@ def _log_live_path_prompt_context(session_id: str, compressed_context: dict[str,
                         if isinstance(entity, dict)
                     ],
                 },
-                ensure_ascii=False,
+                ensure_ascii=True,
             )
         )
     except Exception as exc:
@@ -1521,7 +1525,8 @@ def analyze(
 
     # Standard browser interactive workflow (JSON mode with SYSTEM_PROMPT)
     # We do NOT download or pass image bytes here to keep request payload tiny and fast.
-    _safe_debug_print(f"[AI Service] Standard workflow task via {provider}. Skipping image downloader.")
+    if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
+        _safe_debug_print(f"[AI Service] Standard workflow task via {provider}. Skipping image downloader.")
 
     if provider == "openrouter":
         raw = _call_openrouter_chat(
@@ -1532,7 +1537,8 @@ def analyze(
             response_format={"type": "json_object"},
             max_tokens=512,
         )
-        _safe_debug_print(f"[AI Service] Raw JSON response from OpenRouter (Workflow):\n{raw}\n")
+        if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
+            _safe_debug_print(f"[AI Service] Raw JSON response from OpenRouter (Workflow):\n{raw}\n")
         for repair_attempt in range(2):
             try:
                 result = parse_response(raw, session_id)
@@ -1550,7 +1556,8 @@ def analyze(
                         response_format={"type": "json_object"},
                         max_tokens=512,
                     )
-                    _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
+                    if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
+                        _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
                     return finalize(parse_response(reflected_raw, session_id))
                 except Exception as reflect_err:
                     _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")
@@ -1587,7 +1594,8 @@ def analyze(
             system_prompt=SYSTEM_PROMPT,
             max_tokens=512,
         )
-        _safe_debug_print(f"[AI Service] Raw JSON response from Anthropic (Workflow):\n{raw}\n")
+        if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
+            _safe_debug_print(f"[AI Service] Raw JSON response from Anthropic (Workflow):\n{raw}\n")
         for repair_attempt in range(2):
             try:
                 result = parse_response(raw, session_id)
@@ -1600,7 +1608,8 @@ def analyze(
                         system_prompt=SYSTEM_PROMPT,
                         max_tokens=512,
                     )
-                    _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
+                    if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
+                        _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
                     return finalize(parse_response(reflected_raw, session_id))
                 except Exception as reflect_err:
                     _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")
@@ -1677,7 +1686,8 @@ def analyze(
                 latency_ms=0.0)
         except Exception:
             pass
-    _safe_debug_print(f"[AI Service] Raw JSON response from Gemini (Workflow):\n{raw}\n")
+    if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
+        _safe_debug_print(f"[AI Service] Raw JSON response from Gemini (Workflow):\n{raw}\n")
     for repair_attempt in range(2):
         try:
             result = parse_response(raw, session_id)
@@ -1712,7 +1722,8 @@ def analyze(
                             latency_ms=0.0)
                     except Exception:
                         pass
-                _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
+                if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
+                    _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
                 return finalize(parse_response(reflected_raw, session_id))
             except Exception as reflect_err:
                 _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")

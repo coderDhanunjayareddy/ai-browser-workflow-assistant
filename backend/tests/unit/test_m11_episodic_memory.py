@@ -111,22 +111,13 @@ def test_page_changed_none_for_empty_or_missing_result():
     assert _infer_page_changed(None) is None
 
 
-def test_known_limitation_qualified_success_string_not_yet_routed_to_completed():
-    """
-    Documents the real, current limitation (see M1.1 deliverable notes): the classification
-    gate in StateSummarizer.summarize() is an EXACT match against "success" (unchanged by
-    M1.1 on purpose — that gate is not part of M1.1's scope). A progress-qualified string
-    like "success (page unchanged)" therefore does NOT reach completed_nodes today; it is
-    misrouted to important_failures. This is expected until a later milestone (M1.5) makes
-    callers emit qualified strings AND updates this classification gate to match them.
-    """
+def test_qualified_success_string_routes_to_completed():
     step = PriorStep(action_type="click", description="click page 2", target_selector="#p2",
                      execution_result="success (page unchanged)")
     out = StateSummarizer().summarize(active_goal="g", verified_facts={}, prior_steps=[step])
-    assert out["completed_nodes"] == []
-    assert out["important_failures"] == [
-        {"step": "click page 2", "error": "success (page unchanged)"}
-    ]
+    assert out["completed_nodes"][0]["description"] == "click page 2"
+    assert out["completed_nodes"][0]["page_changed"] is False
+    assert out["important_failures"] == []
 
 
 # ── ContextCompressor ────────────────────────────────────────────────────────

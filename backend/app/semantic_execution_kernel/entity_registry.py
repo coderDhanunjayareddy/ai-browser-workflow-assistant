@@ -4,6 +4,7 @@ import hashlib
 import json
 from typing import Any
 
+from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
 from app.runtime_state_manager.entity_binding import list_entities, register_entity
 from app.runtime_state_manager.entity_pipeline_trace import get_entity_pipeline_tracer
 from app.semantic_execution_kernel.models import BrowserBinding, SemanticEntity
@@ -290,6 +291,8 @@ def _debug_v494_semantic_find(
     matched: SemanticEntity | None = None,
     failure_reason: str | None = None,
 ) -> None:
+    if not diagnostic_terminal_enabled("AI_BROWSER_KERNEL_LOOKUP_TRACE"):
+        return
     try:
         requested_entity_id = requested.get("entity_id")
         requested_artifact_id = requested.get("artifact_id")
@@ -312,7 +315,7 @@ def _debug_v494_semantic_find(
                 "artifact_id_match": bool(requested_artifact_id and entity.artifact_id == requested_artifact_id),
                 "runtime_resource_id_match": bool(requested_runtime_resource_id and (entity.runtime_resource_id == requested_runtime_resource_id or entity.browser_bindings.runtime_resource_id == requested_runtime_resource_id)),
             })
-        print(
+        safe_print(
             "[V4.9.4 kernel-lookup] SEMANTIC_ENTITY_FIND "
             + json.dumps(
                 {
@@ -328,9 +331,8 @@ def _debug_v494_semantic_find(
                     "failure_reason": failure_reason,
                     "registry_contents": comparisons,
                 },
-                ensure_ascii=False,
-            ),
-            flush=True,
+                ensure_ascii=True,
+            )
         )
     except Exception as exc:
-        print(f"[V4.9.4 kernel-lookup] SEMANTIC_ENTITY_FIND_LOG_FAILED {exc}", flush=True)
+        safe_print(f"[V4.9.4 kernel-lookup] SEMANTIC_ENTITY_FIND_LOG_FAILED {exc}")

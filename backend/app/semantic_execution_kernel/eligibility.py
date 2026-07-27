@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
 from app.semantic_execution_kernel.entity_registry import find_entity
 from app.semantic_execution_kernel.models import EligibilityResult, MissionState, SemanticActionProposal, SemanticEntity
 
@@ -80,11 +81,12 @@ def _retry_count(mission_state: MissionState) -> int:
 
 
 def _debug_v494_eligibility(event: str, payload: dict) -> None:
+    if not diagnostic_terminal_enabled("AI_BROWSER_KERNEL_LOOKUP_TRACE"):
+        return
     try:
-        print(
+        safe_print(
             "[V4.9.4 kernel-lookup] ELIGIBILITY "
-            + json.dumps({"event": event, **payload}, ensure_ascii=False),
-            flush=True,
+            + json.dumps({"event": event, **payload}, ensure_ascii=True)
         )
     except Exception as exc:
-        print(f"[V4.9.4 kernel-lookup] ELIGIBILITY_LOG_FAILED {exc}", flush=True)
+        safe_print(f"[V4.9.4 kernel-lookup] ELIGIBILITY_LOG_FAILED {exc}")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 from app.semantic_execution_kernel.models import MissionGoal, MissionState
 
 
@@ -61,7 +62,7 @@ def _successful_descriptions(prior_steps: list[Any]) -> list[str]:
     return [
         str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("description") or "")
         for step in prior_steps
-        if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("execution_result") or "").lower().startswith("success")
+        if is_successful_execution_result((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("execution_result"))
     ]
 
 
@@ -69,7 +70,7 @@ def _failed_descriptions(prior_steps: list[Any]) -> list[str]:
     return [
         str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("description") or "")
         for step in prior_steps
-        if not str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("execution_result") or "").lower().startswith("success")
+        if not is_successful_execution_result((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("execution_result"))
     ]
 
 
@@ -80,6 +81,8 @@ def _retry_count(description: str, prior_steps: list[Any]) -> int:
     count = 0
     for step in prior_steps:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        if is_successful_execution_result(data.get("execution_result")):
+            continue
         if terms & set(_terms(data.get("description") or "")):
             count += 1
     return count

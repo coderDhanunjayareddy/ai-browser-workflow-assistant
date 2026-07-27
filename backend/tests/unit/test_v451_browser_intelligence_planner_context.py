@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from app.browser_intelligence import build_browser_intelligence, format_browser_intelligence_for_planner
@@ -143,6 +145,56 @@ def test_planner_response_references_valid_prompt_entity_and_kernel_resolves(mon
 
     assert result.outcome_kind == "act"
     assert result.suggested_actions[0].value == target
+
+
+def test_browser_intelligence_planner_view_is_budgeted_without_losing_ranked_result_urls(monkeypatch):
+    monkeypatch.setattr(settings, "v451_browser_intelligence_planner_context", "shadow")
+    session_id = "v451-budgeted-view"
+    page_model = SimpleNamespace(
+        classification=SimpleNamespace(page_type="search_results", confidence=0.9),
+        adapter="generic_search",
+        search_results=[
+            SimpleNamespace(
+                rank=index + 1,
+                title=f"Result {index + 1} " + ("long title " * 30),
+                url=f"https://result.example.test/{index + 1}",
+                displayed_url=f"result.example.test/{index + 1}",
+                description="long description " * 40,
+            )
+            for index in range(12)
+        ],
+        elements=[
+            SimpleNamespace(
+                element_id=f"el_{index}",
+                kind="link",
+                label="Element label " * 20,
+                selector_id=f"sel_{index}",
+                selector=f"#element-{index}",
+                href=f"https://element.example.test/{index}",
+                confidence=0.8,
+                visible=True,
+            )
+            for index in range(40)
+        ],
+    )
+    artifact = SimpleNamespace(
+        page_model=page_model,
+        browser_state=SimpleNamespace(to_dict=lambda: {}),
+        memory=None,
+        health=None,
+        wait_plan=None,
+    )
+
+    context = format_browser_intelligence_for_planner(artifact, scope_id=session_id)
+
+    assert len(context["search_results"]) == 8
+    assert len(context["semantic_entities"]) == 24
+    assert len(context["semantic_elements"]) == 12
+    assert [item["canonical_url"] for item in context["search_results"][:5]] == [
+        f"https://result.example.test/{index}" for index in range(1, 6)
+    ]
+    assert all(len(item["title"]) <= 160 for item in context["search_results"])
+    assert all(len(item["description"]) <= 220 for item in context["search_results"])
 
 
 def test_semantic_extraction_failure_when_only_controls(monkeypatch):

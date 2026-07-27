@@ -1,4 +1,5 @@
 from app.schemas.request import PageContext, PriorStep
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 
 
 def format_page_context(ctx: PageContext) -> str:
@@ -85,7 +86,7 @@ def format_prior_steps(steps: list[PriorStep]) -> str:
         "These steps already ran. Successful steps should not be repeated. Failed steps identify what did not work; recover using the current page state and exact current selectors.",
     ]
     for i, step in enumerate(steps, 1):
-        status = "SUCCESS" if step.execution_result.lower().startswith(("success", "clicked", "filled", "navigating", "waited", "scrolled")) else "FAILED"
+        status = "SUCCESS" if is_successful_execution_result(step.execution_result) else "FAILED"
         line = f"{i}. {status} {step.action_type.upper()}: {step.description}"
         if step.value:
             line += f' (value: "{step.value}")'

@@ -3,6 +3,7 @@ from app.runtime_state_manager.engine import (
     enrich_planner_context_with_runtime_state,
     observe_runtime_state,
     postprocess_with_runtime_state,
+    resolve_logical_tab_url,
     runtime_phase_completion,
 )
 from app.runtime_state_manager.models import RuntimeStateSnapshot
@@ -13,5 +14,6 @@ __all__ = [
     "enrich_planner_context_with_runtime_state",
     "observe_runtime_state",
     "postprocess_with_runtime_state",
+    "resolve_logical_tab_url",
     "runtime_phase_completion",
 ]

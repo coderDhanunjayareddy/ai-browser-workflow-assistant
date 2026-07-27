@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models.db import WorkflowEvent, WorkflowSession
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 from app.schemas.history import EventHistory, HistoryResponse, SessionHistory
 from app.schemas.workflow import LogEventRequest, LogEventResponse
 
@@ -51,7 +52,7 @@ def log_event(db: Session, request: LogEventRequest) -> LogEventResponse:
         try:
             from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
             orchestrator = WorkflowOrchestrator(request.session_id, db)
-            success = (request.execution_result == "success")
+            success = is_successful_execution_result(request.execution_result)
             orchestrator.process_executed_step(
                 action_type=action.action_type or "",
                 selector=action.target_selector or "",

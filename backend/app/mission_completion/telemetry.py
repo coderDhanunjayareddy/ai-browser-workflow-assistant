@@ -21,7 +21,7 @@ def build_telemetry(
         planner_calls_saved=planner_calls_saved,
         completion_confidence=confidence,
         partial_completion_count=partial_count,
-        retry_decisions=1 if decision == CompletionDecision.RETRY else 0,
+        retry_decisions=1 if decision == CompletionDecision.INCOMPLETE and planner_calls_saved == 0 else 0,
         report_generation_ms=report_generation_ms,
         workflow_exit_ms=latency_ms if terminal else 0,
     )
