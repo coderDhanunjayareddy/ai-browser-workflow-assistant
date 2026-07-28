@@ -11,6 +11,7 @@ IntentOwner = Literal[
     "mission_completion",
     "execution_orchestrator",
     "runtime_state_manager",
+    "validation",
     "unknown",
 ]
 
@@ -39,3 +40,23 @@ class IntentDispatchDirective(BaseModel):
     reason: str
     payload: dict[str, Any] = Field(default_factory=dict)
     handled: bool = False
+
+
+class IntentExecutionEvidence(BaseModel):
+    evidence_id: str
+    source: IntentOwner
+    kind: str
+    summary: str
+    references: list[str] = Field(default_factory=list)
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class IntentExecutionResult(BaseModel):
+    schema_version: str = "intent_execution.v1"
+    intent: str
+    owner: IntentOwner
+    capability: str
+    dispatch_target: str
+    success: bool
+    reason: str
+    evidence: list[IntentExecutionEvidence] = Field(default_factory=list)

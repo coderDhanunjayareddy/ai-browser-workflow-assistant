@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Literal, Optional
 
-from app.intent_dispatcher.models import IntentDispatchDirective
+from app.intent_dispatcher.models import IntentDispatchDirective, IntentExecutionResult
 
 
 class SuggestedAction(BaseModel):
@@ -82,3 +82,6 @@ class AnalyzeResponse(BaseModel):
     # only receive suggested_actions; this directive never crosses that boundary
     # as an executable browser command.
     intent_dispatch: Optional[IntentDispatchDirective] = None
+    # Structured evidence produced when a backend-owned intent is executed by
+    # its registered owner.
+    intent_execution: Optional[IntentExecutionResult] = None
