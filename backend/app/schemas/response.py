@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Literal, Optional
 
-from app.intent_dispatcher.models import IntentDispatchDirective, IntentExecutionResult
+from app.intent_dispatcher.models import IntentDispatchDirective, IntentQueueResult
 
 
 class SuggestedAction(BaseModel):
@@ -84,4 +84,4 @@ class AnalyzeResponse(BaseModel):
     intent_dispatch: Optional[IntentDispatchDirective] = None
     # Structured evidence produced when a backend-owned intent is executed by
     # its registered owner.
-    intent_execution: Optional[IntentExecutionResult] = None
+    intent_execution: Optional[IntentQueueResult] = None

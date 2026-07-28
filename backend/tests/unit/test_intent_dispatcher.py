@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import json
 
-from app.intent_dispatcher import dispatch_intent, execute_intent, intent_dispatch_context, resolve_intent_owner
+from app.intent_dispatcher import (
+    dispatch_intent,
+    execute_intent,
+    execute_intent_queue,
+    intent_dispatch_context,
+    resolve_intent_owner,
+)
+from app.intent_dispatcher.models import ExecutionContext
 from app.services.ai_service import parse_response
 
 
@@ -22,7 +29,8 @@ def test_dispatch_context_exposes_registered_owners_without_browser_action_growt
         for entry in context["registered_owners"]
     }
     assert ("knowledge_extraction", "field_extraction") in capabilities
-    assert all(entry["browser_executable"] is False for entry in context["registered_owners"])
+    assert ("browser_control", "navigate") in capabilities
+    assert any(entry["browser_executable"] is True for entry in context["registered_owners"])
 
 
 def test_parser_routes_backend_intent_without_adding_browser_action():
@@ -178,6 +186,135 @@ def test_extract_fields_executor_invokes_knowledge_extraction_and_returns_eviden
     assert result.evidence[0].kind == "field_extraction"
     assert result.evidence[0].payload["extraction_record_count"] == 1
     assert result.evidence[0].payload["report_artifact_id"] == "report_1"
+
+
+def test_queue_chains_extract_validate_completion_without_planner_reentry(monkeypatch):
+    import app.knowledge_extraction as knowledge_extraction
+    import app.mission_completion as mission_completion
+    from app.knowledge_extraction.models import (
+        ExtractionRecord,
+        KnowledgeArtifact,
+        KnowledgePipelineSnapshot,
+        KnowledgePipelineTelemetry,
+        PageReadArtifact,
+        ReportArtifact,
+    )
+
+    class CompletionSnapshot:
+        session_id = "intent-session"
+        decision = "COMPLETE"
+        status = "COMPLETE"
+        reason = "All criteria satisfied."
+        confidence = 0.98
+        workflow_result = object()
+
+    def fake_observe_knowledge_pipeline(*, session_id, task, page_context, current_phase=None):
+        read = PageReadArtifact(
+            id="read_1",
+            title="Tool Page",
+            canonical_url="https://tool.example",
+            headings=["Tool"],
+            sections=[],
+            paragraphs=["Pricing starts at $10."],
+            metadata={},
+            tables=[],
+            lists=[],
+            forms=[],
+            pricing_blocks=["$10"],
+            contact_blocks=[],
+            navigation_context=[],
+            timestamp_ms=1,
+        )
+        record = ExtractionRecord(
+            id="rec_1",
+            source_page="https://tool.example",
+            producing_action="extract_fields",
+            producing_phase=current_phase or "EXTRACT",
+            extraction_type="comparison_fields",
+            fields={"tool": "Tool", "pricing": "$10"},
+            confidence=0.92,
+            validation={"valid": True},
+            timestamp_ms=2,
+        )
+        knowledge = KnowledgeArtifact(
+            id="know_1",
+            artifact_type="comparison_table",
+            records=[record],
+            content={"rows": [record.fields]},
+            validation={"valid": True},
+            timestamp_ms=3,
+        )
+        report = ReportArtifact(
+            id="report_1",
+            format="markdown",
+            content="| tool | pricing |\n| --- | --- |\n| Tool | $10 |",
+            structured={"rows": [record.fields]},
+            source_knowledge_id="know_1",
+            completion_status="complete",
+            timestamp_ms=4,
+        )
+        return KnowledgePipelineSnapshot(
+            schema_version="knowledge_extraction.v1",
+            session_id=session_id,
+            current_phase=current_phase,
+            required_fields=["tool", "pricing"],
+            read_artifacts=[read],
+            extraction_records=[record],
+            knowledge_artifact=knowledge,
+            report_artifact=report,
+            missing_artifacts=[],
+            completion_status={"read": True, "extract": True, "synthesize": True, "report": True},
+            telemetry=KnowledgePipelineTelemetry(
+                page_read_ms=1,
+                extraction_ms=1,
+                synthesis_ms=1,
+                report_ms=1,
+                read_artifact_count=1,
+                extraction_record_count=1,
+                validation_failure_count=0,
+                duplicate_count=0,
+            ),
+            replay=[],
+        )
+
+    monkeypatch.setattr(knowledge_extraction, "observe_knowledge_pipeline", fake_observe_knowledge_pipeline)
+    monkeypatch.setattr(mission_completion, "observe_mission_completion", lambda **_kwargs: CompletionSnapshot())
+
+    directive = dispatch_intent(intent="extract_fields", payload={"value": "tool,pricing"})
+    assert directive is not None
+    result = execute_intent_queue(
+        mission_id="intent-session",
+        initial_intents=[directive],
+        context=ExecutionContext(
+            mission_id="intent-session",
+            task="Extract tool pricing.",
+            page_context=object(),
+        ),
+    )
+
+    assert [execution.intent for execution in result.executions] == [
+        "extract_fields",
+        "validate_records",
+        "evaluate_completion",
+    ]
+    assert result.status == "mission_completed"
+    assert len(result.evidence) == 3
+
+
+def test_browser_control_is_registered_executor_and_stops_queue_for_browser():
+    directive = dispatch_intent(intent="navigate", payload={"action_type": "navigate", "value": "https://example.test"})
+    assert directive is not None
+    assert directive.owner == "browser_control"
+
+    result = execute_intent_queue(
+        mission_id="browser-session",
+        initial_intents=[directive],
+        context=ExecutionContext(mission_id="browser-session", task="Open a page."),
+    )
+
+    assert result.status == "browser_action_required"
+    assert result.browser_action is not None
+    assert result.browser_action["value"] == "https://example.test"
 
 
 def test_orchestrator_does_not_directly_mark_backend_intent_without_execution(monkeypatch):

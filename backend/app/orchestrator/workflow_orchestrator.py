@@ -874,26 +874,6 @@ class WorkflowOrchestrator:
                 verified_state=verified_state,
                 compressed_context=compressed_context,
             )
-            if (
-                result.intent_dispatch is not None
-                and result.intent_dispatch.owner in {"knowledge_extraction", "execution_orchestrator", "validation"}
-            ):
-                from app.intent_dispatcher import execute_intent
-
-                result.intent_execution = execute_intent(
-                    result.intent_dispatch,
-                    {
-                        "session_id": self.session_id,
-                        "task": task,
-                        "page_context": page_context,
-                        "current_phase": (
-                            orchestrator_snapshot.active_phase.name
-                            if orchestrator_snapshot is not None
-                            else None
-                        ),
-                        "orchestrator_snapshot": orchestrator_snapshot,
-                    },
-                )
             result = postprocess_planner_response(result, continuity_snapshot)
             result = postprocess_with_orchestrator(result, orchestrator_snapshot)
             runtime_state_snapshot = observe_runtime_state(
@@ -904,21 +884,30 @@ class WorkflowOrchestrator:
                 planner_response=result,
             )
             result = postprocess_with_runtime_state(result, runtime_state_snapshot)
-            if (
-                result.intent_dispatch is not None
-                and result.intent_dispatch.owner == "runtime_state_manager"
-                and result.intent_execution is None
-            ):
-                from app.intent_dispatcher import execute_intent
+            if result.intent_dispatch is not None:
+                from app.intent_dispatcher import execute_intent_queue
+                from app.intent_dispatcher.models import ExecutionContext
 
-                result.intent_execution = execute_intent(
-                    result.intent_dispatch,
-                    {
-                        "session_id": self.session_id,
-                        "task": task,
-                        "runtime_state_snapshot": runtime_state_snapshot,
-                    },
+                execution_context = ExecutionContext(
+                    mission_id=self.session_id,
+                    task=task,
+                    page_context=page_context,
+                    prior_steps=planner_prior_steps,
+                    runtime_state=runtime_state_snapshot,
+                    browser_intelligence=browser_intelligence_artifact,
+                    knowledge=knowledge_snapshot,
+                    completion_state=mission_completion_snapshot,
+                    phase_state=orchestrator_snapshot,
+                    kernel_state=kernel_snapshot,
                 )
+                result.intent_execution = execute_intent_queue(
+                    mission_id=self.session_id,
+                    initial_intents=[result.intent_dispatch],
+                    context=execution_context,
+                )
+                runtime_state_snapshot = execution_context.runtime_state or runtime_state_snapshot
+                knowledge_snapshot = execution_context.knowledge or knowledge_snapshot
+                mission_completion_snapshot = execution_context.completion_state or mission_completion_snapshot
             knowledge_snapshot = observe_knowledge_pipeline(
                 session_id=self.session_id,
                 task=task,
@@ -942,21 +931,6 @@ class WorkflowOrchestrator:
                 execution_state=kernel_snapshot,
                 planner_response=result,
             )
-            if (
-                result.intent_dispatch is not None
-                and result.intent_dispatch.owner == "mission_completion"
-                and result.intent_execution is None
-            ):
-                from app.intent_dispatcher import execute_intent
-
-                result.intent_execution = execute_intent(
-                    result.intent_dispatch,
-                    {
-                        "session_id": self.session_id,
-                        "task": task,
-                        "mission_completion_snapshot": mission_completion_snapshot,
-                    },
-                )
             result = postprocess_with_mission_completion(result, mission_completion_snapshot)
             self._record_v3_event(
                 "planner.responded",

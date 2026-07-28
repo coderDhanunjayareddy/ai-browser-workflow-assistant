@@ -624,15 +624,17 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
     intent_dispatch = None
     for item in suggested_raw[:1]:
         action_type = item.get("action_type", "")
-        if action_type not in ALLOWED_TYPES:
-            from app.intent_dispatcher import dispatch_intent
+        from app.intent_dispatcher import dispatch_intent
 
-            intent_dispatch = dispatch_intent(intent=action_type, payload=item)
-            if intent_dispatch is None:
-                raise ValueError(f"Unsupported action_type from AI: {action_type}")
+        intent_dispatch = dispatch_intent(intent=action_type, payload=item)
+        if intent_dispatch is None:
+            raise ValueError(f"Unsupported action_type from AI: {action_type}")
+        if not intent_dispatch.browser_executable:
             data["suggested_actions"] = []
             data["outcome_kind"] = "act"
             break
+        if action_type not in ALLOWED_TYPES:
+            raise ValueError(f"Unsupported browser action_type from AI: {action_type}")
 
         safety = safety_from_action(item)
 
