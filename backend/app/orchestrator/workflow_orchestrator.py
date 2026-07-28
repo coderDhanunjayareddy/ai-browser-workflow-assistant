@@ -885,8 +885,7 @@ class WorkflowOrchestrator:
             )
             result = postprocess_with_runtime_state(result, runtime_state_snapshot)
             if result.intent_dispatch is not None:
-                from app.intent_dispatcher import execute_intent_queue
-                from app.intent_dispatcher.models import ExecutionContext
+                from app.intent_runtime import ExecutionContext, execute_intent_queue
 
                 execution_context = ExecutionContext(
                     mission_id=self.session_id,

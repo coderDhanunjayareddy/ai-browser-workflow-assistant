@@ -1,22 +1,15 @@
 from app.intent_dispatcher.registry import (
-    MissionExecutionQueue,
+    IntentOwnerRegistration,
     dispatch_intent,
-    execute_intent,
-    execute_intent_queue,
     intent_dispatch_context,
     register_intent_executor,
     register_intent_owner,
     resolve_intent_owner,
 )
-from app.intent_providers import register_default_providers
-
-register_default_providers()
 
 __all__ = [
-    "MissionExecutionQueue",
+    "IntentOwnerRegistration",
     "dispatch_intent",
-    "execute_intent",
-    "execute_intent_queue",
     "intent_dispatch_context",
     "register_intent_executor",
     "register_intent_owner",

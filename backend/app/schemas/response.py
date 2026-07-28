@@ -5,22 +5,15 @@ from app.intent_dispatcher.models import IntentDispatchDirective, IntentQueueRes
 
 
 class SuggestedAction(BaseModel):
+    """Compatibility DTO for UI/browser handoff.
+
+    Runtime execution uses IntentDispatchDirective. This model remains as an
+    open, intent-shaped facade for older policy/grounding/UI code while avoiding
+    a closed browser action vocabulary.
+    """
+
     action_id: str
-    action_type: Literal[
-        'click',
-        'fill',
-        'scroll',
-        'navigate',
-        'wait',
-        'select_option',
-        'choose_date',
-        'hover',
-        'keyboard_shortcut',
-        'open_new_tab',
-        'switch_tab',
-        'close_tab',
-        'focus_existing_tab',
-    ]
+    action_type: str
     target_selector: str
     value: Optional[str] = None
     description: str
@@ -43,17 +36,16 @@ class ReplanOutcome(BaseModel):
     reason: str
 
 
-class PhaseExecutionDirective(BaseModel):
+class IntentQueueDirective(BaseModel):
     """Execution Orchestrator-owned deterministic work for the active phase.
 
-    This is not planner output. It is an additive directive built from the
-    mission entity graph after the planner has selected the phase action.
+    This is a queue of runtime intents, not a separate browser action model.
     """
-    schema_version: str = "execution_orchestrator.phase_execution.v1"
+    schema_version: str = "intent_runtime.phase_queue.v1"
     active_phase: str
     should_replan: bool = False
     reason: str
-    continuation_actions: list[SuggestedAction] = []
+    continuation_actions: list[IntentDispatchDirective] = []
 
 
 class AnalyzeResponse(BaseModel):

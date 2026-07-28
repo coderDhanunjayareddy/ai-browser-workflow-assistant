@@ -469,25 +469,10 @@ def _extract_json_object(raw: str) -> str:
 def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
     """
     Parse and validate the AI JSON response into an AnalyzeResponse.
-    We still validate action types against the allowlist here.
+    Executability is resolved through the Intent Registry.
     """
     data = json.loads(_extract_json_object(raw))
 
-    ALLOWED_TYPES = {
-        "click",
-        "fill",
-        "scroll",
-        "navigate",
-        "wait",
-        "select_option",
-        "choose_date",
-        "hover",
-        "keyboard_shortcut",
-        "open_new_tab",
-        "switch_tab",
-        "close_tab",
-        "focus_existing_tab",
-    }
     ALLOWED_SAFETY = {"safe", "caution", "danger"}
 
     def safety_from_action(item: dict) -> str:
@@ -633,9 +618,6 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
             data["suggested_actions"] = []
             data["outcome_kind"] = "act"
             break
-        if action_type not in ALLOWED_TYPES:
-            raise ValueError(f"Unsupported browser action_type from AI: {action_type}")
-
         safety = safety_from_action(item)
 
         try:

@@ -5,15 +5,17 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from app.execution_orchestrator.models import ExecutionOrchestratorSnapshot, PhaseName
+from app.intent_dispatcher import dispatch_intent
+from app.intent_dispatcher.models import IntentDispatchDirective
 from app.runtime_state_manager.entity_binding import UnifiedEntity, list_entities
-from app.schemas.response import AnalyzeResponse, PhaseExecutionDirective, SuggestedAction
+from app.schemas.response import AnalyzeResponse, IntentQueueDirective, SuggestedAction
 
 
 @dataclass(frozen=True)
 class PhaseWorkItem:
     phase: str
     identity: str
-    action: SuggestedAction
+    action: IntentDispatchDirective
     evidence_kind: str
 
 
@@ -32,7 +34,7 @@ def attach_phase_execution_directive(
     if not continuation:
         return result
 
-    result.execution_orchestrator = PhaseExecutionDirective(
+    result.execution_orchestrator = IntentQueueDirective(
         active_phase=snapshot.active_phase.name,
         should_replan=False,
         reason=(
@@ -47,7 +49,7 @@ def attach_phase_execution_directive(
 def _continuation_actions(
     snapshot: ExecutionOrchestratorSnapshot,
     planner_action: SuggestedAction,
-) -> list[SuggestedAction]:
+) -> list[IntentDispatchDirective]:
     adapter = _ADAPTERS.get(snapshot.active_phase.name)
     if adapter is None:
         return []
@@ -171,41 +173,53 @@ def _openable_entities(session_id: str) -> list[UnifiedEntity]:
     return _dedupe_entities(sorted_entities)
 
 
-def _open_action(entity: UnifiedEntity, index: int) -> SuggestedAction:
+def _open_action(entity: UnifiedEntity, index: int) -> IntentDispatchDirective:
     url = entity.canonical_url or ""
     rank = entity.metadata.get("rank")
     title = entity.title or url
     suffix = f" #{rank}" if rank else f" {index + 1}"
-    return SuggestedAction(
-        action_id=f"orchestrator_open_{_hash(entity.entity_id)}",
-        action_type="open_new_tab",
-        target_selector="",
-        value=url,
-        description=f"Open phase entity{suffix}: {title}",
-        reasoning=(
-            "Execution Orchestrator continuing the active OPEN phase from the "
-            f"mission entity graph entity_id={entity.entity_id}."
-        ),
-        confidence=max(0.0, min(1.0, float(entity.confidence or 0.8))),
-        safety_level="safe",
+    return _browser_intent(
+        "open_new_tab",
+        {
+            "action_id": f"orchestrator_open_{_hash(entity.entity_id)}",
+            "target_selector": "",
+            "value": url,
+            "description": f"Open phase entity{suffix}: {title}",
+            "reasoning": (
+                "Execution Orchestrator continuing the active OPEN phase from the "
+                f"mission entity graph entity_id={entity.entity_id}."
+            ),
+            "confidence": max(0.0, min(1.0, float(entity.confidence or 0.8))),
+            "safety_level": "safe",
+        },
     )
 
 
-def _focus_action(phase: str, url: str, index: int) -> SuggestedAction:
+def _focus_action(phase: str, url: str, index: int) -> IntentDispatchDirective:
     identity = _canonical_identity(url) or url
-    return SuggestedAction(
-        action_id=f"orchestrator_{phase.lower()}_{_hash(identity)}",
-        action_type="focus_existing_tab",
-        target_selector="",
-        value=f"url:{url}",
-        description=f"{phase.title()} phase resource #{index}: {url}",
-        reasoning=(
-            "Execution Orchestrator continuing deterministic "
-            f"{phase} phase work from opened runtime resources."
-        ),
-        confidence=0.86,
-        safety_level="safe",
+    return _browser_intent(
+        "focus_existing_tab",
+        {
+            "action_id": f"orchestrator_{phase.lower()}_{_hash(identity)}",
+            "target_selector": "",
+            "value": f"url:{url}",
+            "description": f"{phase.title()} phase resource #{index}: {url}",
+            "reasoning": (
+                "Execution Orchestrator continuing deterministic "
+                f"{phase} phase work from opened runtime resources."
+            ),
+            "confidence": 0.86,
+            "safety_level": "safe",
+        },
     )
+
+
+def _browser_intent(intent: str, payload: dict[str, Any]) -> IntentDispatchDirective:
+    payload = {"action_type": intent, **payload}
+    directive = dispatch_intent(intent=intent, payload=payload)
+    if directive is None:
+        raise ValueError(f"No provider registered for phase intent {intent}")
+    return directive
 
 
 def _opened_urls(snapshot: ExecutionOrchestratorSnapshot) -> set[str]:

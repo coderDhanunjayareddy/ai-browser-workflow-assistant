@@ -1,3 +1,11 @@
+from app.intent_dispatcher.models import (
+    ExecutionContext,
+    IntentDispatchDirective as Intent,
+    IntentExecutionEvidence,
+    IntentExecutionResult,
+    IntentOwnership,
+    IntentQueueResult,
+)
 from app.intent_dispatcher.registry import (
     MissionExecutionQueue,
     dispatch_intent,
@@ -8,11 +16,14 @@ from app.intent_dispatcher.registry import (
     register_intent_owner,
     resolve_intent_owner,
 )
-from app.intent_providers import register_default_providers
-
-register_default_providers()
 
 __all__ = [
+    "ExecutionContext",
+    "Intent",
+    "IntentExecutionEvidence",
+    "IntentExecutionResult",
+    "IntentOwnership",
+    "IntentQueueResult",
     "MissionExecutionQueue",
     "dispatch_intent",
     "execute_intent",

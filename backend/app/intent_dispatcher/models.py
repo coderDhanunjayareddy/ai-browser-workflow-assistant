@@ -43,6 +43,41 @@ class IntentDispatchDirective(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     handled: bool = False
 
+    @property
+    def action_type(self) -> str:
+        return str(self.payload.get("action_type") or self.intent)
+
+    @property
+    def action_id(self) -> str:
+        return str(self.payload.get("action_id") or f"intent_{self.intent}")
+
+    @property
+    def target_selector(self) -> str:
+        return str(self.payload.get("target_selector") or "")
+
+    @property
+    def value(self) -> Any:
+        return self.payload.get("value")
+
+    @property
+    def description(self) -> str:
+        return str(self.payload.get("description") or "")
+
+    @property
+    def reasoning(self) -> str:
+        return str(self.payload.get("reasoning") or self.reason)
+
+    @property
+    def confidence(self) -> float:
+        try:
+            return float(self.payload.get("confidence", 0.8))
+        except (TypeError, ValueError):
+            return 0.8
+
+    @property
+    def safety_level(self) -> str:
+        return str(self.payload.get("safety_level") or "safe")
+
 
 class IntentExecutionEvidence(BaseModel):
     evidence_id: str
