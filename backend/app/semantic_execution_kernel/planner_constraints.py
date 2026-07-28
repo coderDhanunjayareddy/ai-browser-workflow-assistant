@@ -161,21 +161,31 @@ def proposal_from_planner_action(action: Any, entities: list[SemanticEntity], *,
     )
 
 
-def legal_action_prompt(entities: list[SemanticEntity]) -> list[dict[str, str]]:
-    actions: list[dict[str, str]] = []
+def legal_action_prompt(entities: list[SemanticEntity]) -> list[dict[str, Any]]:
+    actions: list[dict[str, Any]] = []
     if any(entity.url for entity in entities):
-        actions.append({"action": "OPEN_ENTITY", "reason": "URL-backed entities are available"})
+        actions.append(_semantic_intent("OPEN_ENTITY", "URL-backed entities are available", "execution_orchestrator"))
     if any(entity.semantic_type == "button" for entity in entities):
-        actions.append({"action": "CLICK_ENTITY", "reason": "button entities are available"})
+        actions.append(_semantic_intent("CLICK_ENTITY", "button entities are available", "browser_control"))
     if any(entity.semantic_type == "form" for entity in entities):
-        actions.append({"action": "FILL_FORM", "reason": "form entities are available"})
+        actions.append(_semantic_intent("FILL_FORM", "form entities are available", "browser_control"))
     actions.extend([
-        {"action": "READ_PAGE", "reason": "current page can be read"},
-        {"action": "EXTRACT_FIELDS", "reason": "visible content can be structured"},
-        {"action": "WAIT_FOR_STATE", "reason": "bounded wait is always legal when state is changing"},
-        {"action": "MARK_COMPLETE", "reason": "allowed only with evidence"},
+        _semantic_intent("READ_PAGE", "current page can be read", "knowledge_extraction"),
+        _semantic_intent("EXTRACT_FIELDS", "visible content can be structured", "knowledge_extraction"),
+        _semantic_intent("WAIT_FOR_STATE", "bounded wait is always legal when state is changing", "execution_orchestrator"),
+        _semantic_intent("MARK_COMPLETE", "allowed only with evidence", "mission_completion"),
     ])
     return actions[:12]
+
+
+def _semantic_intent(action: str, reason: str, owner: str) -> dict[str, Any]:
+    return {
+        "action": action,
+        "intent": action.lower(),
+        "owner": owner,
+        "browser_executable": owner == "browser_control",
+        "reason": reason,
+    }
 
 
 def _strip_prefix(value: str, prefix: str) -> str | None:

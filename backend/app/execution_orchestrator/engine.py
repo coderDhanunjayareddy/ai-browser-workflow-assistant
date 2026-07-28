@@ -79,6 +79,13 @@ class ExecutionOrchestrator:
             return result
         if snapshot.budgets.exhausted:
             return reject_for_phase(result, snapshot, f"budget exhausted: {', '.join(snapshot.budgets.exhausted)}")
+        if result.intent_dispatch is not None and not result.intent_dispatch.browser_executable:
+            result.intent_dispatch.handled = True
+            result.analysis = (
+                f"{result.analysis}\n\nExecution Dispatcher routed intent "
+                f"{result.intent_dispatch.intent} to {result.intent_dispatch.owner}."
+            ).strip()
+            return result
         if not result.suggested_actions:
             return result
         action = result.suggested_actions[0]

@@ -213,6 +213,39 @@ def test_active_read_phase_allows_focus_tab(monkeypatch):
     assert result.suggested_actions[0].action_type == "focus_existing_tab"
 
 
+def test_active_read_phase_attaches_generalized_phase_queue(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="read-phase-queue",
+        task=TASK,
+        page_context=_page("https://search.example/results"),
+        prior_steps=_opened_steps(5),
+    )
+
+    result = engine.postprocess_response(
+        _planner_action("focus_existing_tab", value="url:https://tool1.example/"),
+        snapshot,
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.execution_orchestrator is not None
+    assert result.execution_orchestrator.active_phase == "READ"
+    assert result.execution_orchestrator.should_replan is False
+    assert [action.action_type for action in result.execution_orchestrator.continuation_actions] == [
+        "focus_existing_tab",
+        "focus_existing_tab",
+        "focus_existing_tab",
+        "focus_existing_tab",
+    ]
+    assert [action.value for action in result.execution_orchestrator.continuation_actions] == [
+        "url:https://tool2.example",
+        "url:https://tool3.example",
+        "url:https://tool4.example",
+        "url:https://tool5.example",
+    ]
+
+
 def test_active_open_phase_attaches_orchestrator_continuation_queue(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     session_id = "phase-queue-open"

@@ -228,6 +228,7 @@ function contextFingerprint(ctx: PageContext | null): string {
 
 function actionNeedsObservableProgress(action: SuggestedAction): boolean {
   if (action.action_type === 'navigate') return true
+  if (action.action_type === 'focus_existing_tab' || action.action_type === 'switch_tab') return true
   if (action.action_type !== 'click') return false
   return !/\b(focus|prepare|place (?:the )?cursor|click (?:on )?(?:the )?(?:input|field))\b/i.test(
     action.description,

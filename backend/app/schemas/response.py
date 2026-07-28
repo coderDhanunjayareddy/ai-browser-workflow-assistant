@@ -1,6 +1,8 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Literal, Optional
 
+from app.intent_dispatcher.models import IntentDispatchDirective
+
 
 class SuggestedAction(BaseModel):
     action_id: str
@@ -76,3 +78,7 @@ class AnalyzeResponse(BaseModel):
     # Backend-owned deterministic report artifacts are produced from validated
     # pipeline evidence, not a planner claim against only the current page.
     backend_authoritative_report: bool = False
+    # Backend-owned planner intent routed by the runtime. Browser Control must
+    # only receive suggested_actions; this directive never crosses that boundary
+    # as an executable browser command.
+    intent_dispatch: Optional[IntentDispatchDirective] = None

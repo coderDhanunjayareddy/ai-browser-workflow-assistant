@@ -621,10 +621,18 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
         suggested_raw = []
 
     actions: list[SuggestedAction] = []
+    intent_dispatch = None
     for item in suggested_raw[:1]:
         action_type = item.get("action_type", "")
         if action_type not in ALLOWED_TYPES:
-            raise ValueError(f"Unsupported action_type from AI: {action_type}")
+            from app.intent_dispatcher import dispatch_intent
+
+            intent_dispatch = dispatch_intent(intent=action_type, payload=item)
+            if intent_dispatch is None:
+                raise ValueError(f"Unsupported action_type from AI: {action_type}")
+            data["suggested_actions"] = []
+            data["outcome_kind"] = "act"
+            break
 
         safety = safety_from_action(item)
 
@@ -650,7 +658,7 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
     clarification_question = data.get("clarification_question") or None
     if is_invalid_clarification(clarification_question):
         clarification_question = None
-        if not actions:
+        if not actions and intent_dispatch is None:
             actions.append(
                 SuggestedAction(
                     action_id=str(uuid.uuid4()),
@@ -696,6 +704,7 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
         suggested_actions=actions,
         report=report_obj,
         replan=replan_obj,
+        intent_dispatch=intent_dispatch,
     )
 
 

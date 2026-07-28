@@ -140,6 +140,9 @@ class SemanticExecutionKernel:
         enriched = dict(compressed_context)
         enriched["semantic_execution_kernel"] = snapshot.to_compact_context()
         enriched["legal_semantic_actions"] = legal_action_prompt(snapshot.entities)
+        from app.intent_dispatcher import intent_dispatch_context
+
+        enriched["intent_dispatch"] = intent_dispatch_context()
         return enriched
 
     def postprocess_response(
