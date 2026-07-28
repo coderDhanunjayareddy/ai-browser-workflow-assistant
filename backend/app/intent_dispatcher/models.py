@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -9,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 IntentOwner = str
 ExecutionStatus = Literal[
     "succeeded",
+    "waiting_browser",
     "browser_action_required",
     "user_interaction_required",
     "waiting_external",
@@ -34,6 +36,9 @@ class IntentOwnership(BaseModel):
 
 class IntentDispatchDirective(BaseModel):
     schema_version: str = "intent_dispatch.v1"
+    intent_id: str = Field(default_factory=lambda: f"intent_{uuid.uuid4().hex}")
+    mission_id: str | None = None
+    parent_intent_id: str | None = None
     intent: str
     owner: IntentOwner
     capability: str

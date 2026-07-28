@@ -56,6 +56,7 @@ _REGISTRY: list[IntentOwnerRegistration] = []
 _EXECUTORS: dict[str, IntentExecutor] = {}
 
 _STOP_STATUSES: set[ExecutionStatus] = {
+    "waiting_browser",
     "browser_action_required",
     "user_interaction_required",
     "waiting_external",
@@ -111,6 +112,8 @@ def dispatch_intent(
         ownership.owner,
     )
     return IntentDispatchDirective(
+        mission_id=str(payload.get("mission_id")) if isinstance(payload, dict) and payload.get("mission_id") else None,
+        parent_intent_id=str(payload.get("parent_intent_id")) if isinstance(payload, dict) and payload.get("parent_intent_id") else None,
         intent=normalized,
         owner=ownership.owner,
         capability=ownership.capability,
@@ -135,7 +138,7 @@ def execute_intent(
             reason=f"No executor registered for dispatch target '{directive.dispatch_target}'.",
         )
     result = executor(execution_context, directive)
-    directive.handled = result.success or result.status == "browser_action_required"
+    directive.handled = result.success or result.status in {"waiting_browser", "browser_action_required"}
     execution_context.prior_evidence.extend(result.evidence)
     return result
 
@@ -164,7 +167,7 @@ def execute_intent_queue(
         evidence.extend(result.evidence)
         queue.extend(result.next_intents)
 
-        if result.status == "browser_action_required":
+        if result.status in {"waiting_browser", "browser_action_required"}:
             browser_action = result.evidence[0].payload.get("browser_action") if result.evidence else None
         if result.status in _STOP_STATUSES:
             status = result.status
