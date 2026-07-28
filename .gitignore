@@ -86,4 +86,6 @@ screenshots/
 debug_openrouter_raw.json
 backend/debug.log
 backend/debug_anthropic_raw.json
+backend/backend.log
+backend/*.log
 
