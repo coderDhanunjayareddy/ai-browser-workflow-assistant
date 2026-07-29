@@ -715,10 +715,8 @@ export function routeAnalyzeOutcome(
   }
 
   if (allowedActions.length === 0) {
-    const stoppedRepeat = result.suggested_actions.length > 0
-    const unresolvedFailure = options.completedActions.some(({ result: execution }) => !execution.success)
     return {
-      phase: 'completed',
+      phase: 'awaiting_execution',
       analysisText: result.analysis,
       pendingActions: [],
       clarificationQuestion: null,
@@ -726,13 +724,7 @@ export function routeAnalyzeOutcome(
       report: null,
       replan: null,
       goalConvergence: Boolean(result.goal_convergence),
-      error: options.includeReanalysisErrors
-        ? stoppedRepeat
-          ? 'Stopped because the assistant proposed a repeated browser action instead of making progress.'
-          : unresolvedFailure
-            ? 'Stopped with unresolved failed actions. The task was not completed.'
-            : null
-        : null,
+      error: null,
       continueAfterRejectedReport: false,
       rejectedReportPriorStep: null,
     }
@@ -783,6 +775,7 @@ function logEvent(
 
 async function updateIntentEvidence(
   sessionId: string,
+  task: string,
   action: SuggestedAction,
   pageContext: PageContext | null,
   result: ExecutionResult,
@@ -800,6 +793,8 @@ async function updateIntentEvidence(
         success: result.success,
         message: result.success ? 'success' : result.message,
         payload: {
+          task,
+          page_context: pageContext,
           action_type: action.action_type,
           target_selector: action.target_selector,
           value: action.value,
@@ -822,6 +817,23 @@ async function updateIntentEvidence(
   if (!response || !response.ok) return { nextIntent: null, updated: false }
   const data = await response.json().catch(() => null) as IntentUpdateResponse | null
   return { nextIntent: data?.next_intent ?? null, updated: Boolean(data?.updated) }
+}
+
+async function requestNextBrowserIntent(sessionId: string): Promise<IntentDTO | null> {
+  const response = await fetch(`${BACKEND_URL}/intent/next`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mission_id: sessionId,
+      provider: 'browser_control',
+    }),
+  }).catch((err) => {
+    console.error(err)
+    return null
+  })
+  if (!response || !response.ok) return null
+  const data = await response.json().catch(() => null) as IntentNextResponse | null
+  return data?.intent ?? null
 }
 
 function actionFromIntent(intent: IntentDTO): SuggestedAction {
@@ -993,6 +1005,18 @@ export function useWorkflow() {
         userInputs,
         includeReanalysisErrors: refresh,
       })
+      if (routed.phase === 'awaiting_execution' && routed.pendingActions.length === 0) {
+        const nextIntent = await requestNextBrowserIntent(sessionId)
+        if (nextIntent) {
+          routed.pendingActions = [actionFromIntent(nextIntent)]
+        } else {
+          routed.phase = 'completed'
+          routed.analysisText = [
+            routed.analysisText,
+            'Mission Ledger has no browser intent awaiting execution.',
+          ].filter(Boolean).join('\n\n')
+        }
+      }
       setState((s) => ({
         ...s,
         completedActions,
@@ -1094,18 +1118,14 @@ export function useWorkflow() {
   // ── Approve ─────────────────────────────────────────────────────────────────
 
   const approveAction = useCallback(async () => {
-    const { pendingActions, sessionId, task, completedActions, validationPriorSteps, workspace, tabWorkspace, analysisText, userInputs } = state
+    const { pendingActions, sessionId, task, completedActions, analysisText } = state
     const action = pendingActions[0]
     if (!action) return
 
-    // Snapshot remaining queue before state update
-    const remaining = pendingActions.slice(1)
-
-    // Move action to "executing"
     setState((s) => ({
       ...s,
       activeAction: action,
-      pendingActions: remaining,
+      pendingActions: [],
       phase: 'executing',
     }))
 
@@ -1203,22 +1223,20 @@ export function useWorkflow() {
 
     setState((s) => ({ ...s, activeAction: null, completedActions: newCompleted }))
 
-    const intentUpdate = await updateIntentEvidence(sessionId, action, pageContextAfterAction, result)
+    const intentUpdate = await updateIntentEvidence(sessionId, task, action, pageContextAfterAction, result)
     const nextIntent = intentUpdate.nextIntent
     logEvent(sessionId, 'executed', action, pageContextAfterAction,
       result.success ? 'success' : result.message, !intentUpdate.updated)
 
     if (!result.success) {
-      await runWorkflowLoop({
-        sessionId,
-        task,
+      setState((s) => ({
+        ...s,
+        phase: 'failed',
+        activeAction: null,
+        pendingActions: [],
         completedActions: newCompleted,
-        validationPriorSteps,
-        workspace,
-        tabWorkspace,
-        userInputs,
-        refresh: true,
-      })
+        error: result.message || 'Intent execution failed.',
+      }))
       return
     }
 
@@ -1235,29 +1253,19 @@ export function useWorkflow() {
       return
     }
 
-    if (!action.intent_id && remaining.length > 0) {
-      setState((s) => ({
-        ...s,
-        phase: 'awaiting_execution',
-        activeAction: null,
-        pendingActions: remaining,
-        completedActions: newCompleted,
-        error: null,
-      }))
-      return
-    }
-
-    await runWorkflowLoop({
-      sessionId,
-      task,
+    setState((s) => ({
+      ...s,
+      phase: 'completed',
+      activeAction: null,
+      pendingActions: [],
       completedActions: newCompleted,
-      validationPriorSteps,
-      workspace,
-      tabWorkspace,
-      userInputs,
-      refresh: true,
-    })
-  }, [state, pageContext, runWorkflowLoop])
+      analysisText: [
+        s.analysisText,
+        'Mission Ledger has no further browser intent assigned.',
+      ].filter(Boolean).join('\n\n'),
+      error: null,
+    }))
+  }, [state, pageContext])
 
   const continueWithInput = useCallback(async (answer: string) => {
     const trimmed = answer.trim()

@@ -900,9 +900,13 @@ class WorkflowOrchestrator:
                     phase_state=orchestrator_snapshot,
                     kernel_state=kernel_snapshot,
                 )
+                queued_intents = [result.intent_dispatch]
+                if result.execution_orchestrator is not None:
+                    queued_intents.extend(result.execution_orchestrator.continuation_actions)
+                    result.execution_orchestrator.continuation_actions = []
                 result.intent_execution = execute_intent_queue(
                     mission_id=self.session_id,
-                    initial_intents=[result.intent_dispatch],
+                    initial_intents=queued_intents,
                     context=execution_context,
                 )
                 mission_ledger_service.record_queue_result(

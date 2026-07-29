@@ -100,7 +100,7 @@ def next_intent(db: Session, *, mission_id: str, provider: str | None = None) ->
     if provider:
         query = query.filter(MissionIntentRecord.provider == provider)
     record = (
-        query.filter(MissionIntentRecord.status.in_(["WAITING_BROWSER", "WAITING_PROVIDER", "QUEUED"]))
+        query.filter(MissionIntentRecord.status.in_(["WAITING_BROWSER", "WAITING_PROVIDER", "QUEUED", "DISPATCHED", "EXECUTING"]))
         .order_by(MissionIntentRecord.created_at.asc())
         .first()
     )
@@ -108,7 +108,7 @@ def next_intent(db: Session, *, mission_id: str, provider: str | None = None) ->
         return IntentNextResponse(intent=None, status="idle", reason="No executable intent is waiting.")
     if record.status == "QUEUED":
         record.status = "DISPATCHED"
-    elif record.status in {"WAITING_BROWSER", "WAITING_PROVIDER"}:
+    elif record.status in {"WAITING_BROWSER", "WAITING_PROVIDER", "DISPATCHED"}:
         record.status = "EXECUTING"
     record.updated_at = datetime.utcnow()
     db.commit()
@@ -211,7 +211,7 @@ def _next_backend_record(db: Session, mission_id: str) -> MissionIntentRecord | 
         db.query(MissionIntentRecord)
         .filter(MissionIntentRecord.mission_id == mission_id)
         .filter(MissionIntentRecord.provider != "browser_control")
-        .filter(MissionIntentRecord.status.in_(["QUEUED", "DISPATCHED", "WAITING_PROVIDER"]))
+        .filter(MissionIntentRecord.status.in_(["QUEUED", "DISPATCHED", "EXECUTING", "WAITING_PROVIDER"]))
         .order_by(MissionIntentRecord.created_at.asc())
         .first()
     )

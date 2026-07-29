@@ -943,20 +943,6 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
             />
           )}
 
-          {/* Queue preview (shown when there are more steps ahead) */}
-          {isAwaiting && pendingActions.length > 1 && (
-            <div style={s.queueBox}>
-              <p style={s.queueLabel}>{pendingActions.length - 1} more step{pendingActions.length - 1 !== 1 ? 's' : ''} queued</p>
-              {pendingActions.slice(1).map((a, i) => (
-                <div key={a.action_id} style={s.queueRow}>
-                  <span style={s.queueNum}>{completedActions.length + i + 2}</span>
-                  <span style={s.queueType}>{a.action_type.toUpperCase()}</span>
-                  <span style={s.queueDesc}>{a.description}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Stop button (manual mode only — auto mode has the banner) */}
           {isAwaiting && !autoMode && pendingActions.length > 0 && (
             <button onClick={stopWorkflow} style={s.stopBtn}>✕ Stop workflow</button>

@@ -33,8 +33,8 @@ def test_browser_handoff_persists_intent_and_returns_next_ledger_intent():
                 "value": "https://example.test",
                 "next_intents": [
                     {
-                        "intent": "validate_records",
-                        "payload": {"record_ids": ["record_1"]},
+                        "intent": "open_new_tab",
+                        "payload": {"value": "https://second.example"},
                     }
                 ],
             },
@@ -73,9 +73,9 @@ def test_browser_handoff_persists_intent_and_returns_next_ledger_intent():
             ),
         )
 
-        assert updated.status == "COMPLETED"
+        assert updated.status == "ready"
         assert updated.next_intent is not None
         assert updated.next_intent.parent_intent_id == directive.intent_id
-        assert updated.next_intent.intent == "validate_records"
+        assert updated.next_intent.intent == "open_new_tab"
     finally:
         db.close()
