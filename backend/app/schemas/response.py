@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Literal, Optional
 
 from app.intent_dispatcher.models import IntentDispatchDirective, IntentQueueResult
@@ -47,7 +47,7 @@ class IntentQueueDirective(BaseModel):
     active_phase: str
     should_replan: bool = False
     reason: str
-    continuation_actions: list[IntentDispatchDirective] = []
+    continuation_actions: list[IntentDispatchDirective] = Field(default_factory=list)
 
 
 class AnalyzeResponse(BaseModel):
@@ -79,3 +79,6 @@ class AnalyzeResponse(BaseModel):
     # Structured evidence produced when a backend-owned intent is executed by
     # its registered owner.
     intent_execution: Optional[IntentQueueResult] = None
+    # Execution Orchestrator phase work is ingested into the Mission Ledger
+    # before browser handoff. It is not an extension-owned execution queue.
+    execution_orchestrator: Optional[IntentQueueDirective] = None
