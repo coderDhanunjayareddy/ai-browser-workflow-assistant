@@ -20,7 +20,20 @@ from app.mission.blueprint.models import (
     serialize_blueprint,
     validate_blueprint,
 )
+from app.mission.blueprint.expansion import (
+    BlueprintExpansionEngine,
+    BlueprintExpansionResult,
+    BlueprintNodeExpansionResult,
+    compile_node_to_intents,
+)
 from app.mission.blueprint.repository import MissionBlueprintRepository, SqlAlchemyMissionBlueprintRepository
+from app.mission.blueprint.readiness import (
+    BlueprintEvidence,
+    BlueprintNodeReadiness,
+    BlueprintNodeReadinessEvaluation,
+    BlueprintReadinessEvaluator,
+    BlueprintReadinessSnapshot,
+)
 from app.mission.blueprint.service import MissionBlueprintPersistenceService
 
 __all__ = [
@@ -41,4 +54,13 @@ __all__ = [
     "MissionBlueprintRepository",
     "SqlAlchemyMissionBlueprintRepository",
     "MissionBlueprintPersistenceService",
+    "BlueprintEvidence",
+    "BlueprintNodeReadiness",
+    "BlueprintNodeReadinessEvaluation",
+    "BlueprintReadinessEvaluator",
+    "BlueprintReadinessSnapshot",
+    "BlueprintExpansionEngine",
+    "BlueprintExpansionResult",
+    "BlueprintNodeExpansionResult",
+    "compile_node_to_intents",
 ]

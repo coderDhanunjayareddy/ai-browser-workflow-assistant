@@ -18,10 +18,13 @@ from app.mission.blueprint.models import (
     MissionBlueprint,
     validate_blueprint,
 )
+from app.mission.blueprint.readiness import BlueprintReadinessSnapshot
 from app.models.db import (
     MissionBlueprintDependencyRecord,
+    MissionBlueprintExpansionRecord,
     MissionBlueprintNodeRecord,
     MissionBlueprintRecord,
+    MissionBlueprintReadinessSnapshotRecord,
     MissionBlueprintRevisionRecord,
 )
 
@@ -59,6 +62,40 @@ class MissionBlueprintRepository(ABC):
 
     @abstractmethod
     def delete(self, mission_id: str) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def save_readiness_snapshot(self, snapshot: BlueprintReadinessSnapshot) -> BlueprintReadinessSnapshot:
+        raise NotImplementedError
+
+    @abstractmethod
+    def latest_readiness_snapshot(self, mission_id: str) -> BlueprintReadinessSnapshot | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_readiness_snapshots(self, mission_id: str) -> list[BlueprintReadinessSnapshot]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def record_expansion(
+        self,
+        *,
+        mission_id: str,
+        blueprint_id: str,
+        blueprint_node_id: str,
+        blueprint_revision: int,
+        generated_intent_ids: list[str],
+        diagnostics: dict[str, Any],
+        status: str = "expanded",
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_expansions(self, mission_id: str) -> list[dict[str, Any]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def expansion_for_node(self, mission_id: str, blueprint_node_id: str, blueprint_revision: int) -> dict[str, Any] | None:
         raise NotImplementedError
 
 
@@ -185,6 +222,95 @@ class SqlAlchemyMissionBlueprintRepository(MissionBlueprintRepository):
         self.db.commit()
         return True
 
+    def save_readiness_snapshot(self, snapshot: BlueprintReadinessSnapshot) -> BlueprintReadinessSnapshot:
+        _require_persistence_enabled()
+        self.db.add(
+            MissionBlueprintReadinessSnapshotRecord(
+                snapshot_id=snapshot.snapshot_id,
+                blueprint_id=snapshot.blueprint_id,
+                mission_id=snapshot.mission_id,
+                revision=snapshot.revision,
+                snapshot=snapshot.to_dict(),
+                created_at=snapshot.created_at,
+            )
+        )
+        self.db.commit()
+        return snapshot
+
+    def latest_readiness_snapshot(self, mission_id: str) -> BlueprintReadinessSnapshot | None:
+        _require_persistence_enabled()
+        record = (
+            self.db.query(MissionBlueprintReadinessSnapshotRecord)
+            .filter(MissionBlueprintReadinessSnapshotRecord.mission_id == mission_id)
+            .order_by(MissionBlueprintReadinessSnapshotRecord.created_at.desc())
+            .first()
+        )
+        if record is None:
+            return None
+        return BlueprintReadinessSnapshot.from_dict(dict(record.snapshot or {}))
+
+    def list_readiness_snapshots(self, mission_id: str) -> list[BlueprintReadinessSnapshot]:
+        _require_persistence_enabled()
+        records = (
+            self.db.query(MissionBlueprintReadinessSnapshotRecord)
+            .filter(MissionBlueprintReadinessSnapshotRecord.mission_id == mission_id)
+            .order_by(MissionBlueprintReadinessSnapshotRecord.created_at.asc())
+            .all()
+        )
+        return [BlueprintReadinessSnapshot.from_dict(dict(record.snapshot or {})) for record in records]
+
+    def record_expansion(
+        self,
+        *,
+        mission_id: str,
+        blueprint_id: str,
+        blueprint_node_id: str,
+        blueprint_revision: int,
+        generated_intent_ids: list[str],
+        diagnostics: dict[str, Any],
+        status: str = "expanded",
+    ) -> dict[str, Any]:
+        _require_persistence_enabled()
+        existing = self.expansion_for_node(mission_id, blueprint_node_id, blueprint_revision)
+        if existing is not None:
+            return existing
+        record = MissionBlueprintExpansionRecord(
+            expansion_id=f"blueprint_expansion_{uuid.uuid4().hex}",
+            blueprint_id=blueprint_id,
+            mission_id=mission_id,
+            blueprint_node_id=blueprint_node_id,
+            blueprint_revision=blueprint_revision,
+            status=status,
+            generated_intent_ids=list(generated_intent_ids),
+            diagnostics=dict(diagnostics),
+            created_at=datetime.now(UTC),
+        )
+        self.db.add(record)
+        self.db.commit()
+        return _expansion_dict(record)
+
+    def list_expansions(self, mission_id: str) -> list[dict[str, Any]]:
+        _require_persistence_enabled()
+        records = (
+            self.db.query(MissionBlueprintExpansionRecord)
+            .filter(MissionBlueprintExpansionRecord.mission_id == mission_id)
+            .order_by(MissionBlueprintExpansionRecord.created_at.asc())
+            .all()
+        )
+        return [_expansion_dict(record) for record in records]
+
+    def expansion_for_node(self, mission_id: str, blueprint_node_id: str, blueprint_revision: int) -> dict[str, Any] | None:
+        _require_persistence_enabled()
+        record = (
+            self.db.query(MissionBlueprintExpansionRecord)
+            .filter(MissionBlueprintExpansionRecord.mission_id == mission_id)
+            .filter(MissionBlueprintExpansionRecord.blueprint_node_id == blueprint_node_id)
+            .filter(MissionBlueprintExpansionRecord.blueprint_revision == blueprint_revision)
+            .order_by(MissionBlueprintExpansionRecord.created_at.desc())
+            .first()
+        )
+        return _expansion_dict(record) if record is not None else None
+
     def _record_for_mission(self, mission_id: str) -> MissionBlueprintRecord | None:
         return (
             self.db.query(MissionBlueprintRecord)
@@ -258,3 +384,17 @@ def _dependency_record(
         dependency_metadata=dict(dependency.metadata),
         created_at=datetime.now(UTC),
     )
+
+
+def _expansion_dict(record: MissionBlueprintExpansionRecord) -> dict[str, Any]:
+    return {
+        "expansion_id": record.expansion_id,
+        "blueprint_id": record.blueprint_id,
+        "mission_id": record.mission_id,
+        "blueprint_node_id": record.blueprint_node_id,
+        "blueprint_revision": record.blueprint_revision,
+        "status": record.status,
+        "generated_intent_ids": list(record.generated_intent_ids or []),
+        "diagnostics": dict(record.diagnostics or {}),
+        "created_at": record.created_at.isoformat() if record.created_at else None,
+    }

@@ -32,6 +32,9 @@ class IntentDTO(BaseModel):
     status: str
     payload: dict[str, Any] = Field(default_factory=dict)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
+    blueprint_id: str | None = None
+    blueprint_node_id: str | None = None
+    blueprint_revision: int | None = None
 
 
 class IntentNextRequest(BaseModel):

@@ -168,10 +168,15 @@ def test_migration_metadata_is_additive_and_has_rollback():
         "mission_blueprint_revisions",
         "mission_blueprint_nodes",
         "mission_blueprint_dependencies",
+        "mission_blueprint_readiness_snapshots",
+        "mission_blueprint_expansions",
     }
-    assert len(UPGRADE_SQL) == 4
-    assert len(DOWNGRADE_SQL) == 4
-    assert all("CREATE TABLE IF NOT EXISTS" in statement for statement in UPGRADE_SQL)
+    assert len(UPGRADE_SQL) == 9
+    assert len(DOWNGRADE_SQL) == 6
+    assert all(
+        "CREATE TABLE IF NOT EXISTS" in statement or "ADD COLUMN IF NOT EXISTS" in statement
+        for statement in UPGRADE_SQL
+    )
     assert all(statement.startswith("DROP TABLE IF EXISTS") for statement in DOWNGRADE_SQL)
 
 
@@ -224,11 +229,14 @@ def test_read_only_api_disabled_when_flag_off(db_session, monkeypatch):
     assert "disabled" in response.json()["detail"]
 
 
-def test_runtime_v1_ledger_schema_is_not_modified_by_blueprint_tables(db_session, blueprint_flag):
+def test_runtime_v1_ledger_lifecycle_schema_is_not_modified_by_blueprint_tables(db_session, blueprint_flag):
     from app.models.db import MissionIntentRecord
 
     intent_columns = {column.name for column in MissionIntentRecord.__table__.columns}
 
-    assert "blueprint_id" not in intent_columns
-    assert "blueprint_node_id" not in intent_columns
+    assert "blueprint_id" in intent_columns
+    assert "blueprint_node_id" in intent_columns
+    assert "blueprint_revision" in intent_columns
+    assert "blueprint_readiness" not in intent_columns
     assert "intent_id" in intent_columns
+    assert "status" in intent_columns

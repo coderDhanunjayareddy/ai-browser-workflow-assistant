@@ -70,3 +70,56 @@ class MissionBlueprintRevisionSummary(BaseModel):
 class MissionBlueprintRevisionsResponse(BaseModel):
     mission_id: str
     revisions: list[MissionBlueprintRevisionSummary]
+
+
+class BlueprintNodeReadinessEvaluationSchema(BaseModel):
+    node_id: str
+    readiness: str
+    expandable: bool
+    dependency_reasons: list[str] = Field(default_factory=list)
+    missing_evidence: list[str] = Field(default_factory=list)
+    blocking_reasons: list[str] = Field(default_factory=list)
+    supporting_evidence: list[str] = Field(default_factory=list)
+    critical_path: bool = False
+
+
+class BlueprintReadinessSnapshotSchema(BaseModel):
+    schema_version: str
+    snapshot_id: str
+    blueprint_id: str
+    mission_id: str
+    revision: int
+    ready_nodes: list[str] = Field(default_factory=list)
+    waiting_nodes: list[str] = Field(default_factory=list)
+    blocked_nodes: list[str] = Field(default_factory=list)
+    unreachable_nodes: list[str] = Field(default_factory=list)
+    parallel_ready_nodes: list[str] = Field(default_factory=list)
+    critical_path_ready_nodes: list[str] = Field(default_factory=list)
+    evaluations: list[BlueprintNodeReadinessEvaluationSchema] = Field(default_factory=list)
+    evidence_count: int
+    created_at: str
+
+
+class BlueprintReadinessSnapshotsResponse(BaseModel):
+    mission_id: str
+    snapshots: list[BlueprintReadinessSnapshotSchema]
+
+
+class BlueprintExpansionSummarySchema(BaseModel):
+    expansion_id: str
+    blueprint_id: str
+    mission_id: str
+    blueprint_node_id: str
+    blueprint_revision: int
+    status: str
+    generated_intent_ids: list[str] = Field(default_factory=list)
+    diagnostics: dict[str, Any] = Field(default_factory=dict)
+    created_at: str | None = None
+
+
+class BlueprintExpansionsResponse(BaseModel):
+    mission_id: str
+    expanded_nodes: list[str] = Field(default_factory=list)
+    pending_nodes: list[str] = Field(default_factory=list)
+    generated_intent_ids: list[str] = Field(default_factory=list)
+    expansions: list[BlueprintExpansionSummarySchema] = Field(default_factory=list)

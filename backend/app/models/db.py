@@ -95,6 +95,9 @@ class MissionIntentRecord(Base):
     evidence         = Column(JSON, default=list)
     provenance       = Column(JSON, default=dict)
     resume_metadata  = Column(JSON, default=dict)
+    blueprint_id     = Column(String, nullable=True, index=True)
+    blueprint_node_id = Column(String, nullable=True, index=True)
+    blueprint_revision = Column(Integer, nullable=True)
     created_at       = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at       = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     dispatched_at    = Column(DateTime)
@@ -126,6 +129,7 @@ class MissionBlueprintRecord(Base):
     revisions = relationship("MissionBlueprintRevisionRecord", back_populates="blueprint", cascade="all, delete-orphan")
     nodes = relationship("MissionBlueprintNodeRecord", back_populates="blueprint", cascade="all, delete-orphan")
     dependencies = relationship("MissionBlueprintDependencyRecord", back_populates="blueprint", cascade="all, delete-orphan")
+    readiness_snapshots = relationship("MissionBlueprintReadinessSnapshotRecord", back_populates="blueprint", cascade="all, delete-orphan")
 
 
 class MissionBlueprintRevisionRecord(Base):
@@ -189,6 +193,35 @@ class MissionBlueprintDependencyRecord(Base):
 
     blueprint = relationship("MissionBlueprintRecord", back_populates="dependencies")
     revision_record = relationship("MissionBlueprintRevisionRecord", back_populates="dependencies")
+
+
+class MissionBlueprintReadinessSnapshotRecord(Base):
+    """Diagnostic-only readiness snapshot for passive Blueprint inspection."""
+    __tablename__ = "mission_blueprint_readiness_snapshots"
+
+    snapshot_id      = Column(String, primary_key=True)
+    blueprint_id     = Column(String, ForeignKey("mission_blueprints.blueprint_id", ondelete="CASCADE"), nullable=False, index=True)
+    mission_id       = Column(String, nullable=False, index=True)
+    revision         = Column(Integer, nullable=False)
+    snapshot         = Column(JSON, default=dict)
+    created_at       = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    blueprint = relationship("MissionBlueprintRecord", back_populates="readiness_snapshots")
+
+
+class MissionBlueprintExpansionRecord(Base):
+    """Diagnostic record of Blueprint node expansion into Mission Ledger intents."""
+    __tablename__ = "mission_blueprint_expansions"
+
+    expansion_id     = Column(String, primary_key=True)
+    blueprint_id     = Column(String, ForeignKey("mission_blueprints.blueprint_id", ondelete="CASCADE"), nullable=False, index=True)
+    mission_id       = Column(String, nullable=False, index=True)
+    blueprint_node_id = Column(String, nullable=False, index=True)
+    blueprint_revision = Column(Integer, nullable=False)
+    status           = Column(String, default="expanded", nullable=False)
+    generated_intent_ids = Column(JSON, default=list)
+    diagnostics      = Column(JSON, default=dict)
+    created_at       = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
 class WorkflowState(Base):

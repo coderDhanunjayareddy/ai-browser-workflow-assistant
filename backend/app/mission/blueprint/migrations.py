@@ -10,6 +10,8 @@ BLUEPRINT_TABLES = [
     "mission_blueprint_revisions",
     "mission_blueprint_nodes",
     "mission_blueprint_dependencies",
+    "mission_blueprint_readiness_snapshots",
+    "mission_blueprint_expansions",
 ]
 
 UPGRADE_SQL = [
@@ -79,9 +81,43 @@ UPGRADE_SQL = [
         created_at TIMESTAMP NOT NULL
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS mission_blueprint_readiness_snapshots (
+        snapshot_id VARCHAR PRIMARY KEY,
+        blueprint_id VARCHAR NOT NULL REFERENCES mission_blueprints(blueprint_id) ON DELETE CASCADE,
+        mission_id VARCHAR NOT NULL,
+        revision INTEGER NOT NULL,
+        snapshot JSON,
+        created_at TIMESTAMP NOT NULL
+    )
+    """,
+    """
+    ALTER TABLE mission_intents ADD COLUMN IF NOT EXISTS blueprint_id VARCHAR
+    """,
+    """
+    ALTER TABLE mission_intents ADD COLUMN IF NOT EXISTS blueprint_node_id VARCHAR
+    """,
+    """
+    ALTER TABLE mission_intents ADD COLUMN IF NOT EXISTS blueprint_revision INTEGER
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS mission_blueprint_expansions (
+        expansion_id VARCHAR PRIMARY KEY,
+        blueprint_id VARCHAR NOT NULL REFERENCES mission_blueprints(blueprint_id) ON DELETE CASCADE,
+        mission_id VARCHAR NOT NULL,
+        blueprint_node_id VARCHAR NOT NULL,
+        blueprint_revision INTEGER NOT NULL,
+        status VARCHAR NOT NULL DEFAULT 'expanded',
+        generated_intent_ids JSON,
+        diagnostics JSON,
+        created_at TIMESTAMP NOT NULL
+    )
+    """,
 ]
 
 DOWNGRADE_SQL = [
+    "DROP TABLE IF EXISTS mission_blueprint_expansions",
+    "DROP TABLE IF EXISTS mission_blueprint_readiness_snapshots",
     "DROP TABLE IF EXISTS mission_blueprint_dependencies",
     "DROP TABLE IF EXISTS mission_blueprint_nodes",
     "DROP TABLE IF EXISTS mission_blueprint_revisions",

@@ -9,6 +9,10 @@ from app.mission.blueprint.models import BlueprintValidationError, MissionBluepr
 from app.mission.blueprint.repository import SqlAlchemyMissionBlueprintRepository
 from app.mission.blueprint.service import MissionBlueprintPersistenceService
 from app.schemas.mission_blueprint import (
+    BlueprintExpansionSummarySchema,
+    BlueprintExpansionsResponse,
+    BlueprintReadinessSnapshotSchema,
+    BlueprintReadinessSnapshotsResponse,
     MissionBlueprintNodeSchema,
     MissionBlueprintNodesResponse,
     MissionBlueprintRevisionSummary,
@@ -61,6 +65,54 @@ def get_blueprint_revision(mission_id: str, revision: int, db: Session = Depends
     if blueprint is None:
         raise HTTPException(status_code=404, detail=f"Mission Blueprint revision {revision} for mission {mission_id!r} not found")
     return _blueprint_schema(blueprint)
+
+
+@router.get("/{mission_id}/blueprint/readiness", response_model=BlueprintReadinessSnapshotSchema)
+def get_blueprint_readiness(mission_id: str, db: Session = Depends(get_db)) -> BlueprintReadinessSnapshotSchema:
+    service = _service_or_disabled(db)
+    snapshot = service.latest_readiness_snapshot(mission_id)
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail=f"Mission Blueprint readiness for mission {mission_id!r} not found")
+    return BlueprintReadinessSnapshotSchema(**snapshot.to_dict())
+
+
+@router.get("/{mission_id}/blueprint/readiness/snapshots", response_model=BlueprintReadinessSnapshotsResponse)
+def get_blueprint_readiness_snapshots(mission_id: str, db: Session = Depends(get_db)) -> BlueprintReadinessSnapshotsResponse:
+    service = _service_or_disabled(db)
+    snapshots = service.list_readiness_snapshots(mission_id)
+    if not snapshots and service.load(mission_id) is None:
+        raise HTTPException(status_code=404, detail=f"Mission Blueprint for mission {mission_id!r} not found")
+    return BlueprintReadinessSnapshotsResponse(
+        mission_id=mission_id,
+        snapshots=[BlueprintReadinessSnapshotSchema(**snapshot.to_dict()) for snapshot in snapshots],
+    )
+
+
+@router.get("/{mission_id}/blueprint/expansions", response_model=BlueprintExpansionsResponse)
+def get_blueprint_expansions(mission_id: str, db: Session = Depends(get_db)) -> BlueprintExpansionsResponse:
+    service = _service_or_disabled(db)
+    expansions = service.list_expansions(mission_id)
+    if not expansions and service.load(mission_id) is None:
+        raise HTTPException(status_code=404, detail=f"Mission Blueprint for mission {mission_id!r} not found")
+    expanded_nodes = [str(item.get("blueprint_node_id")) for item in expansions]
+    generated_intent_ids = [
+        str(intent_id)
+        for item in expansions
+        for intent_id in list(item.get("generated_intent_ids") or [])
+    ]
+    blueprint = service.load(mission_id)
+    pending_nodes = [
+        node.node_id
+        for node in list(blueprint.nodes if blueprint else [])
+        if node.node_id not in set(expanded_nodes)
+    ]
+    return BlueprintExpansionsResponse(
+        mission_id=mission_id,
+        expanded_nodes=expanded_nodes,
+        pending_nodes=pending_nodes,
+        generated_intent_ids=generated_intent_ids,
+        expansions=[BlueprintExpansionSummarySchema(**item) for item in expansions],
+    )
 
 
 def _service_or_disabled(db: Session) -> MissionBlueprintPersistenceService:

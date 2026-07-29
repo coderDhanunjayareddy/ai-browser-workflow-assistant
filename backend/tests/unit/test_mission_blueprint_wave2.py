@@ -193,12 +193,14 @@ def test_read_api_exposes_wave2_analysis_metadata(monkeypatch):
         engine.dispose()
 
 
-def test_wave2_does_not_modify_runtime_v1_ledger_contract():
+def test_wave2_keeps_runtime_v1_ledger_lifecycle_contract():
     from app.models.db import MissionIntentRecord
 
     intent_columns = {column.name for column in MissionIntentRecord.__table__.columns}
 
-    assert "blueprint_id" not in intent_columns
-    assert "blueprint_node_id" not in intent_columns
+    assert "blueprint_id" in intent_columns
+    assert "blueprint_node_id" in intent_columns
+    assert "blueprint_revision" in intent_columns
+    assert "blueprint_readiness" not in intent_columns
     assert "status" in intent_columns
     assert "payload" in intent_columns

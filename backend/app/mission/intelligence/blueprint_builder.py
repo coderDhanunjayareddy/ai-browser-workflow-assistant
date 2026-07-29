@@ -16,6 +16,7 @@ from app.mission.blueprint.models import (
     MissionBlueprint,
     validate_blueprint,
 )
+from app.mission.blueprint.readiness import BlueprintReadinessSnapshot
 from app.mission.blueprint.repository import MissionBlueprintRepository
 from app.mission.blueprint.service import MissionBlueprintPersistenceService
 
@@ -566,5 +567,42 @@ def _in_memory_service() -> MissionBlueprintPersistenceService:
 
         def delete(self, mission_id: str) -> bool:
             return False
+
+        def save_readiness_snapshot(self, snapshot: BlueprintReadinessSnapshot) -> BlueprintReadinessSnapshot:
+            return snapshot
+
+        def latest_readiness_snapshot(self, mission_id: str) -> BlueprintReadinessSnapshot | None:
+            return None
+
+        def list_readiness_snapshots(self, mission_id: str) -> list[BlueprintReadinessSnapshot]:
+            return []
+
+        def record_expansion(
+            self,
+            *,
+            mission_id: str,
+            blueprint_id: str,
+            blueprint_node_id: str,
+            blueprint_revision: int,
+            generated_intent_ids: list[str],
+            diagnostics: dict[str, Any],
+            status: str = "expanded",
+        ) -> dict[str, Any]:
+            return {
+                "expansion_id": "in_memory_expansion",
+                "mission_id": mission_id,
+                "blueprint_id": blueprint_id,
+                "blueprint_node_id": blueprint_node_id,
+                "blueprint_revision": blueprint_revision,
+                "generated_intent_ids": list(generated_intent_ids),
+                "diagnostics": dict(diagnostics),
+                "status": status,
+            }
+
+        def list_expansions(self, mission_id: str) -> list[dict[str, Any]]:
+            return []
+
+        def expansion_for_node(self, mission_id: str, blueprint_node_id: str, blueprint_revision: int) -> dict[str, Any] | None:
+            return None
 
     return MissionBlueprintPersistenceService(_InMemoryRepository())

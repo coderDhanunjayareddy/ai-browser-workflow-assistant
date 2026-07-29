@@ -10,6 +10,11 @@ from app.mission.blueprint.models import (
     deserialize_blueprint,
     serialize_blueprint,
 )
+from app.mission.blueprint.readiness import (
+    BlueprintEvidence,
+    BlueprintReadinessEvaluator,
+    BlueprintReadinessSnapshot,
+)
 from app.mission.blueprint.repository import MissionBlueprintRepository
 
 
@@ -71,3 +76,51 @@ class MissionBlueprintPersistenceService:
 
     def deserialize(self, payload: dict[str, Any]) -> MissionBlueprint:
         return deserialize_blueprint(payload)
+
+    def evaluate_readiness(
+        self,
+        mission_id: str,
+        *,
+        evidence: list[BlueprintEvidence] | None = None,
+        persist: bool = True,
+    ) -> BlueprintReadinessSnapshot | None:
+        blueprint = self.load(mission_id)
+        if blueprint is None:
+            return None
+        snapshot = BlueprintReadinessEvaluator().evaluate(blueprint, evidence=evidence)
+        if persist:
+            self.repository.save_readiness_snapshot(snapshot)
+        return snapshot
+
+    def latest_readiness_snapshot(self, mission_id: str) -> BlueprintReadinessSnapshot | None:
+        return self.repository.latest_readiness_snapshot(mission_id)
+
+    def list_readiness_snapshots(self, mission_id: str) -> list[BlueprintReadinessSnapshot]:
+        return self.repository.list_readiness_snapshots(mission_id)
+
+    def record_expansion(
+        self,
+        *,
+        mission_id: str,
+        blueprint_id: str,
+        blueprint_node_id: str,
+        blueprint_revision: int,
+        generated_intent_ids: list[str],
+        diagnostics: dict[str, Any],
+        status: str = "expanded",
+    ) -> dict[str, Any]:
+        return self.repository.record_expansion(
+            mission_id=mission_id,
+            blueprint_id=blueprint_id,
+            blueprint_node_id=blueprint_node_id,
+            blueprint_revision=blueprint_revision,
+            generated_intent_ids=generated_intent_ids,
+            diagnostics=diagnostics,
+            status=status,
+        )
+
+    def list_expansions(self, mission_id: str) -> list[dict[str, Any]]:
+        return self.repository.list_expansions(mission_id)
+
+    def expansion_for_node(self, mission_id: str, blueprint_node_id: str, blueprint_revision: int) -> dict[str, Any] | None:
+        return self.repository.expansion_for_node(mission_id, blueprint_node_id, blueprint_revision)

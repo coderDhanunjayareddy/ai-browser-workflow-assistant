@@ -79,6 +79,9 @@ def upsert_intent(
             evidence=[],
             provenance={"reason": directive.reason},
             resume_metadata={},
+            blueprint_id=_blueprint_ref(directive, "blueprint_id"),
+            blueprint_node_id=_blueprint_ref(directive, "blueprint_node_id"),
+            blueprint_revision=_blueprint_revision(directive),
             created_at=now,
             updated_at=now,
             dispatched_at=now if status in {"DISPATCHED", "WAITING_BROWSER", "WAITING_PROVIDER"} else None,
@@ -87,6 +90,9 @@ def upsert_intent(
     else:
         record.status = status
         record.payload = directive.payload
+        record.blueprint_id = _blueprint_ref(directive, "blueprint_id")
+        record.blueprint_node_id = _blueprint_ref(directive, "blueprint_node_id")
+        record.blueprint_revision = _blueprint_revision(directive)
         record.updated_at = now
         if status in {"DISPATCHED", "WAITING_BROWSER", "WAITING_PROVIDER"} and record.dispatched_at is None:
             record.dispatched_at = now
@@ -167,6 +173,9 @@ def to_dto(record: MissionIntentRecord) -> IntentDTO:
         status=record.status,
         payload=dict(record.payload or {}),
         evidence=list(record.evidence or []),
+        blueprint_id=record.blueprint_id,
+        blueprint_node_id=record.blueprint_node_id,
+        blueprint_revision=record.blueprint_revision,
     )
 
 
@@ -218,6 +227,13 @@ def _next_backend_record(db: Session, mission_id: str) -> MissionIntentRecord | 
 
 
 def _directive_from_record(record: MissionIntentRecord) -> IntentDispatchDirective:
+    payload = dict(record.payload or {})
+    if record.blueprint_id:
+        payload.setdefault("blueprint_id", record.blueprint_id)
+    if record.blueprint_node_id:
+        payload.setdefault("blueprint_node_id", record.blueprint_node_id)
+    if record.blueprint_revision is not None:
+        payload.setdefault("blueprint_revision", record.blueprint_revision)
     return IntentDispatchDirective(
         intent_id=record.intent_id,
         mission_id=record.mission_id,
@@ -228,7 +244,7 @@ def _directive_from_record(record: MissionIntentRecord) -> IntentDispatchDirecti
         dispatch_target=record.dispatch_target,
         browser_executable=record.provider == "browser_control",
         reason=str((record.provenance or {}).get("reason") or "Resumed from durable mission ledger."),
-        payload=dict(record.payload or {}),
+        payload=payload,
         handled=False,
     )
 
@@ -259,3 +275,16 @@ def _status_from_execution(status: str) -> str:
         "failed": "FAILED",
         "blocked": "BLOCKED",
     }.get(str(status), "DISPATCHED")
+
+
+def _blueprint_ref(directive: IntentDispatchDirective, key: str) -> str | None:
+    value = directive.payload.get(key)
+    return str(value) if value else None
+
+
+def _blueprint_revision(directive: IntentDispatchDirective) -> int | None:
+    value = directive.payload.get("blueprint_revision")
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
