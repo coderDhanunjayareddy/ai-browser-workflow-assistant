@@ -103,6 +103,7 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V50_REPORT_ENGINE": "v50_report_engine",
     "V50_EXTRACTION_VALIDATION": "v50_extraction_validation",
     "V51_MISSION_COMPLETION_CONTROLLER": "v51_mission_completion_controller",
+    "MISSION_BLUEPRINT_V1": "mission_blueprint_v1",
 }
 
 

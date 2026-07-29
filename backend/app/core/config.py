@@ -148,6 +148,11 @@ class Settings(BaseSettings):
     v50_extraction_validation: str = "shadow"
     v51_mission_completion_controller: str = "shadow"
 
+    # Mission Blueprint V1 Wave 1A. States: off | shadow | active.
+    # Wave 1A is domain-model only; the flag gates explicit blueprint creation
+    # APIs and has no runtime integration.
+    mission_blueprint_v1: str = "off"
+
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.
     model_config = SettingsConfigDict(
