@@ -58,3 +58,16 @@ Wave 1A has no imports from Workflow Orchestrator, Mission Ledger, Intent
 Runtime, Browser Control, Semantic Execution Kernel, or Mission Completion.
 No runtime code calls Blueprint APIs. The new package is therefore inert unless
 explicitly imported by tests or future Mission Intelligence code.
+
+## Wave 1B Persistence Boundary
+
+Wave 1B adds passive storage for the same Blueprint contract:
+
+- SQLAlchemy records for Blueprint roots, revisions, nodes, and dependencies.
+- A repository interface plus SQLAlchemy implementation.
+- A persistence service for create/load/save/revision serialization.
+- Read-only inspection APIs under `/mission/{mission_id}/blueprint`.
+- Migration metadata documenting additive DDL and rollback order.
+
+Wave 1B still does not generate nodes, create ledger intents, evaluate readiness,
+change Planner Contract V2, or alter Runtime V1 execution.

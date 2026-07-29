@@ -20,6 +20,8 @@ from app.mission.blueprint.models import (
     serialize_blueprint,
     validate_blueprint,
 )
+from app.mission.blueprint.repository import MissionBlueprintRepository, SqlAlchemyMissionBlueprintRepository
+from app.mission.blueprint.service import MissionBlueprintPersistenceService
 
 __all__ = [
     "BlueprintDependency",
@@ -36,4 +38,7 @@ __all__ = [
     "deserialize_blueprint",
     "serialize_blueprint",
     "validate_blueprint",
+    "MissionBlueprintRepository",
+    "SqlAlchemyMissionBlueprintRepository",
+    "MissionBlueprintPersistenceService",
 ]

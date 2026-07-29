@@ -103,6 +103,94 @@ class MissionIntentRecord(Base):
     session = relationship("WorkflowSession", back_populates="mission_intents")
 
 
+class MissionBlueprintRecord(Base):
+    """Durable passive artifact for a Mission Blueprint root snapshot."""
+    __tablename__ = "mission_blueprints"
+
+    blueprint_id      = Column(String, primary_key=True)
+    mission_id        = Column(String, nullable=False, index=True)
+    schema_version    = Column(String, nullable=False)
+    objective         = Column(Text, nullable=False)
+    revision          = Column(Integer, default=1, nullable=False)
+    status            = Column(String, default="active", nullable=False)
+    constraints       = Column(JSON, default=list)
+    success_criteria  = Column(JSON, default=list)
+    recovery_rules    = Column(JSON, default=list)
+    termination_rules = Column(JSON, default=list)
+    approval_policy   = Column(JSON, default=dict)
+    blueprint_metadata = Column(JSON, default=dict)
+    snapshot          = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at        = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    revisions = relationship("MissionBlueprintRevisionRecord", back_populates="blueprint", cascade="all, delete-orphan")
+    nodes = relationship("MissionBlueprintNodeRecord", back_populates="blueprint", cascade="all, delete-orphan")
+    dependencies = relationship("MissionBlueprintDependencyRecord", back_populates="blueprint", cascade="all, delete-orphan")
+
+
+class MissionBlueprintRevisionRecord(Base):
+    """Immutable stored Mission Blueprint revision snapshot."""
+    __tablename__ = "mission_blueprint_revisions"
+
+    revision_id       = Column(String, primary_key=True)
+    blueprint_id      = Column(String, ForeignKey("mission_blueprints.blueprint_id", ondelete="CASCADE"), nullable=False, index=True)
+    mission_id        = Column(String, nullable=False, index=True)
+    revision          = Column(Integer, nullable=False)
+    reason            = Column(Text, default="")
+    created_by        = Column(String, default="mission_intelligence")
+    snapshot          = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    blueprint = relationship("MissionBlueprintRecord", back_populates="revisions")
+    nodes = relationship("MissionBlueprintNodeRecord", back_populates="revision_record", cascade="all, delete-orphan")
+    dependencies = relationship("MissionBlueprintDependencyRecord", back_populates="revision_record", cascade="all, delete-orphan")
+
+
+class MissionBlueprintNodeRecord(Base):
+    """Persisted passive Blueprint node for inspection and revision replay."""
+    __tablename__ = "mission_blueprint_nodes"
+
+    node_record_id    = Column(String, primary_key=True)
+    blueprint_id      = Column(String, ForeignKey("mission_blueprints.blueprint_id", ondelete="CASCADE"), nullable=False, index=True)
+    revision_id       = Column(String, ForeignKey("mission_blueprint_revisions.revision_id", ondelete="CASCADE"), nullable=False, index=True)
+    mission_id        = Column(String, nullable=False, index=True)
+    node_id           = Column(String, nullable=False, index=True)
+    kind              = Column(String, nullable=False)
+    state             = Column(String, nullable=False)
+    objective         = Column(Text, nullable=False)
+    priority          = Column(Integer, default=3, nullable=False)
+    owner_capabilities = Column(JSON, default=list)
+    success_criteria  = Column(JSON, default=list)
+    evidence_requirements = Column(JSON, default=list)
+    expansion_rules   = Column(JSON, default=list)
+    clarification_requirements = Column(JSON, default=list)
+    node_metadata     = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    blueprint = relationship("MissionBlueprintRecord", back_populates="nodes")
+    revision_record = relationship("MissionBlueprintRevisionRecord", back_populates="nodes")
+
+
+class MissionBlueprintDependencyRecord(Base):
+    """Persisted passive Blueprint dependency edge for inspection and replay."""
+    __tablename__ = "mission_blueprint_dependencies"
+
+    dependency_record_id = Column(String, primary_key=True)
+    blueprint_id      = Column(String, ForeignKey("mission_blueprints.blueprint_id", ondelete="CASCADE"), nullable=False, index=True)
+    revision_id       = Column(String, ForeignKey("mission_blueprint_revisions.revision_id", ondelete="CASCADE"), nullable=False, index=True)
+    mission_id        = Column(String, nullable=False, index=True)
+    dependency_id     = Column(String, nullable=False, index=True)
+    from_node_id      = Column(String, nullable=False)
+    to_node_id        = Column(String, nullable=False)
+    kind              = Column(String, nullable=False)
+    required          = Column(Boolean, default=True, nullable=False)
+    dependency_metadata = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    blueprint = relationship("MissionBlueprintRecord", back_populates="dependencies")
+    revision_record = relationship("MissionBlueprintRevisionRecord", back_populates="dependencies")
+
+
 class WorkflowState(Base):
     """Stores key-value verified facts for a session."""
     __tablename__ = "workflow_states"
