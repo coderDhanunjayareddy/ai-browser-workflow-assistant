@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.intent_dispatcher.models import IntentDispatchDirective, IntentQueueResult
+from app.intent_dispatcher.models import ExecutionContext, IntentDispatchDirective, IntentQueueResult
 from app.models.db import MissionIntentRecord, WorkflowSession
 from app.schemas.intent import IntentDTO, IntentEvidence, IntentNextResponse, IntentUpdateResponse
 
@@ -141,13 +141,14 @@ def update_intent(
     record.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(record)
-    next_response = next_intent(db, mission_id=mission_id)
+    _resume_backend_work(db, mission_id=mission_id, evidence=evidence)
+    next_response = next_intent(db, mission_id=mission_id, provider="browser_control")
     return IntentUpdateResponse(
         updated=True,
         intent=to_dto(record),
         next_intent=next_response.intent,
-        status=record.status,
-        reason="Intent evidence attached to durable mission ledger.",
+        status=next_response.status if next_response.intent is not None else record.status,
+        reason=next_response.reason if next_response.intent is not None else "Intent evidence attached to durable mission ledger.",
     )
 
 
@@ -166,6 +167,84 @@ def to_dto(record: MissionIntentRecord) -> IntentDTO:
         status=record.status,
         payload=dict(record.payload or {}),
         evidence=list(record.evidence or []),
+    )
+
+
+def _resume_backend_work(db: Session, *, mission_id: str, evidence: IntentEvidence) -> None:
+    context = _execution_context_from_evidence(mission_id, evidence)
+    while True:
+        record = _next_backend_record(db, mission_id)
+        if record is None:
+            return
+        directive = _directive_from_record(record)
+        record.status = "EXECUTING"
+        record.updated_at = datetime.utcnow()
+        db.commit()
+
+        from app.intent_runtime import execute_intent_queue
+
+        queue_result = execute_intent_queue(
+            mission_id=mission_id,
+            initial_intents=[directive],
+            context=context,
+        )
+        record_queue_result(
+            db,
+            mission_id=mission_id,
+            initial_intent=directive,
+            queue_result=queue_result,
+        )
+        if queue_result.status in {
+            "waiting_browser",
+            "browser_action_required",
+            "user_interaction_required",
+            "waiting_external",
+            "failed",
+            "blocked",
+            "mission_completed",
+        }:
+            return
+
+
+def _next_backend_record(db: Session, mission_id: str) -> MissionIntentRecord | None:
+    return (
+        db.query(MissionIntentRecord)
+        .filter(MissionIntentRecord.mission_id == mission_id)
+        .filter(MissionIntentRecord.provider != "browser_control")
+        .filter(MissionIntentRecord.status.in_(["QUEUED", "DISPATCHED", "WAITING_PROVIDER"]))
+        .order_by(MissionIntentRecord.created_at.asc())
+        .first()
+    )
+
+
+def _directive_from_record(record: MissionIntentRecord) -> IntentDispatchDirective:
+    return IntentDispatchDirective(
+        intent_id=record.intent_id,
+        mission_id=record.mission_id,
+        parent_intent_id=record.parent_intent_id,
+        intent=record.intent,
+        owner=record.provider,
+        capability=record.capability,
+        dispatch_target=record.dispatch_target,
+        browser_executable=record.provider == "browser_control",
+        reason=str((record.provenance or {}).get("reason") or "Resumed from durable mission ledger."),
+        payload=dict(record.payload or {}),
+        handled=False,
+    )
+
+
+def _execution_context_from_evidence(mission_id: str, evidence: IntentEvidence) -> ExecutionContext:
+    payload = dict(evidence.payload or {})
+    return ExecutionContext(
+        mission_id=mission_id,
+        task=str(payload.get("task") or ""),
+        page_context=payload.get("page_context"),
+        prior_steps=[],
+        metadata={
+            "resume_source": "mission_ledger",
+            "browser_metadata": dict(evidence.browser_metadata or {}),
+            "provider_metadata": dict(evidence.provider_metadata or {}),
+        },
     )
 
 

@@ -114,6 +114,12 @@ export interface IntentUpdateResponse {
   reason: string
 }
 
+export interface IntentNextResponse {
+  intent?: IntentDTO | null
+  status: string
+  reason: string
+}
+
 export interface PhaseExecutionDirective {
   schema_version?: string
   active_phase: string

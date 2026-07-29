@@ -3,7 +3,6 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models.db import WorkflowEvent, WorkflowSession
-from app.runtime_state_manager.execution_result import is_successful_execution_result
 from app.schemas.history import EventHistory, HistoryResponse, SessionHistory
 from app.schemas.workflow import LogEventRequest, LogEventResponse
 
@@ -24,8 +23,6 @@ def log_event(db: Session, request: LogEventRequest) -> LogEventResponse:
         )
         db.add(session)
 
-    from app.budget_engine import BudgetManager
-    BudgetManager(db, request.session_id).enforce()
     action = request.action
     now = datetime.utcnow()
 
@@ -46,52 +43,6 @@ def log_event(db: Session, request: LogEventRequest) -> LogEventResponse:
     db.add(event)
     db.commit()
     db.refresh(event)
-
-    # Route execution results through the WorkflowOrchestrator to run validators
-    if request.event_type == "executed":
-        success = is_successful_execution_result(request.execution_result)
-        if request.intent_id:
-            try:
-                from app.schemas.intent import IntentEvidence
-                from app.services import mission_ledger_service
-
-                mission_ledger_service.update_intent(
-                    db,
-                    mission_id=request.session_id,
-                    intent_id=request.intent_id,
-                    outcome="success" if success else "failure",
-                    evidence=IntentEvidence(
-                        success=success,
-                        message=request.execution_result or "",
-                        payload={
-                            "action_type": action.action_type,
-                            "target_selector": action.target_selector,
-                            "value": action.value,
-                            "description": action.description,
-                        },
-                        browser_metadata={
-                            "tab_url": request.tab_url,
-                            "tab_title": request.tab_title,
-                        },
-                    ),
-                )
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).error(f"Mission ledger update failed: {e}")
-        try:
-            from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
-            orchestrator = WorkflowOrchestrator(request.session_id, db)
-            orchestrator.process_executed_step(
-                action_type=action.action_type or "",
-                selector=action.target_selector or "",
-                value=action.value or "",
-                success=success,
-                execution_result=request.execution_result or "",
-            )
-        except Exception as e:
-            # Degrade gracefully to preserve V1 logs if V2 orchestration fails
-            import logging
-            logging.getLogger(__name__).error(f"V2 Orchestration validation failed: {e}")
 
     return LogEventResponse(logged=True, event_id=event.id)
 

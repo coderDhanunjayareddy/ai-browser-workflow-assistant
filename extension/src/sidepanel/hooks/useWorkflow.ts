@@ -37,6 +37,7 @@ import type {
   ReportOutcome,
   ReplanOutcome,
   IntentDTO,
+  IntentNextResponse,
   IntentUpdateResponse,
 } from '../../types'
 
@@ -100,9 +101,9 @@ export interface WorkflowState {
   sessionId: string
   task: string
   analysisText: string
-  pendingActions: SuggestedAction[]   // [0] = next to approve, rest = queued
-  activeAction: SuggestedAction | null // Currently executing
-  completedActions: CompletedAction[]
+  pendingActions: SuggestedAction[]   // DTO view of the currently assigned ledger intent; never a local queue.
+  activeAction: SuggestedAction | null // DTO view of the ledger intent currently executing.
+  completedActions: CompletedAction[] // Presentation-only local audit trail; not execution authority.
   validationPriorSteps: PriorStep[]
   workspace: TaskWorkspace | null
   tabWorkspace: MultiTabWorkspace | null
