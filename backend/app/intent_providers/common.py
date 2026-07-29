@@ -18,6 +18,7 @@ def execution_result(
     blocking_reason: str | None = None,
 ) -> IntentExecutionResult:
     return IntentExecutionResult(
+        intent_id=directive.intent_id,
         intent=directive.intent,
         owner=directive.owner,
         capability=directive.capability,

@@ -95,6 +95,7 @@ class IntentExecutionEvidence(BaseModel):
 
 class IntentExecutionResult(BaseModel):
     schema_version: str = "intent_execution.v1"
+    intent_id: str
     intent: str
     owner: IntentOwner
     capability: str

@@ -13,6 +13,8 @@ class SuggestedAction(BaseModel):
     """
 
     action_id: str
+    intent_id: Optional[str] = None
+    mission_id: Optional[str] = None
     action_type: str
     target_selector: str
     value: Optional[str] = None

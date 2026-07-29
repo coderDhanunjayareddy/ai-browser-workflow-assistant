@@ -312,7 +312,7 @@ def test_browser_control_is_registered_executor_and_stops_queue_for_browser():
         context=ExecutionContext(mission_id="browser-session", task="Open a page."),
     )
 
-    assert result.status == "browser_action_required"
+    assert result.status == "waiting_browser"
     assert result.browser_action is not None
     assert result.browser_action["value"] == "https://example.test"
 

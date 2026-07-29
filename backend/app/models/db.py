@@ -49,6 +49,7 @@ class WorkflowSession(Base):
     failures = relationship("FailureRecord", back_populates="session")
     budget = relationship("WorkflowBudgetRecord", back_populates="session", uselist=False)
     cost_metrics = relationship("WorkflowCostMetric", back_populates="session", uselist=False)
+    mission_intents = relationship("MissionIntentRecord", back_populates="session")
 
 
 class WorkflowEvent(Base):
@@ -74,6 +75,32 @@ class WorkflowEvent(Base):
     created_at       = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     session = relationship("WorkflowSession", back_populates="events")
+
+
+class MissionIntentRecord(Base):
+    """Durable mission-scoped execution ledger entry for one intent."""
+    __tablename__ = "mission_intents"
+
+    intent_id        = Column(String, primary_key=True)
+    mission_id       = Column(String, ForeignKey("sessions.id"), nullable=False, index=True)
+    parent_intent_id = Column(String, nullable=True)
+    intent           = Column(String, nullable=False)
+    provider         = Column(String, nullable=False)
+    capability       = Column(String, nullable=False)
+    dispatch_target  = Column(String, nullable=False)
+    execution_owner  = Column(String, default="")
+    status           = Column(String, default="QUEUED", nullable=False)
+    retries          = Column(Integer, default=0, nullable=False)
+    payload          = Column(JSON, default=dict)
+    evidence         = Column(JSON, default=list)
+    provenance       = Column(JSON, default=dict)
+    resume_metadata  = Column(JSON, default=dict)
+    created_at       = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at       = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    dispatched_at    = Column(DateTime)
+    completed_at     = Column(DateTime)
+
+    session = relationship("WorkflowSession", back_populates="mission_intents")
 
 
 class WorkflowState(Base):

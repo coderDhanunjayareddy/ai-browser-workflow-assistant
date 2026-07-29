@@ -1,54 +1,7 @@
 // Shared types across the extension.
 // Populated incrementally as phases are implemented.
 
-export type ActionType =
-  | 'click'
-  | 'fill'
-  | 'scroll'
-  | 'navigate'
-  | 'wait'
-  | 'select_option'
-  | 'choose_date'
-  | 'hover'
-  | 'keyboard_shortcut'
-  | 'rich_text'
-  | 'insert_rich_text'
-  | 'edit_rich_text'
-  | 'monaco_edit'
-  | 'codemirror_edit'
-  | 'drag_drop'
-  | 'virtual_list_find'
-  | 'shadow_click'
-  | 'shadow_fill'
-  | 'infinite_scroll'
-  | 'advanced_keyboard'
-  | 'clipboard'
-  | 'canvas_action'
-  | 'svg_action'
-  | 'pdf_viewer'
-  | 'chart_action'
-  | 'map_action'
-  | 'media_control'
-  | 'file_preview'
-  | 'visual_region'
-  | 'google_workspace_adapter'
-  | 'microsoft365_adapter'
-  | 'github_advanced_adapter'
-  | 'jira_adapter'
-  | 'confluence_adapter'
-  | 'slack_adapter'
-  | 'notion_adapter'
-  | 'figma_adapter'
-  | 'canva_adapter'
-  | 'salesforce_adapter'
-  | 'sso_auth'
-  | 'mfa_otp_handoff'
-  | 'enterprise_file_workflow'
-  | 'site_optimize'
-  | 'open_new_tab'
-  | 'switch_tab'
-  | 'close_tab'
-  | 'focus_existing_tab'
+export type ActionType = string
 export type SafetyLevel = 'safe' | 'caution' | 'danger'
 
 export interface InteractiveElement {
@@ -97,6 +50,8 @@ export interface PageContext {
 
 export interface SuggestedAction {
   action_id: string
+  intent_id?: string | null
+  mission_id?: string | null
   action_type: ActionType
   target_selector: string
   value: string | null
@@ -137,6 +92,26 @@ export interface AnalyzeResponse {
    */
   goal_convergence?: boolean
   execution_orchestrator?: PhaseExecutionDirective | null
+}
+
+export interface IntentDTO {
+  intent_id: string
+  mission_id: string
+  parent_intent_id?: string | null
+  intent: string
+  provider: string
+  capability: string
+  status: string
+  payload: Record<string, unknown>
+  evidence: Record<string, unknown>[]
+}
+
+export interface IntentUpdateResponse {
+  updated: boolean
+  intent: IntentDTO
+  next_intent?: IntentDTO | null
+  status: string
+  reason: string
 }
 
 export interface PhaseExecutionDirective {

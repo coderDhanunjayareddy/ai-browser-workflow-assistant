@@ -261,8 +261,9 @@ def _execution_result(
     next_intents: list[IntentDispatchDirective] | None = None,
     blocking_reason: str | None = None,
 ) -> IntentExecutionResult:
-    return IntentExecutionResult(
-        intent=directive.intent,
+        return IntentExecutionResult(
+            intent_id=directive.intent_id,
+            intent=directive.intent,
         owner=directive.owner,
         capability=directive.capability,
         dispatch_target=directive.dispatch_target,

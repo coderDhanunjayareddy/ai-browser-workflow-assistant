@@ -49,10 +49,38 @@ def log_event(db: Session, request: LogEventRequest) -> LogEventResponse:
 
     # Route execution results through the WorkflowOrchestrator to run validators
     if request.event_type == "executed":
+        success = is_successful_execution_result(request.execution_result)
+        if request.intent_id:
+            try:
+                from app.schemas.intent import IntentEvidence
+                from app.services import mission_ledger_service
+
+                mission_ledger_service.update_intent(
+                    db,
+                    mission_id=request.session_id,
+                    intent_id=request.intent_id,
+                    outcome="success" if success else "failure",
+                    evidence=IntentEvidence(
+                        success=success,
+                        message=request.execution_result or "",
+                        payload={
+                            "action_type": action.action_type,
+                            "target_selector": action.target_selector,
+                            "value": action.value,
+                            "description": action.description,
+                        },
+                        browser_metadata={
+                            "tab_url": request.tab_url,
+                            "tab_title": request.tab_title,
+                        },
+                    ),
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Mission ledger update failed: {e}")
         try:
             from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
             orchestrator = WorkflowOrchestrator(request.session_id, db)
-            success = is_successful_execution_result(request.execution_result)
             orchestrator.process_executed_step(
                 action_type=action.action_type or "",
                 selector=action.target_selector or "",

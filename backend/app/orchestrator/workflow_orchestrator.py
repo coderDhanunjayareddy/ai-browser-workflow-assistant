@@ -886,6 +886,7 @@ class WorkflowOrchestrator:
             result = postprocess_with_runtime_state(result, runtime_state_snapshot)
             if result.intent_dispatch is not None:
                 from app.intent_runtime import ExecutionContext, execute_intent_queue
+                from app.services import mission_ledger_service
 
                 execution_context = ExecutionContext(
                     mission_id=self.session_id,
@@ -904,6 +905,30 @@ class WorkflowOrchestrator:
                     initial_intents=[result.intent_dispatch],
                     context=execution_context,
                 )
+                mission_ledger_service.record_queue_result(
+                    self.db,
+                    mission_id=self.session_id,
+                    initial_intent=result.intent_dispatch,
+                    queue_result=result.intent_execution,
+                )
+                if result.intent_execution.status in {"waiting_browser", "browser_action_required"} and result.intent_execution.browser_action:
+                    from app.schemas.response import SuggestedAction
+
+                    browser_payload = result.intent_execution.browser_action
+                    result.suggested_actions = [
+                        SuggestedAction(
+                            action_id=str(browser_payload.get("action_id") or browser_payload.get("intent_id") or result.intent_dispatch.intent_id),
+                            intent_id=str(browser_payload.get("intent_id") or result.intent_dispatch.intent_id),
+                            mission_id=self.session_id,
+                            action_type=str(browser_payload.get("action_type") or result.intent_dispatch.intent),
+                            target_selector=str(browser_payload.get("target_selector") or ""),
+                            value=browser_payload.get("value"),
+                            description=str(browser_payload.get("description") or result.intent_dispatch.reason),
+                            reasoning=str(browser_payload.get("reasoning") or result.intent_dispatch.reason),
+                            confidence=float(browser_payload.get("confidence") or 0.8),
+                            safety_level=str(browser_payload.get("safety_level") or "safe"),  # type: ignore[arg-type]
+                        )
+                    ]
                 runtime_state_snapshot = execution_context.runtime_state or runtime_state_snapshot
                 knowledge_snapshot = execution_context.knowledge or knowledge_snapshot
                 mission_completion_snapshot = execution_context.completion_state or mission_completion_snapshot

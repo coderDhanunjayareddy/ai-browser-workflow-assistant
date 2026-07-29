@@ -629,6 +629,8 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
         actions.append(
             SuggestedAction(
                 action_id=str(item.get("action_id") or uuid.uuid4()),
+                intent_id=intent_dispatch.intent_id if intent_dispatch is not None else None,
+                mission_id=session_id,
                 action_type=action_type,      # type: ignore[arg-type]
                 target_selector=item.get("target_selector") or "",
                 value=item.get("value"),

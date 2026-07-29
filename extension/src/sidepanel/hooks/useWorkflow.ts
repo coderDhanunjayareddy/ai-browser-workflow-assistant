@@ -36,6 +36,8 @@ import type {
   PlannerOutcomeKind,
   ReportOutcome,
   ReplanOutcome,
+  IntentDTO,
+  IntentUpdateResponse,
 } from '../../types'
 
 const BACKEND_URL = 'http://localhost:8000'
@@ -735,10 +737,12 @@ export function routeAnalyzeOutcome(
     }
   }
 
+  const queuedActions = [...allowedActions, ...continuationActions]
+
   return {
     phase: 'awaiting_execution',
     analysisText: result.analysis,
-    pendingActions: [...allowedActions, ...continuationActions],
+    pendingActions: queuedActions.slice(0, 1),
     clarificationQuestion: null,
     contractOutcome: outcomeKind,
     report: null,
@@ -759,12 +763,14 @@ function logEvent(
   action: SuggestedAction,
   pageContext: PageContext | null,
   executionResult?: string,
+  attachIntent = true,
 ) {
   fetch(`${BACKEND_URL}/workflow/log`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       session_id: sessionId,
+      intent_id: attachIntent ? action.intent_id ?? null : null,
       event_type: eventType,
       action,
       tab_url: pageContext?.url ?? '',
@@ -772,6 +778,73 @@ function logEvent(
       execution_result: executionResult,
     }),
   }).catch(console.error)
+}
+
+async function updateIntentEvidence(
+  sessionId: string,
+  action: SuggestedAction,
+  pageContext: PageContext | null,
+  result: ExecutionResult,
+): Promise<{ nextIntent: IntentDTO | null; updated: boolean }> {
+  if (!action.intent_id) return { nextIntent: null, updated: false }
+  const response = await fetch(`${BACKEND_URL}/intent/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mission_id: action.mission_id ?? sessionId,
+      intent_id: action.intent_id,
+      outcome: result.success ? 'success' : 'failure',
+      evidence: {
+        evidence_type: 'browser_execution',
+        success: result.success,
+        message: result.success ? 'success' : result.message,
+        payload: {
+          action_type: action.action_type,
+          target_selector: action.target_selector,
+          value: action.value,
+          execution_result: result,
+        },
+        browser_metadata: {
+          tab_url: pageContext?.url ?? '',
+          tab_title: pageContext?.title ?? '',
+        },
+        provider_metadata: {
+          provider: 'browser_control',
+        },
+        runtime_resource_updates: [],
+      },
+    }),
+  }).catch((err) => {
+    console.error(err)
+    return null
+  })
+  if (!response || !response.ok) return { nextIntent: null, updated: false }
+  const data = await response.json().catch(() => null) as IntentUpdateResponse | null
+  return { nextIntent: data?.next_intent ?? null, updated: Boolean(data?.updated) }
+}
+
+function actionFromIntent(intent: IntentDTO): SuggestedAction {
+  const payload = intent.payload ?? {}
+  const rawSafety = payload.safety_level
+  const safety_level =
+    rawSafety === 'danger' || rawSafety === 'caution' || rawSafety === 'safe'
+      ? rawSafety
+      : 'safe'
+  const rawValue = payload.value
+  const value = rawValue === undefined || rawValue === null ? null : String(rawValue)
+
+  return {
+    action_id: String(payload.action_id ?? intent.intent_id),
+    intent_id: intent.intent_id,
+    mission_id: intent.mission_id,
+    action_type: String(payload.action_type ?? intent.intent),
+    target_selector: String(payload.target_selector ?? ''),
+    value,
+    description: String(payload.description ?? intent.intent),
+    reasoning: String(payload.reasoning ?? `Assigned by mission ledger intent ${intent.intent_id}`),
+    confidence: typeof payload.confidence === 'number' ? payload.confidence : 0.8,
+    safety_level,
+  }
 }
 
 export function useWorkflow() {
@@ -1129,8 +1202,10 @@ export function useWorkflow() {
 
     setState((s) => ({ ...s, activeAction: null, completedActions: newCompleted }))
 
+    const intentUpdate = await updateIntentEvidence(sessionId, action, pageContextAfterAction, result)
+    const nextIntent = intentUpdate.nextIntent
     logEvent(sessionId, 'executed', action, pageContextAfterAction,
-      result.success ? 'success' : result.message)
+      result.success ? 'success' : result.message, !intentUpdate.updated)
 
     if (!result.success) {
       await runWorkflowLoop({
@@ -1146,7 +1221,20 @@ export function useWorkflow() {
       return
     }
 
-    if (remaining.length > 0) {
+    if (nextIntent) {
+      const nextAction = actionFromIntent(nextIntent)
+      setState((s) => ({
+        ...s,
+        phase: 'awaiting_execution',
+        activeAction: null,
+        pendingActions: [nextAction],
+        completedActions: newCompleted,
+        error: null,
+      }))
+      return
+    }
+
+    if (!action.intent_id && remaining.length > 0) {
       setState((s) => ({
         ...s,
         phase: 'awaiting_execution',

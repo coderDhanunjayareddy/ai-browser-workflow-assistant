@@ -7,6 +7,7 @@ from app.schemas.response import SuggestedAction
 
 class LogEventRequest(BaseModel):
     session_id: str
+    intent_id: str | None = None
     event_type: Literal["approved", "rejected", "executed"]
     action: SuggestedAction
     tab_url: str = ""
