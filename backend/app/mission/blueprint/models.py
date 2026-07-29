@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -136,8 +136,8 @@ class MissionBlueprint:
     termination_rules: list[str] = field(default_factory=list)
     approval_policy: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return _jsonable(asdict(self))
@@ -330,7 +330,7 @@ def _datetime_from_value(value: Any) -> datetime:
         return value
     if isinstance(value, str) and value:
         return datetime.fromisoformat(value)
-    return datetime.utcnow()
+    return datetime.now(UTC)
 
 
 def _require_enabled() -> None:
