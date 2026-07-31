@@ -1,5 +1,7 @@
 from app.cognitive_runtime.context import CognitiveExecutionContext
-from app.cognitive_runtime.controller import CognitiveRuntimeController
+from app.cognitive_runtime.comparison import DecisionAgreementEngine
+from app.cognitive_runtime.comparison_models import DecisionComparison
+from app.cognitive_runtime.controller import CognitiveDecisionComparisonController, CognitiveRuntimeController
 from app.cognitive_runtime.decision_engine import CognitiveDecisionContext, CognitiveDecisionEngine
 from app.cognitive_runtime.decision_models import CognitiveDecision, CognitiveDecisionType
 from app.cognitive_runtime.diagnostics import EvidenceDiagnostics
@@ -26,11 +28,14 @@ __all__ = [
     "CognitiveExecutionContext",
     "CognitiveMetrics",
     "CognitiveMission",
+    "CognitiveDecisionComparisonController",
     "CognitiveRuntimeController",
     "CognitiveDecision",
     "CognitiveDecisionContext",
     "CognitiveDecisionEngine",
     "CognitiveDecisionType",
+    "DecisionAgreementEngine",
+    "DecisionComparison",
     "CognitiveRuntimeRepository",
     "CognitiveRuntimeService",
     "CognitiveReasoningSnapshot",

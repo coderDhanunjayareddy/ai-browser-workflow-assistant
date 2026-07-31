@@ -4,6 +4,8 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 
+from app.cognitive_runtime.comparison_repository import DecisionComparisonRepository
+from app.cognitive_runtime.comparison_service import DecisionComparisonService
 from app.cognitive_runtime.metrics import compute_metrics
 from app.cognitive_runtime.models import (
     CognitiveCheckpoint,
@@ -195,3 +197,7 @@ class CognitiveRuntimeService:
         if mission is None:
             raise LookupError(f"Cognitive Runtime for mission {mission_id!r} not found")
         return mission
+
+
+def comparison_service(repository: DecisionComparisonRepository) -> DecisionComparisonService:
+    return DecisionComparisonService(repository)

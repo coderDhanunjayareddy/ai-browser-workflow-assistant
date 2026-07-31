@@ -105,6 +105,7 @@ _FLAG_SETTINGS: dict[str, str] = {
     "V51_MISSION_COMPLETION_CONTROLLER": "v51_mission_completion_controller",
     "MISSION_BLUEPRINT_V1": "mission_blueprint_v1",
     "COGNITIVE_RUNTIME_V2": "cognitive_runtime_v2",
+    "EXECUTION_BENCHMARK_V1": "execution_benchmark_v1",
 }
 
 

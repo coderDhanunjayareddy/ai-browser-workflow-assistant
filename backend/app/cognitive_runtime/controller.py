@@ -7,6 +7,8 @@ from app.cognitive_runtime.interpreter import EvidenceInterpretation
 from app.cognitive_runtime.models import CognitiveCheckpoint, CognitiveMetrics, CognitiveMission, ProgressSnapshot
 from app.cognitive_runtime.snapshots import CognitiveReasoningSnapshot
 from app.cognitive_runtime.state_machine import CognitiveStateSnapshot
+from app.cognitive_runtime.comparison_repository import DecisionComparisonRepository
+from app.cognitive_runtime.comparison_service import DecisionComparisonService
 from app.cognitive_runtime.recommendations import RecommendationResult
 from app.cognitive_runtime.service import CognitiveRuntimeService
 
@@ -81,3 +83,23 @@ class CognitiveRuntimeController:
             readiness=readiness,
             policy_name=policy_name,
         )
+
+
+class CognitiveDecisionComparisonController:
+    def __init__(self, repository: DecisionComparisonRepository):
+        self.service = DecisionComparisonService(repository)
+
+    def latest(self, mission_id: str):
+        return self.service.latest(mission_id)
+
+    def history(self, mission_id: str):
+        return self.service.history(mission_id)
+
+    def metrics(self, mission_id: str):
+        return self.service.metrics(mission_id)
+
+    def report(self, mission_id: str):
+        return self.service.report(mission_id)
+
+    def disagreements(self, mission_id: str):
+        return self.service.disagreements(mission_id)

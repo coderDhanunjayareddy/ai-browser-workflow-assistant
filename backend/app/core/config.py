@@ -158,6 +158,10 @@ class Settings(BaseSettings):
     # to shadow and has no execution integration.
     cognitive_runtime_v2: str = "off"
 
+    # Execution Benchmark Harness V1. States: off | shadow | active.
+    # The harness is observational only in every mode and never alters Runtime V1.
+    execution_benchmark_v1: str = "off"
+
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.
     model_config = SettingsConfigDict(

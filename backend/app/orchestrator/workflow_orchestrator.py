@@ -748,11 +748,16 @@ class WorkflowOrchestrator:
             execution_state=None,
         )
         if should_terminate_before_planner(mission_completion_snapshot):
+            completion = completion_response(self.session_id, mission_completion_snapshot)
+            self._record_cognitive_decision_comparison_shadow(
+                result=completion,
+                runtime_reason=mission_completion_snapshot.reason,
+            )
             self._record_v3_event(
                 "mission_completion.terminated_before_planner",
                 mission_completion_snapshot.to_compact_context() if mission_completion_snapshot else {},
             )
-            return completion_response(self.session_id, mission_completion_snapshot)
+            return completion
         from app.semantic_execution_kernel import (
             enrich_planner_context_with_kernel,
             observe_semantic_execution_kernel,
@@ -1140,8 +1145,62 @@ class WorkflowOrchestrator:
                 self.session_id,
                 recovery_prepared,
             )
+            self._record_cognitive_decision_comparison_shadow(result=result)
 
             return result
+
+    def _record_cognitive_decision_comparison_shadow(
+        self,
+        *,
+        result: Any,
+        runtime_reason: str | None = None,
+    ) -> None:
+        """Best-effort Wave 5A comparison hook.
+
+        Runtime V1 remains authoritative. This method must never mutate the
+        response, create intents, call providers, replan, or raise into the
+        orchestration path.
+        """
+        try:
+            if not is_shadow_or_active("COGNITIVE_RUNTIME_V2"):
+                return
+            from app.cognitive_runtime.comparison_service import DecisionComparisonService
+            from app.cognitive_runtime.comparison_repository import SqlAlchemyDecisionComparisonRepository
+            from app.cognitive_runtime.repository import SqlAlchemyCognitiveRuntimeRepository
+            from app.cognitive_runtime.service import CognitiveRuntimeService
+            from app.mission.blueprint.repository import SqlAlchemyMissionBlueprintRepository
+
+            cognitive_repository = SqlAlchemyCognitiveRuntimeRepository(self.db)
+            service = CognitiveRuntimeService(cognitive_repository)
+            if service.load_runtime(self.session_id) is None:
+                return
+            blueprint_repository = SqlAlchemyMissionBlueprintRepository(self.db)
+            started = time.perf_counter()
+            recommendation = service.cognitive_decision(
+                mission_id=self.session_id,
+                blueprint=blueprint_repository.get(self.session_id),
+                readiness=blueprint_repository.latest_readiness_snapshot(self.session_id),
+            )
+            latency_ms = (time.perf_counter() - started) * 1000
+            runtime_decision, inferred_reason = _runtime_decision_from_response(result)
+            action = (getattr(result, "suggested_actions", None) or [None])[0]
+            intent_id = getattr(action, "intent_id", None) if action is not None else None
+            DecisionComparisonService(SqlAlchemyDecisionComparisonRepository(self.db)).record(
+                mission_id=self.session_id,
+                intent_id=intent_id,
+                blueprint_node_id=None,
+                runtime_decision=runtime_decision,
+                runtime_reason=runtime_reason or inferred_reason,
+                cognitive=recommendation,
+                recommendation_latency_ms=latency_ms,
+                metadata={
+                    "source": "workflow_orchestrator",
+                    "runtime_response_outcome_kind": getattr(result, "outcome_kind", None),
+                    "execution_impact": "none",
+                },
+            )
+        except Exception:
+            logger.debug("Cognitive Runtime Wave 5A comparison skipped", exc_info=True)
 
     def process_executed_step(
         self,
@@ -1242,3 +1301,30 @@ class WorkflowOrchestrator:
                 execution_result=execution_result,
             )
             self._record_validation_shadow(validation, validation_ms)
+
+
+def _runtime_decision_from_response(result: Any) -> tuple[str, str]:
+    outcome = str(getattr(result, "outcome_kind", "") or "").lower()
+    intent_execution = getattr(result, "intent_execution", None)
+    execution_status = str(getattr(intent_execution, "status", "") or "").lower()
+    suggested_actions = list(getattr(result, "suggested_actions", []) or [])
+    if outcome == "ask" or getattr(result, "clarification_question", None):
+        return "REQUEST_USER", str(getattr(result, "clarification_question", "") or "Runtime V1 requested user input.")
+    if outcome == "wait":
+        return "WAIT", str(getattr(result, "analysis", "") or "Runtime V1 requested wait.")
+    if outcome == "replan" or getattr(result, "replan", None) is not None:
+        replan = getattr(result, "replan", None)
+        return "REPLAN", str(getattr(replan, "reason", "") or getattr(result, "analysis", "") or "Runtime V1 requested replanning.")
+    if outcome == "report" or getattr(result, "report", None) is not None:
+        return "COMPLETE", str(getattr(result, "analysis", "") or "Runtime V1 produced a report/completion response.")
+    if execution_status == "failed":
+        return "FAILED", str(getattr(intent_execution, "reason", "") or "Intent Runtime reported failure.")
+    if execution_status == "blocked":
+        return "BLOCKED", str(getattr(intent_execution, "reason", "") or "Intent Runtime reported blocked.")
+    if execution_status == "waiting_external":
+        return "WAIT", str(getattr(intent_execution, "reason", "") or "Intent Runtime is waiting on an external condition.")
+    if execution_status == "user_interaction_required":
+        return "REQUEST_USER", str(getattr(intent_execution, "reason", "") or "Intent Runtime requires user interaction.")
+    if suggested_actions or execution_status in {"waiting_browser", "browser_action_required", "succeeded"}:
+        return "CONTINUE", str(getattr(result, "analysis", "") or "Runtime V1 produced executable work.")
+    return "CONTINUE", str(getattr(result, "analysis", "") or "Runtime V1 continued without terminal decision.")

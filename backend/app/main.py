@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, analyze, workflow, assist, cognitive, research, intelligence, unified, mission, mission_intelligence, mission_blueprint, cognitive_runtime, intent as intent_router, tabs as tabs_router, trust as trust_router, browser as browser_router, decisions as decisions_router, approvals as approvals_router, governance as governance_router, authorization as authorization_router, runtime as runtime_router, plans as plans_router, gateway as gateway_router, website_intelligence as website_intelligence_router, certification as certification_router, product as product_router
+from app.api.routes import health, analyze, workflow, assist, cognitive, research, intelligence, unified, mission, mission_intelligence, mission_blueprint, cognitive_runtime, validation as validation_router, benchmarks as benchmarks_router, intent as intent_router, tabs as tabs_router, trust as trust_router, browser as browser_router, decisions as decisions_router, approvals as approvals_router, governance as governance_router, authorization as authorization_router, runtime as runtime_router, plans as plans_router, gateway as gateway_router, website_intelligence as website_intelligence_router, certification as certification_router, product as product_router
 from app.core.database import engine, Base
 import app.models.db  # noqa: F401 — registers ORM models with Base before create_all
 import app.product.models  # noqa: F401 — registers V5 Product Layer models with Base
@@ -68,6 +68,8 @@ app.include_router(mission.router)
 app.include_router(mission_intelligence.router, prefix="/mission")
 app.include_router(mission_blueprint.router, prefix="/mission")
 app.include_router(cognitive_runtime.router, prefix="/mission")
+app.include_router(validation_router.router)
+app.include_router(benchmarks_router.router)
 app.include_router(intent_router.router)
 app.include_router(tabs_router.router)
 app.include_router(trust_router.router)

@@ -283,6 +283,108 @@ class CognitiveMetricsRecord(Base):
     updated_at        = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class CognitiveDecisionComparisonRecord(Base):
+    """Passive Wave 5A comparison between Runtime V1 decisions and Cognitive advice."""
+    __tablename__ = "cognitive_decision_comparisons"
+
+    comparison_id     = Column(String, primary_key=True)
+    mission_id        = Column(String, index=True, nullable=False)
+    intent_id         = Column(String, nullable=True, index=True)
+    blueprint_node_id = Column(String, nullable=True, index=True)
+    runtime_decision  = Column(String, nullable=False, index=True)
+    cognitive_decision = Column(String, nullable=False, index=True)
+    agreement         = Column(String, nullable=False, index=True)
+    confidence        = Column(Float, default=0.0, nullable=False)
+    runtime_reason    = Column(Text, default="")
+    cognitive_reason  = Column(Text, default="")
+    explanation       = Column(JSON, default=dict)
+    comparison_metadata = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class ValidationBenchmarkRunRecord(Base):
+    """Passive benchmark/validation result; never drives runtime execution."""
+    __tablename__ = "validation_benchmark_runs"
+
+    run_id            = Column(String, primary_key=True)
+    benchmark_id      = Column(String, nullable=False, index=True)
+    mission_id        = Column(String, nullable=True, index=True)
+    category          = Column(String, nullable=False, index=True)
+    status            = Column(String, default="evaluated", nullable=False)
+    score             = Column(Float, default=0.0, nullable=False)
+    metrics           = Column(JSON, default=dict)
+    diagnostics       = Column(JSON, default=dict)
+    report            = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class BenchmarkRunRecord(Base):
+    """Execution benchmark harness run metadata captured passively."""
+    __tablename__ = "benchmark_runs"
+
+    run_id            = Column(String, primary_key=True)
+    benchmark_id      = Column(String, nullable=False, index=True)
+    mission_id        = Column(String, nullable=True, index=True)
+    category          = Column(String, nullable=False, index=True)
+    status            = Column(String, default="captured", nullable=False)
+    score             = Column(Float, default=0.0, nullable=False)
+    duration_ms       = Column(Integer, default=0, nullable=False)
+    run_metadata      = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class BenchmarkExecutionTraceRecord(Base):
+    """Structured execution trace snapshot for a passive benchmark run."""
+    __tablename__ = "benchmark_execution_traces"
+
+    trace_id          = Column(String, primary_key=True)
+    run_id            = Column(String, ForeignKey("benchmark_runs.run_id", ondelete="CASCADE"), nullable=False, index=True)
+    mission_id        = Column(String, nullable=True, index=True)
+    benchmark_id      = Column(String, nullable=False, index=True)
+    timeline          = Column(JSON, default=list)
+    snapshot          = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class BenchmarkReportRecord(Base):
+    """Structured JSON and Markdown benchmark reports."""
+    __tablename__ = "benchmark_reports"
+
+    report_id         = Column(String, primary_key=True)
+    run_id            = Column(String, ForeignKey("benchmark_runs.run_id", ondelete="CASCADE"), nullable=False, index=True)
+    report_type       = Column(String, nullable=False, index=True)
+    json_report       = Column(JSON, default=dict)
+    markdown_report   = Column(Text, default="")
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class BenchmarkFailureRecord(Base):
+    """Passive benchmark failure classification."""
+    __tablename__ = "benchmark_failures"
+
+    failure_id        = Column(String, primary_key=True)
+    run_id            = Column(String, ForeignKey("benchmark_runs.run_id", ondelete="CASCADE"), nullable=False, index=True)
+    benchmark_id      = Column(String, nullable=False, index=True)
+    category          = Column(String, nullable=False, index=True)
+    root_cause        = Column(Text, default="")
+    affected_subsystem = Column(String, nullable=False, index=True)
+    timeline          = Column(JSON, default=list)
+    recommended_fix   = Column(Text, default="")
+    confidence        = Column(Float, default=0.0, nullable=False)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class BenchmarkMetricRecord(Base):
+    """Passive benchmark metric snapshot."""
+    __tablename__ = "benchmark_metrics"
+
+    metric_id         = Column(String, primary_key=True)
+    run_id            = Column(String, ForeignKey("benchmark_runs.run_id", ondelete="CASCADE"), nullable=False, index=True)
+    benchmark_id      = Column(String, nullable=False, index=True)
+    metrics           = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
 class WorkflowState(Base):
     """Stores key-value verified facts for a session."""
     __tablename__ = "workflow_states"

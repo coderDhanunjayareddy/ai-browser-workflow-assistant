@@ -3,6 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.cognitive_runtime.comparison_repository import SqlAlchemyDecisionComparisonRepository
+from app.cognitive_runtime.comparison_service import DecisionComparisonService
 from app.cognitive_runtime.repository import SqlAlchemyCognitiveRuntimeRepository
 from app.cognitive_runtime.service import CognitiveRuntimeService
 from app.cognitive_runtime.policy import DecisionPolicy
@@ -139,6 +141,45 @@ def get_cognitive_decision_alternatives(mission_id: str, policy: str | None = No
     }
 
 
+@router.get("/{mission_id}/cognitive/comparison")
+def get_cognitive_comparison(mission_id: str, db: Session = Depends(get_db)) -> dict:
+    comparison = _comparison_service_or_disabled(db).latest(mission_id)
+    if comparison is None:
+        raise HTTPException(status_code=404, detail=f"No Cognitive decision comparison found for mission {mission_id!r}")
+    return comparison.to_dict()
+
+
+@router.get("/{mission_id}/cognitive/comparison/history")
+def get_cognitive_comparison_history(mission_id: str, db: Session = Depends(get_db)) -> dict:
+    service = _comparison_service_or_disabled(db)
+    return {
+        "mission_id": mission_id,
+        "comparisons": [comparison.to_dict() for comparison in service.history(mission_id)],
+    }
+
+
+@router.get("/{mission_id}/cognitive/comparison/metrics")
+def get_cognitive_comparison_metrics(mission_id: str, db: Session = Depends(get_db)) -> dict:
+    return {
+        "mission_id": mission_id,
+        "metrics": _comparison_service_or_disabled(db).metrics(mission_id),
+    }
+
+
+@router.get("/{mission_id}/cognitive/comparison/report")
+def get_cognitive_comparison_report(mission_id: str, db: Session = Depends(get_db)) -> dict:
+    return _comparison_service_or_disabled(db).report(mission_id)
+
+
+@router.get("/{mission_id}/cognitive/comparison/disagreements")
+def get_cognitive_comparison_disagreements(mission_id: str, db: Session = Depends(get_db)) -> dict:
+    service = _comparison_service_or_disabled(db)
+    return {
+        "mission_id": mission_id,
+        "disagreements": [comparison.to_dict() for comparison in service.disagreements(mission_id)],
+    }
+
+
 @router.get("/{mission_id}/cognitive/checkpoints")
 def get_cognitive_checkpoints(mission_id: str, db: Session = Depends(get_db)) -> dict:
     service = _service_or_disabled(db)
@@ -232,6 +273,12 @@ def _service_or_disabled(db: Session) -> CognitiveRuntimeService:
     if not is_shadow_or_active("COGNITIVE_RUNTIME_V2"):
         raise HTTPException(status_code=404, detail="COGNITIVE_RUNTIME_V2 is disabled")
     return CognitiveRuntimeService(SqlAlchemyCognitiveRuntimeRepository(db))
+
+
+def _comparison_service_or_disabled(db: Session) -> DecisionComparisonService:
+    if not is_shadow_or_active("COGNITIVE_RUNTIME_V2"):
+        raise HTTPException(status_code=404, detail="COGNITIVE_RUNTIME_V2 is disabled")
+    return DecisionComparisonService(SqlAlchemyDecisionComparisonRepository(db))
 
 
 def _require_runtime(service: CognitiveRuntimeService, mission_id: str):
