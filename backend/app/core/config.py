@@ -153,6 +153,11 @@ class Settings(BaseSettings):
     # APIs and has no runtime integration.
     mission_blueprint_v1: str = "off"
 
+    # Cognitive Runtime V2 Wave 1. States: off | shadow | active.
+    # Wave 1 is a passive foundation only; active is intentionally identical
+    # to shadow and has no execution integration.
+    cognitive_runtime_v2: str = "off"
+
     # Ensure the .env file in the backend/ directory is loaded even if the
     # process current working directory is different when the app is started.
     model_config = SettingsConfigDict(

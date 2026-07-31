@@ -224,6 +224,65 @@ class MissionBlueprintExpansionRecord(Base):
     created_at       = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
+class CognitiveRuntimeMissionRecord(Base):
+    """Mission-scoped passive reasoning record for Cognitive Runtime V2."""
+    __tablename__ = "cognitive_missions"
+
+    mission_id        = Column(String, primary_key=True)
+    blueprint_id      = Column(String, nullable=False, index=True)
+    blueprint_revision = Column(Integer, nullable=False)
+    runtime_version   = Column(String, nullable=False)
+    schema_version    = Column(String, nullable=False)
+    state             = Column(String, default="initialized", nullable=False)
+    runtime_metadata  = Column(JSON, default=dict)
+    snapshot          = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at        = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class CognitiveCheckpointRecord(Base):
+    """Durable passive reasoning checkpoint for future cognitive resume flows."""
+    __tablename__ = "cognitive_checkpoints"
+
+    checkpoint_id     = Column(String, primary_key=True)
+    mission_id        = Column(String, ForeignKey("cognitive_missions.mission_id", ondelete="CASCADE"), nullable=False, index=True)
+    blueprint_revision = Column(Integer, nullable=False)
+    serialized_state  = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class CognitiveEvidenceRecord(Base):
+    """Provider-independent evidence attached to a mission for cognitive inspection."""
+    __tablename__ = "cognitive_evidence"
+
+    evidence_id       = Column(String, primary_key=True)
+    mission_id        = Column(String, ForeignKey("cognitive_missions.mission_id", ondelete="CASCADE"), nullable=False, index=True)
+    source            = Column(String, nullable=False)
+    provider          = Column(String, nullable=False)
+    evidence_type     = Column(String, nullable=False, index=True)
+    confidence        = Column(Float, default=1.0, nullable=False)
+    payload           = Column(JSON, default=dict)
+    provenance        = Column(JSON, default=dict)
+    created_at        = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class CognitiveMetricsRecord(Base):
+    """Collected Cognitive Runtime V2 diagnostic metrics."""
+    __tablename__ = "cognitive_metrics"
+
+    mission_id        = Column(String, ForeignKey("cognitive_missions.mission_id", ondelete="CASCADE"), primary_key=True)
+    reasoning_iterations = Column(Integer, default=0, nullable=False)
+    clarification_count = Column(Integer, default=0, nullable=False)
+    evidence_count   = Column(Integer, default=0, nullable=False)
+    confidence_average = Column(Float, default=0.0, nullable=False)
+    recovery_count   = Column(Integer, default=0, nullable=False)
+    replanning_count = Column(Integer, default=0, nullable=False)
+    execution_duration_ms = Column(Integer, default=0, nullable=False)
+    metrics_metadata = Column(JSON, default=dict)
+    snapshot          = Column(JSON, default=dict)
+    updated_at        = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class WorkflowState(Base):
     """Stores key-value verified facts for a session."""
     __tablename__ = "workflow_states"
