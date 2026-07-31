@@ -10,14 +10,14 @@ from app.knowledge_extraction.models import PageReadArtifact
 
 def read_page(page_context: Any) -> PageReadArtifact:
     started = int(time.time() * 1000)
-    url = str(getattr(page_context, "url", "") or "")
-    title = str(getattr(page_context, "title", "") or "")
-    headings = [str(item) for item in (getattr(page_context, "headings", []) or [])[:20]]
-    blocks = [item.model_dump() if hasattr(item, "model_dump") else dict(item) for item in (getattr(page_context, "content_blocks", []) or [])]
+    url = str(_read(page_context, "url", "") or "")
+    title = str(_read(page_context, "title", "") or "")
+    headings = [str(item) for item in _as_list(_read(page_context, "headings"))[:20]]
+    blocks = [_to_dict(item) for item in _as_list(_read(page_context, "content_blocks"))]
     paragraphs = _paragraphs(page_context, blocks)
     sections = _sections(headings, paragraphs)
-    metadata = {str(k): str(v)[:300] for k, v in dict(getattr(page_context, "metadata", {}) or {}).items() if v}
-    interactions = [item.model_dump() if hasattr(item, "model_dump") else dict(item) for item in (getattr(page_context, "interactive_elements", []) or [])]
+    metadata = {str(k): str(v)[:300] for k, v in dict(_read(page_context, "metadata", {}) or {}).items() if v}
+    interactions = [_to_dict(item) for item in _as_list(_read(page_context, "interactive_elements"))]
     forms = _forms(interactions)
     links = _links(interactions, blocks)
     pricing = [text for text in paragraphs if _contains_any(text, ("price", "pricing", "$", "free", "trial", "plan", "subscription", "credit"))][:8]
@@ -46,7 +46,7 @@ def _paragraphs(page_context: Any, blocks: list[dict[str, Any]]) -> list[str]:
         text = _compact(block.get("text", ""))
         if text:
             values.append(text)
-    visible = str(getattr(page_context, "visible_text", "") or "")
+    visible = str(_read(page_context, "visible_text", "") or "")
     for line in visible.splitlines():
         text = _compact(line)
         if len(text) > 20:
@@ -126,3 +126,34 @@ def _dedupe_links(values: list[dict[str, str]]) -> list[dict[str, str]]:
 
 def _id(*parts: str) -> str:
     return "page_read_" + hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:12]
+
+
+def _read(value: Any, key: str, default: Any = None) -> Any:
+    if value is None:
+        return default
+    if isinstance(value, dict):
+        return value.get(key, default)
+    return getattr(value, key, default)
+
+
+def _as_list(value: Any) -> list:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    return []
+
+
+def _to_dict(value: Any) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return dict(value)
+    if hasattr(value, "model_dump"):
+        return value.model_dump()
+    try:
+        return dict(value)
+    except (TypeError, ValueError):
+        return {}

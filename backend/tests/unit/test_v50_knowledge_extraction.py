@@ -45,6 +45,39 @@ def test_page_reader_extracts_structured_visible_content():
     assert artifact.forms[0]["selector"] == "#email"
 
 
+def test_page_reader_extracts_serialized_runtime_page_context():
+    artifact = read_page(
+        {
+            "url": "https://www.firecrawl.dev/blog/best-browser-agents",
+            "title": "11 Best AI Browser Agents in 2026",
+            "metadata": {"description": "AI browser agent comparison"},
+            "interactive_elements": [
+                {
+                    "type": "a",
+                    "selector": "#pricing",
+                    "text": "Pricing",
+                    "href": "https://www.firecrawl.dev/pricing",
+                    "visible": True,
+                }
+            ],
+            "content_blocks": [
+                {"selector": "h1", "text": "11 Best AI Browser Agents in 2026"},
+                {"selector": "p", "text": "Free plan available for browser automation workflows."},
+            ],
+            "headings": ["11 Best AI Browser Agents in 2026"],
+            "selected_text": "",
+            "visible_text": "AI browser agents automate search and extraction.",
+            "images": [],
+        }
+    )
+
+    assert artifact.title == "11 Best AI Browser Agents in 2026"
+    assert artifact.canonical_url == "https://www.firecrawl.dev/blog/best-browser-agents"
+    assert "Free plan available" in artifact.paragraphs[1]
+    assert artifact.pricing_blocks
+    assert artifact.navigation_context[0]["url"] == "https://www.firecrawl.dev/pricing"
+
+
 def test_research_pipeline_generates_comparison_report(monkeypatch):
     monkeypatch.setattr(settings, "v50_page_reader", "active")
     monkeypatch.setattr(settings, "v50_extraction_engine", "active")
