@@ -5,6 +5,9 @@ from typing import Any
 from app.cognitive_runtime.diagnostics import EvidenceDiagnostics
 from app.cognitive_runtime.interpreter import EvidenceInterpretation
 from app.cognitive_runtime.models import CognitiveCheckpoint, CognitiveMetrics, CognitiveMission, ProgressSnapshot
+from app.cognitive_runtime.snapshots import CognitiveReasoningSnapshot
+from app.cognitive_runtime.state_machine import CognitiveStateSnapshot
+from app.cognitive_runtime.recommendations import RecommendationResult
 from app.cognitive_runtime.service import CognitiveRuntimeService
 
 
@@ -51,3 +54,30 @@ class CognitiveRuntimeController:
 
     def diagnostics(self, *, mission_id: str, blueprint: Any | None) -> EvidenceDiagnostics:
         return self.service.evidence_diagnostics(mission_id=mission_id, blueprint=blueprint)
+
+    def state(self, *, mission_id: str, blueprint: Any | None = None, readiness: Any | None = None) -> CognitiveStateSnapshot:
+        return self.service.cognitive_state(mission_id=mission_id, blueprint=blueprint, readiness=readiness)
+
+    def full_snapshot(
+        self,
+        *,
+        mission_id: str,
+        blueprint: Any | None = None,
+        readiness: Any | None = None,
+    ) -> CognitiveReasoningSnapshot:
+        return self.service.reasoning_snapshot(mission_id=mission_id, blueprint=blueprint, readiness=readiness)
+
+    def decision(
+        self,
+        *,
+        mission_id: str,
+        blueprint: Any | None = None,
+        readiness: Any | None = None,
+        policy_name: str | None = None,
+    ) -> RecommendationResult:
+        return self.service.cognitive_decision(
+            mission_id=mission_id,
+            blueprint=blueprint,
+            readiness=readiness,
+            policy_name=policy_name,
+        )
