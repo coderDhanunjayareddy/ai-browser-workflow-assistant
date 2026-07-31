@@ -193,6 +193,10 @@ def test_planner_contract_top_level_schema_unchanged():
         "replan",
         "sgv_verified",
         "goal_convergence",
+        "backend_authoritative_report",
+        "intent_dispatch",
+        "intent_execution",
+        "execution_orchestrator",
     }
 
 
