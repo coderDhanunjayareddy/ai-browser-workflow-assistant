@@ -40,6 +40,52 @@ def get_cognitive_evidence(mission_id: str, db: Session = Depends(get_db)) -> di
     return collection.to_dict()
 
 
+@router.get("/{mission_id}/cognitive/evidence/diagnostics")
+def get_cognitive_evidence_diagnostics(mission_id: str, db: Session = Depends(get_db)) -> dict:
+    service = _service_or_disabled(db)
+    _require_runtime(service, mission_id)
+    blueprint = _blueprint(db, mission_id)
+    return service.evidence_diagnostics(mission_id=mission_id, blueprint=blueprint).to_dict()
+
+
+@router.get("/{mission_id}/cognitive/evidence/coverage")
+def get_cognitive_evidence_coverage(mission_id: str, db: Session = Depends(get_db)) -> dict:
+    service = _service_or_disabled(db)
+    _require_runtime(service, mission_id)
+    blueprint = _blueprint(db, mission_id)
+    diagnostics = service.evidence_diagnostics(mission_id=mission_id, blueprint=blueprint)
+    return {
+        "mission_id": mission_id,
+        "coverage": diagnostics.coverage,
+        "missing_evidence": diagnostics.missing_evidence,
+    }
+
+
+@router.get("/{mission_id}/cognitive/evidence/confidence")
+def get_cognitive_evidence_confidence(mission_id: str, db: Session = Depends(get_db)) -> dict:
+    service = _service_or_disabled(db)
+    _require_runtime(service, mission_id)
+    blueprint = _blueprint(db, mission_id)
+    diagnostics = service.evidence_diagnostics(mission_id=mission_id, blueprint=blueprint)
+    return {
+        "mission_id": mission_id,
+        "confidence": diagnostics.confidence,
+        "provider_distribution": diagnostics.provider_distribution,
+    }
+
+
+@router.get("/{mission_id}/cognitive/evidence/contradictions")
+def get_cognitive_evidence_contradictions(mission_id: str, db: Session = Depends(get_db)) -> dict:
+    service = _service_or_disabled(db)
+    _require_runtime(service, mission_id)
+    blueprint = _blueprint(db, mission_id)
+    diagnostics = service.evidence_diagnostics(mission_id=mission_id, blueprint=blueprint)
+    return {
+        "mission_id": mission_id,
+        "contradictions": diagnostics.contradictions,
+    }
+
+
 @router.get("/{mission_id}/cognitive/progress")
 def get_cognitive_progress(mission_id: str, db: Session = Depends(get_db)) -> dict:
     service = _service_or_disabled(db)
@@ -76,3 +122,7 @@ def _require_runtime(service: CognitiveRuntimeService, mission_id: str):
     if mission is None:
         raise HTTPException(status_code=404, detail=f"Cognitive Runtime for mission {mission_id!r} not found")
     return mission
+
+
+def _blueprint(db: Session, mission_id: str):
+    return SqlAlchemyMissionBlueprintRepository(db).get(mission_id)

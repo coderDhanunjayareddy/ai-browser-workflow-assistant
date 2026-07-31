@@ -1,5 +1,7 @@
 from app.cognitive_runtime.context import CognitiveExecutionContext
 from app.cognitive_runtime.controller import CognitiveRuntimeController
+from app.cognitive_runtime.diagnostics import EvidenceDiagnostics
+from app.cognitive_runtime.interpreter import EvidenceInterpretation, EvidenceInterpreter
 from app.cognitive_runtime.models import (
     CognitiveCheckpoint,
     CognitiveEvidence,
@@ -24,6 +26,9 @@ __all__ = [
     "CognitiveRuntimeService",
     "CognitiveState",
     "EvidenceCollection",
+    "EvidenceDiagnostics",
+    "EvidenceInterpretation",
+    "EvidenceInterpreter",
     "ProgressSnapshot",
     "RuntimeVersion",
     "SqlAlchemyCognitiveRuntimeRepository",

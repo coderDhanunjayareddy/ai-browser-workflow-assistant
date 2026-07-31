@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.cognitive_runtime.diagnostics import EvidenceDiagnostics
+from app.cognitive_runtime.interpreter import EvidenceInterpretation
 from app.cognitive_runtime.models import CognitiveCheckpoint, CognitiveMetrics, CognitiveMission, ProgressSnapshot
 from app.cognitive_runtime.service import CognitiveRuntimeService
 
@@ -43,3 +45,9 @@ class CognitiveRuntimeController:
 
     def metrics(self, mission_id: str) -> CognitiveMetrics:
         return self.service.retrieve_metrics(mission_id)
+
+    def interpret(self, *, mission_id: str, blueprint: Any | None) -> EvidenceInterpretation:
+        return self.service.interpret_evidence(mission_id=mission_id, blueprint=blueprint)
+
+    def diagnostics(self, *, mission_id: str, blueprint: Any | None) -> EvidenceDiagnostics:
+        return self.service.evidence_diagnostics(mission_id=mission_id, blueprint=blueprint)

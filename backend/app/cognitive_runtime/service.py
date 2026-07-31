@@ -13,6 +13,8 @@ from app.cognitive_runtime.models import (
     EvidenceCollection,
     ProgressSnapshot,
 )
+from app.cognitive_runtime.diagnostics import EvidenceDiagnostics, build_diagnostics
+from app.cognitive_runtime.interpreter import EvidenceInterpretation, EvidenceInterpreter
 from app.cognitive_runtime.progress import compute_progress_snapshot
 from app.cognitive_runtime.repository import CognitiveRuntimeRepository
 
@@ -91,6 +93,13 @@ class CognitiveRuntimeService:
             readiness=readiness,
             ledger_summary=ledger_summary,
         )
+
+    def interpret_evidence(self, *, mission_id: str, blueprint: Any | None) -> EvidenceInterpretation:
+        collection = self.evidence_collection(mission_id)
+        return EvidenceInterpreter().interpret(blueprint=blueprint, collection=collection)
+
+    def evidence_diagnostics(self, *, mission_id: str, blueprint: Any | None) -> EvidenceDiagnostics:
+        return build_diagnostics(blueprint=blueprint, collection=self.evidence_collection(mission_id))
 
     def retrieve_metrics(self, mission_id: str) -> CognitiveMetrics:
         existing = self.repository.get_metrics(mission_id)
