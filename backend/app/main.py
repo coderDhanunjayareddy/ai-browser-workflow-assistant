@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import health, analyze, workflow, assist, cognitive, research, intelligence, unified, mission, mission_intelligence, mission_blueprint, cognitive_runtime, validation as validation_router, benchmarks as benchmarks_router, intent as intent_router, tabs as tabs_router, trust as trust_router, browser as browser_router, decisions as decisions_router, approvals as approvals_router, governance as governance_router, authorization as authorization_router, runtime as runtime_router, plans as plans_router, gateway as gateway_router, website_intelligence as website_intelligence_router, certification as certification_router, product as product_router
 from app.core.database import engine, Base
+from app.core.schema_migrations import ensure_additive_schema
 import app.models.db  # noqa: F401 — registers ORM models with Base before create_all
 import app.product.models  # noqa: F401 — registers V5 Product Layer models with Base
 
@@ -13,6 +14,7 @@ import app.product.models  # noqa: F401 — registers V5 Product Layer models wi
 async def lifespan(_: FastAPI):
     """Create all database tables and warm up in-memory stores on startup."""
     Base.metadata.create_all(bind=engine)
+    ensure_additive_schema(engine)
     # V4.6: warm up unified task store from DB (no-op when persistence is disabled)
     from app.unified import store as _unified_store
     _unified_store.warmup()
