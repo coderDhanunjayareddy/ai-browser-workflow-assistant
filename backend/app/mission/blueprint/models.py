@@ -43,6 +43,15 @@ class BlueprintNodeKind(str, Enum):
     APPROVAL = "approval"
     EXTERNAL_WAIT = "external_wait"
     GENERAL = "general"
+    SEARCH_ENGINE_ENTRY = "search_engine_entry"
+    SEARCH_QUERY = "search_query"
+    SERP_COLLECTION = "serp_collection"
+    RESULT_SELECTION = "result_selection"
+    OPEN_RESULT = "open_result"
+    PAGE_READ = "page_read"
+    FIELD_EXTRACTION = "field_extraction"
+    USER_CLARIFICATION = "user_clarification"
+    WAIT = "wait"
 
 
 class BlueprintNodeState(str, Enum):
@@ -111,10 +120,16 @@ class BlueprintNode:
     node_id: str
     objective: str
     kind: BlueprintNodeKind = BlueprintNodeKind.GENERAL
+    execution_type: str = "passive"
+    required_capability: str = "General"
+    expected_evidence: list[str] = field(default_factory=lambda: ["blueprint_node_satisfied"])
+    expansion_template: dict[str, Any] = field(default_factory=lambda: {"provider": "mission_blueprint", "action": "record_node_ready", "passive": True})
+    repeat_policy: dict[str, Any] = field(default_factory=lambda: {"mode": "single", "max_repeats": 1})
+    parallel_policy: dict[str, Any] = field(default_factory=lambda: {"mode": "sequential", "parallelizable": False})
     state: BlueprintNodeState = BlueprintNodeState.PROPOSED
     priority: int = 3
     owner_capabilities: list[str] = field(default_factory=list)
-    success_criteria: list[str] = field(default_factory=list)
+    success_criteria: list[str] = field(default_factory=lambda: ["blueprint_node_satisfied"])
     evidence_requirements: list[BlueprintEvidenceRequirement] = field(default_factory=list)
     expansion_rules: list[BlueprintExpansionRule] = field(default_factory=list)
     clarification_requirements: list[ClarificationRequirement] = field(default_factory=list)
@@ -252,6 +267,24 @@ def _validate_node(node: BlueprintNode) -> None:
         raise BlueprintValidationError("node_id is required")
     if not node.objective.strip():
         raise BlueprintValidationError(f"node {node.node_id} objective is required")
+    if not node.execution_type.strip():
+        raise BlueprintValidationError(f"node {node.node_id} execution_type is required")
+    if not node.required_capability.strip():
+        raise BlueprintValidationError(f"node {node.node_id} required_capability is required")
+    if not node.expected_evidence:
+        raise BlueprintValidationError(f"node {node.node_id} expected_evidence is required")
+    if not node.success_criteria:
+        raise BlueprintValidationError(f"node {node.node_id} success_criteria is required")
+    if not node.expansion_template:
+        raise BlueprintValidationError(f"node {node.node_id} expansion_template is required")
+    provider = str(node.expansion_template.get("provider") or "").strip()
+    action = str(node.expansion_template.get("action") or "").strip()
+    if not provider or not action:
+        raise BlueprintValidationError(f"node {node.node_id} expansion_template provider and action are required")
+    if not node.repeat_policy:
+        raise BlueprintValidationError(f"node {node.node_id} repeat_policy is required")
+    if not node.parallel_policy:
+        raise BlueprintValidationError(f"node {node.node_id} parallel_policy is required")
     if node.state.value.upper() in RUNTIME_EXECUTION_STATES:
         raise BlueprintValidationError("blueprint nodes cannot use runtime execution states")
     if node.priority < 1 or node.priority > 5:
@@ -294,10 +327,16 @@ def _node_from_dict(payload: dict[str, Any]) -> BlueprintNode:
         node_id=str(payload.get("node_id") or ""),
         objective=str(payload.get("objective") or ""),
         kind=BlueprintNodeKind(str(payload.get("kind") or BlueprintNodeKind.GENERAL.value)),
+        execution_type=str(payload.get("execution_type") or "passive"),
+        required_capability=str(payload.get("required_capability") or "General"),
+        expected_evidence=list(payload.get("expected_evidence") or ["blueprint_node_satisfied"]),
+        expansion_template=dict(payload.get("expansion_template") or {"provider": "mission_blueprint", "action": "record_node_ready", "passive": True}),
+        repeat_policy=dict(payload.get("repeat_policy") or {"mode": "single", "max_repeats": 1}),
+        parallel_policy=dict(payload.get("parallel_policy") or {"mode": "sequential", "parallelizable": False}),
         state=BlueprintNodeState(str(payload.get("state") or BlueprintNodeState.PROPOSED.value)),
         priority=int(payload.get("priority") or 3),
         owner_capabilities=list(payload.get("owner_capabilities") or []),
-        success_criteria=list(payload.get("success_criteria") or []),
+        success_criteria=list(payload.get("success_criteria") or ["blueprint_node_satisfied"]),
         evidence_requirements=[
             BlueprintEvidenceRequirement(**item)
             for item in list(payload.get("evidence_requirements") or [])

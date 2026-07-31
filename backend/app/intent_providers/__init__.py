@@ -8,6 +8,7 @@ def register_default_providers() -> None:
     if _registered:
         return
     from app.intent_providers import (
+        browser_intelligence_executor,
         browser_executor,
         completion_executor,
         knowledge_executor,
@@ -16,6 +17,7 @@ def register_default_providers() -> None:
     )
 
     browser_executor.register()
+    browser_intelligence_executor.register()
     knowledge_executor.register()
     validation_executor.register()
     completion_executor.register()

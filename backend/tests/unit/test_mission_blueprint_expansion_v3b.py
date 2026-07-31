@@ -15,8 +15,10 @@ from app.mission.blueprint import (
     MissionBlueprintPersistenceService,
     SqlAlchemyMissionBlueprintRepository,
 )
+from app.mission.blueprint.expansion import KNOWLEDGE_EXTRACTION_DISPATCH_TARGET, compile_node_to_intents
 from app.mission.blueprint.models import BlueprintExpansionRule
 from app.models.db import MissionBlueprintExpansionRecord, MissionIntentRecord
+from app.services import mission_ledger_service
 
 
 def _session():
@@ -59,6 +61,26 @@ def _report_node() -> BlueprintNode:
                 intent_template="create_report",
             )
         ],
+        metadata={"critical_path": False},
+    )
+
+
+def _open_result_node(index: int = 1) -> BlueprintNode:
+    return BlueprintNode(
+        node_id=f"open_result_{index}",
+        objective=f"Open ranked result {index}",
+        kind=BlueprintNodeKind.OPEN_RESULT,
+        owner_capabilities=["Browser"],
+        metadata={"critical_path": False},
+    )
+
+
+def _extract_fields_node(index: int = 1) -> BlueprintNode:
+    return BlueprintNode(
+        node_id=f"extract_fields_{index}",
+        objective=f"Extract fields from ranked result page {index}",
+        kind=BlueprintNodeKind.FIELD_EXTRACTION,
+        owner_capabilities=["Knowledge Extraction"],
         metadata={"critical_path": False},
     )
 
@@ -212,6 +234,114 @@ def test_wave3b_adds_references_without_changing_ledger_lifecycle(monkeypatch):
         assert record.completed_at is None
         assert record.evidence == []
         assert record.blueprint_node_id == "discover_sources"
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+def test_open_result_expansion_uses_ranked_result_from_ledger(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+    db, engine = _session()
+    try:
+        mission_id = "expand-ranked-open"
+        repository = SqlAlchemyMissionBlueprintRepository(db)
+        service = MissionBlueprintPersistenceService(repository)
+        blueprint = service.create(
+            mission_id=mission_id,
+            objective="Research sources",
+            nodes=[_open_result_node(2)],
+        )
+        mission_ledger_service.ensure_session(db, mission_id)
+        db.add(
+            MissionIntentRecord(
+                intent_id="rank-intent",
+                mission_id=mission_id,
+                intent="rank_records",
+                provider="validation",
+                capability="validation",
+                dispatch_target="validation",
+                execution_owner="validation",
+                status="COMPLETED",
+                payload={},
+                evidence=[
+                    {
+                        "payload": {
+                            "ranked_results": [
+                                {
+                                    "rank": 1,
+                                    "title": "11 Best AI Browser Agents in 2026",
+                                    "url": "https://www.firecrawl.dev/blog/best-browser-agents",
+                                },
+                                {
+                                    "rank": 2,
+                                    "title": "Top 12 Browser Automation Tools in 2026",
+                                    "url": "https://www.browserstack.com/guide/best-browser-automation-tool",
+                                }
+                            ]
+                        }
+                    }
+                ],
+                blueprint_id=blueprint.blueprint_id,
+                blueprint_node_id="rank_results",
+                blueprint_revision=blueprint.revision,
+            )
+        )
+        db.commit()
+        readiness = BlueprintReadinessEvaluator().evaluate(blueprint)
+
+        BlueprintExpansionEngine(db=db, repository=repository).expand_ready_nodes(
+            mission_id=mission_id,
+            readiness=readiness,
+        )
+
+        record = (
+            db.query(MissionIntentRecord)
+            .filter(MissionIntentRecord.mission_id == mission_id)
+            .filter(MissionIntentRecord.blueprint_node_id == "open_result_2")
+            .one()
+        )
+        assert record.intent == "open_new_tab"
+        assert record.payload["value"] == "https://www.browserstack.com/guide/best-browser-automation-tool"
+        assert record.payload["url"] == "https://www.browserstack.com/guide/best-browser-automation-tool"
+        assert record.payload["title"] == "Top 12 Browser Automation Tools in 2026"
+        assert record.payload["rank"] == 2
+        assert record.payload["blueprint_id"] == blueprint.blueprint_id
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+def test_blueprint_knowledge_intents_use_registered_dispatch_target(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+    db, engine = _session()
+    try:
+        repository = SqlAlchemyMissionBlueprintRepository(db)
+        service = MissionBlueprintPersistenceService(repository)
+        blueprint = service.create(
+            mission_id="expand-knowledge-target",
+            objective="Research sources",
+            nodes=[_open_result_node(1), _extract_fields_node(1)],
+        )
+        read_node = BlueprintNode(
+            node_id="read_page_1",
+            objective="Read ranked result page 1",
+            kind=BlueprintNodeKind.PAGE_READ,
+            owner_capabilities=["Knowledge Extraction"],
+            expansion_template={
+                "provider": "knowledge_extraction",
+                "action": "read_page",
+            },
+        )
+
+        read_directive = compile_node_to_intents(blueprint, read_node)[0]
+        extract_directive = compile_node_to_intents(blueprint, _extract_fields_node(1))[0]
+
+        assert read_directive.owner == "knowledge_extraction"
+        assert read_directive.dispatch_target == KNOWLEDGE_EXTRACTION_DISPATCH_TARGET
+        assert extract_directive.owner == "knowledge_extraction"
+        assert extract_directive.dispatch_target == KNOWLEDGE_EXTRACTION_DISPATCH_TARGET
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)

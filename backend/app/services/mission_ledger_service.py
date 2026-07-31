@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.intent_dispatcher.models import ExecutionContext, IntentDispatchDirective, IntentQueueResult
+from app.mission.blueprint.readiness import BlueprintEvidence
 from app.models.db import MissionIntentRecord, WorkflowSession
 from app.schemas.intent import IntentDTO, IntentEvidence, IntentNextResponse, IntentUpdateResponse
 
@@ -147,6 +148,7 @@ def update_intent(
     record.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(record)
+    _expand_blueprint_from_ledger(db, mission_id=mission_id)
     _resume_backend_work(db, mission_id=mission_id, evidence=evidence)
     next_response = next_intent(db, mission_id=mission_id, provider="browser_control")
     return IntentUpdateResponse(
@@ -160,6 +162,36 @@ def update_intent(
 
 def mark_waiting_provider(db: Session, *, mission_id: str, directive: IntentDispatchDirective, status: str) -> None:
     upsert_intent(db, mission_id=mission_id, directive=directive, status=status)
+
+
+def execute_next_queued_intents(
+    db: Session,
+    *,
+    mission_id: str,
+    context: ExecutionContext,
+) -> tuple[IntentDispatchDirective, IntentQueueResult] | None:
+    record = _next_executable_record(db, mission_id)
+    if record is None:
+        return None
+    directive = _directive_from_record(record)
+    record.status = "EXECUTING"
+    record.updated_at = datetime.utcnow()
+    db.commit()
+
+    from app.intent_runtime import execute_intent_queue
+
+    queue_result = execute_intent_queue(
+        mission_id=mission_id,
+        initial_intents=[directive],
+        context=context,
+    )
+    record_queue_result(
+        db,
+        mission_id=mission_id,
+        initial_intent=directive,
+        queue_result=queue_result,
+    )
+    return directive, queue_result
 
 
 def to_dto(record: MissionIntentRecord) -> IntentDTO:
@@ -203,6 +235,7 @@ def _resume_backend_work(db: Session, *, mission_id: str, evidence: IntentEviden
             initial_intent=directive,
             queue_result=queue_result,
         )
+        _expand_blueprint_from_ledger(db, mission_id=mission_id)
         if queue_result.status in {
             "waiting_browser",
             "browser_action_required",
@@ -213,6 +246,88 @@ def _resume_backend_work(db: Session, *, mission_id: str, evidence: IntentEviden
             "mission_completed",
         }:
             return
+
+
+def _expand_blueprint_from_ledger(db: Session, *, mission_id: str) -> None:
+    try:
+        from app.feature_flags import is_active
+        from app.mission.blueprint.expansion import BlueprintExpansionEngine
+        from app.mission.blueprint.readiness import BlueprintReadinessEvaluator
+        from app.mission.blueprint.repository import SqlAlchemyMissionBlueprintRepository
+
+        if not is_active("MISSION_BLUEPRINT_V1"):
+            return
+        repository = SqlAlchemyMissionBlueprintRepository(db)
+        blueprint = repository.get(mission_id)
+        if blueprint is None:
+            return
+        evidence = _blueprint_evidence_from_ledger(db, mission_id=mission_id, include_objectives=True)
+        readiness = BlueprintReadinessEvaluator().evaluate(blueprint, evidence=evidence)
+        repository.save_readiness_snapshot(readiness)
+        BlueprintExpansionEngine(db=db, repository=repository).expand_ready_nodes(
+            mission_id=mission_id,
+            readiness=readiness,
+        )
+    except Exception:
+        return
+
+
+def _blueprint_evidence_from_ledger(
+    db: Session,
+    *,
+    mission_id: str,
+    include_objectives: bool = False,
+) -> list[BlueprintEvidence]:
+    evidence: list[BlueprintEvidence] = []
+    completed = (
+        db.query(MissionIntentRecord)
+        .filter(MissionIntentRecord.mission_id == mission_id)
+        .filter(MissionIntentRecord.status == "COMPLETED")
+        .filter(MissionIntentRecord.blueprint_node_id.isnot(None))
+        .all()
+    )
+    for record in completed:
+        evidence.append(
+            BlueprintEvidence(
+                evidence_id=f"ledger_{record.intent_id}_satisfied",
+                evidence_kind="node_satisfied",
+                subject=str(record.blueprint_node_id),
+                confidence=1.0,
+                validation_status="validated",
+                metadata={"intent_id": record.intent_id},
+            )
+        )
+    if include_objectives:
+        try:
+            from app.mission.blueprint.models import BlueprintNodeKind
+            from app.mission.blueprint.repository import SqlAlchemyMissionBlueprintRepository
+
+            blueprint = SqlAlchemyMissionBlueprintRepository(db).get(mission_id)
+            for node in list(blueprint.nodes if blueprint else []):
+                if node.kind == BlueprintNodeKind.OBJECTIVE:
+                    evidence.append(
+                        BlueprintEvidence(
+                            evidence_id=f"objective_{node.node_id}_satisfied",
+                            evidence_kind="node_satisfied",
+                            subject=node.node_id,
+                            confidence=1.0,
+                            validation_status="validated",
+                            metadata={"source": "mission_blueprint_runtime"},
+                        )
+                    )
+        except Exception:
+            pass
+    return evidence
+
+
+def _next_executable_record(db: Session, mission_id: str) -> MissionIntentRecord | None:
+    return (
+        db.query(MissionIntentRecord)
+        .filter(MissionIntentRecord.mission_id == mission_id)
+        .filter(MissionIntentRecord.status.in_(["QUEUED", "DISPATCHED", "WAITING_PROVIDER"]))
+        .order_by(MissionIntentRecord.created_at.asc())
+        .first()
+    )
 
 
 def _next_backend_record(db: Session, mission_id: str) -> MissionIntentRecord | None:

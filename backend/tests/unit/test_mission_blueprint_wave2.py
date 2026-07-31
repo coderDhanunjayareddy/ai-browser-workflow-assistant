@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 from app.core.config import settings
 from app.core.database import Base, get_db
 from app.main import app as fastapi_app
+from app.mission.blueprint import BlueprintNodeKind
 from app.mission.intelligence.blueprint_builder import (
     MissionBlueprintBuilder,
     MissionType,
@@ -42,19 +43,34 @@ def test_research_goal_creates_research_blueprint(monkeypatch):
     assert "Knowledge Extraction" in result.capabilities.capabilities
     assert "Validation" in result.capabilities.capabilities
     assert [node.node_id for node in result.blueprint.nodes] == [
-        "clarify_requirements",
-        "define_research_target",
-        "discover_sources",
-        "collect_candidates",
-        "select_sources",
-        "read_sources",
-        "extract_information",
+        "research_mission",
+        "open_search_engine",
+        "execute_search",
+        "collect_serp_results",
+        "rank_results",
+        "open_result_1",
+        "read_page_1",
+        "extract_fields_1",
+        "open_result_2",
+        "read_page_2",
+        "extract_fields_2",
+        "open_result_3",
+        "read_page_3",
+        "extract_fields_3",
+        "open_result_4",
+        "read_page_4",
+        "extract_fields_4",
+        "open_result_5",
+        "read_page_5",
+        "extract_fields_5",
         "validate_coverage",
-        "create_report",
+        "generate_report",
     ]
     assert "top_n:5" in result.blueprint.constraints
     assert "output_table_only" in result.blueprint.constraints
     assert result.blueprint.metadata["mission_classification"]["primary_type"] == "research"
+    assert result.blueprint.nodes[1].kind == BlueprintNodeKind.SEARCH_ENGINE_ENTRY
+    assert result.blueprint.nodes[1].expansion_template == {"provider": "browser_control", "action": "navigate", "passive": True}
 
 
 def test_navigation_goal_creates_target_state_graph(monkeypatch):
@@ -118,7 +134,7 @@ def test_dependency_graph_is_sequential_acyclic_and_critical(monkeypatch):
     assert result.dependencies.sequential_dependencies
     assert result.dependencies.critical_path
     assert result.dependencies.evidence_dependencies
-    assert len(result.blueprint.dependencies) == len(result.blueprint.nodes) - 1
+    assert len(result.blueprint.dependencies) >= len(result.blueprint.nodes) - 1
 
 
 def test_clarification_requirements_are_recorded_not_asked(monkeypatch):
@@ -133,6 +149,47 @@ def test_clarification_requirements_are_recorded_not_asked(monkeypatch):
     assert clarifications
     assert clarifications[0]["clarification_id"] == "clarify_account_or_authentication_context"
     assert result.blueprint.nodes[0].node_id == "clarify_requirements"
+
+
+def test_optional_clarification_does_not_block_research_graph(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+
+    result = MissionBlueprintBuilder().build(
+        mission_id="wave2-optional-clarify",
+        user_goal="Research the best AI browser automation tools and create a report.",
+    )
+
+    assert result.blueprint.nodes[0].node_id == "research_mission"
+    assert all(dependency.kind.value != "clarification" for dependency in result.blueprint.dependencies)
+    assert any(
+        item["clarification_id"] == "clarify_ranking_or_relevance_policy" and item["required"] is False
+        for item in result.blueprint.metadata["clarification_requirements"]
+    )
+
+
+def test_research_benchmark_generates_executable_parallel_graph(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+
+    result = MissionBlueprintBuilder().build(
+        mission_id="wave2-benchmark",
+        user_goal=(
+            "Open Google, search best AI browser automation tools 2026, open top 5, "
+            "read each page, extract fields, and report."
+        ),
+    )
+    nodes = {node.node_id: node for node in result.blueprint.nodes}
+    edges = {(dependency.from_node_id, dependency.to_node_id) for dependency in result.blueprint.dependencies}
+
+    assert "runtime_state" not in {node.expansion_template["provider"] for node in result.blueprint.nodes}
+    assert nodes["execute_search"].expansion_template["provider"] == "browser_control"
+    assert nodes["collect_serp_results"].expansion_template["action"] == "collect_search_results"
+    assert nodes["open_result_1"].parallel_policy["parallelizable"] is True
+    assert nodes["read_page_5"].parallel_policy["group"] == "result_pages"
+    assert ("rank_results", "open_result_1") in edges
+    assert ("rank_results", "open_result_5") in edges
+    assert ("extract_fields_1", "validate_coverage") in edges
+    assert ("extract_fields_5", "validate_coverage") in edges
+    assert ("validate_coverage", "generate_report") in edges
 
 
 def test_create_and_store_blueprint_persists_revision_one(monkeypatch):

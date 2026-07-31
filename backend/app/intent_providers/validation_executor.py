@@ -12,13 +12,28 @@ def register() -> None:
             capability="record_validation",
             dispatch_target="validation",
             reason="Validation is backend evidence validation over extracted artifacts.",
-            matcher=lambda intent, _payload: intent in {"validate_records", "validate"},
+            matcher=lambda intent, _payload: intent in {"rank_records", "validate_records", "validate"},
         )
     )
     register_intent_executor("validation", execute)
 
 
 def execute(context: ExecutionContext, directive: IntentDispatchDirective):
+    if directive.intent == "rank_records":
+        results = list((context.metadata.get("browser_intelligence") or {}).get("search_results") or [])
+        evidence = IntentExecutionEvidence(
+            evidence_id=f"{directive.intent}:{context.mission_id}:{len(results)}",
+            source=directive.owner,
+            kind=directive.capability,
+            summary=f"Ranked {len(results)} observed result records.",
+            payload={
+                "ranked_result_count": len(results),
+                "ranked_results": results,
+            },
+        )
+        context.validation = evidence
+        return execution_result(directive, status="succeeded", reason=evidence.summary, evidence=[evidence])
+
     snapshot = context.knowledge
     if snapshot is None:
         return execution_result(

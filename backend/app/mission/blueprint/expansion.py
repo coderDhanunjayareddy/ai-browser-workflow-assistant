@@ -3,15 +3,20 @@ from __future__ import annotations
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+import re
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.intent_dispatcher.models import IntentDispatchDirective
-from app.mission.blueprint.models import BlueprintNode, MissionBlueprint
+from app.mission.blueprint.models import BlueprintNode, BlueprintNodeKind, MissionBlueprint
 from app.mission.blueprint.readiness import BlueprintReadinessSnapshot
 from app.mission.blueprint.repository import MissionBlueprintRepository
+from app.models.db import MissionIntentRecord
 from app.services import mission_ledger_service
+
+
+KNOWLEDGE_EXTRACTION_DISPATCH_TARGET = "knowledge_extraction_pipeline"
 
 
 @dataclass(frozen=True)
@@ -63,6 +68,7 @@ class BlueprintExpansionEngine:
         ready_nodes = set(readiness.ready_nodes if readiness is not None else [])
         node_results: list[BlueprintNodeExpansionResult] = []
         generated: list[str] = []
+        ranked_results = _ranked_results_from_ledger(self.db, mission_id=mission_id)
 
         for node in blueprint.nodes:
             if node.node_id not in ready_nodes:
@@ -88,7 +94,7 @@ class BlueprintExpansionEngine:
                 )
                 generated.extend(ids)
                 continue
-            directives = compile_node_to_intents(blueprint, node)
+            directives = compile_node_to_intents(blueprint, node, ranked_results=ranked_results)
             records = [
                 mission_ledger_service.upsert_intent(
                     self.db,
@@ -134,7 +140,17 @@ class BlueprintExpansionEngine:
         )
 
 
-def compile_node_to_intents(blueprint: MissionBlueprint, node: BlueprintNode) -> list[IntentDispatchDirective]:
+def compile_node_to_intents(
+    blueprint: MissionBlueprint,
+    node: BlueprintNode,
+    *,
+    ranked_results: list[dict[str, Any]] | None = None,
+) -> list[IntentDispatchDirective]:
+    if node.expansion_template:
+        provider = str(node.expansion_template.get("provider") or "").strip()
+        action = str(node.expansion_template.get("action") or "").strip()
+        if node.kind == BlueprintNodeKind.OBJECTIVE and provider == "mission_blueprint" and action in {"record_objective", "record_node_ready"}:
+            return []
     templates = _templates_for_node(node)
     return [
         IntentDispatchDirective(
@@ -158,14 +174,85 @@ def compile_node_to_intents(blueprint: MissionBlueprint, node: BlueprintNode) ->
                 "blueprint_revision": blueprint.revision,
                 "blueprint_objective": node.objective,
                 "wave_3b_compiled": True,
+                **dict(node.metadata.get("action_payload") or {}),
+                **_open_result_payload(node, ranked_results or []),
             },
         )
         for template in templates
     ]
 
 
+def _open_result_payload(node: BlueprintNode, ranked_results: list[dict[str, Any]]) -> dict[str, Any]:
+    match = re.match(r"^open_result_(\d+)$", node.node_id)
+    if not match:
+        return {}
+    index = int(match.group(1)) - 1
+    if index < 0 or index >= len(ranked_results):
+        return {}
+    result = ranked_results[index]
+    url = str(_read(result, "url") or _read(result, "href") or "").strip()
+    if not url.startswith(("http://", "https://")):
+        return {}
+    title = str(_read(result, "title") or _read(result, "text") or "").strip()
+    payload = {
+        "value": url,
+        "url": url,
+        "rank": _read(result, "rank") or index + 1,
+    }
+    if title:
+        payload["title"] = title
+    return payload
+
+
+def _ranked_results_from_ledger(db: Session, *, mission_id: str) -> list[dict[str, Any]]:
+    records = (
+        db.query(MissionIntentRecord)
+        .filter(MissionIntentRecord.mission_id == mission_id)
+        .filter(MissionIntentRecord.status == "COMPLETED")
+        .filter(MissionIntentRecord.blueprint_node_id == "rank_results")
+        .order_by(MissionIntentRecord.updated_at.desc())
+        .all()
+    )
+    for record in records:
+        for item in reversed(list(record.evidence or [])):
+            payload = _read(item, "payload") or {}
+            ranked_results = _read(payload, "ranked_results")
+            if ranked_results:
+                return [dict(result) for result in ranked_results if isinstance(result, dict)]
+    return []
+
+
+def _read(value: Any, key: str, default: Any = None) -> Any:
+    if value is None:
+        return default
+    if isinstance(value, dict):
+        return value.get(key, default)
+    return getattr(value, key, default)
+
+
 def _templates_for_node(node: BlueprintNode) -> list[dict[str, str]]:
+    if node.expansion_template:
+        provider = str(node.expansion_template.get("provider") or "").strip()
+        action = str(node.expansion_template.get("action") or "").strip()
+        if provider and action and (provider, action) != ("mission_blueprint", "record_node_ready"):
+            return [_template(action, provider, node.required_capability, node.objective)]
     node_id = node.node_id
+    if node_id == "open_search_engine":
+        return [_browser_template("navigate", node.objective)]
+    if node_id == "execute_search":
+        return [_browser_template("submit_search", node.objective)]
+    if node_id == "collect_serp_results":
+        return [_template("collect_search_results", "browser_intelligence", "Browser Intelligence", node.objective)]
+    if node_id == "rank_results":
+        return [_validation_template("rank_records", node.objective)]
+    if node_id.startswith("open_result_"):
+        return [_browser_template("open_new_tab", node.objective)]
+    if node_id.startswith("read_page_"):
+        return [_knowledge_template("read_page", node.objective)]
+    if node_id.startswith("extract_fields_"):
+        return [_knowledge_template("extract_fields", node.objective)]
+    if node_id == "generate_report":
+        return [_knowledge_template("generate_report", node.objective)]
     if node_id == "discover_sources":
         return [
             _browser_template("navigate", "Navigate to an appropriate discovery surface"),
@@ -183,7 +270,7 @@ def _templates_for_node(node: BlueprintNode) -> list[dict[str, str]]:
     if node_id in {"reach_target_state", "locate_source", "access_file"}:
         owner = "file_processing" if node_id == "access_file" else "browser_control"
         return [_template("navigate" if owner == "browser_control" else "access_file", owner, owner, node.objective)]
-    return [_runtime_template("record_blueprint_node_ready", node.objective)]
+    return [_template("record_node_ready", "mission_blueprint", "Mission Blueprint", node.objective)]
 
 
 def _browser_template(intent: str, description: str) -> dict[str, str]:
@@ -202,15 +289,17 @@ def _report_template(intent: str, description: str) -> dict[str, str]:
     return _template(intent, "mission_completion", "report_generation", description)
 
 
-def _runtime_template(intent: str, description: str) -> dict[str, str]:
-    return _template(intent, "runtime_state", "runtime_state", description)
-
-
 def _template(intent: str, owner: str, capability: str, description: str) -> dict[str, str]:
     return {
         "intent": intent,
         "owner": owner,
         "capability": capability,
-        "dispatch_target": owner,
+        "dispatch_target": _dispatch_target_for_owner(owner),
         "description": description,
     }
+
+
+def _dispatch_target_for_owner(owner: str) -> str:
+    if owner == "knowledge_extraction":
+        return KNOWLEDGE_EXTRACTION_DISPATCH_TARGET
+    return owner

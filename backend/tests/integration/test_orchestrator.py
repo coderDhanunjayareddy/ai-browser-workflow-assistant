@@ -4,7 +4,9 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.database import Base
 from app.models.db import WorkflowSession
+from app.models.db import MissionIntentRecord
 from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
+from app.schemas.intent import IntentEvidence
 from app.schemas.request import InteractiveElement, PageContext
 from app.schemas.response import AnalyzeResponse, ReportOutcome, SuggestedAction
 
@@ -125,6 +127,73 @@ def test_ledger_failure_does_not_alter_planner_output(db_session, monkeypatch):
     assert response is expected
     assert response.analysis == "Planner output is unchanged"
     assert response.outcome_kind == "act"
+
+
+def test_blueprint_active_analyze_bypasses_planner_and_queues_first_browser_intent(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.services import ai_service
+
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "active")
+    monkeypatch.setattr(ai_service, "analyze", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("planner should not run")))
+
+    orchestrator = WorkflowOrchestrator("blueprint-runtime-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Open Google and search best AI browser automation tools 2026, open top 5, read each page, extract fields, and report.",
+        page_context=page("about:blank"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response.analysis.startswith("Mission Blueprint produced deterministic executable work")
+    assert response.suggested_actions[0].action_type == "navigate"
+    assert response.suggested_actions[0].value == "https://www.google.com"
+    records = db_session.query(MissionIntentRecord).filter(MissionIntentRecord.mission_id == "blueprint-runtime-session").all()
+    assert {record.blueprint_node_id for record in records} == {"open_search_engine"}
+    assert records[0].status == "WAITING_BROWSER"
+
+
+def test_blueprint_completion_expands_next_ready_intent_without_analyze(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.services import ai_service, mission_ledger_service
+
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "active")
+    monkeypatch.setattr(ai_service, "analyze", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("planner should not run")))
+
+    orchestrator = WorkflowOrchestrator("blueprint-progress-session", db_session)
+    first = orchestrator.orchestrate_analysis(
+        task="Open Google and search best AI browser automation tools 2026, open top 5, read each page, extract fields, and report.",
+        page_context=page("about:blank"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+    first_intent_id = first.suggested_actions[0].intent_id
+
+    update = mission_ledger_service.update_intent(
+        db_session,
+        mission_id="blueprint-progress-session",
+        intent_id=first_intent_id,
+        outcome="success",
+        evidence=IntentEvidence(
+            success=True,
+            message="Navigated to Google.",
+            payload={
+                "task": "Open Google and search best AI browser automation tools 2026, open top 5, read each page, extract fields, and report.",
+                "page_context": page("https://www.google.com"),
+            },
+        ),
+    )
+
+    assert update.next_intent is not None
+    assert update.next_intent.blueprint_node_id == "execute_search"
+    assert update.next_intent.payload["action_type"] == "navigate"
+    assert update.next_intent.payload["value"].startswith("https://www.google.com/search?q=")
+    completed = (
+        db_session.query(MissionIntentRecord)
+        .filter(MissionIntentRecord.mission_id == "blueprint-progress-session")
+        .filter(MissionIntentRecord.blueprint_node_id == "open_search_engine")
+        .one()
+    )
+    assert completed.status == "COMPLETED"
 
 
 def test_ledger_failure_does_not_alter_execution_recording(db_session, monkeypatch):

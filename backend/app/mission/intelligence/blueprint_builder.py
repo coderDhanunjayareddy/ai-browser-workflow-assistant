@@ -212,6 +212,8 @@ def _classify(understanding: MissionUnderstanding) -> MissionType:
 def _analyze(understanding: MissionUnderstanding, mission_type: MissionType) -> MissionAnalysis:
     text = understanding.normalized_goal
     constraints = _constraints(text)
+    if mission_type == MissionType.RESEARCH and not any(item.startswith("top_n:") for item in constraints):
+        constraints.append("top_n:5")
     fields = _requested_fields(text)
     deliverables = [understanding.deliverable]
     secondary: list[str]
@@ -220,8 +222,8 @@ def _analyze(understanding: MissionUnderstanding, mission_type: MissionType) -> 
     external = ["external_system_availability"] if mission_type in {MissionType.NAVIGATION, MissionType.RESEARCH, MissionType.DATA_EXTRACTION} else []
 
     if mission_type == MissionType.RESEARCH:
-        secondary = ["discover_sources", "collect_candidates", "read_sources", "extract_required_information", "validate_coverage", "produce_report"]
-        success = ["sources_discovered", "relevant_sources_selected", "source_pages_read", "required_information_extracted", f"{understanding.deliverable}_delivered"]
+        secondary = ["open_search_engine", "execute_search", "collect_serp_results", "rank_results", "open_top_results", "read_pages", "extract_required_fields", "validate_coverage", "produce_report"]
+        success = ["search_engine_opened", "search_executed", "serp_results_collected", "results_ranked", "top_result_pages_read", "required_information_extracted", f"{understanding.deliverable}_delivered"]
     elif mission_type == MissionType.DATA_EXTRACTION:
         secondary = ["locate_source", "read_source", "extract_records", "validate_records", "deliver_structured_artifact"]
         success = ["source_available", "records_extracted", "records_validated", "structured_artifact_delivered"]
@@ -273,6 +275,48 @@ def _capabilities(mission_type: MissionType, analysis: MissionAnalysis) -> Capab
     )
 
 
+def _node_spec(
+    node_id: str,
+    objective: str,
+    kind: BlueprintNodeKind,
+    required_capability: str,
+    provider: str,
+    action: str,
+    *,
+    branch: str | None = None,
+    action_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    parallelizable = kind in {BlueprintNodeKind.OPEN_RESULT, BlueprintNodeKind.PAGE_READ, BlueprintNodeKind.FIELD_EXTRACTION}
+    return {
+        "node_id": node_id,
+        "objective": objective,
+        "kind": kind,
+        "required_capability": required_capability,
+        "provider": provider,
+        "action": action,
+        "expected_evidence": _evidence_kind(kind),
+        "repeat_policy": _repeat_policy(kind),
+        "parallel_policy": {
+            "mode": "parallel_branch" if parallelizable else "sequential",
+            "parallelizable": parallelizable,
+            **({"group": "result_pages"} if parallelizable else {}),
+        },
+        "critical_path": not parallelizable,
+        "branch": branch,
+        "action_payload": dict(action_payload or {}),
+    }
+
+
+def _repeat_policy(kind: BlueprintNodeKind) -> dict[str, Any]:
+    if kind == BlueprintNodeKind.OPEN_RESULT:
+        return {"mode": "per_selected_result", "max_repeats": 1}
+    if kind in {BlueprintNodeKind.PAGE_READ, BlueprintNodeKind.FIELD_EXTRACTION}:
+        return {"mode": "per_open_result", "max_repeats": 1}
+    if kind == BlueprintNodeKind.RESULT_SELECTION:
+        return {"mode": "until_top_n_selected", "max_repeats": 1}
+    return {"mode": "single", "max_repeats": 1}
+
+
 def _risks(understanding: MissionUnderstanding, analysis: MissionAnalysis) -> RiskAssessment:
     text = understanding.normalized_goal.lower()
     risks: list[str] = []
@@ -304,66 +348,130 @@ def _nodes(
     capabilities: CapabilityRequirements,
 ) -> list[BlueprintNode]:
     if mission_type == MissionType.RESEARCH:
+        top_n = _top_n(analysis.constraints)
         specs = [
-            ("define_research_target", "Define research target and evidence requirements", BlueprintNodeKind.OBJECTIVE, ["Search"]),
-            ("discover_sources", "Discover relevant information sources", BlueprintNodeKind.DISCOVERY, ["Search", "Browser"]),
-            ("collect_candidates", "Collect candidate source entities", BlueprintNodeKind.COLLECTION, ["Knowledge Extraction"]),
-            ("select_sources", "Select sources that satisfy relevance constraints", BlueprintNodeKind.SELECTION, ["Validation"]),
-            ("read_sources", "Read selected source content", BlueprintNodeKind.READING, ["Browser", "Knowledge Extraction"]),
-            ("extract_information", "Extract required information from source evidence", BlueprintNodeKind.EXTRACTION, ["Knowledge Extraction"]),
-            ("validate_coverage", "Validate required information coverage", BlueprintNodeKind.VALIDATION, ["Validation"]),
-            ("create_report", "Create user-visible deliverable", BlueprintNodeKind.REPORTING, ["Report Generation"]),
+            _node_spec("research_mission", "Represent the research mission objective", BlueprintNodeKind.OBJECTIVE, "Mission Blueprint", "mission_blueprint", "record_objective"),
+            _node_spec(
+                "open_search_engine",
+                "Open a search engine entry point",
+                BlueprintNodeKind.SEARCH_ENGINE_ENTRY,
+                "Browser",
+                "browser_control",
+                "navigate",
+                action_payload={"action_type": "navigate", "value": _search_engine_url(analysis.primary_objective)},
+            ),
+            _node_spec(
+                "execute_search",
+                "Execute the research search query",
+                BlueprintNodeKind.SEARCH_QUERY,
+                "Search",
+                "browser_control",
+                "submit_search",
+                action_payload={"action_type": "navigate", "value": _search_url(analysis.primary_objective)},
+            ),
+            _node_spec("collect_serp_results", "Collect search result candidates from the SERP", BlueprintNodeKind.SERP_COLLECTION, "Knowledge Extraction", "browser_intelligence", "collect_search_results"),
+            _node_spec("rank_results", "Rank collected results for relevance and coverage", BlueprintNodeKind.RESULT_SELECTION, "Validation", "validation", "rank_records"),
         ]
+        for index in range(1, top_n + 1):
+            specs.extend(
+                [
+                    _node_spec(
+                        f"open_result_{index}",
+                        f"Open ranked result {index}",
+                        BlueprintNodeKind.OPEN_RESULT,
+                        "Browser",
+                        "browser_control",
+                        "open_new_tab",
+                        branch=f"result_{index}",
+                    ),
+                    _node_spec(
+                        f"read_page_{index}",
+                        f"Read ranked result page {index}",
+                        BlueprintNodeKind.PAGE_READ,
+                        "Knowledge Extraction",
+                        "knowledge_extraction",
+                        "read_page",
+                        branch=f"result_{index}",
+                    ),
+                    _node_spec(
+                        f"extract_fields_{index}",
+                        f"Extract required fields from result page {index}",
+                        BlueprintNodeKind.FIELD_EXTRACTION,
+                        "Knowledge Extraction",
+                        "knowledge_extraction",
+                        "extract_fields",
+                        branch=f"result_{index}",
+                    ),
+                ]
+            )
+        specs.extend(
+            [
+                _node_spec("validate_coverage", "Validate required information coverage across extracted pages", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
+                _node_spec("generate_report", "Generate the user-visible research report", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
+            ]
+        )
     elif mission_type == MissionType.DATA_EXTRACTION:
         specs = [
-            ("define_schema", "Define extraction schema and source requirements", BlueprintNodeKind.OBJECTIVE, ["Knowledge Extraction"]),
-            ("locate_source", "Locate source content", BlueprintNodeKind.DISCOVERY, ["Browser"]),
-            ("read_source", "Read source content", BlueprintNodeKind.READING, ["Browser", "Knowledge Extraction"]),
-            ("extract_records", "Extract structured records", BlueprintNodeKind.EXTRACTION, ["Knowledge Extraction"]),
-            ("validate_records", "Validate extracted records", BlueprintNodeKind.VALIDATION, ["Validation"]),
-            ("deliver_artifact", "Deliver structured extraction artifact", BlueprintNodeKind.REPORTING, ["Report Generation"]),
+            _node_spec("define_schema", "Define extraction schema and source requirements", BlueprintNodeKind.OBJECTIVE, "Knowledge Extraction", "knowledge_extraction", "define_schema"),
+            _node_spec("locate_source", "Locate source content", BlueprintNodeKind.DISCOVERY, "Browser", "browser_control", "navigate"),
+            _node_spec("read_source", "Read source content", BlueprintNodeKind.READING, "Knowledge Extraction", "knowledge_extraction", "read_page"),
+            _node_spec("extract_records", "Extract structured records", BlueprintNodeKind.EXTRACTION, "Knowledge Extraction", "knowledge_extraction", "extract_fields"),
+            _node_spec("validate_records", "Validate extracted records", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
+            _node_spec("deliver_artifact", "Deliver structured extraction artifact", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
         ]
     elif mission_type == MissionType.FILE_PROCESSING:
         specs = [
-            ("define_file_requirement", "Define required file operation and output", BlueprintNodeKind.OBJECTIVE, ["File Processing"]),
-            ("access_file", "Access required file artifact", BlueprintNodeKind.ACQUISITION, ["File Processing"]),
-            ("process_file", "Process file content", BlueprintNodeKind.EXTRACTION, ["File Processing"]),
-            ("validate_file_result", "Validate processed file artifact", BlueprintNodeKind.VALIDATION, ["Validation"]),
-            ("deliver_file_result", "Deliver file processing result", BlueprintNodeKind.REPORTING, ["Report Generation"]),
+            _node_spec("define_file_requirement", "Define required file operation and output", BlueprintNodeKind.OBJECTIVE, "File Processing", "file_processing", "define_file_requirement"),
+            _node_spec("access_file", "Access required file artifact", BlueprintNodeKind.ACQUISITION, "File Processing", "file_processing", "access_file"),
+            _node_spec("process_file", "Process file content", BlueprintNodeKind.EXTRACTION, "File Processing", "file_processing", "process_file"),
+            _node_spec("validate_file_result", "Validate processed file artifact", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
+            _node_spec("deliver_file_result", "Deliver file processing result", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
         ]
     else:
         specs = [
-            ("define_target_state", "Define target state", BlueprintNodeKind.OBJECTIVE, ["Browser"]),
-            ("reach_target_state", "Reach target state", BlueprintNodeKind.DISCOVERY, ["Browser"]),
-            ("verify_target_state", "Verify target state", BlueprintNodeKind.VALIDATION, ["Validation"]),
+            _node_spec("define_target_state", "Define target state", BlueprintNodeKind.OBJECTIVE, "Browser", "mission_blueprint", "record_objective"),
+            _node_spec("reach_target_state", "Reach target state", BlueprintNodeKind.DISCOVERY, "Browser", "browser_control", "navigate"),
+            _node_spec("verify_target_state", "Verify target state", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
         ]
     return [
         BlueprintNode(
-            node_id=node_id,
-            objective=objective,
-            kind=kind,
+            node_id=spec["node_id"],
+            objective=spec["objective"],
+            kind=spec["kind"],
+            execution_type="intent_template",
+            required_capability=spec["required_capability"],
+            expected_evidence=[spec["expected_evidence"]],
+            expansion_template={"provider": spec["provider"], "action": spec["action"], "passive": True},
+            repeat_policy=spec["repeat_policy"],
+            parallel_policy=spec["parallel_policy"],
             priority=1 if index == 0 else 2 if index < len(specs) - 1 else 3,
-            owner_capabilities=[capability for capability in owner_caps if capability in capabilities.capabilities],
-            success_criteria=[f"{node_id}_satisfied"],
+            owner_capabilities=[spec["required_capability"]] if spec["required_capability"] in capabilities.capabilities or spec["required_capability"] in {"Mission Blueprint"} else [],
+            success_criteria=[f"{spec['node_id']}_satisfied"],
             evidence_requirements=[
                 BlueprintEvidenceRequirement(
-                    requirement_id=f"evidence_{node_id}",
-                    evidence_kind=_evidence_kind(kind),
-                    subject=node_id,
-                    validation_policy="validated" if kind in {BlueprintNodeKind.VALIDATION, BlueprintNodeKind.REPORTING} else "raw",
+                    requirement_id=f"evidence_{spec['node_id']}",
+                    evidence_kind=spec["expected_evidence"],
+                    subject=spec["node_id"],
+                    validation_policy="validated" if spec["kind"] in {BlueprintNodeKind.VALIDATION, BlueprintNodeKind.REPORTING} else "raw",
                 )
             ],
             expansion_rules=[
                 BlueprintExpansionRule(
-                    rule_id=f"expand_{node_id}",
-                    capability=owner_caps[0],
-                    intent_template=node_id,
-                    metadata={"wave_2_passive": True},
+                    rule_id=f"expand_{spec['node_id']}",
+                    capability=spec["required_capability"],
+                    intent_template=spec["action"],
+                    metadata={"provider": spec["provider"], "action": spec["action"], "passive": True},
                 )
             ],
-            metadata={"critical_path": True, "provider_independent": True},
+            metadata={
+                "critical_path": bool(spec["critical_path"]),
+                "provider_independent": True,
+                "executable_category": spec["kind"].name,
+                **({"action_payload": spec["action_payload"]} if spec.get("action_payload") else {}),
+                **({"branch": spec["branch"]} if spec.get("branch") else {}),
+            },
         )
-        for index, (node_id, objective, kind, owner_caps) in enumerate(specs)
+        for index, spec in enumerate(specs)
     ]
 
 
@@ -373,30 +481,70 @@ def _dependencies(
     clarifications: list[ClarificationRequirement],
 ) -> list[BlueprintDependency]:
     dependencies: list[BlueprintDependency] = []
-    for left, right in zip(nodes, nodes[1:]):
-        dependencies.append(
-            BlueprintDependency(
-                dependency_id=f"dep_{left.node_id}_{right.node_id}",
-                from_node_id=left.node_id,
-                to_node_id=right.node_id,
-                kind=BlueprintDependencyKind.PREREQUISITE,
-                metadata={"critical_path": True, "mission_type": mission_type.value},
-            )
+    if mission_type == MissionType.RESEARCH:
+        node_ids = {node.node_id for node in nodes}
+        linear = ["research_mission", "open_search_engine", "execute_search", "collect_serp_results", "rank_results"]
+        for left, right in zip(linear, linear[1:]):
+            if left in node_ids and right in node_ids:
+                dependencies.append(_dependency(left, right, mission_type))
+        result_indexes = sorted(
+            int(match.group(1))
+            for node in nodes
+            if (match := re.match(r"open_result_(\d+)$", node.node_id))
         )
+        for index in result_indexes:
+            dependencies.extend(
+                [
+                    _dependency("rank_results", f"open_result_{index}", mission_type, critical_path=False, parallel_group="result_pages"),
+                    _dependency(f"open_result_{index}", f"read_page_{index}", mission_type, critical_path=False, parallel_group="result_pages"),
+                    _dependency(f"read_page_{index}", f"extract_fields_{index}", mission_type, critical_path=False, parallel_group="result_pages"),
+                    _dependency(f"extract_fields_{index}", "validate_coverage", mission_type, critical_path=False, parallel_group="result_pages"),
+                ]
+            )
+        dependencies.append(_dependency("validate_coverage", "generate_report", mission_type))
+    else:
+        for left, right in zip(nodes, nodes[1:]):
+            if left.kind == BlueprintNodeKind.CLARIFICATION and not any(item.required for item in clarifications):
+                continue
+            dependencies.append(_dependency(left.node_id, right.node_id, mission_type))
     if clarifications and nodes:
-        clarification_node = next((node for node in nodes if node.kind == BlueprintNodeKind.CLARIFICATION), None)
+        clarification_node = next((node for node in nodes if node.kind in {BlueprintNodeKind.CLARIFICATION, BlueprintNodeKind.USER_CLARIFICATION}), None)
         if clarification_node is None:
             return dependencies
-        for blocked in clarifications[0].blocks_node_ids:
-            dependencies.append(
-                BlueprintDependency(
-                    dependency_id=f"dep_{clarification_node.node_id}_{blocked}",
-                    from_node_id=clarification_node.node_id,
-                    to_node_id=blocked,
-                    kind=BlueprintDependencyKind.CLARIFICATION,
+        for clarification in clarifications:
+            if not clarification.required:
+                continue
+            for blocked in clarification.blocks_node_ids:
+                dependencies.append(
+                    BlueprintDependency(
+                        dependency_id=f"dep_{clarification_node.node_id}_{blocked}",
+                        from_node_id=clarification_node.node_id,
+                        to_node_id=blocked,
+                        kind=BlueprintDependencyKind.CLARIFICATION,
+                        required=True,
+                    )
                 )
-            )
     return dependencies
+
+
+def _dependency(
+    from_node_id: str,
+    to_node_id: str,
+    mission_type: MissionType,
+    *,
+    critical_path: bool = True,
+    parallel_group: str | None = None,
+) -> BlueprintDependency:
+    metadata = {"critical_path": critical_path, "mission_type": mission_type.value}
+    if parallel_group:
+        metadata["parallel_group"] = parallel_group
+    return BlueprintDependency(
+        dependency_id=f"dep_{from_node_id}_{to_node_id}",
+        from_node_id=from_node_id,
+        to_node_id=to_node_id,
+        kind=BlueprintDependencyKind.PREREQUISITE,
+        metadata=metadata,
+    )
 
 
 def _clarifications(analysis: MissionAnalysis, nodes: list[BlueprintNode]) -> list[ClarificationRequirement]:
@@ -424,15 +572,22 @@ def _clarifications(analysis: MissionAnalysis, nodes: list[BlueprintNode]) -> li
 
 
 def _attach_clarifications(nodes: list[BlueprintNode], clarifications: list[ClarificationRequirement]) -> list[BlueprintNode]:
-    if not clarifications:
+    required_clarifications = [clarification for clarification in clarifications if clarification.required]
+    if not required_clarifications:
         return nodes
     clarification_node = BlueprintNode(
         node_id="clarify_requirements",
         objective="Record mission clarification requirements",
-        kind=BlueprintNodeKind.CLARIFICATION,
+        kind=BlueprintNodeKind.USER_CLARIFICATION,
+        execution_type="human_input_template",
+        required_capability="Human Clarification",
+        expected_evidence=["clarification_obtained"],
+        expansion_template={"provider": "human_clarification", "action": "request_clarification", "passive": True},
+        repeat_policy={"mode": "until_required_clarifications_satisfied", "max_repeats": 1},
+        parallel_policy={"mode": "sequential", "parallelizable": False},
         priority=1,
         owner_capabilities=["Human Clarification"],
-        clarification_requirements=clarifications,
+        clarification_requirements=required_clarifications,
         success_criteria=["clarification_requirements_recorded"],
         evidence_requirements=[
             BlueprintEvidenceRequirement(
@@ -446,9 +601,10 @@ def _attach_clarifications(nodes: list[BlueprintNode], clarifications: list[Clar
                 rule_id="expand_clarification_requirements",
                 capability="Human Clarification",
                 intent_template="request_clarification",
-                metadata={"wave_2_passive": True},
+                metadata={"provider": "human_clarification", "action": "request_clarification", "passive": True},
             )
         ],
+        metadata={"critical_path": True, "provider_independent": True, "executable_category": BlueprintNodeKind.USER_CLARIFICATION.name},
     )
     return [clarification_node, *nodes]
 
@@ -505,6 +661,38 @@ def _constraints(text: str) -> list[str]:
     return constraints
 
 
+def _top_n(constraints: list[str]) -> int:
+    for constraint in constraints:
+        if constraint.startswith("top_n:"):
+            try:
+                return max(1, int(constraint.split(":", 1)[1]))
+            except ValueError:
+                return 5
+    return 5
+
+
+def _search_engine_url(text: str) -> str:
+    return "https://www.google.com" if _has(text, "google") else "https://www.google.com"
+
+
+def _search_url(text: str) -> str:
+    from urllib.parse import quote_plus
+
+    return f"{_search_engine_url(text)}/search?q={quote_plus(_search_query(text))}"
+
+
+def _search_query(text: str) -> str:
+    normalized = " ".join(str(text or "").split())
+    match = re.search(
+        r"\bsearch(?:\s+for)?\s+(.+?)(?:\bopen\s+top\b|\bopen\s+the\s+top\b|\bread\b|\bextract\b|\breport\b|$)",
+        normalized,
+        re.IGNORECASE,
+    )
+    if match:
+        return match.group(1).strip(" .,:;") or normalized
+    return normalized
+
+
 def _preferences(text: str) -> list[str]:
     preferences: list[str] = []
     if _has(text, "table only"):
@@ -530,6 +718,15 @@ def _evidence_kind(kind: BlueprintNodeKind) -> str:
         BlueprintNodeKind.VALIDATION: "validation_result",
         BlueprintNodeKind.REPORTING: "artifact_created",
         BlueprintNodeKind.ACQUISITION: "artifact_available",
+        BlueprintNodeKind.SEARCH_ENGINE_ENTRY: "search_engine_entry_opened",
+        BlueprintNodeKind.SEARCH_QUERY: "search_query_executed",
+        BlueprintNodeKind.SERP_COLLECTION: "serp_results_collected",
+        BlueprintNodeKind.RESULT_SELECTION: "ranked_result_selection",
+        BlueprintNodeKind.OPEN_RESULT: "result_page_opened",
+        BlueprintNodeKind.PAGE_READ: "page_read",
+        BlueprintNodeKind.FIELD_EXTRACTION: "field_extraction",
+        BlueprintNodeKind.USER_CLARIFICATION: "clarification_obtained",
+        BlueprintNodeKind.WAIT: "wait_completed",
     }.get(kind, "mission_evidence")
 
 

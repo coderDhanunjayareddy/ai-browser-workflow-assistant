@@ -865,6 +865,20 @@ class WorkflowOrchestrator:
             compressed_context=compressed_context,
         )
 
+        blueprint_result = self._try_blueprint_runtime(
+            task=task,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+            runtime_state_snapshot=runtime_state_snapshot,
+            browser_intelligence_artifact=browser_intelligence_artifact,
+            knowledge_snapshot=knowledge_snapshot,
+            mission_completion_snapshot=mission_completion_snapshot,
+            orchestrator_snapshot=orchestrator_snapshot,
+            kernel_snapshot=kernel_snapshot,
+        )
+        if blueprint_result is not None:
+            return blueprint_result
+
         from app.services import ai_service
 
         with enforce_budget(self.budget_manager, BudgetCheckpoint.PLANNING):
@@ -1148,6 +1162,143 @@ class WorkflowOrchestrator:
             self._record_cognitive_decision_comparison_shadow(result=result)
 
             return result
+
+    def _try_blueprint_runtime(
+        self,
+        *,
+        task: str,
+        page_context: Any,
+        prior_steps: list,
+        runtime_state_snapshot: Any,
+        browser_intelligence_artifact: Any,
+        knowledge_snapshot: Any,
+        mission_completion_snapshot: Any,
+        orchestrator_snapshot: Any,
+        kernel_snapshot: Any,
+    ) -> Any | None:
+        if not is_active("MISSION_BLUEPRINT_V1"):
+            return None
+        try:
+            from app.intent_dispatcher.models import ExecutionContext
+            from app.mission.blueprint.expansion import BlueprintExpansionEngine
+            from app.mission.blueprint.readiness import BlueprintReadinessEvaluator
+            from app.mission.blueprint.repository import SqlAlchemyMissionBlueprintRepository
+            from app.mission.intelligence.blueprint_builder import create_and_store_blueprint
+            from app.schemas.response import AnalyzeResponse, SuggestedAction
+            from app.services import mission_ledger_service
+
+            repository = SqlAlchemyMissionBlueprintRepository(self.db)
+            blueprint = repository.get(self.session_id)
+            lifecycle = "loaded"
+            if blueprint is None:
+                build_result = create_and_store_blueprint(
+                    mission_id=self.session_id,
+                    user_goal=task,
+                    repository=repository,
+                    created_by="workflow_orchestrator",
+                )
+                blueprint = build_result.blueprint
+                lifecycle = "created"
+
+            evidence = mission_ledger_service._blueprint_evidence_from_ledger(  # type: ignore[attr-defined]
+                self.db,
+                mission_id=self.session_id,
+                include_objectives=True,
+            )
+            readiness = BlueprintReadinessEvaluator().evaluate(blueprint, evidence=evidence)
+            repository.save_readiness_snapshot(readiness)
+            expansion = BlueprintExpansionEngine(db=self.db, repository=repository).expand_ready_nodes(
+                mission_id=self.session_id,
+                readiness=readiness,
+            )
+            if not readiness.ready_nodes and not expansion.generated_intent_ids:
+                self._record_v3_event(
+                    "mission_blueprint.planner_fallback",
+                    {
+                        "reason": "no_ready_blueprint_nodes",
+                        "blueprint_id": blueprint.blueprint_id,
+                        "revision": blueprint.revision,
+                    },
+                )
+                return None
+
+            execution_context = ExecutionContext(
+                mission_id=self.session_id,
+                task=task,
+                page_context=page_context,
+                prior_steps=prior_steps,
+                runtime_state=runtime_state_snapshot,
+                browser_intelligence=browser_intelligence_artifact,
+                knowledge=knowledge_snapshot,
+                completion_state=mission_completion_snapshot,
+                phase_state=orchestrator_snapshot,
+                kernel_state=kernel_snapshot,
+                metadata={"source": "mission_blueprint_runtime"},
+            )
+            executed = mission_ledger_service.execute_next_queued_intents(
+                self.db,
+                mission_id=self.session_id,
+                context=execution_context,
+            )
+            if executed is None:
+                self._record_v3_event(
+                    "mission_blueprint.planner_fallback",
+                    {
+                        "reason": "no_executable_ledger_intent",
+                        "blueprint_id": blueprint.blueprint_id,
+                        "revision": blueprint.revision,
+                        "ready_nodes": readiness.ready_nodes,
+                    },
+                )
+                return None
+
+            initial_intent, queue_result = executed
+            suggested_actions = []
+            if queue_result.status in {"waiting_browser", "browser_action_required"} and queue_result.browser_action:
+                browser_payload = queue_result.browser_action
+                suggested_actions = [
+                    SuggestedAction(
+                        action_id=str(browser_payload.get("action_id") or browser_payload.get("intent_id") or initial_intent.intent_id),
+                        intent_id=str(browser_payload.get("intent_id") or initial_intent.intent_id),
+                        mission_id=self.session_id,
+                        action_type=str(browser_payload.get("action_type") or initial_intent.intent),
+                        target_selector=str(browser_payload.get("target_selector") or ""),
+                        value=browser_payload.get("value"),
+                        description=str(browser_payload.get("description") or initial_intent.reason),
+                        reasoning=str(browser_payload.get("reasoning") or initial_intent.reason),
+                        confidence=float(browser_payload.get("confidence") or 0.8),
+                        safety_level=str(browser_payload.get("safety_level") or "safe"),  # type: ignore[arg-type]
+                    )
+                ]
+
+            response = AnalyzeResponse(
+                session_id=self.session_id,
+                analysis=(
+                    "Mission Blueprint produced deterministic executable work. "
+                    "Planner fallback was not invoked."
+                ),
+                outcome_kind="act",
+                suggested_actions=suggested_actions,
+                intent_execution=queue_result,
+            )
+            self._record_v3_event(
+                "mission_blueprint.runtime_selected",
+                {
+                    "blueprint_id": blueprint.blueprint_id,
+                    "revision": blueprint.revision,
+                    "lifecycle": lifecycle,
+                    "ready_nodes": readiness.ready_nodes,
+                    "expanded_nodes": expansion.expanded_nodes,
+                    "generated_intent_ids": expansion.generated_intent_ids,
+                    "queue_status": queue_result.status,
+                    "browser_action": suggested_actions[0].action_type if suggested_actions else None,
+                    "planner_fallback": False,
+                },
+            )
+            return response
+        except Exception:
+            logger.debug("Mission Blueprint runtime integration fell back to planner", exc_info=True)
+            return None
 
     def _record_cognitive_decision_comparison_shadow(
         self,

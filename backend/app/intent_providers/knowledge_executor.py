@@ -15,7 +15,7 @@ def register() -> None:
         ),
         (
             "knowledge_synthesis",
-            ("synthesize_knowledge", "synthesize_report", "synthesize"),
+            ("synthesize_knowledge", "synthesize_report", "generate_report", "synthesize"),
             "Knowledge synthesis is backend artifact computation.",
         ),
     ):

@@ -3,7 +3,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import logging
+
 from app.api.routes import health, analyze, workflow, assist, cognitive, research, intelligence, unified, mission, mission_intelligence, mission_blueprint, cognitive_runtime, validation as validation_router, benchmarks as benchmarks_router, intent as intent_router, tabs as tabs_router, trust as trust_router, browser as browser_router, decisions as decisions_router, approvals as approvals_router, governance as governance_router, authorization as authorization_router, runtime as runtime_router, plans as plans_router, gateway as gateway_router, website_intelligence as website_intelligence_router, certification as certification_router, product as product_router
+from app.core.config import ENV_FILE, settings
+from app.feature_flags import is_active
+
+
+logger = logging.getLogger(__name__)
 from app.core.database import engine, Base
 from app.core.schema_migrations import ensure_additive_schema
 import app.models.db  # noqa: F401 — registers ORM models with Base before create_all
@@ -13,6 +20,12 @@ import app.product.models  # noqa: F401 — registers V5 Product Layer models wi
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """Create all database tables and warm up in-memory stores on startup."""
+    logger.warning(
+        "Mission Blueprint config: env_file=%s mission_blueprint_v1=%s mission_blueprint_active=%s",
+        ENV_FILE,
+        settings.mission_blueprint_v1,
+        is_active("MISSION_BLUEPRINT_V1"),
+    )
     Base.metadata.create_all(bind=engine)
     ensure_additive_schema(engine)
     # V4.6: warm up unified task store from DB (no-op when persistence is disabled)
