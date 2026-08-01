@@ -195,6 +195,8 @@ export interface ExecutionResult {
   success: boolean
   message: string
   action_id: string
+  page_context?: PageContext
+  browser_timeline?: Record<string, number | string | boolean | null>
   verification?: ActionVerification
   execution_duration_ms?: number
   recovery_attempted?: boolean
@@ -259,7 +261,7 @@ export interface SessionHistory {
 
 // Internal extension message types
 export type ExtensionMessage =
-  | { type: 'EXTRACT_CONTEXT'; tabId: number }
+  | { type: 'EXTRACT_CONTEXT'; tab_id?: number }
   | { type: 'CONTEXT_RESULT'; context: PageContext }
   | { type: 'EXECUTE_ACTION'; action: SuggestedAction }
   | { type: 'GET_TAB_WORKSPACE' }

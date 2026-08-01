@@ -1150,6 +1150,24 @@ export function useWorkflow() {
     let pageContextAfterAction = pageContext
 
     if (result.success) {
+      if (result.page_context) {
+        pageContextAfterAction = result.page_context
+        setPageContext(result.page_context)
+      } else if (action.action_type === 'open_new_tab' && typeof result.opened_tab_id === 'number') {
+        try {
+          const res = await sendToBackground<{ context?: PageContext; error?: string }>({
+            type: 'EXTRACT_CONTEXT',
+            tab_id: result.opened_tab_id,
+          })
+          if (res.context) {
+            pageContextAfterAction = res.context
+            setPageContext(res.context)
+          }
+        } catch {
+          // The execution result remains authoritative; evidence falls back to the prior context below.
+        }
+      }
+
       if (action.action_type === 'navigate') {
         await sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_TAB_LOAD' })
       }

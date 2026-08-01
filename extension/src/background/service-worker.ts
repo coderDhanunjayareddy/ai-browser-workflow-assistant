@@ -123,7 +123,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
  */
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'EXTRACT_CONTEXT') {
-    handleExtractContext(sendResponse)
+    handleExtractContext(sendResponse, typeof message.tab_id === 'number' ? message.tab_id : undefined)
     return true
   }
   if (message.type === 'EXECUTE_ACTION') {
@@ -150,10 +150,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 // ── Context extraction ────────────────────────────────────────────────────────
 
-async function handleExtractContext(sendResponse: (response: unknown) => void) {
+async function handleExtractContext(sendResponse: (response: unknown) => void, tabId?: number) {
   try {
-    const tab = await getTargetTab()
-    const context = await extractContextWithRetry()
+    const tab = typeof tabId === 'number'
+      ? await chrome.tabs.get(tabId).catch(() => undefined)
+      : await getTargetTab()
+    const context = await extractContextWithRetry(tab?.id)
     if (!context) {
       sendResponse({ error: 'Extraction returned empty. Try reloading the page.' })
       return
@@ -214,17 +216,35 @@ async function waitForActiveTabComplete(tabId: number): Promise<void> {
 
 async function waitForTabUrlReady(tabId: number, expectedUrl: string): Promise<chrome.tabs.Tab | null> {
   const expectedPrefix = expectedUrl.replace(/#.*$/, '')
-  const deadline = Date.now() + 8_000
-  let latest = await chrome.tabs.get(tabId).catch(() => null)
-  while (Date.now() < deadline) {
-    latest = await chrome.tabs.get(tabId).catch(() => null)
-    const current = latest?.url || ''
-    if (latest && current !== 'about:blank' && current.startsWith(expectedPrefix) && latest.status === 'complete') {
-      return latest
-    }
-    await sleep(150)
+  const initial = await chrome.tabs.get(tabId).catch(() => null)
+  const initialUrl = initial?.url || ''
+  if (initial && initialUrl !== 'about:blank' && initialUrl.startsWith(expectedPrefix) && initial.status === 'complete') {
+    return initial
   }
-  return latest
+
+  return await new Promise<chrome.tabs.Tab | null>((resolve) => {
+    let settled = false
+    const finish = async () => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      chrome.tabs.onUpdated.removeListener(listener)
+      resolve(await chrome.tabs.get(tabId).catch(() => null))
+    }
+    const timer = setTimeout(finish, 12_000)
+
+    async function listener(updatedTabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) {
+      if (updatedTabId !== tabId) return
+      const current = changeInfo.url || tab.url || ''
+      const latest = await chrome.tabs.get(tabId).catch(() => null)
+      const latestUrl = latest?.url || current
+      if (latest && latestUrl !== 'about:blank' && latestUrl.startsWith(expectedPrefix) && latest.status === 'complete') {
+        await finish()
+      }
+    }
+
+    chrome.tabs.onUpdated.addListener(listener)
+  })
 }
 
 function isRestrictedUrl(url: string | undefined): boolean {
@@ -281,10 +301,12 @@ function logExtractionDiagnostics(boundary: string, context: any) {
   })
 }
 
-async function extractContextWithRetry() {
+async function extractContextWithRetry(tabId?: number) {
   let lastError = ''
 
-  const tab = await getTargetTab()
+  const tab = typeof tabId === 'number'
+    ? await chrome.tabs.get(tabId).catch(() => undefined)
+    : await getTargetTab()
   if (!tab?.id) {
     throw new Error('No active tab found. Click the extension icon while a webpage is open.')
   }
@@ -604,21 +626,40 @@ async function executeTabControlAction(action: ExecutableAction): Promise<(Basic
     if (!url) {
       return { success: false, message: 'No safe http/https URL provided for new tab.', action_id: action.action_id }
     }
+    const timeline: Record<string, number | string | boolean | null> = {
+      requested_url: url,
+      tab_create_started_ms: Date.now(),
+    }
     const opened = await chrome.tabs.create({ url, active: true })
+    timeline.tab_created_ms = Date.now()
+    timeline.opened_tab_id = opened.id ?? null
+    timeline.opened_window_id = opened.windowId ?? null
     let loaded: chrome.tabs.Tab = opened
     if (typeof opened.id === 'number') {
-      await waitForActiveTabComplete(opened.id)
+      timeline.navigation_wait_started_ms = Date.now()
       loaded = await waitForTabUrlReady(opened.id, url) || opened
+      timeline.navigation_complete_ms = Date.now()
     }
     tabWorkspace = registerTab(tabWorkspace, tabSnapshotFromChromeTab(opened))
     if (typeof loaded.id === 'number') {
       tabWorkspace = registerTab(tabWorkspace, tabSnapshotFromChromeTab(loaded))
       tabWorkspace = activateTab(tabWorkspace, loaded.id)
     }
+    let pageContext: unknown = undefined
+    if (typeof loaded.id === 'number') {
+      timeline.capture_started_ms = Date.now()
+      pageContext = await extractContextWithRetry(loaded.id).catch((err) => {
+        timeline.capture_error = String(err)
+        return undefined
+      })
+      timeline.capture_completed_ms = Date.now()
+    }
     return {
       success: true,
       message: `Opened new tab: ${url}`,
       action_id: action.action_id,
+      page_context: pageContext,
+      browser_timeline: timeline,
       opened_tab_id: loaded.id ?? opened.id ?? null,
       previous_tab_id: previousTabId,
       active_tab_id: loaded.id ?? opened.id ?? null,

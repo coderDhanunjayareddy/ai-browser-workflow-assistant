@@ -12,6 +12,8 @@ export interface BasicExecutionResult {
   success: boolean
   message: string
   action_id: string
+  page_context?: unknown
+  browser_timeline?: Record<string, number | string | boolean | null>
   wave2_capability?: string
   wave2_validated?: boolean
   wave3_capability?: string
