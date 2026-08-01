@@ -120,6 +120,35 @@ export interface IntentNextResponse {
   reason: string
 }
 
+export interface MissionResultArtifact {
+  artifact_id: string
+  mission_result_id: string
+  mission_id: string
+  kind: string
+  title: string
+  content_type: string
+  content: string
+  structured: Record<string, unknown>
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export interface MissionResult {
+  mission_result_id: string
+  mission_id: string
+  outcome: string
+  final_answer: string
+  report_format: string
+  report_artifact_id?: string | null
+  knowledge_artifact_id?: string | null
+  completion_reason: string
+  confidence: number
+  metadata: Record<string, unknown>
+  artifacts: MissionResultArtifact[]
+  created_at: string
+  updated_at: string
+}
+
 export interface PhaseExecutionDirective {
   schema_version?: string
   active_phase: string

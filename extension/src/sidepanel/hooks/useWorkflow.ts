@@ -39,6 +39,7 @@ import type {
   IntentDTO,
   IntentNextResponse,
   IntentUpdateResponse,
+  MissionResult,
 } from '../../types'
 
 const BACKEND_URL = 'http://localhost:8000'
@@ -564,6 +565,10 @@ function buildReportAnalysis(result: AnalyzeResponse): string {
   return parts.filter(Boolean).join('\n\n')
 }
 
+function buildMissionResultAnalysis(result: MissionResult): string {
+  return result.final_answer?.trim() || result.completion_reason || 'Mission result is ready.'
+}
+
 const REPORT_VALIDATION_REJECTION_TEXT = [
   'Report Validation',
   '',
@@ -834,6 +839,18 @@ async function requestNextBrowserIntent(sessionId: string): Promise<IntentDTO | 
   if (!response || !response.ok) return null
   const data = await response.json().catch(() => null) as IntentNextResponse | null
   return data?.intent ?? null
+}
+
+async function fetchMissionResult(sessionId: string): Promise<MissionResult | null> {
+  const response = await fetch(`${BACKEND_URL}/mission/${encodeURIComponent(sessionId)}/result`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  }).catch((err) => {
+    console.error(err)
+    return null
+  })
+  if (!response || response.status === 404 || !response.ok) return null
+  return await response.json().catch(() => null) as MissionResult | null
 }
 
 function actionFromIntent(intent: IntentDTO): SuggestedAction {
@@ -1266,6 +1283,26 @@ export function useWorkflow() {
         activeAction: null,
         pendingActions: [nextAction],
         completedActions: newCompleted,
+        error: null,
+      }))
+      return
+    }
+
+    const missionResult = await fetchMissionResult(sessionId)
+    if (missionResult) {
+      setState((s) => ({
+        ...s,
+        phase: 'completed',
+        activeAction: null,
+        pendingActions: [],
+        completedActions: newCompleted,
+        analysisText: buildMissionResultAnalysis(missionResult),
+        contractOutcome: 'report',
+        report: {
+          answer: missionResult.final_answer,
+          claim: missionResult.completion_reason,
+        },
+        goalConvergence: true,
         error: null,
       }))
       return

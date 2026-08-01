@@ -57,6 +57,21 @@ def execute(context: ExecutionContext, directive: IntentDispatchDirective):
             blocking_reason="executor_disabled",
         )
     context.knowledge = snapshot
+    mission_result_id = None
+    if directive.intent == "generate_report" and snapshot.report_artifact is not None:
+        try:
+            from app.core.database import SessionLocal
+            from app.mission_result.service import MissionResultService
+
+            with SessionLocal() as db:
+                result = MissionResultService(db).persist_from_knowledge_snapshot(
+                    mission_id=context.mission_id,
+                    task=context.task,
+                    knowledge_snapshot=snapshot,
+                )
+                mission_result_id = result.mission_result_id if result is not None else None
+        except Exception:
+            mission_result_id = None
 
     evidence = IntentExecutionEvidence(
         evidence_id=f"{directive.intent}:{context.mission_id}:{len(snapshot.extraction_records)}",
@@ -78,6 +93,7 @@ def execute(context: ExecutionContext, directive: IntentDispatchDirective):
             ]),
             "knowledge_artifact_id": snapshot.knowledge_artifact.id if snapshot.knowledge_artifact else None,
             "report_artifact_id": snapshot.report_artifact.id if snapshot.report_artifact else None,
+            "mission_result_id": mission_result_id,
             "completion_status": snapshot.completion_status,
             "missing_artifacts": snapshot.missing_artifacts,
         },
