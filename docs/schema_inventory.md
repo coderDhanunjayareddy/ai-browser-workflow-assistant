@@ -1,9 +1,9 @@
 # Schema Inventory
 
 - Schema version: `schema_validation.v1`
-- Alembic current: `unknown`
-- Alembic head: `20260802_0002`
-- Compatible: `False`
+- Alembic current: `20260802_0003`
+- Alembic head: `20260802_0003`
+- Compatible: `True`
 
 | Object | Status | Severity | ORM | Database | Detail |
 | --- | --- | --- | --- | --- | --- |
@@ -271,8 +271,8 @@
 | mission_intents.retries | MATCH | INFO | integer | integer | Column type matches |
 | mission_intents.status | MATCH | INFO | varchar | varchar | Column type matches |
 | mission_intents.updated_at | MATCH | INFO | timestamp without time zone | timestamp | Column type matches |
-| mission_intents.ix_mission_intents_blueprint_id | INDEX MISMATCH | WARNING |  |  | Index presence comparison |
-| mission_intents.ix_mission_intents_blueprint_node_id | INDEX MISMATCH | WARNING |  |  | Index presence comparison |
+| mission_intents.ix_mission_intents_blueprint_id | MATCH | INFO |  |  | Index presence comparison |
+| mission_intents.ix_mission_intents_blueprint_node_id | MATCH | INFO |  |  | Index presence comparison |
 | mission_intents.ix_mission_intents_mission_id | MATCH | INFO |  |  | Index presence comparison |
 | mission_result_artifacts | MATCH | INFO |  |  | Table exists |
 | mission_result_artifacts.artifact_id | MATCH | INFO | varchar | varchar | Column type matches |
@@ -300,7 +300,7 @@
 | mission_result_versions.ix_mission_result_versions_mission_result_id | MATCH | INFO |  |  | Index presence comparison |
 | mission_results | MATCH | INFO |  |  | Table exists |
 | mission_results.completion_reason | MATCH | INFO | text | text | Column type matches |
-| mission_results.confidence | TYPE MISMATCH | ERROR | float | varchar | Column type differs between ORM and database |
+| mission_results.confidence | MATCH | INFO | float | double precision | Column type matches |
 | mission_results.created_at | MATCH | INFO | timestamp without time zone | timestamp | Column type matches |
 | mission_results.final_answer | MATCH | INFO | text | text | Column type matches |
 | mission_results.knowledge_artifact_id | MATCH | INFO | varchar | varchar | Column type matches |
@@ -1147,4 +1147,3 @@
 | workflow_states.id | MATCH | INFO | varchar | varchar | Column type matches |
 | workflow_states.session_id | MATCH | INFO | varchar | varchar | Column type matches |
 | workflow_states.updated_at | MATCH | INFO | timestamp without time zone | timestamp | Column type matches |
-| alembic_version | VERSION MISMATCH | ERROR | 20260802_0002 | <none> | Database is not at Alembic head |
