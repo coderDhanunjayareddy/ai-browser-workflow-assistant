@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import logging
 
-from app.api.routes import health, analyze, workflow, assist, cognitive, research, intelligence, unified, mission, mission_intelligence, mission_blueprint, cognitive_runtime, validation as validation_router, benchmarks as benchmarks_router, intent as intent_router, tabs as tabs_router, trust as trust_router, browser as browser_router, decisions as decisions_router, approvals as approvals_router, governance as governance_router, authorization as authorization_router, runtime as runtime_router, plans as plans_router, gateway as gateway_router, website_intelligence as website_intelligence_router, certification as certification_router, product as product_router
+from app.api.routes import health, analyze, workflow, assist, cognitive, research, intelligence, unified, mission, mission_intelligence, mission_blueprint, cognitive_runtime, validation as validation_router, benchmarks as benchmarks_router, intent as intent_router, tabs as tabs_router, trust as trust_router, browser as browser_router, decisions as decisions_router, approvals as approvals_router, governance as governance_router, authorization as authorization_router, runtime as runtime_router, plans as plans_router, gateway as gateway_router, website_intelligence as website_intelligence_router, certification as certification_router, product as product_router, system as system_router
 from app.core.config import ENV_FILE, settings
 from app.feature_flags import is_active
 from app.mission_result import api as mission_result_router
@@ -29,7 +29,19 @@ async def lifespan(_: FastAPI):
         is_active("MISSION_BLUEPRINT_V1"),
     )
     Base.metadata.create_all(bind=engine)
-    ensure_additive_schema(engine)
+    applied_schema_guards = ensure_additive_schema(engine)
+    if applied_schema_guards:
+        logger.warning("Emergency additive schema guards applied: %s", applied_schema_guards)
+    try:
+        from app.schema_validation import SchemaValidator
+
+        schema_report = SchemaValidator(engine).compare()
+        if not schema_report.compatible:
+            logger.error("Schema validation found incompatible drift: %s", schema_report.to_dict())
+        else:
+            logger.info("Schema validation compatible: current=%s head=%s", schema_report.alembic_current, schema_report.alembic_head)
+    except Exception:
+        logger.exception("Schema validation failed during startup")
     # V4.6: warm up unified task store from DB (no-op when persistence is disabled)
     from app.unified import store as _unified_store
     _unified_store.warmup()
@@ -102,3 +114,4 @@ app.include_router(gateway_router.router)
 app.include_router(website_intelligence_router.router)
 app.include_router(certification_router.router)
 app.include_router(product_router.router)
+app.include_router(system_router.router)
