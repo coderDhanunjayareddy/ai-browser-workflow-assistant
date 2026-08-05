@@ -85,6 +85,35 @@ def test_service_persists_result_from_completion_snapshot(monkeypatch):
         engine.dispose()
 
 
+def test_service_does_not_complete_research_before_requested_source_count(monkeypatch):
+    _enable_pipeline(monkeypatch)
+    engine, db = _session()
+    try:
+        task = (
+            "Search for: best AI browser automation tools 2026. "
+            "Open the top 5 relevant results. "
+            "Create a clean comparison table with columns: Tool, Purpose, Pricing, Limitation, URL."
+        )
+        snapshot = KnowledgeExtractionPipeline().observe(
+            session_id="mission-result-source-gate",
+            task=task,
+            page_context=_page("Tool A automates browser workflows. Free plan available. Limited admin controls."),
+            current_phase="REPORT",
+        )
+
+        result = MissionResultService(db).persist_from_knowledge_snapshot(
+            mission_id="mission-result-source-gate",
+            task=task,
+            knowledge_snapshot=snapshot,
+        )
+
+        assert result is None
+        assert snapshot.completion_status["source_count"] is False
+    finally:
+        db.close()
+        engine.dispose()
+
+
 def test_generate_report_executor_persists_mission_result(monkeypatch):
     _enable_pipeline(monkeypatch)
 

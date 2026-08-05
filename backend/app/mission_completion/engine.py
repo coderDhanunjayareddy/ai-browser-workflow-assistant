@@ -311,6 +311,8 @@ def _has_partial_success(evaluations: list[CriterionEvaluation], snapshot: Knowl
         return False
     if snapshot.report_artifact.completion_status != "complete":
         return False
+    if snapshot.research_spec is not None and not bool(snapshot.completion_status.get("source_count")):
+        return False
     return any(evaluation.satisfied for evaluation in evaluations)
 
 

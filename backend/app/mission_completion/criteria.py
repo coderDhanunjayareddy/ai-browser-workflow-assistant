@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from app.knowledge_extraction.research_spec import build_research_mission_spec
 from app.mission_completion.models import (
     CriterionEvaluation,
     CriterionKind,
@@ -89,7 +90,9 @@ def infer_objective_type(objective: str) -> ObjectiveType:
 
 
 def build_success_criteria(*, objective: str, objective_type: ObjectiveType) -> list[MissionSuccessCriterion]:
-    fields = _requested_fields(objective)
+    research_spec = build_research_mission_spec(objective)
+    fields = research_spec.required_fields if research_spec else _requested_fields(objective)
+    source_count = research_spec.source_count if research_spec else 1
     criteria: list[MissionSuccessCriterion] = []
 
     def add(kind: CriterionKind, subject: str, **kwargs: Any) -> None:
@@ -107,10 +110,10 @@ def build_success_criteria(*, objective: str, objective_type: ObjectiveType) -> 
         ObjectiveType.DOCUMENTATION_EXTRACTION,
         ObjectiveType.GENERAL,
     }:
-        add(CriterionKind.PAGE_READ, "source_pages", validation_policy=ValidationStatus.RAW)
-        add(CriterionKind.FIELD_EXTRACTED, "required_fields", required_evidence=fields)
+        add(CriterionKind.PAGE_READ, "source_pages", validation_policy=ValidationStatus.RAW, cardinality=source_count)
+        add(CriterionKind.FIELD_EXTRACTED, "required_fields", required_evidence=fields, cardinality=source_count)
         add(CriterionKind.ARTIFACT_CREATED, "knowledge_artifact")
-        add(CriterionKind.ARTIFACT_VALIDATED, "extraction_records")
+        add(CriterionKind.ARTIFACT_VALIDATED, "extraction_records", cardinality=source_count)
         add(CriterionKind.REPORT_DELIVERED, "user_visible_report", user_visible=True)
         return criteria
 
@@ -189,12 +192,18 @@ def _evaluate_criterion(
         validation = ValidationStatus.RAW if satisfied else ValidationStatus.MISSING
     elif criterion.kind == CriterionKind.FIELD_EXTRACTED:
         valid_records = _valid_records(knowledge_snapshot)
-        available_fields = {field.lower() for record in valid_records for field, value in record.fields.items() if str(value or "").strip()}
         required_fields = [field.lower() for field in (criterion.required_evidence or DEFAULT_FIELD_NAMES)]
-        missing = [field for field in required_fields if field not in available_fields]
+        complete_records = [
+            record
+            for record in valid_records
+            if all(str(record.fields.get(field, "") or "").strip() for field in required_fields)
+        ]
+        missing = _missing_fields_by_record(valid_records, required_fields)
         refs = [_ref("knowledge_extraction", record.id, "extraction_record", getattr(record, "timestamp_ms", None), ValidationStatus.VALIDATED) for record in valid_records]
-        satisfied = not missing and bool(refs)
-        confidence = _average([float(record.confidence) for record in valid_records]) if satisfied else 0.0
+        satisfied = not missing and len(complete_records) >= criterion.cardinality
+        if len(complete_records) < criterion.cardinality:
+            missing.append(f"validated_source_records:{len(complete_records)}/{criterion.cardinality}")
+        confidence = _average([float(record.confidence) for record in complete_records]) if satisfied else 0.0
         validation = ValidationStatus.VALIDATED if satisfied else ValidationStatus.MISSING
     elif criterion.kind == CriterionKind.ARTIFACT_CREATED:
         artifact = getattr(knowledge_snapshot, "knowledge_artifact", None)
@@ -209,7 +218,7 @@ def _evaluate_criterion(
         if artifact is not None:
             refs.append(_ref("knowledge_extraction", artifact.id, "knowledge_artifact", getattr(artifact, "timestamp_ms", None), ValidationStatus.VALIDATED))
         refs.extend(_ref("knowledge_extraction", record.id, "validated_record", getattr(record, "timestamp_ms", None), ValidationStatus.VALIDATED) for record in valid_records)
-        satisfied = bool(refs) and bool(valid_records)
+        satisfied = bool(refs) and len(valid_records) >= criterion.cardinality
         missing = [] if satisfied else ["validated_artifact_evidence"]
         confidence = 0.9 if satisfied else 0.0
         validation = ValidationStatus.VALIDATED if satisfied else ValidationStatus.MISSING
@@ -302,6 +311,17 @@ def _valid_records(snapshot: Any) -> list[Any]:
         for record in list(getattr(snapshot, "extraction_records", []) or [])
         if bool(getattr(record, "validation", {}).get("valid"))
     ]
+
+
+def _missing_fields_by_record(records: list[Any], required_fields: list[str]) -> list[str]:
+    missing: list[str] = []
+    for record in records:
+        record_missing = [field for field in required_fields if not str(record.fields.get(field, "") or "").strip()]
+        if record_missing:
+            missing.append(f"{getattr(record, 'id', 'record')}:{','.join(record_missing)}")
+    if not records:
+        missing.append("validated_source_records:0")
+    return missing
 
 
 def _ref(source: str, evidence_id: str, evidence_type: str, timestamp_ms: int | None, validation: ValidationStatus) -> EvidenceReference:

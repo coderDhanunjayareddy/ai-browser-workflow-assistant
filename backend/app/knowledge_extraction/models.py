@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
+from app.knowledge_extraction.research_spec import ResearchMissionSpec
+
 
 @dataclass(frozen=True)
 class PageReadArtifact:
@@ -91,6 +93,7 @@ class KnowledgePipelineSnapshot:
     session_id: str
     current_phase: str | None
     required_fields: list[str]
+    research_spec: ResearchMissionSpec | None
     read_artifacts: list[PageReadArtifact]
     extraction_records: list[ExtractionRecord]
     knowledge_artifact: KnowledgeArtifact | None
@@ -105,6 +108,7 @@ class KnowledgePipelineSnapshot:
             "schema_version": self.schema_version,
             "current_phase": self.current_phase,
             "required_fields": self.required_fields,
+            "research_spec": self.research_spec.to_dict() if self.research_spec else None,
             "record_count": len(self.extraction_records),
             "read_count": len(self.read_artifacts),
             "knowledge_artifact_id": self.knowledge_artifact.id if self.knowledge_artifact else None,

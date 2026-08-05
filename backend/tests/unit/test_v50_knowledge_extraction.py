@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.knowledge_extraction.engine import KnowledgeExtractionPipeline
 from app.knowledge_extraction.extraction_engine import required_fields_for_task
 from app.knowledge_extraction.page_reader import read_page
+from app.knowledge_extraction.research_spec import build_research_mission_spec
 from app.knowledge_extraction.report_engine import generate_report
 from app.knowledge_extraction.synthesizer import synthesize_knowledge
 from app.knowledge_extraction.validator import validate_records, validation_summary
@@ -127,6 +128,70 @@ def test_research_pipeline_keeps_opened_sources_with_missing_mentions(monkeypatc
     assert any(row["limitation"] == "Not mentioned" for row in rows)
     assert all("\n" not in cell for row in rows for cell in row.values())
     assert all(len(cell) <= 220 for row in rows for cell in row.values())
+
+
+def test_research_mission_spec_parses_task1_contract():
+    spec = build_research_mission_spec(
+        "Open Google Search and search for: best AI browser automation tools 2026. "
+        "From the first page of results open the top 5 relevant results. "
+        "Create a clean comparison table with columns: Tool, Purpose, Pricing, Limitation, URL. "
+        "Return the table only."
+    )
+
+    assert spec is not None
+    assert spec.query == "best AI browser automation tools 2026"
+    assert spec.source_count == 5
+    assert spec.required_fields == ["tool", "purpose", "pricing", "limitation", "url"]
+    assert spec.output_format == "markdown"
+    assert "final_artifact_generated_from_extraction_records" in spec.completion_criteria
+
+
+def test_research_pipeline_uses_spec_source_count_completion_gate(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    monkeypatch.setattr(settings, "v50_report_engine", "active")
+    pipeline = KnowledgeExtractionPipeline()
+    task = (
+        "Search for: best AI browser automation tools 2026. "
+        "Open the top 5 relevant results. "
+        "Create a clean comparison table with columns: Tool, Purpose, Pricing, Limitation, URL."
+    )
+
+    first = pipeline.observe(
+        session_id="research-gated",
+        task=task,
+        page_context=_page("Tool A automates browsers. Free plan available. Limited support.", title="Tool A", url="https://example.test/a"),
+        current_phase="EXTRACT",
+    )
+
+    assert first is not None
+    assert first.research_spec is not None
+    assert first.research_spec.source_count == 5
+    assert first.completion_status["source_count"] is False
+    assert first.completion_status["extract"] is False
+
+    snapshot = first
+    for index in range(2, 6):
+        snapshot = pipeline.observe(
+            session_id="research-gated",
+            task=task,
+            page_context=_page(
+                f"Tool {index} automates browser workflows. Not mentioned. Requires setup.",
+                title=f"Tool {index}",
+                url=f"https://example.test/{index}",
+            ),
+            current_phase="EXTRACT",
+        )
+
+    assert snapshot is not None
+    assert snapshot.completion_status["source_count"] is True
+    assert snapshot.completion_status["extract"] is True
+    assert snapshot.knowledge_artifact is not None
+    assert snapshot.knowledge_artifact.content["research_spec"]["source_count"] == 5
+    assert snapshot.report_artifact is not None
+    assert len(snapshot.report_artifact.structured["rows"]) == 5
 
 
 def test_research_pipeline_does_not_extract_google_serp_as_source(monkeypatch):

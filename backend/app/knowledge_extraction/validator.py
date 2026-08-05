@@ -10,7 +10,7 @@ def validate_records(records: list[ExtractionRecord], required_fields: list[str]
     validated: list[ExtractionRecord] = []
     for record in records:
         failures: list[str] = []
-        missing = [field for field in required_fields if not record.fields.get(field)]
+        missing = [field for field in required_fields if not _field_present(record.fields.get(field))]
         if missing:
             failures.append("missing_required_fields:" + ",".join(missing))
         if record.source_page and not _valid_url(record.source_page):
@@ -62,3 +62,10 @@ def _valid_url(url: str) -> bool:
 def _entity_key(record: ExtractionRecord) -> str:
     title = next((record.fields.get(key, "") for key in ("tool", "title", "name", "company") if record.fields.get(key)), "")
     return f"{record.extraction_type}|{title.lower()}|{record.source_page.rstrip('/').lower()}"
+
+
+def _field_present(value: str | None) -> bool:
+    if value is None:
+        return False
+    text = str(value).strip()
+    return bool(text)

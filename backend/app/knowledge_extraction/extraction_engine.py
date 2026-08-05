@@ -45,8 +45,8 @@ def extraction_type_for_task(task: str) -> str:
     return "generic"
 
 
-def extract_records(page: PageReadArtifact, task: str, phase: str | None) -> list[ExtractionRecord]:
-    fields = required_fields_for_task(task)
+def extract_records(page: PageReadArtifact, task: str, phase: str | None, *, required_fields: list[str] | None = None) -> list[ExtractionRecord]:
+    fields = list(required_fields or required_fields_for_task(task))
     extraction_type = extraction_type_for_task(task)
     if extraction_type == "research" and _is_search_results_page(page):
         return []
