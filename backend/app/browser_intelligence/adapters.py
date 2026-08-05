@@ -75,6 +75,26 @@ def _display_url(url: str) -> str:
     return parsed.netloc + (f"/{path[:60]}" if path else "")
 
 
+def _canonical_result_url(url: str) -> str:
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return url
+    path = parsed.path.rstrip("/") or "/"
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}{path}"
+
+
+def _result_relevance_score(title: str, text: str, url: str) -> float:
+    combined = f"{title} {text} {url}".lower()
+    score = 0.55
+    if any(term in combined for term in ("browser", "automation", "agent", "ai")):
+        score += 0.15
+    if any(term in combined for term in ("pricing", "docs", "documentation", "jobs", "career", "best", "compare")):
+        score += 0.1
+    if _looks_excluded(combined):
+        score -= 0.25
+    return round(max(0.0, min(score, 0.98)), 3)
+
+
 def _is_external_organic(url: str, *, engine_hosts: set[str]) -> bool:
     if not url.startswith(("http://", "https://")):
         return False
@@ -411,6 +431,11 @@ def extract_search_results(page_context: Any, *, engine_hosts: set[str], limit: 
                 displayed_url=_display_url(href),
                 open_selector=selector or None,
                 selector_id=candidate_selector,
+                normalized_url=_canonical_result_url(href),
+                source_domain=urlparse(href).netloc.lower(),
+                source_type="organic",
+                is_ad=False,
+                relevance_score=_result_relevance_score(title, block_text, href),
                 metadata={"source": "interactive_anchor", "engine_hosts": sorted(engine_hosts)},
             ),
         ))
@@ -437,6 +462,11 @@ def extract_search_results(page_context: Any, *, engine_hosts: set[str], limit: 
                         displayed_url=_display_url(href),
                         open_selector=str(_getattr(block, "selector", "") or "") or None,
                         selector_id=None,
+                        normalized_url=_canonical_result_url(href),
+                        source_domain=urlparse(href).netloc.lower(),
+                        source_type="organic",
+                        is_ad=False,
+                        relevance_score=_result_relevance_score(title, text, href),
                         metadata={"source": "content_block_url", "engine_hosts": sorted(engine_hosts)},
                     ),
                 ))
@@ -451,6 +481,11 @@ def extract_search_results(page_context: Any, *, engine_hosts: set[str], limit: 
             displayed_url=result.displayed_url,
             open_selector=result.open_selector,
             selector_id=result.selector_id,
+            normalized_url=result.normalized_url,
+            source_domain=result.source_domain,
+            source_type=result.source_type,
+            is_ad=result.is_ad,
+            relevance_score=result.relevance_score,
             metadata=result.metadata,
         )
         for index, result in enumerate(ordered)

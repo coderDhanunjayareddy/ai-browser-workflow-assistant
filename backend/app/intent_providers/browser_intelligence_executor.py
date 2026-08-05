@@ -51,6 +51,11 @@ def _result_payload(result) -> dict:
         "displayed_url": _read(result, "displayed_url") or "",
         "open_selector": _read(result, "open_selector") or _read(result, "selector"),
         "selector_id": _read(result, "selector_id"),
+        "normalized_url": _read(result, "normalized_url") or "",
+        "source_domain": _read(result, "source_domain") or "",
+        "source_type": _read(result, "source_type") or "unknown",
+        "is_ad": bool(_read(result, "is_ad", False)),
+        "relevance_score": float(_read(result, "relevance_score", 0.5) or 0.0),
     }
 
 
@@ -109,6 +114,11 @@ def _normalize_content_block(block, index: int) -> dict:
         "displayed_url": str(_read(block, "displayed_url") or "").strip(),
         "open_selector": _read(block, "open_selector") or _read(block, "selector"),
         "selector_id": _read(block, "selector_id"),
+        "normalized_url": str(_read(block, "normalized_url") or "").strip(),
+        "source_domain": str(_read(block, "source_domain") or "").strip(),
+        "source_type": str(_read(block, "source_type") or "unknown").strip(),
+        "is_ad": bool(_read(block, "is_ad", False)),
+        "relevance_score": float(_read(block, "relevance_score", 0.5) or 0.0),
     }
 
 
@@ -122,6 +132,9 @@ def _dedupe_results(results: list[dict]) -> list[dict]:
         seen.add(key)
         item = dict(result)
         item["rank"] = len(deduped) + 1
+        item["normalized_url"] = key
+        if not item.get("source_domain"):
+            item["source_domain"] = urlsplit(key).netloc.lower()
         deduped.append(item)
     return deduped
 

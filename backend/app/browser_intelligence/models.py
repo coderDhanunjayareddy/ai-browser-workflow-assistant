@@ -104,6 +104,11 @@ class SearchResult:
     displayed_url: str
     open_selector: str | None
     selector_id: str | None
+    normalized_url: str = ""
+    source_domain: str = ""
+    source_type: Literal["organic", "ad", "search_vertical", "unknown"] = "unknown"
+    is_ad: bool = False
+    relevance_score: float = 0.5
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -115,6 +120,11 @@ class SearchResult:
             "displayed_url": self.displayed_url,
             "open_selector": self.open_selector,
             "selector_id": self.selector_id,
+            "normalized_url": self.normalized_url,
+            "source_domain": self.source_domain,
+            "source_type": self.source_type,
+            "is_ad": self.is_ad,
+            "relevance_score": self.relevance_score,
             "metadata": self.metadata,
         }
 
