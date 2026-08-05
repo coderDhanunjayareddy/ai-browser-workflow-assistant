@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlsplit, urlunsplit
+
 from app.intent_dispatcher.models import ExecutionContext, IntentDispatchDirective, IntentExecutionEvidence
 from app.intent_dispatcher.registry import IntentOwnerRegistration, register_intent_executor, register_intent_owner
 from app.intent_providers.common import execution_result
@@ -60,13 +62,13 @@ def _extract_search_results(context: ExecutionContext) -> list[dict]:
             if normalized.get("url"):
                 results.append(normalized)
     if results:
-        return results
+        return _dedupe_results(results)
 
     for index, block in enumerate(_content_blocks(context.page_context)[:10], start=1):
         normalized = _normalize_content_block(block, index)
         if normalized.get("url"):
             results.append(normalized)
-    return results
+    return _dedupe_results(results)
 
 
 def _search_result_containers(context: ExecutionContext) -> list:
@@ -108,6 +110,27 @@ def _normalize_content_block(block, index: int) -> dict:
         "open_selector": _read(block, "open_selector") or _read(block, "selector"),
         "selector_id": _read(block, "selector_id"),
     }
+
+
+def _dedupe_results(results: list[dict]) -> list[dict]:
+    seen: set[str] = set()
+    deduped: list[dict] = []
+    for result in results:
+        key = _canonical_result_url(str(result.get("url") or ""))
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        item = dict(result)
+        item["rank"] = len(deduped) + 1
+        deduped.append(item)
+    return deduped
+
+
+def _canonical_result_url(url: str) -> str:
+    parsed = urlsplit(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path.rstrip("/") or "/", parsed.query, ""))
 
 
 def _read(value, key: str, default=None):

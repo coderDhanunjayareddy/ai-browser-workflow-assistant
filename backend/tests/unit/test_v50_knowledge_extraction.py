@@ -99,6 +99,72 @@ def test_research_pipeline_generates_comparison_report(monkeypatch):
     assert "| tool | purpose | pricing | limitation | url |" in snapshot.report_artifact.content
 
 
+def test_research_pipeline_keeps_opened_sources_with_missing_mentions(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    monkeypatch.setattr(settings, "v50_report_engine", "active")
+    pipeline = KnowledgeExtractionPipeline()
+    task = "Extract Tool, Purpose, Pricing, Limitation, URL and produce a clean comparison table only."
+    pages = [
+        _page("Tool A automates browser workflows. Free plan available. Limited enterprise controls.", title="Tool A", url="https://example.test/a"),
+        _page("Tool B helps teams compare AI browser agents for scraping and automation.", title="Tool B", url="https://example.test/b"),
+        _page("Tool C records browser tasks. Paid plan starts at $20. Requires API setup.", title="Tool C", url="https://example.test/c"),
+        _page("Tool D extracts data from websites and handles forms.", title="Tool D", url="https://example.test/d"),
+        _page("Tool E runs web automation. Trial credits are included. Cannot solve every CAPTCHA.", title="Tool E", url="https://example.test/e"),
+    ]
+
+    snapshot = None
+    for page in pages:
+        snapshot = pipeline.observe(session_id="research-five", task=task, page_context=page, current_phase="EXTRACT")
+
+    assert snapshot is not None
+    assert snapshot.report_artifact is not None
+    rows = snapshot.report_artifact.structured["rows"]
+    assert len(rows) == 5
+    assert any(row["pricing"] == "Not mentioned" for row in rows)
+    assert any(row["limitation"] == "Not mentioned" for row in rows)
+    assert all("\n" not in cell for row in rows for cell in row.values())
+    assert all(len(cell) <= 220 for row in rows for cell in row.values())
+
+
+def test_research_pipeline_does_not_extract_google_serp_as_source(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    monkeypatch.setattr(settings, "v50_report_engine", "active")
+    pipeline = KnowledgeExtractionPipeline()
+    task = "Extract Tool, Purpose, Pricing, Limitation, URL and produce a clean comparison table only."
+
+    serp_snapshot = pipeline.observe(
+        session_id="research-serp-ignore",
+        task=task,
+        page_context=_page(
+            "Result one Result two Result three",
+            title="best AI browser automation tools 2026 - Google Search",
+            url="https://www.google.com/search?q=best+AI+browser+automation+tools+2026",
+        ),
+        current_phase="SEARCH",
+    )
+    source_snapshot = pipeline.observe(
+        session_id="research-serp-ignore",
+        task=task,
+        page_context=_page(
+            "Tool A automates browser workflows. Free plan available. Limited enterprise controls.",
+            title="Tool A",
+            url="https://example.test/a",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    assert serp_snapshot is not None
+    assert len(serp_snapshot.extraction_records) == 0
+    assert source_snapshot is not None
+    assert [row["url"] for row in source_snapshot.report_artifact.structured["rows"]] == ["https://example.test/a"]
+
+
 def test_job_search_required_fields_are_generic():
     fields = required_fields_for_task("Collect jobs with title, company, location, experience and apply URL.")
 

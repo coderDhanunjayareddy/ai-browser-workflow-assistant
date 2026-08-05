@@ -70,3 +70,28 @@ def test_collects_serp_results_from_serialized_semantic_page_model():
     assert result.evidence[0].payload["search_result_count"] == 1
     assert results[0]["snippet"] == "A comparison of browser automation tools."
     assert results[0]["url"] == "https://example.com/tools"
+
+
+def test_collects_serp_results_dedupes_same_url_fragments():
+    context = ExecutionContext(
+        mission_id="serp-test",
+        task="Search browser automation tools",
+        browser_intelligence={
+            "page_model": {
+                "search_results": [
+                    {"rank": 1, "title": "AI Browsers", "url": "https://example.com/ai-browsers"},
+                    {"rank": 2, "title": "AI Browsers Overview", "url": "https://example.com/ai-browsers#overview"},
+                    {"rank": 3, "title": "Automation Tools", "url": "https://example.com/tools"},
+                ]
+            }
+        },
+    )
+
+    result = execute(context, _directive())
+
+    results = result.evidence[0].payload["search_results"]
+    assert [item["url"] for item in results] == [
+        "https://example.com/ai-browsers",
+        "https://example.com/tools",
+    ]
+    assert [item["rank"] for item in results] == [1, 2]

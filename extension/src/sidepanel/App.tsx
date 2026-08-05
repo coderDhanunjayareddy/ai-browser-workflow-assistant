@@ -57,6 +57,15 @@ export default function App() {
 type WorkflowProps = ReturnType<typeof useWorkflow>
 type ProductProps = { product: ReturnType<typeof useProduct> }
 
+function wantsTableOnlyAnswer(task: string): boolean {
+  return /\btable\s+only\b/i.test(task)
+}
+
+function startsWithMarkdownTable(text: string): boolean {
+  const lines = text.trimStart().split(/\r?\n/)
+  return /^\|.+\|\s*$/.test(lines[0] ?? '') && /^\|\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|\s*$/.test(lines[1] ?? '')
+}
+
 function ProductPanel({ product }: ProductProps) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [view, setView] = useState<'dashboard' | 'replay' | 'tasks' | 'templates' | 'teams' | 'assistants' | 'integrations' | 'analytics' | 'usage' | 'billing' | 'apiKeys' | 'limits' | 'budget' | 'admin' | 'security' | 'audit' | 'compliance' | 'policies' | 'sso' | 'scim' | 'notifications' | 'versions'>('dashboard')
@@ -747,6 +756,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
   const isReported  = phase === 'reported'
   const isReplan    = phase === 'replan'
   const isRunning   = isWorking || isAwaiting || needsInput
+  const showAnswerOnly = isComplete && wantsTableOnlyAnswer(task) && startsWithMarkdownTable(analysisText)
 
   const phaseLabel: Record<string, string> = {
     idle: 'Analyze', observing: 'Reading page…', analyzing: 'Thinking…',
@@ -840,6 +850,10 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
       {/* ── Results area ── */}
       {showResults && (
         <div style={s.results}>
+          {showAnswerOnly ? (
+            <p style={s.analysisText}>{analysisText}</p>
+          ) : (
+            <>
 
           {/* AI analysis */}
           {analysisText && (
@@ -961,6 +975,8 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
           )}
           {isCancelled && (
             <div style={s.cancelledBox}>Workflow cancelled.</div>
+          )}
+            </>
           )}
         </div>
       )}

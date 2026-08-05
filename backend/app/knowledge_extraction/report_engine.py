@@ -41,7 +41,7 @@ def _markdown_table(columns: list[str], rows: list[Any]) -> str:
     sep = "| " + " | ".join(["---"] * len(columns)) + " |"
     body = []
     for row in rows:
-        values = [str(dict(row).get(column, "")).replace("\n", " ") for column in columns]
+        values = [_cell(dict(row).get(column, "")) for column in columns]
         body.append("| " + " | ".join(values) + " |")
     return "\n".join([header, sep, *body])
 
@@ -52,6 +52,13 @@ def _csv(columns: list[str], rows: list[Any]) -> str:
         values = [str(dict(row).get(column, "")).replace('"', '""') for column in columns]
         lines.append(",".join(f'"{value}"' for value in values))
     return "\n".join(lines)
+
+
+def _cell(value: Any, limit: int = 220) -> str:
+    text = " ".join(str(value or "").split()).replace("|", "\\|")
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
 
 
 def _id(*parts: str) -> str:

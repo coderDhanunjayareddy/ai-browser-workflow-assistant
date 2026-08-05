@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import re
 import time
+from urllib.parse import urlparse
 
 from app.knowledge_extraction.models import ExtractionRecord, PageReadArtifact
 
@@ -47,6 +48,8 @@ def extraction_type_for_task(task: str) -> str:
 def extract_records(page: PageReadArtifact, task: str, phase: str | None) -> list[ExtractionRecord]:
     fields = required_fields_for_task(task)
     extraction_type = extraction_type_for_task(task)
+    if extraction_type == "research" and _is_search_results_page(page):
+        return []
     values = {field: _value_for_field(field, page) for field in fields}
     confidence = _confidence(values)
     now = int(time.time() * 1000)
@@ -74,9 +77,9 @@ def _value_for_field(field: str, page: PageReadArtifact) -> str:
     if key in {"purpose", "summary", "use_case", "main_use_case"}:
         return _first_non_empty(page.paragraphs, page.sections)
     if key in {"pricing", "price", "paid_plan_starting_price", "free_plan"}:
-        return page.pricing_blocks[0] if page.pricing_blocks else _sentence_containing(text, ("price", "free", "trial", "plan", "$"))
+        return page.pricing_blocks[0] if page.pricing_blocks else _sentence_containing(text, ("price", "free", "trial", "plan", "$")) or "Not mentioned"
     if key in {"limitation", "limitations"}:
-        return _sentence_containing(text, ("limitation", "limited", "lack", "without", "requires", "cannot", "but "))
+        return _sentence_containing(text, ("limitation", "limited", "lack", "without", "requires", "cannot", "but ")) or "Not mentioned"
     if key in {"email"}:
         match = re.search(r"[\w.\-+]+@[\w.\-]+\.\w+", text)
         return match.group(0) if match else ""
@@ -101,10 +104,10 @@ def _value_for_field(field: str, page: PageReadArtifact) -> str:
 def _first_non_empty(paragraphs: list[str], sections: list[dict[str, str]]) -> str:
     for paragraph in paragraphs:
         if len(paragraph) > 30:
-            return paragraph[:500]
+            return _clip(paragraph)
     for section in sections:
         if section.get("text"):
-            return section["text"][:500]
+            return _clip(section["text"])
     return ""
 
 
@@ -112,8 +115,15 @@ def _sentence_containing(text: str, terms: tuple[str, ...]) -> str:
     for sentence in re.split(r"(?<=[.!?])\s+", text):
         lower = sentence.lower()
         if any(term in lower for term in terms):
-            return sentence[:500]
+            return _clip(sentence)
     return ""
+
+
+def _clip(value: str, limit: int = 220) -> str:
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
 
 
 def _confidence(values: dict[str, str]) -> float:
@@ -130,3 +140,12 @@ def _normalize_field(value: str) -> str:
 def _record_id(extraction_type: str, source: str, values: dict[str, str]) -> str:
     raw = f"{extraction_type}|{source}|{values}"
     return "extraction_" + hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
+
+
+def _is_search_results_page(page: PageReadArtifact) -> bool:
+    parsed = urlparse(page.canonical_url)
+    host = parsed.netloc.lower()
+    if host in {"www.google.com", "google.com"} and parsed.path.startswith("/search"):
+        return True
+    title = (page.title or "").lower()
+    return "google search" in title or title.endswith("- google search")
