@@ -200,9 +200,11 @@ def _understand(goal: str) -> MissionUnderstanding:
 
 def _classify(understanding: MissionUnderstanding) -> MissionType:
     text = understanding.normalized_goal.lower()
+    if _explicit_start_url(text) and _has(text, "extract", "scrape", "collect", "directory", "entries", "records"):
+        return MissionType.DATA_EXTRACTION
     if _has(text, "research", "compare", "best ", "top ", "summarize", "report"):
         return MissionType.RESEARCH
-    if _has(text, "extract", "scrape", "collect fields", "records", "table with columns"):
+    if _has(text, "extract", "scrape", "collect fields", "collect entries", "collect records", "directory", "records", "table with columns"):
         return MissionType.DATA_EXTRACTION
     if _has(text, "upload", "download", "file", "pdf", "csv", "spreadsheet"):
         return MissionType.FILE_PROCESSING
@@ -263,6 +265,8 @@ def _capabilities(mission_type: MissionType, analysis: MissionAnalysis) -> Capab
         capabilities = ["Search", "Browser", "Knowledge Extraction", "Validation", "Report Generation"]
     elif mission_type == MissionType.DATA_EXTRACTION:
         capabilities = ["Browser", "Knowledge Extraction", "Validation", "Report Generation"]
+        if _needs_collection_policy(analysis.primary_objective):
+            capabilities.append("Collection")
     elif mission_type == MissionType.FILE_PROCESSING:
         capabilities = ["File Processing", "Validation", "Report Generation"]
         if any("image" in item.lower() or "scan" in item.lower() for item in analysis.constraints):
@@ -308,6 +312,8 @@ def _node_spec(
 
 
 def _repeat_policy(kind: BlueprintNodeKind) -> dict[str, Any]:
+    if kind == BlueprintNodeKind.COLLECTION:
+        return {"mode": "until_collection_policy_stop", "max_repeats": 10}
     if kind == BlueprintNodeKind.OPEN_RESULT:
         return {"mode": "per_selected_result", "max_repeats": 1}
     if kind in {BlueprintNodeKind.PAGE_READ, BlueprintNodeKind.FIELD_EXTRACTION}:
@@ -411,14 +417,49 @@ def _nodes(
             ]
         )
     elif mission_type == MissionType.DATA_EXTRACTION:
+        start_url = _explicit_start_url(analysis.primary_objective)
         specs = [
-            _node_spec("define_schema", "Define extraction schema and source requirements", BlueprintNodeKind.OBJECTIVE, "Knowledge Extraction", "knowledge_extraction", "define_schema"),
-            _node_spec("locate_source", "Locate source content", BlueprintNodeKind.DISCOVERY, "Browser", "browser_control", "navigate"),
+            _node_spec(
+                "locate_source",
+                "Locate source content",
+                BlueprintNodeKind.DISCOVERY,
+                "Browser",
+                "browser_control",
+                "navigate",
+                action_payload={"action_type": "navigate", "value": start_url} if start_url else None,
+            ),
             _node_spec("read_source", "Read source content", BlueprintNodeKind.READING, "Knowledge Extraction", "knowledge_extraction", "read_page"),
-            _node_spec("extract_records", "Extract structured records", BlueprintNodeKind.EXTRACTION, "Knowledge Extraction", "knowledge_extraction", "extract_fields"),
-            _node_spec("validate_records", "Validate extracted records", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
-            _node_spec("deliver_artifact", "Deliver structured extraction artifact", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
         ]
+        if _needs_collection_policy(analysis.primary_objective):
+            specs.extend(
+                [
+                    _node_spec(
+                        "collect_page_items",
+                        "Collect item candidates from the current result/list page",
+                        BlueprintNodeKind.COLLECTION,
+                        "Collection",
+                        "knowledge_extraction",
+                        "collect_page_items",
+                        action_payload={"policy": "collection_policy.v1"},
+                    ),
+                    _node_spec(
+                        "advance_pagination",
+                        "Advance to the next page until collection policy stop conditions are reached",
+                        BlueprintNodeKind.COLLECTION,
+                        "Browser",
+                        "browser_control",
+                        "navigate_next_page",
+                        action_payload={"stop_conditions": ["requested_count_reached", "max_pages_reached", "no_new_items", "no_next_page"]},
+                    ),
+                ]
+            )
+        specs.extend(
+            [
+                _node_spec("extract_records", "Extract structured records", BlueprintNodeKind.EXTRACTION, "Knowledge Extraction", "knowledge_extraction", "extract_fields"),
+                _node_spec("validate_records", "Validate extracted records", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
+                _node_spec("deliver_artifact", "Deliver structured extraction artifact", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
+            ]
+        )
     elif mission_type == MissionType.FILE_PROCESSING:
         specs = [
             _node_spec("define_file_requirement", "Define required file operation and output", BlueprintNodeKind.OBJECTIVE, "File Processing", "file_processing", "define_file_requirement"),
@@ -692,6 +733,13 @@ def _search_query(text: str) -> str:
     return normalized
 
 
+def _explicit_start_url(text: str) -> str:
+    match = re.search(r"https?://[^\s<>'\"`]+", str(text or ""), flags=re.IGNORECASE)
+    if not match:
+        return ""
+    return match.group(0).rstrip(".,);]")
+
+
 def _preferences(text: str) -> list[str]:
     preferences: list[str] = []
     if _has(text, "table only"):
@@ -704,6 +752,13 @@ def _preferences(text: str) -> list[str]:
 def _requested_fields(text: str) -> list[str]:
     fields = [field for field in ["tool", "product name", "purpose", "pricing", "limitation", "url"] if field in text.lower()]
     return fields
+
+
+def _needs_collection_policy(text: str) -> bool:
+    lowered = str(text or "").lower()
+    explicit_collection = any(term in lowered for term in ("collect entries", "collect records", "collect ", "listings", "pagination", "next page", "infinite scroll"))
+    paginated_source = any(term in lowered for term in ("multi-page", "multiple pages", "page directory", "directory entries"))
+    return explicit_collection or paginated_source
 
 
 def _evidence_kind(kind: BlueprintNodeKind) -> str:

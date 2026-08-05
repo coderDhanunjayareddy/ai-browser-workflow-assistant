@@ -4,6 +4,7 @@ import time
 from typing import Any
 
 from app.feature_flags import is_active, is_shadow_or_active
+from app.knowledge_extraction.collection_policy import evaluate_collection_pages
 from app.knowledge_extraction.extraction_engine import extract_records, required_fields_for_task
 from app.knowledge_extraction.models import KnowledgePipelineSnapshot, KnowledgePipelineTelemetry
 from app.knowledge_extraction.page_reader import read_page
@@ -41,6 +42,7 @@ class KnowledgeExtractionPipeline:
         if is_shadow_or_active("V50_EXTRACTION_VALIDATION"):
             records = validate_records(records, required)
         reads, all_records, duplicates = self.registry.merge(session_id, read, records) if read else ([], self.registry.get_records(session_id), 0)
+        collection_state = evaluate_collection_pages(task, reads)
         if is_shadow_or_active("V50_EXTRACTION_VALIDATION"):
             all_records = validate_records(all_records, required)
         synthesis_started = time.perf_counter()
@@ -67,6 +69,7 @@ class KnowledgeExtractionPipeline:
             current_phase=current_phase,
             required_fields=required,
             research_spec=research_spec,
+            collection_state=collection_state,
             read_artifacts=reads,
             extraction_records=all_records,
             knowledge_artifact=knowledge,

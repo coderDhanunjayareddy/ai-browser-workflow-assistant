@@ -77,6 +77,13 @@ def is_research_mission(task: str) -> bool:
 
 
 def _explicit_fields(task: str) -> list[str]:
+    bullet_fields = [
+        _normalize_field(item)
+        for item in re.findall(r"(?m)^\s*-\s*([A-Za-z][A-Za-z /_-]{1,40})", task)
+        if item.strip()
+    ]
+    if bullet_fields:
+        return [field for field in bullet_fields if field][:12]
     columns_match = re.search(r"columns?\s*:\s*([^.\n]+)", task, flags=re.IGNORECASE)
     if columns_match:
         fields = [_normalize_field(item) for item in re.split(r",|\band\b", columns_match.group(1)) if item.strip()]

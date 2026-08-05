@@ -1,8 +1,11 @@
 import logging
 import json
 import hashlib
+import re
 import time
+from dataclasses import replace
 from typing import Any
+from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 
@@ -979,6 +982,12 @@ class WorkflowOrchestrator:
                 planner_response=result,
             )
             result = postprocess_with_mission_completion(result, mission_completion_snapshot)
+            self._apply_collection_policy_continuation(
+                result=result,
+                knowledge_snapshot=knowledge_snapshot,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+            )
             self._route_legacy_browser_actions_through_mission_ledger(
                 result=result,
                 task=task,
@@ -1175,6 +1184,80 @@ class WorkflowOrchestrator:
 
             return result
 
+    def _apply_collection_policy_continuation(
+        self,
+        *,
+        result: Any,
+        knowledge_snapshot: Any,
+        page_context: Any,
+        prior_steps: list,
+    ) -> None:
+        """Create the next safe pagination action from CollectionPolicy evidence.
+
+        This runs before the legacy action bridge so the generated action is
+        converted into a durable Mission Ledger intent before browser handoff.
+        """
+        if result.intent_dispatch is not None or result.intent_execution is not None:
+            return
+        if list(getattr(result, "suggested_actions", []) or []):
+            return
+        if getattr(result, "backend_authoritative_report", False):
+            return
+        if getattr(result, "sgv_verified", False):
+            return
+        collection_state = getattr(knowledge_snapshot, "collection_state", None)
+        if collection_state is None or not bool(getattr(collection_state, "should_continue", False)):
+            return
+        next_url = str(getattr(collection_state, "next_url", "") or "").strip()
+        if not _is_http_url(next_url):
+            return
+        current_url = str(getattr(page_context, "url", "") or "").rstrip("/").lower()
+        if next_url.rstrip("/").lower() == current_url:
+            return
+        if _already_navigated_to(prior_steps, next_url):
+            return
+
+        from app.schemas.response import SuggestedAction
+
+        policy = getattr(collection_state, "policy", None)
+        item_count = int(getattr(collection_state, "total_seen_count", 0) or 0)
+        requested_count = int(getattr(policy, "requested_count", 0) or 0)
+        result.outcome_kind = "act"
+        result.suggested_actions = [
+            SuggestedAction(
+                action_id="collection_next_" + hashlib.sha1(next_url.encode("utf-8")).hexdigest()[:12],
+                action_type="navigate",
+                target_selector="",
+                value=next_url,
+                description="Continue collection on the next result page",
+                reasoning=(
+                    "CollectionPolicy found more pages to collect. "
+                    f"Collected {item_count}/{requested_count or '?'} items so far; "
+                    f"next page is {next_url}."
+                ),
+                confidence=0.86,
+                safety_level="safe",
+            )
+        ]
+        result.analysis = "\n\n".join(
+            [
+                str(getattr(result, "analysis", "") or ""),
+                (
+                    "CollectionPolicy continuation: navigating to the next page "
+                    f"to continue collecting entries ({item_count}/{requested_count or '?'} seen)."
+                ),
+            ]
+        ).strip()
+        self._record_v3_event(
+            "collection_policy.continuation_selected",
+            {
+                "next_url": next_url,
+                "item_count": item_count,
+                "requested_count": requested_count,
+                "stop_reason": getattr(collection_state, "stop_reason", ""),
+            },
+        )
+
     def _route_legacy_browser_actions_through_mission_ledger(
         self,
         *,
@@ -1314,6 +1397,25 @@ class WorkflowOrchestrator:
                 )
                 blueprint = build_result.blueprint
                 lifecycle = "created"
+            elif _blueprint_stale_for_task(blueprint, task):
+                from app.mission.intelligence.blueprint_builder import MissionBlueprintBuilder
+
+                build_result = MissionBlueprintBuilder().build(
+                    mission_id=self.session_id,
+                    user_goal=task,
+                )
+                blueprint = replace(
+                    build_result.blueprint,
+                    blueprint_id=blueprint.blueprint_id,
+                    revision=blueprint.revision + 1,
+                    created_at=blueprint.created_at,
+                )
+                blueprint = repository.update(
+                    blueprint,
+                    reason="mission objective changed or blueprint classification refreshed",
+                    created_by="workflow_orchestrator",
+                )
+                lifecycle = "refreshed"
 
             evidence = mission_ledger_service._blueprint_evidence_from_ledger(  # type: ignore[attr-defined]
                 self.db,
@@ -1567,6 +1669,49 @@ class WorkflowOrchestrator:
                 execution_result=execution_result,
             )
             self._record_validation_shadow(validation, validation_ms)
+
+
+def _is_http_url(value: str) -> bool:
+    parsed = urlparse(str(value or "").strip())
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _already_navigated_to(prior_steps: list, url: str) -> bool:
+    target = url.rstrip("/").lower()
+    for step in prior_steps:
+        value = str(getattr(step, "value", "") or "").rstrip("/").lower()
+        page_url = str(getattr(step, "page_url", "") or "").rstrip("/").lower()
+        if target and target in {value, page_url}:
+            return True
+    return False
+
+
+def _blueprint_stale_for_task(blueprint: Any, task: str) -> bool:
+    task_text = _normalize_task_text(task)
+    objective_text = _normalize_task_text(getattr(blueprint, "objective", ""))
+    if task_text and objective_text and task_text != objective_text:
+        return True
+    if _explicit_url_collection_task(task):
+        node_ids = {str(getattr(node, "node_id", "")) for node in list(getattr(blueprint, "nodes", []) or [])}
+        if "open_search_engine" in node_ids or "execute_search" in node_ids:
+            return True
+        locate_source = next((node for node in list(getattr(blueprint, "nodes", []) or []) if getattr(node, "node_id", "") == "locate_source"), None)
+        payload = dict(getattr(locate_source, "metadata", {}) or {}).get("action_payload") if locate_source is not None else None
+        if not isinstance(payload, dict) or not _is_http_url(str(payload.get("value") or "")):
+            return True
+    return False
+
+
+def _explicit_url_collection_task(task: str) -> bool:
+    text = str(task or "").lower()
+    return bool(re.search(r"https?://[^\s<>'\"`]+", text)) and any(
+        term in text
+        for term in ("collect", "extract", "directory", "entries", "records", "table")
+    )
+
+
+def _normalize_task_text(value: str) -> str:
+    return " ".join(str(value or "").split()).strip().lower()
 
 
 def _runtime_decision_from_response(result: Any) -> tuple[str, str]:

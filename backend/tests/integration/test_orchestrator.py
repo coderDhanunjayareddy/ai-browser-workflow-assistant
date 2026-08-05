@@ -46,6 +46,44 @@ def page(url: str) -> PageContext:
     )
 
 
+def directory_page(url: str = "https://directory.example/page/1") -> PageContext:
+    return PageContext(
+        url=url,
+        title="Example Directory",
+        interactive_elements=[
+            InteractiveElement(
+                type="a",
+                text="Acme Labs",
+                selector="#acme",
+                href="https://directory.example/acme",
+                visible=True,
+            ),
+            InteractiveElement(
+                type="a",
+                text="Beta Systems",
+                selector="#beta",
+                href="https://directory.example/beta",
+                visible=True,
+            ),
+            InteractiveElement(
+                type="a",
+                text="Next",
+                selector="#next",
+                href="https://directory.example/page/2",
+                visible=True,
+            ),
+        ],
+        content_blocks=[],
+        headings=["Example Directory"],
+        selected_text="",
+        visible_text=(
+            "Acme Labs Contact hello@acme.test Phone +1 555 123 4567\n"
+            "Beta Systems Contact team@beta.test Phone +1 555 987 6543"
+        ),
+        images=[],
+    )
+
+
 @pytest.mark.parametrize("url", [
     "https://spectropy.com/",
     "https://example.test/application",
@@ -178,6 +216,41 @@ def test_legacy_planner_action_is_bridged_into_mission_ledger(db_session, monkey
     assert record.payload["action_id"] == "act-legacy"
 
 
+def test_collection_policy_next_page_action_is_bridged_into_mission_ledger(db_session, monkeypatch):
+    def fake_analyze(**kwargs):
+        return AnalyzeResponse(
+            session_id=kwargs["session_id"],
+            analysis="Need more directory pages.",
+            suggested_actions=[],
+        )
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("collection-policy-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Collect 20 entries from a multi-page directory with name, website, email, and phone.",
+        page_context=directory_page(),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response.suggested_actions
+    action = response.suggested_actions[0]
+    assert action.action_type == "navigate"
+    assert action.value == "https://directory.example/page/2"
+    assert action.intent_id is not None
+    assert action.mission_id == "collection-policy-session"
+    assert "CollectionPolicy continuation" in response.analysis
+
+    record = db_session.get(MissionIntentRecord, action.intent_id)
+    assert record is not None
+    assert record.mission_id == "collection-policy-session"
+    assert record.provider == "browser_control"
+    assert record.status == "WAITING_BROWSER"
+    assert record.payload["value"] == "https://directory.example/page/2"
+
+
 def test_blueprint_active_analyze_bypasses_planner_and_queues_first_browser_intent(db_session, monkeypatch):
     from app.core.config import settings
     from app.services import ai_service
@@ -199,6 +272,39 @@ def test_blueprint_active_analyze_bypasses_planner_and_queues_first_browser_inte
     records = db_session.query(MissionIntentRecord).filter(MissionIntentRecord.mission_id == "blueprint-runtime-session").all()
     assert {record.blueprint_node_id for record in records} == {"open_search_engine"}
     assert records[0].status == "WAITING_BROWSER"
+
+
+def test_blueprint_active_explicit_url_collection_starts_at_source_url(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.services import ai_service
+
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "active")
+    monkeypatch.setattr(ai_service, "analyze", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("planner should not run")))
+    prompt = """Open this public test directory page: https://quotes.toscrape.com/page/1/
+
+Collect 20 entries from this multi-page directory.
+
+Extract:
+- quote text
+- author
+- tags
+- source URL
+
+Return a clean table only."""
+
+    orchestrator = WorkflowOrchestrator("quotes-direct-runtime-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task=prompt,
+        page_context=page("about:blank"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response.analysis.startswith("Mission Blueprint produced deterministic executable work")
+    assert response.suggested_actions[0].action_type == "navigate"
+    assert response.suggested_actions[0].value == "https://quotes.toscrape.com/page/1/"
+    records = db_session.query(MissionIntentRecord).filter(MissionIntentRecord.mission_id == "quotes-direct-runtime-session").all()
+    assert {record.blueprint_node_id for record in records} == {"locate_source"}
 
 
 def test_blueprint_completion_expands_next_ready_intent_without_analyze(db_session, monkeypatch):

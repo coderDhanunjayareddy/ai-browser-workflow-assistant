@@ -38,6 +38,9 @@ def validate_records(records: list[ExtractionRecord], required_fields: list[str]
                 confidence=record.confidence,
                 validation=validation,
                 timestamp_ms=record.timestamp_ms,
+                field_evidence=record.field_evidence,
+                entity_type=record.entity_type,
+                entity=record.entity,
             )
         )
     return validated

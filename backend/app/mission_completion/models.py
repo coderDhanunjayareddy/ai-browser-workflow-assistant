@@ -178,6 +178,18 @@ class CriterionEvaluation:
 
 
 @dataclass(frozen=True)
+class SourceCoverage:
+    required_count: int
+    distinct_count: int
+    source_urls: list[str]
+    satisfied: bool
+    missing_count: int = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class CompletionEvidence:
     required_fields: list[str]
     read_count: int
@@ -189,10 +201,12 @@ class CompletionEvidence:
     completion_status: dict[str, bool]
     source_urls: list[str]
     criteria_evaluations: list[CriterionEvaluation] = field(default_factory=list)
+    source_coverage: SourceCoverage | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["criteria_evaluations"] = [evaluation.to_dict() for evaluation in self.criteria_evaluations]
+        data["source_coverage"] = self.source_coverage.to_dict() if self.source_coverage else None
         return data
 
 

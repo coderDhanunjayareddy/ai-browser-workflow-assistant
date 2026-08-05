@@ -27,6 +27,14 @@ def synthesize_knowledge(
         "task": task[:500],
         "research_spec": research_spec.to_dict() if research_spec else None,
         "source_urls": [record.source_page for record in valid_records],
+        "entities": [
+            {
+                "entity_type": record.entity_type,
+                "entity": record.entity,
+                "source_url": record.source_page,
+            }
+            for record in valid_records
+        ],
     }
     artifact_type = research_spec.artifact_type if research_spec else ("comparison_table" if len(required_fields) > 2 else "summary")
     now = int(time.time() * 1000)

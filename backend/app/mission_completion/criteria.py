@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from app.knowledge_extraction.research_spec import build_research_mission_spec
 from app.mission_completion.models import (
@@ -185,9 +186,10 @@ def _evaluate_criterion(
 
     if criterion.kind == CriterionKind.PAGE_READ:
         reads = list(getattr(knowledge_snapshot, "read_artifacts", []) or [])
-        refs = [_ref("knowledge_extraction", read.id, "page_read", getattr(read, "timestamp_ms", None), ValidationStatus.RAW) for read in reads]
-        satisfied = len(refs) >= criterion.cardinality
-        missing = [] if satisfied else ["page_read_artifact"]
+        distinct_reads = _distinct_by_source(reads, "canonical_url")
+        refs = [_ref("knowledge_extraction", read.id, "page_read", getattr(read, "timestamp_ms", None), ValidationStatus.RAW) for read in distinct_reads]
+        satisfied = len(distinct_reads) >= criterion.cardinality
+        missing = [] if satisfied else [f"distinct_source_pages:{len(distinct_reads)}/{criterion.cardinality}"]
         confidence = 0.85 if satisfied else 0.0
         validation = ValidationStatus.RAW if satisfied else ValidationStatus.MISSING
     elif criterion.kind == CriterionKind.FIELD_EXTRACTED:
@@ -198,12 +200,13 @@ def _evaluate_criterion(
             for record in valid_records
             if all(str(record.fields.get(field, "") or "").strip() for field in required_fields)
         ]
+        distinct_complete_records = _distinct_by_source(complete_records, "source_page")
         missing = _missing_fields_by_record(valid_records, required_fields)
         refs = [_ref("knowledge_extraction", record.id, "extraction_record", getattr(record, "timestamp_ms", None), ValidationStatus.VALIDATED) for record in valid_records]
-        satisfied = not missing and len(complete_records) >= criterion.cardinality
-        if len(complete_records) < criterion.cardinality:
-            missing.append(f"validated_source_records:{len(complete_records)}/{criterion.cardinality}")
-        confidence = _average([float(record.confidence) for record in complete_records]) if satisfied else 0.0
+        satisfied = not missing and len(distinct_complete_records) >= criterion.cardinality
+        if len(distinct_complete_records) < criterion.cardinality:
+            missing.append(f"validated_distinct_source_records:{len(distinct_complete_records)}/{criterion.cardinality}")
+        confidence = _average([float(record.confidence) for record in distinct_complete_records]) if satisfied else 0.0
         validation = ValidationStatus.VALIDATED if satisfied else ValidationStatus.MISSING
     elif criterion.kind == CriterionKind.ARTIFACT_CREATED:
         artifact = getattr(knowledge_snapshot, "knowledge_artifact", None)
@@ -214,12 +217,13 @@ def _evaluate_criterion(
         validation = ValidationStatus.VALIDATED if satisfied else ValidationStatus.MISSING
     elif criterion.kind == CriterionKind.ARTIFACT_VALIDATED:
         valid_records = _valid_records(knowledge_snapshot)
+        distinct_valid_records = _distinct_by_source(valid_records, "source_page")
         artifact = getattr(knowledge_snapshot, "knowledge_artifact", None)
         if artifact is not None:
             refs.append(_ref("knowledge_extraction", artifact.id, "knowledge_artifact", getattr(artifact, "timestamp_ms", None), ValidationStatus.VALIDATED))
         refs.extend(_ref("knowledge_extraction", record.id, "validated_record", getattr(record, "timestamp_ms", None), ValidationStatus.VALIDATED) for record in valid_records)
-        satisfied = bool(refs) and len(valid_records) >= criterion.cardinality
-        missing = [] if satisfied else ["validated_artifact_evidence"]
+        satisfied = bool(refs) and len(distinct_valid_records) >= criterion.cardinality
+        missing = [] if satisfied else [f"validated_distinct_sources:{len(distinct_valid_records)}/{criterion.cardinality}"]
         confidence = 0.9 if satisfied else 0.0
         validation = ValidationStatus.VALIDATED if satisfied else ValidationStatus.MISSING
     elif criterion.kind == CriterionKind.REPORT_DELIVERED:
@@ -311,6 +315,34 @@ def _valid_records(snapshot: Any) -> list[Any]:
         for record in list(getattr(snapshot, "extraction_records", []) or [])
         if bool(getattr(record, "validation", {}).get("valid"))
     ]
+
+
+def _distinct_by_source(items: list[Any], attr_name: str) -> list[Any]:
+    seen: set[str] = set()
+    distinct: list[Any] = []
+    for item in items:
+        source = _normalize_source_url(getattr(item, attr_name, ""))
+        if not source or source in seen:
+            continue
+        seen.add(source)
+        distinct.append(item)
+    return distinct
+
+
+def _normalize_source_url(url: str) -> str:
+    parsed = urlparse(str(url or "").strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    query = urlencode(
+        [
+            (key, value)
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+            if not key.lower().startswith("utm_")
+        ],
+        doseq=True,
+    )
+    path = parsed.path.rstrip("/") or "/"
+    return urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), path, "", query, ""))
 
 
 def _missing_fields_by_record(records: list[Any], required_fields: list[str]) -> list[str]:

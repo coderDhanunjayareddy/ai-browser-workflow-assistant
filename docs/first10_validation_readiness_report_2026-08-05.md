@@ -13,8 +13,8 @@ The purpose is not to patch one task. The purpose is to identify missing generic
 Current readiness:
 
 - Ready: 0 / 10
-- Partial: 8 / 10
-- Missing core capability: 1 / 10
+- Partial: 9 / 10
+- Missing core capability: 0 / 10
 - Environment-dependent: 1 / 10
 
 This does not mean the app cannot attempt the tasks. It means the app should not be judged as production-capable for the full first-10 suite yet because several shared capabilities are still partial.
@@ -32,23 +32,17 @@ Current capability:
 - Extraction records exist.
 - Research missions now have explicit fields, source count, and completion criteria.
 - Missing pricing/limitation can be represented as `Not mentioned`.
+- Extraction records now include field-level source evidence with source URL, source text, confidence, source kind, and missing reason.
+- Extraction records now include typed entity metadata for research sources, pricing plans, documentation pages, job postings, directory entries, form results, and file results.
 
 Gap:
 
 - Values are still heuristic.
-- No source-span/citation per field.
-- No page-type-specific extractors for jobs, pricing pages, documentation pages, directories, or best-practice articles.
+- Page-type-specific extraction is present as a foundation, but not robust enough yet for production validation across real job boards, pricing tables, documentation sections, directories, or best-practice articles.
 
 Generic fix:
 
-Build field extractors with:
-
-- value;
-- source URL;
-- source text span;
-- field confidence;
-- missing reason;
-- entity type.
+Harden typed field extractors for job postings, pricing plans, documentation pages, directory entries, forms, uploads, and best-practice sources.
 
 ### 2. Multi-Tab Source Coverage
 
@@ -61,10 +55,11 @@ Current capability:
 - Extension can open tabs.
 - Timeline can show opened-tab and tab-switch evidence.
 - Multi-tab workspace exists.
+- Backend mission completion now checks requested distinct source count, so duplicated evidence from one URL cannot satisfy a multi-source research mission.
 
 Gap:
 
-- Source coverage is not yet a central reusable completion criterion across all research and extraction missions.
+- Opened-tab evidence is not yet fully unified with mission blueprint nodes across all research and extraction missions.
 - The mission should know which source page satisfied which evidence requirement.
 
 Generic fix:
@@ -80,10 +75,10 @@ Status: partial.
 Current capability:
 
 - Browser intelligence can collect SERP candidates and dedupe some duplicate URLs.
+- Search results now carry semantic metadata such as normalized URL, source domain, source type, ad flag, and relevance score.
 
 Gap:
 
-- No reusable `SearchResult` model with organic/ad/source type/relevance.
 - No deterministic ranking/coverage policy.
 - No official-source preference for documentation tasks.
 
@@ -117,27 +112,36 @@ Missing entity models:
 
 Generic fix:
 
-Add typed extraction/entity models instead of relying on generic paragraph search.
+Typed extraction/entity models now exist as a foundation. Next, harden field extraction and source coverage so the entities are reliable on real pages instead of only heuristic paragraph matches.
 
 ### 5. Directory Pagination / Collection Policy
 
 Affected task: 6.
 
-Status: missing.
+Status: partial.
+
+Current capability:
+
+- `CollectionPolicy` exists for collection/list/directory missions.
+- It detects item candidates from links and directory-like text.
+- It detects next-page, numbered-page, and load-more style pagination candidates.
+- It tracks stop conditions: requested count, max pages, no new items, and no next page.
+- Item-level directory records now use collection item keys for dedupe, so multiple entries from the same page can survive validation.
+- Passive Mission Blueprint nodes now include `collect_page_items` and `advance_pagination` for directory collection goals.
+- Backend orchestration now converts a continuing `CollectionPolicy` state into a safe next-page `navigate` action before the Mission Ledger bridge, so the extension receives durable `intent_id` and `mission_id`.
 
 Gap:
 
-- No generic policy for multi-page directories, pagination, infinite scroll, dedupe, stop conditions, and record accumulation.
+- Live multi-page browser validation still needs to prove the loop across real pages.
+- Timeline evidence does not yet show per-page collection progress and final stop reason from the policy.
 
 Generic fix:
 
-Build `CollectionPolicy`:
+Validate and harden `CollectionPolicy` in extension execution:
 
-- detect result/item cards;
-- detect next-page controls;
-- collect records per page;
-- dedupe by URL/title/entity key;
-- stop by requested count, max pages, or no new records.
+- run the next-page loop against a real paginated directory;
+- confirm item evidence accumulates across pages;
+- emit per-page item count, next URL, and final stop reason in timeline evidence.
 
 ### 6. Form and Signup Policy
 
@@ -206,9 +210,9 @@ Build a controlled batch runner that:
 
 ## Recommended Build Order
 
-1. Search result semantic model and source ranking.
-2. Schema-aware extraction with field-level evidence.
-3. Typed entity extractors: pricing, docs, jobs.
+1. Source ranking and source coverage policy using the semantic `SearchResult` model.
+2. Harden schema-aware extraction with field-level evidence.
+3. Harden typed entity extractors: pricing, docs, jobs, directories, forms, uploads.
 4. Collection policy for pagination/directories.
 5. Form workflow spec and safety policy.
 6. File upload broker.
@@ -225,10 +229,10 @@ Build a controlled batch runner that:
 
 Build the shared semantic/extraction core before live batch testing:
 
-1. `SearchResult` semantic model.
-2. `SourceCoverage` mission evidence.
-3. Field-level `ExtractionRecord` evidence.
-4. Research/source completion criteria using those objects.
+1. `SearchResult` semantic model. Done.
+2. `SourceCoverage` mission evidence. Done for backend distinct-source completion; extension tab-to-source unification remains.
+3. Field-level `ExtractionRecord` evidence. Done.
+4. Typed page/domain extractor foundation. Done; hardening remains.
+5. Research/source completion criteria using those objects.
 
 Then run all 10 tasks in a controlled batch and classify remaining failures.
-

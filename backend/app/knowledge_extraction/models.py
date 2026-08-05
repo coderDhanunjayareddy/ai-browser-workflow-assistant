@@ -28,6 +28,20 @@ class PageReadArtifact:
 
 
 @dataclass(frozen=True)
+class FieldEvidence:
+    field: str
+    value: str
+    source_url: str
+    source_text: str
+    source_kind: Literal["title", "heading", "paragraph", "section", "pricing_block", "contact_block", "form", "url", "collection_item", "missing"]
+    confidence: float
+    missing_reason: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class ExtractionRecord:
     id: str
     source_page: str
@@ -38,9 +52,17 @@ class ExtractionRecord:
     confidence: float
     validation: dict[str, Any]
     timestamp_ms: int
+    field_evidence: dict[str, FieldEvidence] = field(default_factory=dict)
+    entity_type: Literal["research_source", "pricing_plan", "documentation_page", "job_posting", "directory_entry", "form_result", "file_result", "generic"] = "generic"
+    entity: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        data["field_evidence"] = {
+            name: evidence.to_dict() if hasattr(evidence, "to_dict") else evidence
+            for name, evidence in self.field_evidence.items()
+        }
+        return data
 
 
 @dataclass(frozen=True)
@@ -93,7 +115,6 @@ class KnowledgePipelineSnapshot:
     session_id: str
     current_phase: str | None
     required_fields: list[str]
-    research_spec: ResearchMissionSpec | None
     read_artifacts: list[PageReadArtifact]
     extraction_records: list[ExtractionRecord]
     knowledge_artifact: KnowledgeArtifact | None
@@ -102,6 +123,8 @@ class KnowledgePipelineSnapshot:
     completion_status: dict[str, bool]
     telemetry: KnowledgePipelineTelemetry
     replay: list[dict[str, Any]] = field(default_factory=list)
+    research_spec: ResearchMissionSpec | None = None
+    collection_state: Any | None = None
 
     def to_compact_context(self) -> dict[str, Any]:
         return {
@@ -115,8 +138,23 @@ class KnowledgePipelineSnapshot:
             "report_artifact_id": self.report_artifact.id if self.report_artifact else None,
             "missing_artifacts": self.missing_artifacts,
             "completion_status": self.completion_status,
+            "collection_state": self.collection_state.to_dict() if hasattr(self.collection_state, "to_dict") else self.collection_state,
             "records_preview": [
-                {"source": record.source_page, "type": record.extraction_type, "fields": record.fields}
+                {
+                    "source": record.source_page,
+                    "type": record.extraction_type,
+                    "entity_type": record.entity_type,
+                    "entity": record.entity,
+                    "fields": record.fields,
+                    "field_evidence": {
+                        name: {
+                            "source_kind": evidence.source_kind,
+                            "confidence": evidence.confidence,
+                            "missing_reason": evidence.missing_reason,
+                        }
+                        for name, evidence in list(record.field_evidence.items())[:8]
+                    },
+                }
                 for record in self.extraction_records[-8:]
             ],
         }

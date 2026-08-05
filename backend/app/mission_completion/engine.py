@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from app.feature_flags import is_active, is_shadow_or_active
 from app.knowledge_extraction.models import KnowledgePipelineSnapshot
@@ -16,6 +16,7 @@ from app.mission_completion.models import (
     CriterionKind,
     MissionPlan,
     MissionCompletionSnapshot,
+    SourceCoverage,
     WorkflowResult,
 )
 from app.mission_completion.replay import build_replay
@@ -179,12 +180,26 @@ def _evidence(
             completion_status={},
             source_urls=[],
             criteria_evaluations=evaluations,
+            source_coverage=SourceCoverage(required_count=1, distinct_count=0, source_urls=[], satisfied=False, missing_count=1),
         )
     valid_records = [
         record for record in snapshot.extraction_records
         if bool(record.validation.get("valid"))
     ]
-    urls = sorted({record.source_page for record in snapshot.extraction_records if _is_web_url(record.source_page)})
+    urls = sorted({
+        normalized
+        for url in [*(getattr(read, "canonical_url", "") for read in snapshot.read_artifacts), *(record.source_page for record in snapshot.extraction_records)]
+        for normalized in [_normalize_web_url(url)]
+        if normalized
+    })
+    required_source_count = int(getattr(getattr(snapshot, "research_spec", None), "source_count", 1) or 1)
+    coverage = SourceCoverage(
+        required_count=required_source_count,
+        distinct_count=len(urls),
+        source_urls=urls,
+        satisfied=len(urls) >= required_source_count,
+        missing_count=max(required_source_count - len(urls), 0),
+    )
     return CompletionEvidence(
         required_fields=list(snapshot.required_fields),
         read_count=len(snapshot.read_artifacts),
@@ -196,6 +211,7 @@ def _evidence(
         completion_status=dict(snapshot.completion_status),
         source_urls=urls,
         criteria_evaluations=evaluations,
+        source_coverage=coverage,
     )
 
 
@@ -212,6 +228,22 @@ def _is_wait_outcome(result: AnalyzeResponse) -> bool:
 def _is_web_url(url: str) -> bool:
     parsed = urlparse(str(url or ""))
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _normalize_web_url(url: str) -> str:
+    parsed = urlparse(str(url or "").strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    query = urlencode(
+        [
+            (key, value)
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+            if not key.lower().startswith("utm_")
+        ],
+        doseq=True,
+    )
+    path = parsed.path.rstrip("/") or "/"
+    return urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), path, "", query, ""))
 
 
 def _decide(

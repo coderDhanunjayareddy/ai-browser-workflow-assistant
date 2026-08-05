@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.core.config import settings
+from app.knowledge_extraction.collection_policy import build_collection_policy, evaluate_collection_page
 from app.knowledge_extraction.engine import KnowledgeExtractionPipeline
 from app.knowledge_extraction.extraction_engine import required_fields_for_task
 from app.knowledge_extraction.page_reader import read_page
@@ -29,6 +30,56 @@ def _page(text: str, *, title: str = "Example Tool", url: str = "https://example
     )
 
 
+def _directory_page(*, url: str = "https://directory.example/page/1") -> PageContext:
+    return PageContext(
+        url=url,
+        title="Example Directory",
+        metadata={"description": "Directory page"},
+        interactive_elements=[
+            InteractiveElement(type="a", selector="#acme", text="Acme Labs", href="https://directory.example/acme", visible=True),
+            InteractiveElement(type="a", selector="#beta", text="Beta Systems", href="https://directory.example/beta", visible=True),
+            InteractiveElement(type="a", selector="#next", text="Next", href="https://directory.example/page/2", visible=True),
+        ],
+        content_blocks=[
+            ContentBlock(selector=".item-a", text="Acme Labs Contact hello@acme.test Phone +1 555 123 4567", href="https://directory.example/acme"),
+            ContentBlock(selector=".item-b", text="Beta Systems Contact team@beta.test Phone +1 555 987 6543", href="https://directory.example/beta"),
+        ],
+        headings=["Example Directory"],
+        selected_text="",
+        visible_text="Acme Labs Contact hello@acme.test Phone +1 555 123 4567\nBeta Systems Contact team@beta.test Phone +1 555 987 6543",
+        images=[],
+    )
+
+
+def _quotes_page(*, url: str = "https://quotes.toscrape.com/page/1/") -> PageContext:
+    return PageContext(
+        url=url,
+        title="Quotes to Scrape",
+        metadata={"description": "Practice scraping page"},
+        interactive_elements=[
+            InteractiveElement(type="a", selector=".quote:nth-child(1) .author", text="(about)", href="https://quotes.toscrape.com/author/Albert-Einstein", visible=True),
+            InteractiveElement(type="a", selector=".quote:nth-child(2) .author", text="(about)", href="https://quotes.toscrape.com/author/J-K-Rowling", visible=True),
+            InteractiveElement(type="a", selector=".next a", text="Next", href="https://quotes.toscrape.com/page/2/", visible=True),
+        ],
+        content_blocks=[
+            ContentBlock(
+                selector=".quote:nth-child(1)",
+                text="“The world as we have created it is a process of our thinking.” by Albert Einstein Tags: change, deep-thoughts, thinking, world",
+                href=url,
+            ),
+            ContentBlock(
+                selector=".quote:nth-child(2)",
+                text="“It is our choices, Harry, that show what we truly are.” by J.K. Rowling Tags: abilities, choices",
+                href=url,
+            ),
+        ],
+        headings=["Quotes to Scrape"],
+        selected_text="",
+        visible_text="",
+        images=[],
+    )
+
+
 def test_v50_flags_default_to_shadow():
     assert settings.__class__.model_fields["v50_page_reader"].default == "shadow"
     assert settings.__class__.model_fields["v50_extraction_engine"].default == "shadow"
@@ -44,6 +95,74 @@ def test_page_reader_extracts_structured_visible_content():
     assert artifact.pricing_blocks
     assert artifact.contact_blocks
     assert artifact.forms[0]["selector"] == "#email"
+
+
+def test_collection_policy_detects_directory_items_and_next_page():
+    policy = build_collection_policy("Collect 20 entries from a multi-page directory.")
+    read = read_page(_directory_page())
+
+    state = evaluate_collection_page(read, policy)
+
+    assert policy is not None
+    assert policy.collection_type == "directory"
+    assert state.item_candidates
+    assert {item.name for item in state.item_candidates} >= {"Acme Labs", "Beta Systems"}
+    assert state.next_url == "https://directory.example/page/2"
+    assert state.should_continue is True
+
+
+def test_collection_pipeline_emits_item_level_directory_records(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    monkeypatch.setattr(settings, "v50_report_engine", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="directory-collection",
+        task="Collect 20 entries from a multi-page directory with name, website, email, and phone.",
+        page_context=_directory_page(),
+        current_phase="EXTRACT",
+    )
+
+    assert snapshot.collection_state is not None
+    assert snapshot.collection_state.next_url == "https://directory.example/page/2"
+    assert len(snapshot.extraction_records) >= 2
+    assert all(record.entity_type == "directory_entry" for record in snapshot.extraction_records)
+    assert {record.fields["name"] for record in snapshot.extraction_records} >= {"Acme Labs", "Beta Systems"}
+
+
+def test_collection_pipeline_extracts_quote_card_fields(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    monkeypatch.setattr(settings, "v50_report_engine", "active")
+    pipeline = KnowledgeExtractionPipeline()
+    task = """Collect 20 entries from this multi-page directory.
+Extract:
+- quote text
+- author
+- tags
+- source URL
+Return a table only."""
+
+    snapshot = pipeline.observe(
+        session_id="quote-card-collection",
+        task=task,
+        page_context=_quotes_page(),
+        current_phase="EXTRACT",
+    )
+
+    assert snapshot.collection_state is not None
+    assert snapshot.collection_state.next_url == "https://quotes.toscrape.com/page/2"
+    assert len(snapshot.extraction_records) >= 2
+    first = snapshot.extraction_records[0]
+    assert first.fields["quote_text"].startswith("The world as we have created it")
+    assert first.fields["author"] == "Albert Einstein"
+    assert "thinking" in first.fields["tags"]
+    assert first.fields["source_url"].rstrip("/") == "https://quotes.toscrape.com/page/1"
 
 
 def test_page_reader_extracts_serialized_runtime_page_context():
@@ -128,6 +247,157 @@ def test_research_pipeline_keeps_opened_sources_with_missing_mentions(monkeypatc
     assert any(row["limitation"] == "Not mentioned" for row in rows)
     assert all("\n" not in cell for row in rows for cell in row.values())
     assert all(len(cell) <= 220 for row in rows for cell in row.values())
+
+
+def test_extraction_records_include_field_level_source_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    monkeypatch.setattr(settings, "v50_report_engine", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="field-evidence",
+        task="Extract Tool, Purpose, Pricing, Limitation, URL and produce a clean comparison table.",
+        page_context=_page(
+            "FieldBot automates browser workflows for QA teams. Free plan available. Requires API setup.",
+            title="FieldBot",
+            url="https://example.test/fieldbot",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert record.field_evidence["tool"].source_kind == "title"
+    assert record.field_evidence["tool"].source_url == "https://example.test/fieldbot"
+    assert record.field_evidence["purpose"].source_text
+    assert record.field_evidence["pricing"].confidence > 0
+    serialized = record.to_dict()
+    assert serialized["field_evidence"]["pricing"]["source_url"] == "https://example.test/fieldbot"
+
+
+def test_missing_research_fields_have_missing_reason(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    monkeypatch.setattr(settings, "v50_report_engine", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="field-missing-reason",
+        task="Extract Tool, Purpose, Pricing, Limitation, URL and produce a clean comparison table.",
+        page_context=_page(
+            "PlainTool helps teams organize browser research tasks.",
+            title="PlainTool",
+            url="https://example.test/plain",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert record.fields["pricing"] == "Not mentioned"
+    assert record.field_evidence["pricing"].source_kind == "missing"
+    assert record.field_evidence["pricing"].missing_reason
+    assert record.fields["limitation"] == "Not mentioned"
+    assert record.field_evidence["limitation"].missing_reason
+
+
+def test_pricing_pages_emit_pricing_plan_entity(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="pricing-entity",
+        task="Compare AI code assistant pricing with Tool, Purpose, Pricing, Limitation, URL.",
+        page_context=_page(
+            "Pro plan costs $20 per month. Free trial available. Enterprise plan requires sales.",
+            title="CodeMate Pricing",
+            url="https://codemate.example/pricing",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert record.entity_type == "pricing_plan"
+    assert record.entity["price_text"]
+    assert record.entity["billing_period"] == "monthly"
+
+
+def test_documentation_pages_emit_documentation_entity(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="docs-entity",
+        task="Extract supported languages, setup requirement, and browser control from documentation.",
+        page_context=_page(
+            "Install with npm install browser-agent. Supports Python and TypeScript SDKs for browser automation control.",
+            title="Browser Agent Docs",
+            url="https://docs.browseragent.example/quickstart",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert record.entity_type == "documentation_page"
+    assert record.entity["official_source_hint"] is True
+    assert "Browser Agent Docs" == record.entity["title"]
+
+
+def test_job_pages_emit_job_posting_entity(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="job-entity",
+        task="Collect jobs with title, company, location, experience and apply URL.",
+        page_context=_page(
+            "Senior Frontend Engineer job. Remote location. 5 years experience required. Apply now.",
+            title="Senior Frontend Engineer - Acme",
+            url="https://acme.example/careers/frontend",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert record.entity_type == "job_posting"
+    assert record.entity["title"] == "Senior Frontend Engineer - Acme"
+    assert record.entity["apply_url"] == "https://acme.example/careers/frontend"
+
+
+def test_contact_directory_pages_emit_directory_entity(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="directory-entity",
+        task="Find and extract contact email and phone from a directory.",
+        page_context=_page(
+            "Directory listing for Example Labs. Contact hello@example.test. Phone +1 555 123 4567.",
+            title="Example Labs",
+            url="https://directory.example/labs",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert record.entity_type == "directory_entry"
+    assert record.entity["email"] == "hello@example.test"
+    assert record.entity["phone"]
 
 
 def test_research_mission_spec_parses_task1_contract():

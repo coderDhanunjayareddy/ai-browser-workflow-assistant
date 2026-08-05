@@ -46,8 +46,12 @@ def _dedupe_reads(reads: list[PageReadArtifact]) -> list[PageReadArtifact]:
 def _dedupe_records(records: list[ExtractionRecord]) -> list[ExtractionRecord]:
     by_key: dict[str, ExtractionRecord] = {}
     for record in records:
-        title = next((record.fields.get(key, "") for key in ("tool", "title", "name", "company") if record.fields.get(key)), "")
-        key = f"{record.extraction_type}|{record.source_page.rstrip('/').lower()}|{title.lower()}"
+        item_key = str(record.entity.get("item_key") or "") if isinstance(record.entity, dict) else ""
+        if item_key:
+            key = f"{record.extraction_type}|collection_item|{item_key}"
+        else:
+            title = next((record.fields.get(key, "") for key in ("tool", "title", "name", "company") if record.fields.get(key)), "")
+            key = f"{record.extraction_type}|{record.source_page.rstrip('/').lower()}|{title.lower()}"
         existing = by_key.get(key)
         if existing is None or record.confidence >= existing.confidence:
             by_key[key] = record
