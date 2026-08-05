@@ -979,6 +979,18 @@ class WorkflowOrchestrator:
                 planner_response=result,
             )
             result = postprocess_with_mission_completion(result, mission_completion_snapshot)
+            self._route_legacy_browser_actions_through_mission_ledger(
+                result=result,
+                task=task,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+                runtime_state_snapshot=runtime_state_snapshot,
+                browser_intelligence_artifact=browser_intelligence_artifact,
+                knowledge_snapshot=knowledge_snapshot,
+                mission_completion_snapshot=mission_completion_snapshot,
+                orchestrator_snapshot=orchestrator_snapshot,
+                kernel_snapshot=kernel_snapshot,
+            )
             self._record_v3_event(
                 "planner.responded",
                 {
@@ -1162,6 +1174,109 @@ class WorkflowOrchestrator:
             self._record_cognitive_decision_comparison_shadow(result=result)
 
             return result
+
+    def _route_legacy_browser_actions_through_mission_ledger(
+        self,
+        *,
+        result: Any,
+        task: str,
+        page_context: Any,
+        prior_steps: list,
+        runtime_state_snapshot: Any,
+        browser_intelligence_artifact: Any,
+        knowledge_snapshot: Any,
+        mission_completion_snapshot: Any,
+        orchestrator_snapshot: Any,
+        kernel_snapshot: Any,
+    ) -> None:
+        """Make legacy SuggestedAction output enter Runtime V1 before browser handoff.
+
+        Planner Contract V2 still exposes SuggestedAction to the extension as a
+        compatibility DTO, but executable browser work must have a durable
+        Mission Ledger intent identity before the browser receives it.
+        """
+        if result.intent_dispatch is not None or result.intent_execution is not None:
+            return
+        if result.outcome_kind not in {"act", "wait"}:
+            return
+        actions = list(result.suggested_actions or [])
+        if not actions:
+            return
+        if any(getattr(action, "intent_id", None) for action in actions):
+            return
+
+        from app.intent_dispatcher.models import ExecutionContext
+        from app.intent_runtime import dispatch_intent, execute_intent_queue
+        from app.schemas.response import SuggestedAction
+        from app.services import mission_ledger_service
+
+        directives = []
+        for action in actions:
+            payload = action.model_dump(mode="json")
+            payload["mission_id"] = self.session_id
+            directive = dispatch_intent(intent=action.action_type, payload=payload)
+            if directive is None:
+                continue
+            directive.mission_id = self.session_id
+            directives.append(directive)
+
+        if not directives:
+            return
+
+        execution_context = ExecutionContext(
+            mission_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=prior_steps,
+            runtime_state=runtime_state_snapshot,
+            browser_intelligence=browser_intelligence_artifact,
+            knowledge=knowledge_snapshot,
+            completion_state=mission_completion_snapshot,
+            phase_state=orchestrator_snapshot,
+            kernel_state=kernel_snapshot,
+            metadata={"source": "legacy_planner_action_bridge"},
+        )
+        queue_result = execute_intent_queue(
+            mission_id=self.session_id,
+            initial_intents=directives,
+            context=execution_context,
+        )
+        mission_ledger_service.record_queue_result(
+            self.db,
+            mission_id=self.session_id,
+            initial_intent=directives[0],
+            queue_result=queue_result,
+        )
+        result.intent_dispatch = directives[0]
+        result.intent_execution = queue_result
+
+        if queue_result.status not in {"waiting_browser", "browser_action_required"} or not queue_result.browser_action:
+            result.suggested_actions = []
+            return
+
+        browser_payload = queue_result.browser_action
+        result.suggested_actions = [
+            SuggestedAction(
+                action_id=str(browser_payload.get("action_id") or browser_payload.get("intent_id") or directives[0].intent_id),
+                intent_id=str(browser_payload.get("intent_id") or directives[0].intent_id),
+                mission_id=self.session_id,
+                action_type=str(browser_payload.get("action_type") or directives[0].intent),
+                target_selector=str(browser_payload.get("target_selector") or ""),
+                value=browser_payload.get("value"),
+                description=str(browser_payload.get("description") or directives[0].reason),
+                reasoning=str(browser_payload.get("reasoning") or directives[0].reason),
+                confidence=float(browser_payload.get("confidence") or 0.8),
+                safety_level=str(browser_payload.get("safety_level") or "safe"),  # type: ignore[arg-type]
+            )
+        ]
+        self._record_v3_event(
+            "mission_ledger.legacy_actions_bridged",
+            {
+                "queued_intents": len(directives),
+                "first_intent_id": directives[0].intent_id,
+                "queue_status": queue_result.status,
+            },
+        )
 
     def _try_blueprint_runtime(
         self,

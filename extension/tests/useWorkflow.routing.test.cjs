@@ -37,6 +37,7 @@ function compileRouter() {
 compileRouter()
 const {
   appendValidationPriorStepOnce,
+  actionRequiresExplicitApproval,
   buildAnalyzeRequestBody,
   buildBudgetedPlannerContext,
   buildRejectedReportPriorStep,
@@ -53,6 +54,7 @@ const {
   updateMissionSnapshot,
   updateTaskWorkspace,
   workflowLoopObservationPhase,
+  shouldAutoExecuteAction,
 } = require(path.join(outDir, 'sidepanel/hooks/useWorkflow.js'))
 
 test.after(() => {
@@ -120,6 +122,31 @@ function route(result) {
   })
 }
 
+test('auto mode executes safe browser actions only', () => {
+  assert.equal(shouldAutoExecuteAction(action({ action_type: 'click' }), 'auto'), true)
+  assert.equal(shouldAutoExecuteAction(action({ action_type: 'click' }), 'manual'), false)
+  assert.equal(shouldAutoExecuteAction(action({ safety_level: 'caution' }), 'auto'), false)
+  assert.equal(shouldAutoExecuteAction(action({ safety_level: 'danger' }), 'auto'), false)
+})
+
+test('auto mode pauses for critical action classes even when marked safe', () => {
+  const sendEmail = action({
+    action_type: 'click',
+    description: 'Click send email to the recruiter',
+    safety_level: 'safe',
+  })
+  const payment = action({
+    action_type: 'click',
+    description: 'Continue to payment checkout',
+    safety_level: 'safe',
+  })
+
+  assert.equal(actionRequiresExplicitApproval(sendEmail), true)
+  assert.equal(actionRequiresExplicitApproval(payment), true)
+  assert.equal(shouldAutoExecuteAction(sendEmail, 'auto'), false)
+  assert.equal(shouldAutoExecuteAction(payment, 'auto'), false)
+})
+
 test('routes act outcomes through the existing action path', () => {
   const routed = route(response({
     outcome_kind: 'act',
@@ -169,7 +196,7 @@ test('routes orchestrator phase continuation actions into the execution queue', 
   const routed = route(result)
 
   assert.equal(routed.phase, 'awaiting_execution')
-  assert.deepEqual(routed.pendingActions.map((item) => item.action_id), ['open-1', 'open-2', 'open-3'])
+  assert.deepEqual(routed.pendingActions.map((item) => item.action_id), ['open-1'])
   assert.deepEqual(
     phaseContinuationActions(result, [], 'https://example.test').map((item) => item.action_id),
     ['open-2', 'open-3'],

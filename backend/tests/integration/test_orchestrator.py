@@ -16,7 +16,10 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 
 @pytest.fixture
-def db_session():
+def db_session(monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "off")
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
@@ -127,6 +130,52 @@ def test_ledger_failure_does_not_alter_planner_output(db_session, monkeypatch):
     assert response is expected
     assert response.analysis == "Planner output is unchanged"
     assert response.outcome_kind == "act"
+
+
+def test_legacy_planner_action_is_bridged_into_mission_ledger(db_session, monkeypatch):
+    planned_action = SuggestedAction(
+        action_id="act-legacy",
+        action_type="click",
+        target_selector="#continue",
+        value=None,
+        description="Click Continue",
+        reasoning="Continue the workflow",
+        confidence=0.8,
+        safety_level="safe",
+    )
+
+    def fake_analyze(**kwargs):
+        return AnalyzeResponse(
+            session_id=kwargs["session_id"],
+            analysis="Planner selected a browser action",
+            suggested_actions=[planned_action],
+        )
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("legacy-bridge-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Continue",
+        page_context=page("https://example.test/application"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response.intent_dispatch is not None
+    assert response.intent_execution is not None
+    assert response.intent_execution.status == "waiting_browser"
+    assert len(response.suggested_actions) == 1
+    assert response.suggested_actions[0].intent_id == response.intent_dispatch.intent_id
+    assert response.suggested_actions[0].mission_id == "legacy-bridge-session"
+    assert response.suggested_actions[0].action_type == "click"
+
+    record = db_session.get(MissionIntentRecord, response.intent_dispatch.intent_id)
+    assert record is not None
+    assert record.mission_id == "legacy-bridge-session"
+    assert record.provider == "browser_control"
+    assert record.status == "WAITING_BROWSER"
+    assert record.payload["action_id"] == "act-legacy"
 
 
 def test_blueprint_active_analyze_bypasses_planner_and_queues_first_browser_intent(db_session, monkeypatch):
@@ -324,7 +373,8 @@ def test_intent_grounding_shadow_does_not_change_planner_response(db_session, mo
     )
 
     assert response is expected
-    assert response.suggested_actions == [expected_action]
+    assert len(response.suggested_actions) == 1
+    assert response.suggested_actions[0].intent_id is not None
     assert response.suggested_actions[0].target_selector == "#continue"
     assert response.outcome_kind == "act"
 
@@ -464,7 +514,8 @@ def test_governance_shadow_does_not_change_planner_response(db_session, monkeypa
     )
 
     assert response is expected
-    assert response.suggested_actions == [expected_action]
+    assert len(response.suggested_actions) == 1
+    assert response.suggested_actions[0].intent_id is not None
     assert response.suggested_actions[0].target_selector == "#continue"
     assert response.outcome_kind == "act"
 

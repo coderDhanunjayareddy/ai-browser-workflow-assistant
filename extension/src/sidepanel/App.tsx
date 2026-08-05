@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useWorkflow } from './hooks/useWorkflow'
+import { actionRequiresExplicitApproval, shouldAutoExecuteAction, useWorkflow } from './hooks/useWorkflow'
 import { useHistory } from './hooks/useHistory'
 import { useSpeechInput } from './hooks/useSpeechInput'
 import { useAssist } from './hooks/useAssist'
 import { useProduct, type ProductOrg, type ProductWorkspace, type ProductWorkflow } from './hooks/useProduct'
-import type { SuggestedAction, SessionHistory, EventHistory } from '../types'
+import type { CompletedAction, SuggestedAction, SessionHistory, EventHistory } from '../types'
 import type { StructuredSummary, ChatMessage, ResearchReport, IntelligenceLayer, WorkflowRecommendation, ApprovalLevel } from '../types/assist'
 
 type Tab = 'product' | 'workflow' | 'history' | 'analytics' | 'assist'
@@ -731,6 +731,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
     if (!autoMode) return
     if (state.phase !== 'awaiting_execution') return
     if (state.pendingActions.length === 0) return
+    if (!shouldAutoExecuteAction(state.pendingActions[0], 'auto')) return
     const timer = setTimeout(() => approveAction(), 800)
     return () => clearTimeout(timer)
   }, [autoMode, state.phase, state.pendingActions, approveAction])
@@ -828,7 +829,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
       {/* Auto-mode banner */}
       {autoMode && isRunning && (
         <div style={s.autoBanner}>
-          <span>🤖 Auto-executing — steps run automatically</span>
+          <span>Auto mode: safe steps run automatically</span>
           <button onClick={() => { stopWorkflow(); setAutoMode(false) }} style={s.stopInline}>■ Stop</button>
         </div>
       )}
@@ -867,6 +868,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
                     <span style={s.feedStep}>Step {i + 1}</span>
                     <span style={s.feedType}>{action.action_type.toUpperCase()}</span>
                     <span style={s.feedDesc}>{action.description}</span>
+                    <StepEvidence action={completedActions[i]} />
                     {!result.success && <span style={s.feedErr}>{result.message}</span>}
                   </div>
                 </div>
@@ -976,21 +978,55 @@ interface ActionCardProps {
   onReject: () => void
 }
 
+function StepEvidence({ action }: { action: CompletedAction }) {
+  const { result, page_snapshot } = action
+  const evidence: string[] = []
+
+  if (result.verification?.reason) evidence.push(`Verification: ${result.verification.reason}`)
+  if (typeof result.execution_duration_ms === 'number') evidence.push(`Time: ${formatDuration(result.execution_duration_ms)}`)
+  if (result.recovery_attempted) {
+    evidence.push(`Recovery: ${result.recovery_verified ? 'verified' : result.recovery_reason || 'attempted'}`)
+  }
+  if (result.upload_attempted) evidence.push(`Upload: ${result.upload_completed ? 'accepted' : 'attempted'}`)
+  if (result.download_detected || result.download_completed) evidence.push(`Download: ${result.download_completed ? 'completed' : 'detected'}`)
+  if (typeof result.opened_tab_id === 'number') evidence.push(`Opened tab: ${result.opened_tab_id}`)
+  if (result.tab_switch_verified) evidence.push('Tab switch: verified')
+
+  const pageUrl = page_snapshot?.url || result.page_context?.url
+  const pageTitle = page_snapshot?.title || result.page_context?.title
+
+  return (
+    <div style={s.evidenceBox}>
+      {pageTitle && <span style={s.evidencePage}>{truncate(pageTitle, 56)}</span>}
+      {pageUrl && <span style={s.evidenceUrl}>{truncate(pageUrl, 72)}</span>}
+      {evidence.length > 0 && (
+        <div style={s.evidenceChips}>
+          {evidence.map((item) => <span key={item} style={s.evidenceChip}>{item}</span>)}
+        </div>
+      )}
+      <span style={{ ...s.evidenceMessage, color: result.success ? '#166534' : '#b91c1c' }}>
+        {truncate(result.message || (result.success ? 'Action completed.' : 'Action failed.'), 140)}
+      </span>
+    </div>
+  )
+}
+
 function ActionCard({ action, stepNumber, autoMode, onApprove, onReject }: ActionCardProps) {
   const safetyColors: Record<string, string> = {
     safe: '#27ae60', caution: '#e67e22', danger: '#e74c3c',
   }
-  const isDanger = action.safety_level === 'danger'
+  const requiresApproval = actionRequiresExplicitApproval(action) || !shouldAutoExecuteAction(action, 'auto')
+  const isDanger = action.safety_level === 'danger' || requiresApproval
 
   return (
     <div style={{ ...s.card, borderColor: isDanger ? '#e74c3c' : '#2563eb' }}>
       <div style={s.cardMeta}>
         <span style={s.cardStep}>Step {stepNumber}</span>
-        {autoMode && (
-          <span style={s.autoChip}>Auto-executing…</span>
+        {autoMode && !requiresApproval && (
+          <span style={s.autoChip}>Auto-ready</span>
         )}
-        {isDanger && !autoMode && (
-          <span style={s.dangerChip}>⚠ Requires approval</span>
+        {requiresApproval && (
+          <span style={s.dangerChip}>Requires approval</span>
         )}
       </div>
       <div style={s.cardHeader}>
@@ -1634,6 +1670,11 @@ function AssistPanel({ onHandoffToWorkflow }: AssistPanelProps) {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function truncate(s: string, max: number) { return s && s.length > max ? s.slice(0, max) + '…' : s }
+function formatDuration(ms: number) {
+  if (!Number.isFinite(ms)) return 'n/a'
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+}
 function formatDate(iso: string) {
   try { return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }
   catch { return iso }
@@ -1718,6 +1759,12 @@ const s: Record<string, React.CSSProperties> = {
   feedType: { fontSize: '9px', fontWeight: 700, background: '#1a1a1a', color: '#fff', padding: '1px 5px', borderRadius: '2px' },
   feedDesc: { fontSize: '11px', color: '#444', flex: 1 },
   feedErr: { fontSize: '10px', color: '#e74c3c', fontStyle: 'italic', width: '100%' },
+  evidenceBox: { width: '100%', display: 'flex', flexDirection: 'column' as const, gap: '3px', marginTop: '3px', padding: '6px 8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '5px' },
+  evidencePage: { fontSize: '11px', fontWeight: 600, color: '#334155', lineHeight: 1.3 },
+  evidenceUrl: { fontSize: '10px', color: '#64748b', wordBreak: 'break-all' as const, lineHeight: 1.3 },
+  evidenceChips: { display: 'flex', flexWrap: 'wrap' as const, gap: '4px', marginTop: '2px' },
+  evidenceChip: { fontSize: '9px', fontWeight: 600, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '3px', padding: '2px 5px' },
+  evidenceMessage: { fontSize: '10px', lineHeight: 1.35, marginTop: '1px' },
 
   // Status cards
   statusCard: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8f8f8', border: '1px solid #e0e0e0', borderRadius: '6px', marginBottom: '10px' },

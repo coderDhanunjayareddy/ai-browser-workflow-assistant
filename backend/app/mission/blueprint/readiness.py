@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
@@ -131,7 +132,7 @@ class BlueprintReadinessEvaluator:
         unreachable = [item.node_id for item in evaluations if item.readiness == BlueprintNodeReadiness.UNREACHABLE]
         return BlueprintReadinessSnapshot(
             schema_version="mission_blueprint_readiness.v1",
-            snapshot_id=f"readiness_{blueprint.blueprint_id}_{int(datetime.now(UTC).timestamp() * 1000)}",
+            snapshot_id=f"readiness_{blueprint.blueprint_id}_{uuid.uuid4().hex}",
             blueprint_id=blueprint.blueprint_id,
             mission_id=blueprint.mission_id,
             revision=blueprint.revision,

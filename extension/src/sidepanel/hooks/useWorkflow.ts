@@ -119,6 +119,46 @@ export interface WorkflowState {
   error: string | null
 }
 
+export type ExecutionMode = 'manual' | 'auto'
+
+const CRITICAL_ACTION_PATTERNS = [
+  /\bpayment\b/,
+  /\bpurchase\b/,
+  /\bbuy\b/,
+  /\bcheckout\b/,
+  /\bdelete\b/,
+  /\bremove\b/,
+  /\bsend\b.*\b(email|message)\b/,
+  /\bsubmit\b.*\b(government|legal|tax|passport|visa|official)\b/,
+  /\bpassword\b/,
+  /\blogin\b.*\bchange\b/,
+  /\bsecurity\b/,
+  /\baccount\b.*\b(change|close|delete|security)\b/,
+]
+
+export function actionRequiresExplicitApproval(action: SuggestedAction | null | undefined): boolean {
+  if (!action) return false
+  if (action.safety_level === 'danger') return true
+
+  const searchableText = [
+    action.action_type,
+    action.description,
+    action.reasoning,
+    action.value ?? '',
+  ].join(' ').toLowerCase()
+
+  return CRITICAL_ACTION_PATTERNS.some((pattern) => pattern.test(searchableText))
+}
+
+export function shouldAutoExecuteAction(
+  action: SuggestedAction | null | undefined,
+  mode: ExecutionMode,
+): boolean {
+  if (!action || mode !== 'auto') return false
+  if (actionRequiresExplicitApproval(action)) return false
+  return action.safety_level === 'safe'
+}
+
 interface AnalyzeRoutingOptions {
   completedActions: CompletedAction[]
   currentUrl?: string
@@ -721,7 +761,7 @@ export function routeAnalyzeOutcome(
 
   if (allowedActions.length === 0) {
     return {
-      phase: 'awaiting_execution',
+      phase: 'completed',
       analysisText: result.analysis,
       pendingActions: [],
       clarificationQuestion: null,
