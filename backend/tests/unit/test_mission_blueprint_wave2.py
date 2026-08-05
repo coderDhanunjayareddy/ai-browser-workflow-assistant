@@ -73,6 +73,23 @@ def test_research_goal_creates_research_blueprint(monkeypatch):
     assert result.blueprint.nodes[1].expansion_template == {"provider": "browser_control", "action": "navigate", "passive": True}
 
 
+def test_research_search_query_stops_before_result_instructions(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+
+    result = MissionBlueprintBuilder().build(
+        mission_id="wave2-research-query",
+        user_goal=(
+            "Open Google Search and search for: best AI browser automation tools 2026. "
+            "From the first page of results: 1. Open the top 5 relevant results in new tabs."
+        ),
+    )
+
+    execute_search = next(node for node in result.blueprint.nodes if node.node_id == "execute_search")
+    assert execute_search.metadata["action_payload"]["value"] == (
+        "https://www.google.com/search?q=best+AI+browser+automation+tools+2026"
+    )
+
+
 def test_navigation_goal_creates_target_state_graph(monkeypatch):
     monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
 

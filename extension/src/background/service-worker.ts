@@ -72,6 +72,18 @@ async function getTargetTab(): Promise<chrome.tabs.Tab | undefined> {
     console.error('Error querying active tabs:', e)
   }
   try {
+    const tabs = await chrome.tabs.query({})
+    const targetTab = tabs
+      .filter(t => {
+        const url = t.url ?? ''
+        return /^https?:\/\//.test(url)
+      })
+      .sort((a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0))[0]
+    if (targetTab) return targetTab
+  } catch (e) {
+    console.error('Error querying fallback target tab:', e)
+  }
+  try {
     const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true })
     return currentTab
   } catch (e) {

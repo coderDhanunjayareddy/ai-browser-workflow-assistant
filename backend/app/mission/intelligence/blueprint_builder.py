@@ -683,11 +683,10 @@ def _search_url(text: str) -> str:
 
 def _search_query(text: str) -> str:
     normalized = " ".join(str(text or "").split())
-    match = re.search(
-        r"\bsearch(?:\s+for)?\s+(.+?)(?:\bopen\s+top\b|\bopen\s+the\s+top\b|\bread\b|\bextract\b|\breport\b|$)",
-        normalized,
-        re.IGNORECASE,
-    )
+    boundary = r"(?:\bfrom\s+the\s+first\s+page\b|\bfrom\s+first\s+page\b|\bopen\s+top\b|\bopen\s+the\s+top\b|\bread\b|\bextract\b|\breport\b|$)"
+    match = re.search(rf"\bsearch\s+for\s*:?\s*(.+?){boundary}", normalized, re.IGNORECASE)
+    if not match:
+        match = re.search(rf"\bsearch\s*:?\s*(.+?){boundary}", normalized, re.IGNORECASE)
     if match:
         return match.group(1).strip(" .,:;") or normalized
     return normalized
