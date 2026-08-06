@@ -317,6 +317,26 @@ def test_browser_control_is_registered_executor_and_stops_queue_for_browser():
     assert result.browser_action["value"] == "https://example.test"
 
 
+def test_navigate_next_page_is_registered_browser_action():
+    ownership = resolve_intent_owner("navigate_next_page")
+    assert ownership.owner == "browser_control"
+    assert ownership.browser_executable is True
+
+    directive = dispatch_intent(intent="navigate_next_page", payload={"action_type": "navigate_next_page"})
+    assert directive is not None
+    assert directive.owner == "browser_control"
+
+    result = execute_intent_queue(
+        mission_id="collection-session",
+        initial_intents=[directive],
+        context=ExecutionContext(mission_id="collection-session", task="Collect directory entries."),
+    )
+
+    assert result.status == "waiting_browser"
+    assert result.browser_action is not None
+    assert result.browser_action["action_type"] == "navigate_next_page"
+
+
 def test_orchestrator_does_not_directly_mark_backend_intent_without_execution(monkeypatch):
     from app.core.config import settings
     from app.execution_orchestrator.engine import ExecutionOrchestrator

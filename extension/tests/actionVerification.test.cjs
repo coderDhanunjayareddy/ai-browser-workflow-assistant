@@ -136,6 +136,18 @@ test('navigate is verified when URL changes', () => {
   assert.equal(verification.verified, true)
 })
 
+test('navigate_next_page is verified when URL changes', () => {
+  const verification = verifyActionEffect(
+    action('navigate_next_page'),
+    result('navigate_next_page'),
+    state({ url: 'https://example.test/page/1/' }),
+    state({ url: 'https://example.test/page/2/', domSignature: 'dom-page-2' }),
+    35,
+  )
+  assert.equal(verification.verified, true)
+  assert.equal(verification.reason, 'verified')
+})
+
 test('navigate reports no effect when URL is unchanged', () => {
   const before = state()
   const verification = verifyActionEffect(action('navigate', 'https://example.test/start'), result('navigate'), before, state(), 35)

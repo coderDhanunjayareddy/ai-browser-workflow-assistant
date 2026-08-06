@@ -53,6 +53,83 @@ export async function executeActionV2(action: {
     ) ?? null
   }
 
+  function normalizeSafeHttpUrl(raw: string | null): string | null {
+    if (!raw) return null
+    try {
+      const url = new URL(raw, window.location.href)
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+      return url.toString()
+    } catch {
+      return null
+    }
+  }
+
+  function sameUrlIgnoringHash(left: string, right: string): boolean {
+    try {
+      const a = new URL(left)
+      const b = new URL(right)
+      a.hash = ''
+      b.hash = ''
+      return a.toString() === b.toString()
+    } catch {
+      return left === right
+    }
+  }
+
+  function isDisabledElement(candidate: HTMLElement): boolean {
+    const ariaDisabled = (candidate.getAttribute('aria-disabled') || '').toLowerCase() === 'true'
+    const disabledClass = /\b(disabled|inactive|unavailable)\b/i.test(candidate.className || '')
+    const nativeDisabled = candidate instanceof HTMLButtonElement || candidate instanceof HTMLInputElement
+      ? candidate.disabled
+      : false
+    return ariaDisabled || disabledClass || nativeDisabled
+  }
+
+  function candidateLabel(candidate: HTMLElement): string {
+    return [
+      candidate.getAttribute('aria-label') || '',
+      candidate.getAttribute('title') || '',
+      candidate.textContent || '',
+    ].join(' ').replace(/\s+/g, ' ').trim()
+  }
+
+  function findNextPageControl(): HTMLElement | null {
+    const directSelectors = [
+      'a[rel="next"]',
+      'area[rel="next"]',
+      'a.next',
+      '.next a',
+      'a[aria-label*="next" i]',
+      'button[aria-label*="next" i]',
+      '[role="link"][aria-label*="next" i]',
+      '[role="button"][aria-label*="next" i]',
+      'a[title*="next" i]',
+      'button[title*="next" i]',
+      '[data-testid*="next" i]',
+      '[class*="next" i]',
+    ]
+    const direct = Array.from(document.querySelectorAll(directSelectors.join(', ')))
+      .filter(isVisibleElement)
+      .filter((candidate) => !isDisabledElement(candidate))
+    if (direct.length > 0) return direct[0]
+
+    const controls = Array.from(document.querySelectorAll('a, button, [role="link"], [role="button"]'))
+      .filter(isVisibleElement)
+      .filter((candidate) => !isDisabledElement(candidate))
+    return controls.find((candidate) => {
+      const label = candidateLabel(candidate).toLowerCase()
+      return /^(next|next page|load more|show more|more|>|\u203a|\u00bb)$/.test(label) ||
+        /\b(next|next page|load more|show more)\b/.test(label)
+    }) ?? null
+  }
+
+  function hrefForControl(candidate: HTMLElement): string | null {
+    const link = candidate instanceof HTMLAnchorElement || candidate instanceof HTMLAreaElement
+      ? candidate
+      : candidate.closest('a') || candidate.querySelector('a[href]')
+    return normalizeSafeHttpUrl(link?.getAttribute('href') || null)
+  }
+
   // Resolve element by selector
   let targetEl: Element | null = null
   if (selector) {
@@ -165,6 +242,33 @@ export async function executeActionV2(action: {
         if (!value) return { success: false, message: 'No URL provided.', action_id }
         window.location.href = value
         return { success: true, message: `Navigating to: ${value}`, action_id }
+      }
+
+      case 'navigate_next_page': {
+        const requestedUrl = normalizeSafeHttpUrl(value)
+        if (requestedUrl && !sameUrlIgnoringHash(requestedUrl, window.location.href)) {
+          window.location.href = requestedUrl
+          return { success: true, message: `Navigating to next page: ${requestedUrl}`, action_id }
+        }
+
+        const headNext = normalizeSafeHttpUrl(document.querySelector<HTMLLinkElement>('link[rel="next"]')?.href || null)
+        if (headNext && !sameUrlIgnoringHash(headNext, window.location.href)) {
+          window.location.href = headNext
+          return { success: true, message: `Navigating to next page: ${headNext}`, action_id }
+        }
+
+        const control = findNextPageControl()
+        if (!control) return { success: false, message: 'No enabled next-page control found.', action_id }
+
+        const href = hrefForControl(control)
+        if (href && !sameUrlIgnoringHash(href, window.location.href)) {
+          window.location.href = href
+          return { success: true, message: `Navigating to next page: ${href}`, action_id }
+        }
+
+        control.scrollIntoView({ block: 'center', inline: 'center' })
+        control.click()
+        return { success: true, message: `Clicked next page control: ${candidateLabel(control) || control.tagName.toLowerCase()}`, action_id }
       }
 
       case 'wait': {

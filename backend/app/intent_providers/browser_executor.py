@@ -10,6 +10,7 @@ BROWSER_INTENTS = (
     "fill",
     "scroll",
     "navigate",
+    "navigate_next_page",
     "wait",
     "select_option",
     "choose_date",

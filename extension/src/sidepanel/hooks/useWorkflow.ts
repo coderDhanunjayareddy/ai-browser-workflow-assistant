@@ -272,6 +272,7 @@ function contextFingerprint(ctx: PageContext | null): string {
 
 function actionNeedsObservableProgress(action: SuggestedAction): boolean {
   if (action.action_type === 'navigate') return true
+  if (action.action_type === 'navigate_next_page') return true
   if (action.action_type === 'focus_existing_tab' || action.action_type === 'switch_tab') return true
   if (action.action_type !== 'click') return false
   return !/\b(focus|prepare|place (?:the )?cursor|click (?:on )?(?:the )?(?:input|field))\b/i.test(
@@ -548,7 +549,9 @@ function isRepeatedAction(action: SuggestedAction, completed: CompletedAction[],
     return true
   })
 
-  if (action.action_type === 'navigate') return matchingCompleted.length >= 2
+  if (action.action_type === 'navigate' || action.action_type === 'navigate_next_page') {
+    return matchingCompleted.length >= 2
+  }
   if (action.action_type === 'wait' || action.action_type === 'scroll') {
     const lastThree = completed.slice(-3)
     if (lastThree.length < 3) return false
@@ -1225,7 +1228,7 @@ export function useWorkflow() {
         }
       }
 
-      if (action.action_type === 'navigate') {
+      if (action.action_type === 'navigate' || action.action_type === 'navigate_next_page') {
         await sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_TAB_LOAD' })
       }
 

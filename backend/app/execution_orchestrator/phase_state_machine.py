@@ -16,7 +16,7 @@ GRAPH_BY_CATEGORY: dict[str, list[PhaseName]] = {
 
 ALLOWED_ACTIONS: dict[PhaseName, list[str]] = {
     "DISCOVER": ["navigate", "fill", "click", "wait", "scroll"],
-    "COLLECT": ["scroll", "click", "wait", "focus_existing_tab", "switch_tab"],
+    "COLLECT": ["scroll", "click", "navigate_next_page", "wait", "focus_existing_tab", "switch_tab"],
     "OPEN": ["open_new_tab", "focus_existing_tab", "switch_tab", "wait"],
     "READ": ["focus_existing_tab", "switch_tab", "scroll", "wait"],
     "EXTRACT": ["focus_existing_tab", "switch_tab", "scroll", "wait"],

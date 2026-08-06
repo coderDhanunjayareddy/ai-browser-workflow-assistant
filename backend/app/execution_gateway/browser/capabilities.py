@@ -11,7 +11,7 @@ from app.feature_flags import v4_flag_snapshot
 
 # The 11 supported action sub-types (mapped onto the 9 adapter methods).
 SUPPORTED_ACTIONS: tuple[str, ...] = (
-    "NAVIGATE", "CLICK", "TYPE", "WAIT",
+    "NAVIGATE", "NAVIGATE_NEXT_PAGE", "CLICK", "TYPE", "WAIT",
     "EXTRACT_TEXT", "EXTRACT_HTML",
     "UPLOAD", "DOWNLOAD",
     "VALIDATE_URL", "VALIDATE_TEXT", "VALIDATE_EXISTS",

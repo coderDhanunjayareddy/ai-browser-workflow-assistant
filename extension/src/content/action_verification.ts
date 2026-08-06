@@ -372,6 +372,7 @@ export function verifyActionEffect(
       break
 
     case 'navigate':
+    case 'navigate_next_page':
       verified = before.url !== after.url
       break
 
