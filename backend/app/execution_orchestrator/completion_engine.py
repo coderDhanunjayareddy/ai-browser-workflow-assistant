@@ -72,8 +72,15 @@ def _count_collected(prior_steps: list[Any]) -> int:
         description = str(data.get("description") or "").lower()
         result = str(data.get("execution_result") or "").lower()
         if "collect" in description and result.startswith("success"):
-            count += 1
+            count += _collected_result_count(result) or 1
     return count
+
+
+def _collected_result_count(result: str) -> int:
+    match = re.search(r"\bcollected\s+(\d{1,3})\b|\bsearch_result_count[=:]\s*(\d{1,3})\b|\bresult_count[=:]\s*(\d{1,3})\b", result)
+    if not match:
+        return 0
+    return max(0, min(next((int(group) for group in match.groups() if group), 0), 100))
 
 
 def _read_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any]) -> bool:

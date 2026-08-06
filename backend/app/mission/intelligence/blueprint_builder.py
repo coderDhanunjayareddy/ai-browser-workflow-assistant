@@ -5,6 +5,8 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
 
+from app.file_upload_broker.policy import build_file_upload_broker_policy
+from app.form_workflow.spec import build_form_workflow_spec
 from app.mission.blueprint.models import (
     BlueprintDependency,
     BlueprintDependencyKind,
@@ -16,6 +18,7 @@ from app.mission.blueprint.models import (
     MissionBlueprint,
     validate_blueprint,
 )
+from app.signup_policy.policy import build_signup_workflow_policy
 from app.mission.blueprint.readiness import BlueprintReadinessSnapshot
 from app.mission.blueprint.repository import MissionBlueprintRepository
 from app.mission.blueprint.service import MissionBlueprintPersistenceService
@@ -200,15 +203,60 @@ def _understand(goal: str) -> MissionUnderstanding:
 
 def _classify(understanding: MissionUnderstanding) -> MissionType:
     text = understanding.normalized_goal.lower()
+    if _is_file_processing_workflow(text):
+        return MissionType.FILE_PROCESSING
     if _explicit_start_url(text) and _has(text, "extract", "scrape", "collect", "directory", "entries", "records"):
         return MissionType.DATA_EXTRACTION
-    if _has(text, "research", "compare", "best ", "top ", "summarize", "report"):
+    if _is_safety_sensitive_browser_workflow(text):
+        return MissionType.NAVIGATION
+    if _is_multi_source_research(text):
         return MissionType.RESEARCH
     if _has(text, "extract", "scrape", "collect fields", "collect entries", "collect records", "directory", "records", "table with columns"):
         return MissionType.DATA_EXTRACTION
-    if _has(text, "upload", "download", "file", "pdf", "csv", "spreadsheet"):
-        return MissionType.FILE_PROCESSING
     return MissionType.NAVIGATION
+
+
+def _is_file_processing_workflow(text: str) -> bool:
+    return _has(text, "upload", "download", "pdf", "csv", "spreadsheet") or re.search(r"\bfiles?\b", text) is not None
+
+
+def _is_upload_workflow(text: str) -> bool:
+    lowered = str(text or "").lower()
+    if _has(lowered, "uploaded") and not _has(lowered, "upload a", "upload the", "upload file", "file upload", "allows file upload"):
+        return False
+    return _has(lowered, "upload a", "upload the", "upload file", "file upload", "attach file", "choose file", "select file")
+
+
+def _is_safety_sensitive_browser_workflow(text: str) -> bool:
+    if _has(text, "research", "search the web", "google search", "from search results"):
+        return False
+    return _has(
+        text,
+        "signup",
+        "sign up",
+        "free account",
+        "free trial",
+        "create account",
+        "fill the form",
+        "submit only",
+        "validation errors",
+        "test data",
+        "publicly accessible",
+    )
+
+
+def _is_multi_source_research(text: str) -> bool:
+    if _has(text, "research", "compare", "comparison", "best ", "top ", "summarize"):
+        return True
+    if _has(text, "google search", "search for:", "search for ", "search the web", "from search results", "first page of results"):
+        return True
+    if _has(text, "official websites of 3", "pick 3", "pick 3 different", "choose 3", "first 10 relevant", "top 5 relevant"):
+        return True
+    if _has(text, "official documentation", "documentation page", "product pages") and _has(text, "different tools", "pick 3", "search"):
+        return True
+    if _has(text, "jobs", "careers", "openings") and _has(text, "search", "collect", "ranked", "first 10", "choose 3"):
+        return True
+    return False
 
 
 def _analyze(understanding: MissionUnderstanding, mission_type: MissionType) -> MissionAnalysis:
@@ -273,6 +321,8 @@ def _capabilities(mission_type: MissionType, analysis: MissionAnalysis) -> Capab
             capabilities.extend(["OCR", "Vision"])
     else:
         capabilities = ["Browser", "Validation"]
+        if _needs_form_workflow(analysis.primary_objective):
+            capabilities.extend(["Form Workflow", "Policy"])
     return CapabilityRequirements(
         capabilities=capabilities,
         rationale={capability: _capability_reason(capability, mission_type) for capability in capabilities},
@@ -461,13 +511,51 @@ def _nodes(
             ]
         )
     elif mission_type == MissionType.FILE_PROCESSING:
+        if _is_upload_workflow(analysis.primary_objective):
+            upload_policy = build_file_upload_broker_policy(analysis.primary_objective)
+            specs = [
+                _node_spec("define_file_requirement", "Define required upload file and result evidence", BlueprintNodeKind.OBJECTIVE, "File Processing", "file_processing", "define_file_requirement", action_payload=upload_policy.to_dict()),
+                _node_spec("locate_upload_target", "Locate a safe upload target on the page", BlueprintNodeKind.DISCOVERY, "Browser", "browser_control", "navigate"),
+                _node_spec("access_file", "Require user-approved selected file handle", BlueprintNodeKind.ACQUISITION, "File Processing", "file_processing", "access_file", action_payload={"requires_user_selected_file": True}),
+                _node_spec("activate_upload_control", "Activate the visible file upload control", BlueprintNodeKind.ACQUISITION, "Browser", "browser_control", "click", action_payload={"action_type": "click", "file_upload_broker": upload_policy.to_dict()}),
+                _node_spec("validate_file_result", "Validate upload acceptance and result location", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
+                _node_spec("deliver_file_result", "Deliver file upload result", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
+            ]
+        else:
+            specs = [
+                _node_spec("define_file_requirement", "Define required file operation and output", BlueprintNodeKind.OBJECTIVE, "File Processing", "file_processing", "define_file_requirement"),
+                _node_spec("access_file", "Access required file artifact", BlueprintNodeKind.ACQUISITION, "File Processing", "file_processing", "access_file"),
+                _node_spec("process_file", "Process file content", BlueprintNodeKind.EXTRACTION, "File Processing", "file_processing", "process_file"),
+                _node_spec("validate_file_result", "Validate processed file artifact", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
+                _node_spec("deliver_file_result", "Deliver file processing result", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
+            ]
+    elif _needs_form_workflow(analysis.primary_objective):
+        form_spec = build_form_workflow_spec(analysis.primary_objective)
+        signup_policy = build_signup_workflow_policy(analysis.primary_objective) if form_spec.workflow_type == "signup_workflow" else None
+        workflow_payload = {
+            **form_spec.to_dict(),
+            **({"signup_policy": signup_policy.to_dict()} if signup_policy else {}),
+        }
         specs = [
-            _node_spec("define_file_requirement", "Define required file operation and output", BlueprintNodeKind.OBJECTIVE, "File Processing", "file_processing", "define_file_requirement"),
-            _node_spec("access_file", "Access required file artifact", BlueprintNodeKind.ACQUISITION, "File Processing", "file_processing", "access_file"),
-            _node_spec("process_file", "Process file content", BlueprintNodeKind.EXTRACTION, "File Processing", "file_processing", "process_file"),
-            _node_spec("validate_file_result", "Validate processed file artifact", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
-            _node_spec("deliver_file_result", "Deliver file processing result", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
+            _node_spec("define_form_workflow", "Define safe form workflow policy and target fields", BlueprintNodeKind.OBJECTIVE, "Form Workflow", "form_workflow", "define_form_workflow", action_payload=workflow_payload),
+            _node_spec("locate_form", "Locate the target form or signup flow", BlueprintNodeKind.DISCOVERY, "Browser", "browser_control", "navigate"),
+            _node_spec("map_form_fields", "Map visible form controls to requested fields", BlueprintNodeKind.EXTRACTION, "Form Workflow", "form_workflow", "map_form_fields", action_payload={"requires_fake_data": form_spec.requires_fake_data}),
+            _node_spec("fill_form_fields", "Fill mapped fields with safe test data", BlueprintNodeKind.EXTRACTION, "Browser", "browser_control", "fill", action_payload={"action_type": "fill", "form_workflow": workflow_payload}),
+            _node_spec("validate_form_state", "Validate browser-reported form constraints and visible errors", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records", action_payload={"requires_validation_pass": form_spec.requires_validation_pass}),
         ]
+        if form_spec.submit_policy != "never_submit":
+            specs.append(
+                _node_spec(
+                    "submit_if_policy_allows",
+                    "Submit only when sandbox policy or explicit approval allows it",
+                    BlueprintNodeKind.APPROVAL if form_spec.submit_policy == "approval_required" else BlueprintNodeKind.VALIDATION,
+                    "Policy",
+                    "policy",
+                    "click",
+                    action_payload={"action_type": "click", "submit_policy": form_spec.submit_policy, "blocked_submit_reasons": form_spec.blocked_submit_reasons},
+                )
+            )
+        specs.append(_node_spec("report_form_result", "Report validation and submission result", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"))
     else:
         specs = [
             _node_spec("define_target_state", "Define target state", BlueprintNodeKind.OBJECTIVE, "Browser", "mission_blueprint", "record_objective"),
@@ -759,6 +847,22 @@ def _needs_collection_policy(text: str) -> bool:
     explicit_collection = any(term in lowered for term in ("collect entries", "collect records", "collect ", "listings", "pagination", "next page", "infinite scroll"))
     paginated_source = any(term in lowered for term in ("multi-page", "multiple pages", "page directory", "directory entries"))
     return explicit_collection or paginated_source
+
+
+def _needs_form_workflow(text: str) -> bool:
+    return _has(
+        text,
+        "form",
+        "fill",
+        "validation errors",
+        "test data",
+        "fake data",
+        "signup",
+        "sign up",
+        "create account",
+        "free account",
+        "free trial",
+    )
 
 
 def _evidence_kind(kind: BlueprintNodeKind) -> str:

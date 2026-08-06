@@ -40,14 +40,15 @@ class BrowserRuntimeRegistry:
                 action_type = str(data.get("action_type") or "").lower()
                 if action_type not in {"open_new_tab", "switch_tab", "focus_existing_tab", "navigate"}:
                     continue
-                url = _extract_url(str(data.get("value") or "")) or str(data.get("page_url") or "")
+                evidence = data.get("browser_evidence") if isinstance(data.get("browser_evidence"), dict) else {}
+                url = _evidence_url(evidence) or _extract_url(str(data.get("value") or "")) or str(data.get("page_url") or "")
                 if not url.startswith(("http://", "https://")):
                     continue
                 logical_id = _logical_tab_id(url)
                 existing = tabs.get(logical_id)
                 tabs[logical_id] = _runtime_tab(
                     url=url,
-                    title=str(data.get("page_title") or ""),
+                    title=str(evidence.get("page_title") or data.get("page_title") or ""),
                     window_id=window_id,
                     active=(url == active_url),
                     focus_index=focus_index if url == active_url else 0,
@@ -127,6 +128,14 @@ def _extract_url(value: str) -> str | None:
         value = value[4:]
     if value.startswith(("http://", "https://")):
         return value
+    return None
+
+
+def _evidence_url(evidence: dict[str, Any]) -> str | None:
+    for key in ("page_url", "requested_url", "opened_url", "url"):
+        url = _extract_url(str(evidence.get(key) or ""))
+        if url:
+            return url
     return None
 
 

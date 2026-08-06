@@ -4,7 +4,7 @@ export async function executeActionV2(action: {
   target_selector: string | null
   value: string | null
   description?: string
-}): Promise<{ success: boolean; message: string; action_id: string }> {
+}): Promise<{ success: boolean; message: string; action_id: string; [key: string]: unknown }> {
   const { action_id, action_type, value } = action
   let selector = action.target_selector
 
@@ -93,6 +93,48 @@ export async function executeActionV2(action: {
     ].join(' ').replace(/\s+/g, ' ').trim()
   }
 
+  function fieldLabel(field: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): string {
+    const byAria = field.getAttribute('aria-label') || field.getAttribute('placeholder') || field.getAttribute('name') || ''
+    if (byAria) return byAria.trim()
+    const id = field.id
+    if (id) {
+      const label = document.querySelector(`label[for="${CSS.escape(id)}"]`)
+      if (label?.textContent) return label.textContent.replace(/\s+/g, ' ').trim()
+    }
+    const wrapped = field.closest('label')
+    return (wrapped?.textContent || '').replace(/\s+/g, ' ').trim()
+  }
+
+  function formEvidence(field: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): Record<string, string | number | boolean | null> {
+    const form = field.form
+    const fields = form
+      ? Array.from(form.querySelectorAll('input, textarea, select'))
+      : Array.from(document.querySelectorAll('input, textarea, select'))
+    const fillable = fields.filter((candidate): candidate is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement => {
+      if (!(candidate instanceof HTMLInputElement || candidate instanceof HTMLTextAreaElement || candidate instanceof HTMLSelectElement)) return false
+      if (candidate instanceof HTMLInputElement && ['hidden', 'submit', 'button', 'reset', 'file', 'image'].includes(candidate.type)) return false
+      return isVisibleElement(candidate)
+    })
+    const invalid = fillable.filter((candidate) => typeof candidate.checkValidity === 'function' && !candidate.checkValidity())
+    const filled = fillable.filter((candidate) => {
+      if (candidate instanceof HTMLInputElement && ['checkbox', 'radio'].includes(candidate.type)) return candidate.checked
+      return Boolean(candidate.value)
+    })
+    const submitControl = form?.querySelector('button[type="submit"], input[type="submit"], button:not([type])') || null
+    return {
+      form_field_name: field.name || field.id || null,
+      form_field_label: fieldLabel(field) || null,
+      form_field_type: field instanceof HTMLInputElement ? field.type : field.tagName.toLowerCase(),
+      form_id: form?.id || form?.getAttribute('name') || null,
+      field_valid: typeof field.checkValidity === 'function' ? field.checkValidity() : true,
+      validation_message: 'validationMessage' in field ? field.validationMessage || null : null,
+      form_valid: form && typeof form.checkValidity === 'function' ? form.checkValidity() : invalid.length === 0,
+      invalid_field_count: invalid.length,
+      filled_field_count: filled.length,
+      submit_control_detected: Boolean(submitControl),
+    }
+  }
+
   function findNextPageControl(): HTMLElement | null {
     const directSelectors = [
       'a[rel="next"]',
@@ -158,7 +200,7 @@ export async function executeActionV2(action: {
           if (targetEl.value !== (value || '')) {
             return { success: false, message: `Field value was not retained after fill: ${selector}`, action_id }
           }
-          return { success: true, message: `Filled field: ${selector}`, action_id }
+          return { success: true, message: `Filled field: ${selector}`, action_id, ...formEvidence(targetEl) }
         }
         return { success: false, message: `Target is not a fillable input: ${selector}`, action_id }
       }
@@ -248,27 +290,28 @@ export async function executeActionV2(action: {
         const requestedUrl = normalizeSafeHttpUrl(value)
         if (requestedUrl && !sameUrlIgnoringHash(requestedUrl, window.location.href)) {
           window.location.href = requestedUrl
-          return { success: true, message: `Navigating to next page: ${requestedUrl}`, action_id }
+          return { success: true, message: `Navigating to next page: ${requestedUrl}`, action_id, next_page_url: requestedUrl, pagination_mode: 'next_link', pagination_control_label: 'requested_url', pagination_used_fallback_click: false }
         }
 
         const headNext = normalizeSafeHttpUrl(document.querySelector<HTMLLinkElement>('link[rel="next"]')?.href || null)
         if (headNext && !sameUrlIgnoringHash(headNext, window.location.href)) {
           window.location.href = headNext
-          return { success: true, message: `Navigating to next page: ${headNext}`, action_id }
+          return { success: true, message: `Navigating to next page: ${headNext}`, action_id, next_page_url: headNext, pagination_mode: 'next_link', pagination_control_label: 'link[rel=next]', pagination_used_fallback_click: false }
         }
 
         const control = findNextPageControl()
         if (!control) return { success: false, message: 'No enabled next-page control found.', action_id }
 
         const href = hrefForControl(control)
+        const controlLabel = candidateLabel(control) || control.tagName.toLowerCase()
         if (href && !sameUrlIgnoringHash(href, window.location.href)) {
           window.location.href = href
-          return { success: true, message: `Navigating to next page: ${href}`, action_id }
+          return { success: true, message: `Navigating to next page: ${href}`, action_id, next_page_url: href, pagination_mode: 'next_link', pagination_control_label: controlLabel, pagination_used_fallback_click: false }
         }
 
         control.scrollIntoView({ block: 'center', inline: 'center' })
         control.click()
-        return { success: true, message: `Clicked next page control: ${candidateLabel(control) || control.tagName.toLowerCase()}`, action_id }
+        return { success: true, message: `Clicked next page control: ${controlLabel}`, action_id, next_page_url: window.location.href, pagination_mode: 'next_link', pagination_control_label: controlLabel, pagination_used_fallback_click: true }
       }
 
       case 'wait': {

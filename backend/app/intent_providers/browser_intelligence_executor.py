@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from urllib.parse import urlsplit, urlunsplit
+import re
+from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from app.intent_dispatcher.models import ExecutionContext, IntentDispatchDirective, IntentExecutionEvidence
 from app.intent_dispatcher.registry import IntentOwnerRegistration, register_intent_executor, register_intent_owner
@@ -22,6 +23,8 @@ def register() -> None:
 
 def execute(context: ExecutionContext, directive: IntentDispatchDirective):
     search_results = _extract_search_results(context)
+    registered_entities = _register_search_result_entities(context, search_results)
+    source_policy = _source_collection_policy(context, search_results)
 
     evidence = IntentExecutionEvidence(
         evidence_id=f"{directive.intent}:{context.mission_id}:{len(search_results)}",
@@ -31,9 +34,21 @@ def execute(context: ExecutionContext, directive: IntentDispatchDirective):
         payload={
             "search_result_count": len(search_results),
             "search_results": [_result_payload(result) for result in search_results[:10]],
+            "registered_entity_count": len(registered_entities),
+            "registered_entities": [
+                {
+                    "entity_id": entity.entity_id,
+                    "canonical_url": entity.canonical_url,
+                    "rank": entity.metadata.get("rank"),
+                    "title": entity.title,
+                }
+                for entity in registered_entities[:10]
+            ],
+            "source_collection_policy": source_policy,
         },
     )
     context.metadata.setdefault("browser_intelligence", {})["search_results"] = evidence.payload["search_results"]
+    context.metadata.setdefault("browser_intelligence", {})["source_collection_policy"] = source_policy
     return execution_result(
         directive,
         status="succeeded",
@@ -43,15 +58,17 @@ def execute(context: ExecutionContext, directive: IntentDispatchDirective):
 
 
 def _result_payload(result) -> dict:
+    url = _read(result, "url") or _read(result, "href") or ""
+    normalized_url = _read(result, "normalized_url") or _canonical_result_url(url)
     return {
         "rank": _read(result, "rank"),
         "title": _read(result, "title") or _read(result, "text") or "",
-        "url": _read(result, "url") or _read(result, "href") or "",
+        "url": url,
         "snippet": _read(result, "snippet") or _read(result, "description") or "",
         "displayed_url": _read(result, "displayed_url") or "",
         "open_selector": _read(result, "open_selector") or _read(result, "selector"),
         "selector_id": _read(result, "selector_id"),
-        "normalized_url": _read(result, "normalized_url") or "",
+        "normalized_url": normalized_url,
         "source_domain": _read(result, "source_domain") or "",
         "source_type": _read(result, "source_type") or "unknown",
         "is_ad": bool(_read(result, "is_ad", False)),
@@ -127,7 +144,7 @@ def _dedupe_results(results: list[dict]) -> list[dict]:
     deduped: list[dict] = []
     for result in results:
         key = _canonical_result_url(str(result.get("url") or ""))
-        if not key or key in seen:
+        if not key or key in seen or not _openable_search_result(key, result):
             continue
         seen.add(key)
         item = dict(result)
@@ -141,9 +158,103 @@ def _dedupe_results(results: list[dict]) -> list[dict]:
 
 def _canonical_result_url(url: str) -> str:
     parsed = urlsplit(url)
+    if parsed.netloc.lower().endswith("google.com") and parsed.path == "/url":
+        query_target = parse_qs(parsed.query).get("q", [""])[0]
+        if query_target:
+            return _canonical_result_url(query_target)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return ""
     return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path.rstrip("/") or "/", parsed.query, ""))
+
+
+def _openable_search_result(canonical_url: str, result: dict) -> bool:
+    if bool(result.get("is_ad")):
+        return False
+    parsed = urlsplit(canonical_url)
+    host = parsed.netloc.lower()
+    if not host:
+        return False
+    if any(host == domain or host.endswith(f".{domain}") for domain in {"google.com", "bing.com", "duckduckgo.com"}):
+        blocked_paths = ("/search", "/url", "/preferences", "/settings", "/maps", "/images", "/videos", "/news")
+        return not any(parsed.path.startswith(path) for path in blocked_paths)
+    return True
+
+
+def _register_search_result_entities(context: ExecutionContext, results: list[dict]):
+    from app.runtime_state_manager.entity_binding import register_entity
+
+    registered = []
+    source_page = str(_read(context.page_context, "url") or "")
+    for result in results[:40]:
+        url = str(result.get("normalized_url") or result.get("url") or "")
+        if not url:
+            continue
+        registered.append(
+            register_entity(
+                context.mission_id,
+                entity_type="search_result",
+                source_layer="browser_intelligence.search_result_collection",
+                title=str(result.get("title") or url),
+                canonical_url=url,
+                artifact_id=f"bi:search_result_collection:{_hash(source_page)}:{result.get('rank') or len(registered) + 1}",
+                selector_ids=[str(item) for item in (result.get("selector_id"), result.get("open_selector")) if item],
+                confidence=max(0.0, min(1.0, float(result.get("relevance_score") or 0.82))),
+                source_page=source_page,
+                metadata={
+                    "rank": str(result.get("rank") or len(registered) + 1),
+                    "displayed_url": str(result.get("displayed_url") or ""),
+                    "description": str(result.get("snippet") or ""),
+                    "source_domain": str(result.get("source_domain") or ""),
+                    "source_type": str(result.get("source_type") or "organic"),
+                },
+            )
+        )
+    return registered
+
+
+def _source_collection_policy(context: ExecutionContext, results: list[dict]) -> dict:
+    from app.knowledge_extraction.research_spec import build_research_mission_spec
+
+    spec = build_research_mission_spec(context.task or "")
+    requested = _requested_source_count(context.task or "", spec)
+    available = len(results)
+    domains = []
+    seen_domains: set[str] = set()
+    for result in results:
+        domain = str(result.get("source_domain") or urlsplit(str(result.get("normalized_url") or result.get("url") or "")).netloc.lower())
+        if domain and domain not in seen_domains:
+            seen_domains.add(domain)
+            domains.append(domain)
+    return {
+        "schema_version": "source_collection_policy.v1",
+        "requested_source_count": requested,
+        "available_source_count": available,
+        "openable_source_count": min(requested, available),
+        "source_policy": getattr(spec, "source_policy", "distinct_non_search_source_urls") if spec else "distinct_non_search_source_urls",
+        "distinct_domain_count": len(domains),
+        "domains": domains[:12],
+        "ready_for_open_phase": available >= min(requested, 1),
+    }
+
+
+def _requested_source_count(task: str, spec: Any | None) -> int:
+    if spec is not None:
+        return int(getattr(spec, "source_count", 1) or 1)
+    match = re.search(
+        r"\btop\s+(\d{1,2})\b|\bfirst\s+(\d{1,2})\b|\b(\d{1,2})\s+(?:relevant\s+)?(?:results|sources|pages|tabs)\b",
+        task,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return 1
+    count = next((int(group) for group in match.groups() if group), 1)
+    return max(1, min(count, 10))
+
+
+def _hash(value: str) -> str:
+    import hashlib
+
+    return hashlib.sha1(value.encode("utf-8")).hexdigest()[:12]
 
 
 def _read(value, key: str, default=None):

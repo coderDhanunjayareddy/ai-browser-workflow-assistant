@@ -11,11 +11,16 @@ from app.knowledge_extraction.models import ExtractionRecord, FieldEvidence, Pag
 
 def required_fields_for_task(task: str) -> list[str]:
     text = task.lower()
-    explicit = re.findall(r"(?m)^\s*-\s*([A-Za-z][A-Za-z /_-]{1,40})", task)
+    explicit = _explicit_bullet_fields(task)
     if explicit:
-        return [_normalize_field(item) for item in explicit[:12]]
-    if "job" in text:
-        return ["title", "company", "location", "experience", "apply_url"]
+        return explicit
+    columns = _fields_after_label(task, "columns?")
+    if columns:
+        return columns
+    if "best practices" in text or "testing practices" in text or "checklist" in text:
+        return ["practice", "category", "source_url"]
+    if any(term in text for term in ("job", "jobs", "career", "careers", "opening", "openings")):
+        return ["title", "company", "location", "posted_date", "experience", "apply_url"]
     if "documentation" in text or "docs" in text:
         return ["languages", "use_case", "browser_control", "setup_requirement", "url"]
     if "contact" in text or "directory" in text:
@@ -24,6 +29,13 @@ def required_fields_for_task(task: str) -> list[str]:
         return ["filename", "status", "location", "share_link"]
     if "form" in text:
         return ["field", "value", "validation", "errors"]
+    if "purpose" in text or "limitation" in text:
+        return ["tool", "purpose", "pricing", "limitation", "url"]
+    if "pricing" in text:
+        return ["tool", "free_plan", "paid_plan_starting_price", "trial_available", "feature", "url"]
+    capture = _capture_fields(task)
+    if capture:
+        return capture
     if "pricing" in text or "comparison" in text or "summar" in text:
         return ["tool", "purpose", "pricing", "limitation", "url"]
     return ["title", "summary", "url"]
@@ -31,7 +43,7 @@ def required_fields_for_task(task: str) -> list[str]:
 
 def extraction_type_for_task(task: str) -> str:
     text = task.lower()
-    if "job" in text:
+    if any(term in text for term in ("job", "jobs", "career", "careers", "opening", "openings")):
         return "job"
     if "documentation" in text or "docs" in text:
         return "documentation"
@@ -175,19 +187,51 @@ def _value_for_field(field: str, page: PageReadArtifact) -> str:
 
 
 def _evidence_for_field(field: str, page: PageReadArtifact) -> FieldEvidence:
-    key = field.lower().replace(" ", "_")
-    text = " ".join(page.paragraphs[:8])
+    key = _canonical_field(field.lower().replace(" ", "_"))
+    text = _page_text(page)
+    content_text = " ".join([page.title, *page.headings, *page.paragraphs[:30]])
+    if key in {"title", "company", "location", "posted_date", "experience", "apply_url", "employment_type", "salary"}:
+        job = _job_field_evidence(field, key, page)
+        if job:
+            return job
     if key in {"url", "apply_url", "website", "location"} and key != "location":
+        if key == "apply_url":
+            apply_url = _link_url(page, ("apply", "application"))
+            return _field_evidence(field, apply_url or page.canonical_url, page, "url", apply_url or page.canonical_url, 0.9 if apply_url else 0.72)
+        if key == "website":
+            website = _link_url(page, ("website", "visit site", "official site", "homepage"))
+            return _field_evidence_or_missing(field, website, page, "url", "No website link found in observed page context.")
         return _field_evidence(field, page.canonical_url, page, "url", page.canonical_url, 0.98)
     if key in {"tool", "product", "title", "name", "company"}:
-        value = page.title or (page.headings[0] if page.headings else "")
+        value = _company_from_title(page.title) if key == "company" else page.title or (page.headings[0] if page.headings else "")
         return _field_evidence(field, value, page, "title" if page.title else "heading", value, 0.84 if value else 0.0, "No title or heading found.")
     if key in {"purpose", "summary", "use_case", "main_use_case"}:
         value, source_kind = _first_non_empty_with_source(page.paragraphs, page.sections)
         return _field_evidence(field, value, page, source_kind, value, 0.72 if value else 0.0, "No descriptive paragraph found.")
     if key in {"pricing", "price", "paid_plan_starting_price", "free_plan"}:
-        value = page.pricing_blocks[0] if page.pricing_blocks else _sentence_containing(text, ("price", "free", "trial", "plan", "$"))
+        plan_value = _pricing_plan_value(key, page)
+        if plan_value:
+            return _field_evidence(field, plan_value, page, "pricing_plan", plan_value, 0.86)
+        terms = _terms_for_field(key)
+        value = _best_sentence(page.pricing_blocks, terms) or _sentence_containing(content_text, terms)
         return _field_evidence_or_missing(field, value, page, "pricing_block" if page.pricing_blocks else "paragraph", "No pricing mention found in visible page text.")
+    if key in {"trial_available", "trial"}:
+        trial = _trial_value(page)
+        if trial:
+            return _field_evidence(field, trial, page, "pricing_plan" if page.pricing_plans else "paragraph", trial, 0.82)
+        value = _sentence_containing(text, ("trial", "free trial", "credit", "sandbox", "demo"))
+        if value:
+            return _field_evidence(field, value, page, "paragraph", value, 0.74)
+        return _field_evidence(field, "Not mentioned", page, "missing", "", 0.55, "No trial availability mention found.")
+    if key in {"feature", "features"}:
+        feature = _pricing_feature(page)
+        if feature:
+            return _field_evidence(field, feature, page, "pricing_plan", feature, 0.8)
+        value = _sentence_containing(content_text, ("feature", "features")) or _sentence_containing(
+            content_text,
+            ("includes", "supports", "offers", "automation", "integration", "workflow"),
+        )
+        return _field_evidence_or_missing(field, value, page, "paragraph", "No product feature mention found.")
     if key in {"limitation", "limitations"}:
         value = _sentence_containing(text, ("limitation", "limited", "lack", "without", "requires", "cannot", "but "))
         return _field_evidence_or_missing(field, value, page, "paragraph", "No limitation mention found in visible page text.")
@@ -204,20 +248,37 @@ def _evidence_for_field(field: str, page: PageReadArtifact) -> FieldEvidence:
         return _field_evidence(field, value, page, "form", str(page.forms[0]) if page.forms else "", 0.75 if value else 0.0, "No form field found.")
     if key in {"validation", "errors", "status"}:
         return _sentence_evidence(field, page, text, ("valid", "error", "accepted", "status", "complete"))
-    if key in {"languages", "sdks"}:
-        return _sentence_evidence(field, page, text, ("python", "javascript", "typescript", "java", "go", "ruby", "sdk"))
-    if key in {"setup_requirement", "requirements"}:
-        return _sentence_evidence(field, page, text, ("install", "setup", "require", "api key", "npm", "pip"))
-    if key in {"browser_control"}:
+    if key in {"languages", "sdks", "supported_languages", "setup_requirement", "requirements", "browser_control"}:
+        doc = _documentation_field_evidence(field, key, page)
+        if doc:
+            return doc
+        if key in {"languages", "sdks", "supported_languages"}:
+            return _sentence_evidence(field, page, text, ("python", "javascript", "typescript", "java", "go", "ruby", "sdk"))
+        if key in {"setup_requirement", "requirements"}:
+            return _sentence_evidence(field, page, text, ("install", "setup", "require", "api key", "npm", "pip"))
         return _sentence_evidence(field, page, text, ("browser", "automation", "control"))
-    if key in {"city", "category", "experience", "filename", "share_link"}:
-        return _sentence_evidence(field, page, text, (key.replace("_", " "),))
+    if key in {"posted_date", "date_posted"}:
+        return _sentence_evidence(field, page, text, ("posted", "past week", "today", "yesterday", "days ago", "week ago"))
+    if key in {"practice"}:
+        return _sentence_evidence(field, page, text, ("should", "recommend", "best practice", "use ", "avoid", "ensure"))
+    if key in {"category"} and ("best practice" in text or "testing" in text):
+        return _sentence_evidence(field, page, text, ("reliability", "observability", "recovery", "safety"))
+    if key in {"city", "category", "experience", "filename", "share_link", "location"}:
+        return _sentence_evidence(field, page, text, _terms_for_field(key))
     return _sentence_evidence(field, page, text, (key.replace("_", " "),))
 
 
 def _first_non_empty(paragraphs: list[str], sections: list[dict[str, str]]) -> str:
     value, _source_kind = _first_non_empty_with_source(paragraphs, sections)
     return value
+
+
+def _page_text(page: PageReadArtifact) -> str:
+    navigation = " ".join(f"{item.get('label', '')} {item.get('url', '')}" for item in page.navigation_context[:25])
+    forms = " ".join(f"{item.get('label', '')} {item.get('type', '')}" for item in page.forms[:20])
+    metadata = " ".join(page.metadata.values())
+    jobs = " ".join(str(item.get("source_text") or "") for item in page.job_postings[:8])
+    return " ".join([page.title, *page.headings, metadata, *page.paragraphs[:30], jobs, navigation, forms])
 
 
 def _first_non_empty_with_source(paragraphs: list[str], sections: list[dict[str, str]]) -> tuple[str, str]:
@@ -230,12 +291,136 @@ def _first_non_empty_with_source(paragraphs: list[str], sections: list[dict[str,
     return "", "missing"
 
 
+def _documentation_field_evidence(field: str, key: str, page: PageReadArtifact) -> FieldEvidence | None:
+    if not page.documentation_sections:
+        return None
+    if key in {"languages", "sdks", "supported_languages"}:
+        values = []
+        sources = []
+        for section in page.documentation_sections:
+            languages = str(section.get("languages") or "")
+            if languages:
+                values.extend([item.strip() for item in languages.split(",") if item.strip()])
+                sources.append(str(section.get("text") or ""))
+        deduped = _dedupe_text(values)
+        if deduped:
+            source = next((item for item in sources if item), "")
+            return _field_evidence(field, ", ".join(deduped), page, "documentation_section", source, 0.88)
+    if key in {"setup_requirement", "requirements"}:
+        section = _doc_section(page, "setup")
+        value = str(section.get("setup_requirement") or "") if section else ""
+        if not value and section:
+            value = _sentence_containing(str(section.get("text") or ""), ("install", "setup", "require", "api key", "npm", "pip"))
+        if value:
+            return _field_evidence(field, value, page, "documentation_section", str(section.get("text") or value), 0.86)
+    if key == "browser_control":
+        section = _doc_section(page, "browser_control") or _doc_section(page, "use_case")
+        value = str(section.get("browser_control") or "") if section else ""
+        if not value and section:
+            value = _sentence_containing(str(section.get("text") or ""), ("browser", "automation", "control", "navigate", "click"))
+        if value:
+            return _field_evidence(field, value, page, "documentation_section", str(section.get("text") or value), 0.84)
+    return None
+
+
+def _job_field_evidence(field: str, key: str, page: PageReadArtifact) -> FieldEvidence | None:
+    job = _primary_job(page)
+    if not job:
+        return None
+    source = str(job.get("source_text") or "")
+    value = str(job.get(key) or "")
+    if key == "apply_url":
+        value = str(job.get("apply_url") or "")
+        source = value or source
+    if key == "company" and not value:
+        value = _company_from_title(page.title)
+    if key == "title" and not value:
+        value = page.title or (page.headings[0] if page.headings else "")
+    if value:
+        confidence = 0.9 if key in {"title", "apply_url"} else 0.84
+        return _field_evidence(field, value, page, "job_posting", source or value, confidence)
+    return None
+
+
+def _primary_job(page: PageReadArtifact) -> dict[str, str] | None:
+    if not page.job_postings:
+        return None
+    return max(page.job_postings, key=_job_candidate_score)
+
+
+def _job_candidate_score(job: dict[str, str]) -> float:
+    score = 0.0
+    for field, weight in {
+        "title": 0.25,
+        "company": 0.12,
+        "location": 0.14,
+        "experience": 0.12,
+        "posted_date": 0.1,
+        "apply_url": 0.2,
+        "employment_type": 0.04,
+        "salary": 0.03,
+    }.items():
+        if str(job.get(field) or ""):
+            score += weight
+    return score
+
+
+def _doc_section(page: PageReadArtifact, section_type: str) -> dict[str, str] | None:
+    for section in page.documentation_sections:
+        if section.get("section_type") == section_type:
+            return section
+    return None
+
+
+def _dedupe_text(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values:
+        key = value.lower()
+        if key and key not in seen:
+            seen.add(key)
+            out.append(value)
+    return out
+
+
 def _sentence_containing(text: str, terms: tuple[str, ...]) -> str:
     for sentence in re.split(r"(?<=[.!?])\s+", text):
         lower = sentence.lower()
         if any(term in lower for term in terms):
             return _clip(sentence)
     return ""
+
+
+def _best_sentence(candidates: list[str], terms: tuple[str, ...]) -> str:
+    for candidate in candidates:
+        value = _sentence_containing(candidate, terms)
+        if value:
+            return value
+    return candidates[0] if candidates else ""
+
+
+def _link_url(page: PageReadArtifact, terms: tuple[str, ...]) -> str:
+    for item in page.navigation_context:
+        label = str(item.get("label") or "").lower()
+        url = str(item.get("url") or "")
+        if url and any(term in label or term in url.lower() for term in terms):
+            return url
+    return ""
+
+
+def _terms_for_field(key: str) -> tuple[str, ...]:
+    aliases: dict[str, tuple[str, ...]] = {
+        "free_plan": ("free", "free plan", "starter", "$0"),
+        "paid_plan_starting_price": ("starts", "starting", "per month", "/mo", "$", "paid", "pro plan"),
+        "pricing": ("price", "pricing", "free", "trial", "plan", "$", "per month", "/mo"),
+        "location": ("location", "remote", "hyderabad", "onsite", "on-site", "hybrid"),
+        "city": ("city", "hyderabad", "bangalore", "mumbai", "delhi", "remote"),
+        "category": ("category", "industry", "type", "reliability", "observability", "recovery", "safety"),
+        "experience": ("experience", "years", "entry level", "associate", "senior", "junior"),
+        "filename": ("file", "filename", "pdf", "image", "upload"),
+        "share_link": ("share", "link", "url"),
+    }
+    return aliases.get(key, (key.replace("_", " "),))
 
 
 def _clip(value: str, limit: int = 220) -> str:
@@ -315,14 +500,14 @@ def _typed_entity(extraction_type: str, values: dict[str, str], page: PageReadAr
         return "job_posting", _job_entity(values, page)
     if extraction_type == "documentation" or _looks_like_documentation(text, page.canonical_url):
         return "documentation_page", _documentation_entity(values, page)
+    if _looks_like_pricing(text, page):
+        return "pricing_plan", _pricing_entity(values, page)
     if extraction_type == "contact" or _looks_like_directory(text, page):
         return "directory_entry", _directory_entity(values, page)
     if extraction_type == "form":
         return "form_result", _form_entity(values, page)
     if extraction_type == "upload":
         return "file_result", _file_entity(values, page)
-    if _looks_like_pricing(text, page):
-        return "pricing_plan", _pricing_entity(values, page)
     if extraction_type == "research":
         return "research_source", _research_entity(values, page)
     return "generic", {"title": page.title, "url": page.canonical_url}
@@ -330,11 +515,18 @@ def _typed_entity(extraction_type: str, values: dict[str, str], page: PageReadAr
 
 def _pricing_entity(values: dict[str, str], page: PageReadArtifact) -> dict[str, object]:
     price_text = values.get("pricing") or values.get("price") or (page.pricing_blocks[0] if page.pricing_blocks else "")
+    paid_plan = _paid_plan(page)
+    free_plan = _free_plan(page)
     return {
         "plan_name": _plan_name(page, price_text),
         "price_text": price_text,
         "billing_period": _billing_period(price_text),
-        "free_tier": "free" in price_text.lower(),
+        "free_tier": bool(free_plan) or "free" in price_text.lower(),
+        "free_plan": free_plan,
+        "paid_plan_starting_price": _paid_plan_price(paid_plan) if paid_plan else values.get("paid_plan_starting_price", ""),
+        "trial_available": values.get("trial_available") or _trial_value(page) or "Not mentioned",
+        "feature": values.get("feature") or _pricing_feature(page),
+        "plans": page.pricing_plans[:8],
         "source_url": page.canonical_url,
     }
 
@@ -344,20 +536,28 @@ def _documentation_entity(values: dict[str, str], page: PageReadArtifact) -> dic
         "title": page.title,
         "url": page.canonical_url,
         "section_headings": page.headings[:8],
+        "documentation_sections": page.documentation_sections[:8],
         "setup_requirement": values.get("setup_requirement") or values.get("requirements") or "",
         "browser_control": values.get("browser_control") or "",
         "languages": values.get("languages") or values.get("sdks") or "",
         "official_source_hint": _official_docs_hint(page.canonical_url),
+        "official_source_score": _official_docs_score(page),
+        "citation_url": page.canonical_url,
     }
 
 
 def _job_entity(values: dict[str, str], page: PageReadArtifact) -> dict[str, object]:
+    job = _primary_job(page) or {}
     return {
-        "title": values.get("title") or page.title,
-        "company": values.get("company") or _company_from_title(page.title),
-        "location": values.get("location") or "",
-        "experience": values.get("experience") or "",
-        "apply_url": values.get("apply_url") or page.canonical_url,
+        "title": values.get("title") or job.get("title") or page.title,
+        "company": values.get("company") or job.get("company") or _company_from_title(page.title),
+        "location": values.get("location") or job.get("location") or "",
+        "experience": values.get("experience") or job.get("experience") or "",
+        "posted_date": values.get("posted_date") or job.get("posted_date") or "",
+        "employment_type": values.get("employment_type") or job.get("employment_type") or "",
+        "salary": values.get("salary") or job.get("salary") or "",
+        "apply_url": values.get("apply_url") or job.get("apply_url") or page.canonical_url,
+        "job_candidates": page.job_postings[:8],
         "source_url": page.canonical_url,
     }
 
@@ -416,7 +616,7 @@ def _looks_like_documentation(text: str, url: str) -> bool:
 
 
 def _looks_like_job(text: str) -> bool:
-    return any(term in text for term in ("job", "career", "apply now", "remote", "salary", "experience"))
+    return any(term in text for term in ("job", "career", "opening", "apply now", "remote", "salary", "experience"))
 
 
 def _looks_like_directory(text: str, page: PageReadArtifact) -> bool:
@@ -440,9 +640,100 @@ def _billing_period(price_text: str) -> str:
     return "unknown"
 
 
+def _pricing_plan_value(key: str, page: PageReadArtifact) -> str:
+    if key == "free_plan":
+        plan = _free_plan(page)
+        if plan:
+            return _plan_summary(plan)
+    if key == "paid_plan_starting_price":
+        plan = _paid_plan(page)
+        if plan:
+            return _plan_summary(plan)
+    if key in {"pricing", "price"} and page.pricing_plans:
+        summaries = [_plan_summary(plan) for plan in page.pricing_plans[:4] if _plan_summary(plan)]
+        if summaries:
+            return "; ".join(summaries)
+    return ""
+
+
+def _free_plan(page: PageReadArtifact) -> dict[str, str] | None:
+    for plan in page.pricing_plans:
+        text = " ".join([plan.get("name", ""), plan.get("price", ""), plan.get("source_text", "")]).lower()
+        if "free" in text or "$0" in text:
+            return plan
+    return None
+
+
+def _paid_plan(page: PageReadArtifact) -> dict[str, str] | None:
+    paid = [
+        plan for plan in page.pricing_plans
+        if _paid_plan_price(plan) and not ("free" in " ".join([plan.get("name", ""), plan.get("price", "")]).lower() or plan.get("price") == "$0")
+    ]
+    if not paid:
+        return None
+    return sorted(paid, key=lambda plan: _price_amount(plan.get("price", "")) or 10**9)[0]
+
+
+def _paid_plan_price(plan: dict[str, str]) -> str:
+    price = str(plan.get("price") or "")
+    if price and price != "$0":
+        return price
+    match = re.search(r"[$€£₹]\s?\d[\d,]*(?:\.\d+)?(?:\s*/\s?(?:mo|month|yr|year))?", str(plan.get("source_text") or ""), flags=re.IGNORECASE)
+    return match.group(0) if match else ""
+
+
+def _price_amount(price: str) -> float | None:
+    match = re.search(r"\d[\d,]*(?:\.\d+)?", price)
+    if not match:
+        return None
+    try:
+        return float(match.group(0).replace(",", ""))
+    except ValueError:
+        return None
+
+
+def _plan_summary(plan: dict[str, str]) -> str:
+    parts = [plan.get("name", ""), plan.get("price", ""), plan.get("billing_period", "")]
+    features = plan.get("features", "")
+    if features:
+        parts.append(features)
+    summary = " ".join(part for part in parts if part and part != "unknown")
+    return _clip(summary or plan.get("source_text", ""))
+
+
+def _trial_value(page: PageReadArtifact) -> str:
+    text = " ".join([*page.pricing_blocks, *[plan.get("source_text", "") for plan in page.pricing_plans], *page.paragraphs[:20]])
+    value = _sentence_containing(text, ("free trial", "trial", "demo"))
+    return value
+
+
+def _pricing_feature(page: PageReadArtifact) -> str:
+    for plan in page.pricing_plans:
+        feature = str(plan.get("features") or "")
+        if feature:
+            return _clip(feature)
+    text = " ".join([*page.pricing_blocks, *page.paragraphs[:20]])
+    return _sentence_containing(text, ("includes", "features", "support", "integration", "requests", "credits", "users"))
+
+
 def _official_docs_hint(url: str) -> bool:
     host = urlparse(url).netloc.lower()
     return any(term in host for term in ("docs.", "developer.", "developers.")) or "/docs" in url.lower()
+
+
+def _official_docs_score(page: PageReadArtifact) -> float:
+    score = 0.0
+    url = page.canonical_url.lower()
+    host = urlparse(page.canonical_url).netloc.lower()
+    if _official_docs_hint(page.canonical_url):
+        score += 0.55
+    if any(term in host for term in ("github.io", "readthedocs.io", "mintlify.app")):
+        score += 0.2
+    if page.documentation_sections:
+        score += 0.2
+    if any(term in url for term in ("quickstart", "reference", "api", "docs")):
+        score += 0.05
+    return round(min(score, 1.0), 3)
 
 
 def _company_from_title(title: str) -> str:
@@ -452,6 +743,89 @@ def _company_from_title(title: str) -> str:
 
 def _normalize_field(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", value.strip().lower()).strip("_")
+
+
+def _explicit_bullet_fields(task: str) -> list[str]:
+    if not re.search(r"(?im)^\s*(extract|fields?|columns?)\s*:", task):
+        return []
+    fields = [
+        _normalize_field(item)
+        for item in re.findall(r"(?m)^\s*-\s*([A-Za-z][A-Za-z /_-]{1,40})", task)
+        if item.strip()
+    ]
+    return [field for field in fields if field][:12]
+
+
+def _fields_after_label(task: str, label: str) -> list[str]:
+    match = re.search(rf"{label}\s*:\s*([^.\n]+)", task, flags=re.IGNORECASE)
+    if not match:
+        return []
+    return _field_list(match.group(1))
+
+
+def _capture_fields(task: str) -> list[str]:
+    captures = re.findall(
+        r"\b(?:capture|extract|collect)\s+(?:the\s+)?(.+?)(?:\.|\n| for each| and (?:return|whether|if)| then:|$)",
+        task,
+        flags=re.IGNORECASE,
+    )
+    fields: list[str] = []
+    for capture in captures:
+        fields.extend(_field_list(capture))
+    normalized = [_canonical_field(field) for field in fields if field]
+    deduped: list[str] = []
+    for field in normalized:
+        if field and field not in deduped:
+            deduped.append(field)
+    return deduped[:12]
+
+
+def _field_list(value: str) -> list[str]:
+    cleaned = re.sub(r"\b(?:whether|if|available|clearly mentioned|current|any|one)\b", "", value, flags=re.IGNORECASE)
+    fields = [_normalize_field(item) for item in re.split(r",|;|\band\b", cleaned) if item.strip()]
+    ignored = {"the", "result", "results", "details", "information", "first_10_relevant_jobs", "top_recommended_testing_practices"}
+    return [field for field in fields if field and field not in ignored]
+
+
+def _canonical_field(field: str) -> str:
+    aliases = {
+        "job_title": "title",
+        "application_link": "apply_url",
+        "application_url": "apply_url",
+        "job_link": "apply_url",
+        "job_url": "apply_url",
+        "apply_link": "apply_url",
+        "experience_needed": "experience",
+        "experience_required": "experience",
+        "date": "posted_date",
+        "posted": "posted_date",
+        "employment": "employment_type",
+        "employment_type": "employment_type",
+        "link": "url",
+        "source_urls": "url",
+        "source_url": "url",
+        "contact_email": "email",
+        "email_address": "email",
+        "paid_plan_starting_price": "paid_plan_starting_price",
+        "trial": "trial_available",
+        "a_trial_is": "trial_available",
+        "a_trial_is_available": "trial_available",
+        "trial_is": "trial_available",
+        "feature_that_is_on_the_pricing_or_product_page": "feature",
+        "feature_that_is_clearly_mentioned_on_the_pricing_or_product_page": "feature",
+        "feature": "feature",
+        "supported_languages": "languages",
+        "main_use_case": "use_case",
+        "it_supports_browser_control": "browser_control",
+        "supports_browser_control": "browser_control",
+        "whether_it_supports_browser_control": "browser_control",
+        "one_setup_requirement": "setup_requirement",
+        "setup_requirement": "setup_requirement",
+        "posted_date": "posted_date",
+        "date_posted": "posted_date",
+        "browser_control_from_documentation": "browser_control",
+    }
+    return aliases.get(field, field)
 
 
 def _record_id(extraction_type: str, source: str, values: dict[str, str]) -> str:

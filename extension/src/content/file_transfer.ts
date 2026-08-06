@@ -15,6 +15,12 @@ export interface FileTransferExecutionResult {
   upload_attempted?: boolean
   upload_completed?: boolean
   filename?: string | null
+  upload_target_selector?: string | null
+  upload_input_hidden?: boolean
+  upload_files_count?: number
+  upload_backed_by_file_input?: boolean
+  upload_requires_user_file_selection?: boolean
+  upload_accepted?: boolean
 }
 
 export interface UploadTargetDescriptor {
@@ -54,6 +60,14 @@ export function buildUploadResult(
   descriptor: UploadTargetDescriptor,
 ): FileTransferExecutionResult | null {
   if (!shouldHandleUpload(action, descriptor)) return null
+  const brokerEvidence = {
+    upload_target_selector: descriptor.selector,
+    upload_input_hidden: descriptor.hidden,
+    upload_files_count: descriptor.files_count,
+    upload_backed_by_file_input: descriptor.backed_by_file_input,
+    upload_requires_user_file_selection: descriptor.files_count === 0,
+    upload_accepted: descriptor.files_count > 0,
+  }
   if (descriptor.files_count > 0) {
     return {
       success: true,
@@ -62,6 +76,7 @@ export function buildUploadResult(
       upload_attempted: true,
       upload_completed: true,
       filename: descriptor.filename,
+      ...brokerEvidence,
     }
   }
   return {
@@ -71,6 +86,7 @@ export function buildUploadResult(
     upload_attempted: true,
     upload_completed: false,
     filename: null,
+    ...brokerEvidence,
   }
 }
 
@@ -219,23 +235,7 @@ export async function executeUploadHandler(action: FileTransferAction): Promise<
 
   const descriptor = detect()
   if (!safeAction() || !descriptor.supported) return null
-  const result: FileTransferExecutionResult = descriptor.files_count > 0
-    ? {
-      success: true,
-      message: `File upload already selected: ${descriptor.filename || 'file'}`,
-      action_id: action.action_id,
-      upload_attempted: true,
-      upload_completed: true,
-      filename: descriptor.filename,
-    }
-    : {
-      success: true,
-      message: 'Activated file upload control. Waiting for user-selected file.',
-      action_id: action.action_id,
-      upload_attempted: true,
-      upload_completed: false,
-      filename: null,
-    }
+  const result = buildUploadResult(action, descriptor)
   if (!result) return null
 
   const target = descriptor.selector ? document.querySelector(descriptor.selector) : null

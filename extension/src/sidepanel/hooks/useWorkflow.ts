@@ -341,6 +341,16 @@ function buildExecutionFeedback(action: SuggestedAction, result: ExecutionResult
     lines.push(`Recovery: ${result.recovery_attempted ? 'attempted' : 'not_attempted'}`)
   }
 
+  if (typeof result.form_valid === 'boolean') {
+    lines.push(`Form Valid: ${result.form_valid ? 'yes' : 'no'}`)
+  }
+  if (typeof result.invalid_field_count === 'number') {
+    lines.push(`Invalid Fields: ${result.invalid_field_count}`)
+  }
+  if (result.validation_message) {
+    lines.push(`Validation Message: ${result.validation_message}`)
+  }
+
   if (result.recovery_attempted) {
     lines.push(`Recovery Result: ${result.recovery_verified ? 'verified' : 'failed'}`)
     if (result.recovery_reason) lines.push(`Recovery Reason: ${result.recovery_reason}`)
@@ -408,8 +418,66 @@ function buildPriorSteps(completed: CompletedAction[]): PriorStep[] {
     page_url: includeDetails ? page_snapshot?.url : undefined,
     page_title: includeDetails ? page_snapshot?.title : undefined,
     page_metadata: includeDetails ? compactMetadata(page_snapshot?.metadata) : {},
+    browser_evidence: includeDetails ? buildBrowserEvidence(action, result, page_snapshot) : undefined,
   }
   })
+}
+
+function buildBrowserEvidence(
+  action: SuggestedAction,
+  result: ExecutionResult,
+  pageSnapshot?: CompletedAction['page_snapshot'],
+): Record<string, string | number | boolean | null> | undefined {
+  const evidence: Record<string, string | number | boolean | null> = {}
+  const timeline = result.browser_timeline || {}
+
+  if (action.action_id) evidence.action_id = action.action_id
+  if (result.action_id) evidence.result_action_id = result.action_id
+  if (pageSnapshot?.url) evidence.page_url = pageSnapshot.url
+  if (pageSnapshot?.title) evidence.page_title = pageSnapshot.title
+  if (typeof result.opened_tab_id === 'number') evidence.opened_tab_id = result.opened_tab_id
+  if (typeof result.previous_tab_id === 'number') evidence.previous_tab_id = result.previous_tab_id
+  if (typeof result.active_tab_id === 'number') evidence.active_tab_id = result.active_tab_id
+  if (typeof result.closed_tab_id === 'number') evidence.closed_tab_id = result.closed_tab_id
+  if (typeof result.tab_switch_verified === 'boolean') evidence.tab_switch_verified = result.tab_switch_verified
+  if (typeof result.execution_duration_ms === 'number') evidence.execution_duration_ms = result.execution_duration_ms
+
+  for (const key of [
+    'form_field_name',
+    'form_field_label',
+    'form_field_type',
+    'form_id',
+    'field_valid',
+    'validation_message',
+    'form_valid',
+    'invalid_field_count',
+    'filled_field_count',
+    'submit_control_detected',
+    'next_page_url',
+    'pagination_mode',
+    'pagination_control_label',
+    'pagination_used_fallback_click',
+    'upload_target_selector',
+    'upload_input_hidden',
+    'upload_files_count',
+    'upload_backed_by_file_input',
+    'upload_requires_user_file_selection',
+    'upload_accepted',
+  ]) {
+    const value = result[key as keyof ExecutionResult]
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null) {
+      evidence[key] = value
+    }
+  }
+
+  for (const key of ['requested_url', 'opened_window_id', 'tab_created_ms', 'navigation_complete_ms', 'capture_completed_ms']) {
+    const value = timeline[key]
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null) {
+      evidence[key] = value
+    }
+  }
+
+  return Object.keys(evidence).length > 0 ? evidence : undefined
 }
 
 function buildSupplementalContext(

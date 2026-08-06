@@ -15,8 +15,15 @@ def build_runtime_artifacts(page_context: Any, prior_steps: list[Any]) -> list[R
         result = str(data.get("execution_result") or "")
         page_url = str(data.get("page_url") or "")
         metadata = data.get("page_metadata") or {}
+        evidence = data.get("browser_evidence") if isinstance(data.get("browser_evidence"), dict) else {}
+        evidence_url = _evidence_url(evidence)
         if action_type == "open_new_tab" and _success(result):
-            artifacts.append(_artifact("opened_page", "OPEN", action_type, page_url, {"url": str(data.get("value") or page_url)}, index))
+            artifacts.append(_artifact("opened_page", "OPEN", action_type, evidence_url or page_url, {
+                "url": evidence_url or str(data.get("value") or page_url),
+                "title": str(evidence.get("page_title") or data.get("page_title") or ""),
+                "opened_tab_id": str(evidence.get("opened_tab_id") or ""),
+                "tab_switch_verified": str(evidence.get("tab_switch_verified") or ""),
+            }, index))
         if action_type in {"fill", "select_option", "choose_date"} and _success(result):
             artifacts.append(_artifact("form_field", "VALIDATE", action_type, page_url, {"selector": str(data.get("target_selector") or "")}, index))
         if isinstance(metadata, dict):
@@ -65,6 +72,14 @@ def _owner_phase(artifact_type: str) -> str:
 
 def _success(result: str) -> bool:
     return is_successful_execution_result(result)
+
+
+def _evidence_url(evidence: dict[str, Any]) -> str | None:
+    for key in ("page_url", "requested_url", "opened_url", "url"):
+        value = str(evidence.get(key) or "")
+        if value.startswith(("http://", "https://")):
+            return value
+    return None
 
 
 def _dedupe(artifacts: list[RuntimeArtifact]) -> list[RuntimeArtifact]:

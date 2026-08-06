@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.intent_dispatcher.models import ExecutionContext, IntentDispatchDirective
 from app.intent_providers.browser_intelligence_executor import execute
+from app.runtime_state_manager.entity_binding import list_entities
 
 
 def _directive() -> IntentDispatchDirective:
@@ -135,3 +136,56 @@ def test_collects_serp_results_preserves_semantic_source_fields():
     assert item["source_domain"] == "example.com"
     assert item["normalized_url"] == "https://example.com/agents"
     assert item["relevance_score"] == 0.8
+
+
+def test_collect_search_results_registers_ranked_entities_for_open_phase():
+    context = ExecutionContext(
+        mission_id="serp-entity-registration",
+        task="Open Google Search and search for: `best AI browser automation tools 2026`. Open the top 5 relevant results.",
+        page_context={"url": "https://www.google.com/search?q=best+AI+browser+automation+tools+2026"},
+        browser_intelligence={
+            "page_model": {
+                "search_results": [
+                    {"rank": 1, "title": "Tool A", "url": "https://tool-a.example/pricing", "relevance_score": 0.91},
+                    {"rank": 2, "title": "Tool B", "url": "https://tool-b.example/docs", "relevance_score": 0.84},
+                ]
+            }
+        },
+    )
+
+    result = execute(context, _directive())
+
+    payload = result.evidence[0].payload
+    entities = [entity for entity in list_entities("serp-entity-registration") if entity.entity_type == "search_result"]
+    assert payload["registered_entity_count"] == 2
+    assert payload["source_collection_policy"]["requested_source_count"] == 5
+    assert payload["source_collection_policy"]["available_source_count"] == 2
+    assert [entity.canonical_url for entity in entities] == [
+        "https://tool-a.example/pricing",
+        "https://tool-b.example/docs",
+    ]
+    assert entities[0].metadata["rank"] == "1"
+
+
+def test_collect_search_results_filters_ads_and_unwraps_google_redirects():
+    context = ExecutionContext(
+        mission_id="serp-filtering",
+        task="Search and summarize browser automation sources.",
+        browser_intelligence={
+            "page_model": {
+                "search_results": [
+                    {"rank": 1, "title": "Ad", "url": "https://ad.example/", "is_ad": True},
+                    {"rank": 2, "title": "Google Search", "url": "https://www.google.com/search?q=other"},
+                    {"rank": 3, "title": "External", "url": "https://www.google.com/url?q=https%3A%2F%2Fexternal.example%2Fguide&sa=U"},
+                ]
+            }
+        },
+    )
+
+    result = execute(context, _directive())
+
+    results = result.evidence[0].payload["search_results"]
+    assert len(results) == 1
+    assert results[0]["url"] == "https://www.google.com/url?q=https%3A%2F%2Fexternal.example%2Fguide&sa=U"
+    assert results[0]["normalized_url"] == "https://external.example/guide"
+    assert results[0]["source_domain"] == "external.example"

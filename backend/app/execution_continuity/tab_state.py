@@ -35,7 +35,14 @@ def _visited_urls(prior_steps: list[Any], current_url: str) -> list[str]:
     urls: list[str] = []
     for step in prior_steps:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
-        for candidate in (data.get("page_url"), data.get("value")):
+        evidence = data.get("browser_evidence") if isinstance(data.get("browser_evidence"), dict) else {}
+        for candidate in (
+            evidence.get("page_url"),
+            evidence.get("requested_url"),
+            evidence.get("opened_url"),
+            data.get("page_url"),
+            data.get("value"),
+        ):
             text = str(candidate or "")
             if text.startswith(("http://", "https://")) and text not in urls:
                 urls.append(text)
@@ -51,17 +58,18 @@ def _infer_tabs(prior_steps: list[Any], active: BrowserTabSnapshot) -> list[Brow
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
         if str(data.get("action_type") or "").lower() not in {"open_new_tab", "switch_tab", "focus_existing_tab"}:
             continue
-        url = _url_from_value(data.get("value")) or str(data.get("page_url") or "")
+        evidence = data.get("browser_evidence") if isinstance(data.get("browser_evidence"), dict) else {}
+        url = _url_from_value(evidence.get("page_url")) or _url_from_value(evidence.get("requested_url")) or _url_from_value(evidence.get("opened_url")) or _url_from_value(data.get("value")) or str(data.get("page_url") or "")
         if not url or url in seen:
             continue
         seen.add(url)
         tabs.append(
             BrowserTabSnapshot(
-                tab_id=_stable_tab_id(url),
+                tab_id=_tab_id(evidence, url),
                 url=url,
-                title=str(data.get("page_title") or ""),
+                title=str(evidence.get("page_title") or data.get("page_title") or ""),
                 purpose=_infer_purpose(str(data.get("description") or ""), url),
-                active=False,
+                active=bool(evidence.get("tab_switch_verified")) and str(data.get("action_type") or "").lower() in {"switch_tab", "focus_existing_tab"},
             )
         )
     if active.url not in seen:
@@ -93,6 +101,16 @@ def _url_from_value(value: Any) -> str | None:
 
 def _stable_tab_id(value: str) -> str:
     return hashlib.sha1(value.encode("utf-8")).hexdigest()[:10]
+
+
+def _tab_id(evidence: dict[str, Any], fallback_url: str) -> str:
+    for key in ("active_tab_id", "opened_tab_id"):
+        value = evidence.get(key)
+        if isinstance(value, int):
+            return str(value)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return _stable_tab_id(fallback_url)
 
 
 def _infer_purpose(text: str, url: str) -> str:

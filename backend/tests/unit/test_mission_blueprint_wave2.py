@@ -107,6 +107,69 @@ def test_navigation_goal_creates_target_state_graph(monkeypatch):
     assert result.capabilities.capabilities == ["Browser", "Validation"]
 
 
+def test_search_result_pricing_comparison_creates_research_blueprint(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+
+    result = MissionBlueprintBuilder().build(
+        mission_id="wave2-pricing-comparison",
+        user_goal=(
+            "Open the official websites of 3 AI code assistant products from search results. "
+            "Find pricing pages and return a comparison table with source URLs."
+        ),
+    )
+
+    assert result.mission_type == MissionType.RESEARCH
+    assert "open_result_3" in [node.node_id for node in result.blueprint.nodes]
+    assert "generate_report" in [node.node_id for node in result.blueprint.nodes]
+
+
+def test_official_documentation_search_creates_research_blueprint(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+
+    result = MissionBlueprintBuilder().build(
+        mission_id="wave2-docs-research",
+        user_goal=(
+            "Search the web for official documentation or product pages about browser automation tools. "
+            "Pick 3 different tools and extract supported languages and setup requirements."
+        ),
+    )
+
+    assert result.mission_type == MissionType.RESEARCH
+    assert "collect_serp_results" in [node.node_id for node in result.blueprint.nodes]
+    assert "extract_fields_3" in [node.node_id for node in result.blueprint.nodes]
+
+
+def test_signup_and_public_form_do_not_become_research_blueprints(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+
+    signup = MissionBlueprintBuilder().build(
+        mission_id="wave2-signup-policy",
+        user_goal=(
+            "Open a real SaaS website that offers a free account or free trial, complete the signup flow, "
+            "locate one profile field, and return a report."
+        ),
+    )
+    form = MissionBlueprintBuilder().build(
+        mission_id="wave2-public-form-policy",
+        user_goal="Open a public form with test data, fix validation errors, and submit only if it is a sandbox form.",
+    )
+
+    assert signup.mission_type == MissionType.NAVIGATION
+    assert form.mission_type == MissionType.NAVIGATION
+    assert "fill_form_fields" in [node.node_id for node in signup.blueprint.nodes]
+    assert "fill_form_fields" in [node.node_id for node in form.blueprint.nodes]
+    assert "validate_form_state" in [node.node_id for node in form.blueprint.nodes]
+    assert "Form Workflow" in form.capabilities.capabilities
+    signup_policy = next(node for node in signup.blueprint.nodes if node.node_id == "define_form_workflow").metadata["action_payload"]["signup_policy"]
+    assert signup_policy["submit_gate"] == "explicit_approval_required"
+    assert "payment_or_checkout" in signup_policy["blocked_actions"]
+    fill_node = next(node for node in form.blueprint.nodes if node.node_id == "fill_form_fields")
+    assert fill_node.metadata["action_payload"]["form_workflow"]["requires_fake_data"] is True
+    assert "signup_policy" not in fill_node.metadata["action_payload"]["form_workflow"]
+    submit_node = next(node for node in form.blueprint.nodes if node.node_id == "submit_if_policy_allows")
+    assert submit_node.metadata["action_payload"]["submit_policy"] == "sandbox_only"
+
+
 def test_data_extraction_goal_creates_extraction_graph(monkeypatch):
     monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
 
@@ -138,6 +201,25 @@ def test_file_processing_goal_creates_file_graph(monkeypatch):
         "deliver_file_result",
     ]
     assert "File Processing" in result.capabilities.capabilities
+
+
+def test_file_upload_goal_creates_upload_broker_graph(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+
+    result = MissionBlueprintBuilder().build(
+        mission_id="wave2-upload",
+        user_goal="Open a public upload page, upload a small PDF file, confirm it was accepted, and report the result.",
+    )
+
+    node_ids = [node.node_id for node in result.blueprint.nodes]
+    assert result.mission_type == MissionType.FILE_PROCESSING
+    assert "locate_upload_target" in node_ids
+    assert "activate_upload_control" in node_ids
+    activate = next(node for node in result.blueprint.nodes if node.node_id == "activate_upload_control")
+    policy = activate.metadata["action_payload"]["file_upload_broker"]
+    assert policy["requires_user_selected_file"] is True
+    assert "pdf" in policy["allowed_file_kinds"]
+    assert "upload_accepted" in policy["required_evidence"]
 
 
 def test_dependency_graph_is_sequential_acyclic_and_critical(monkeypatch):

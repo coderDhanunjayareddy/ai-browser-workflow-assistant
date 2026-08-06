@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import re
+
 from app.core.config import settings
-from app.knowledge_extraction.collection_policy import build_collection_policy, evaluate_collection_page
+from app.knowledge_extraction.collection_policy import build_collection_policy, evaluate_collection_page, evaluate_collection_pages
 from app.knowledge_extraction.engine import KnowledgeExtractionPipeline
 from app.knowledge_extraction.extraction_engine import required_fields_for_task
 from app.knowledge_extraction.page_reader import read_page
@@ -31,22 +33,25 @@ def _page(text: str, *, title: str = "Example Tool", url: str = "https://example
 
 
 def _directory_page(*, url: str = "https://directory.example/page/1") -> PageContext:
+    match = re.search(r"/page/(\d+)", url)
+    page_number = int(match.group(1)) if match else 1
+    next_number = page_number + 1
     return PageContext(
         url=url,
         title="Example Directory",
         metadata={"description": "Directory page"},
         interactive_elements=[
-            InteractiveElement(type="a", selector="#acme", text="Acme Labs", href="https://directory.example/acme", visible=True),
-            InteractiveElement(type="a", selector="#beta", text="Beta Systems", href="https://directory.example/beta", visible=True),
-            InteractiveElement(type="a", selector="#next", text="Next", href="https://directory.example/page/2", visible=True),
+            InteractiveElement(type="a", selector="#acme", text="Acme Labs", href=f"https://directory.example/acme-{page_number}", visible=True),
+            InteractiveElement(type="a", selector="#beta", text="Beta Systems", href=f"https://directory.example/beta-{page_number}", visible=True),
+            InteractiveElement(type="a", selector="#next", text="Next", href=f"https://directory.example/page/{next_number}", visible=True),
         ],
         content_blocks=[
-            ContentBlock(selector=".item-a", text="Acme Labs Contact hello@acme.test Phone +1 555 123 4567", href="https://directory.example/acme"),
-            ContentBlock(selector=".item-b", text="Beta Systems Contact team@beta.test Phone +1 555 987 6543", href="https://directory.example/beta"),
+            ContentBlock(selector=".item-a", text=f"Acme Labs Contact hello{page_number}@acme.test Phone +1 555 123 4567", href=f"https://directory.example/acme-{page_number}"),
+            ContentBlock(selector=".item-b", text=f"Beta Systems Contact team{page_number}@beta.test Phone +1 555 987 6543", href=f"https://directory.example/beta-{page_number}"),
         ],
         headings=["Example Directory"],
         selected_text="",
-        visible_text="Acme Labs Contact hello@acme.test Phone +1 555 123 4567\nBeta Systems Contact team@beta.test Phone +1 555 987 6543",
+        visible_text=f"Acme Labs Contact hello{page_number}@acme.test Phone +1 555 123 4567\nBeta Systems Contact team{page_number}@beta.test Phone +1 555 987 6543",
         images=[],
     )
 
@@ -131,6 +136,26 @@ def test_collection_pipeline_emits_item_level_directory_records(monkeypatch):
     assert len(snapshot.extraction_records) >= 2
     assert all(record.entity_type == "directory_entry" for record in snapshot.extraction_records)
     assert {record.fields["name"] for record in snapshot.extraction_records} >= {"Acme Labs", "Beta Systems"}
+
+
+def test_collection_policy_respects_requested_minimum_pages():
+    task = "Collect 20 entries across at least 3 pages from a multi-page directory."
+    policy = build_collection_policy(task)
+    reads = [
+        read_page(_directory_page(url="https://directory.example/page/1")),
+        read_page(_directory_page(url="https://directory.example/page/2")),
+        read_page(_directory_page(url="https://directory.example/page/3")),
+    ]
+
+    state = evaluate_collection_pages(task, reads)
+
+    assert policy is not None
+    assert policy.minimum_pages == 3
+    assert policy.max_pages >= 3
+    assert state is not None
+    assert state.pages_visited_count == 3
+    assert state.stop_reason == "max_pages_reached"
+    assert len(state.visited_pages) == 3
 
 
 def test_collection_pipeline_extracts_quote_card_fields(monkeypatch):
@@ -352,6 +377,45 @@ def test_documentation_pages_emit_documentation_entity(monkeypatch):
     assert "Browser Agent Docs" == record.entity["title"]
 
 
+def test_documentation_sections_extract_languages_setup_and_browser_control(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="docs-section-semantics",
+        task="Search official documentation pages. Extract supported languages, main use case, whether it supports browser control, and one setup requirement.",
+        page_context=_page(
+            "\n".join([
+                "Quickstart: install the SDK with npm install browser-agent and set an API key.",
+                "Supported SDKs include Python, JavaScript, and TypeScript.",
+                "Browser control lets agents navigate pages, click elements, fill forms, and extract content.",
+                "Use cases include web automation, scraping, and QA testing workflows.",
+            ]),
+            title="Browser Agent Quickstart",
+            url="https://docs.browseragent.example/quickstart",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    language_field = "languages" if "languages" in record.fields else "supported_languages"
+    setup_field = "setup_requirement" if "setup_requirement" in record.fields else "one_setup_requirement"
+    browser_control_field = "browser_control" if "browser_control" in record.fields else "whether_it_supports_browser_control"
+
+    assert record.entity_type == "documentation_page"
+    assert "Python" in record.fields[language_field]
+    assert "JavaScript" in record.fields[language_field]
+    assert "npm install browser-agent" in record.fields[setup_field]
+    assert "navigate pages" in record.fields[browser_control_field]
+    assert record.field_evidence[language_field].source_kind == "documentation_section"
+    assert record.field_evidence[setup_field].source_kind == "documentation_section"
+    assert record.entity["official_source_score"] >= 0.75
+    assert record.entity["documentation_sections"]
+
+
 def test_job_pages_emit_job_posting_entity(monkeypatch):
     monkeypatch.setattr(settings, "v50_page_reader", "active")
     monkeypatch.setattr(settings, "v50_extraction_engine", "active")
@@ -372,7 +436,8 @@ def test_job_pages_emit_job_posting_entity(monkeypatch):
 
     record = snapshot.extraction_records[0]
     assert record.entity_type == "job_posting"
-    assert record.entity["title"] == "Senior Frontend Engineer - Acme"
+    assert record.entity["title"] == "Senior Frontend Engineer"
+    assert record.entity["company"] == "Acme"
     assert record.entity["apply_url"] == "https://acme.example/careers/frontend"
 
 
@@ -503,13 +568,213 @@ def test_research_pipeline_does_not_extract_google_serp_as_source(monkeypatch):
 def test_job_search_required_fields_are_generic():
     fields = required_fields_for_task("Collect jobs with title, company, location, experience and apply URL.")
 
-    assert {"title", "company", "location", "experience", "apply_url"} <= set(fields)
+    assert {"title", "company", "location", "posted_date", "experience", "apply_url"} <= set(fields)
+
+
+def test_filter_bullets_are_not_misread_as_required_fields():
+    fields = required_fields_for_task(
+        """Go to LinkedIn Jobs and search for Full Stack Java Developer Hyderabad.
+Apply these filters if available:
+- Experience level: Entry level or Associate
+- Date posted: Past week
+- On-site/Hybrid/Remote: any
+Then capture title, company, location, posted date, and job link."""
+    )
+
+    assert "experience_level_entry_level_or_associate" not in fields
+    assert {"title", "company", "location", "posted_date", "apply_url"} <= set(fields)
+
+
+def test_pricing_prompt_maps_to_pricing_schema_fields():
+    fields = required_fields_for_task(
+        "Capture the free plan, paid plan starting price, whether a trial is available, and one feature."
+    )
+
+    assert {"free_plan", "paid_plan_starting_price", "trial_available", "feature"} <= set(fields)
 
 
 def test_documentation_extraction_fields_are_generic():
     fields = required_fields_for_task("Extract supported languages, setup requirement, and browser control from documentation.")
 
     assert {"languages", "setup_requirement", "browser_control"} <= set(fields)
+
+
+def test_best_practice_prompt_maps_to_checklist_schema_fields():
+    fields = required_fields_for_task("Extract top recommended testing practices and create a checklist with source URL.")
+
+    assert fields == ["practice", "category", "source_url"]
+
+
+def test_pricing_extraction_captures_free_paid_trial_and_feature(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="pricing-schema-fields",
+        task="Capture the free plan, paid plan starting price, whether a trial is available, and one feature.",
+        page_context=_page(
+            "Free plan includes 2,000 completions. Pro plan starts at $10 per month. A 14-day free trial is available. Features include code completion and chat.",
+            title="Code Helper Pricing",
+            url="https://codehelper.example/pricing",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert "Free plan" in record.fields["free_plan"]
+    assert "$10" in record.fields["paid_plan_starting_price"]
+    assert "trial" in record.fields["trial_available"].lower()
+    assert "Features include" in record.fields["feature"]
+
+
+def test_pricing_plan_cards_extract_free_paid_trial_feature_and_entity(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="pricing-plan-cards",
+        task="Find the pricing page. Capture the free plan, paid plan starting price, whether a trial is available, and one feature.",
+        page_context=_page(
+            "\n".join([
+                "Free plan $0 per month includes 2,000 completions and community support.",
+                "Pro plan starts at $10 /mo with code completion, chat, and repository context.",
+                "Business plan $39 per month includes SSO and priority support.",
+                "A 14-day free trial is available for Pro.",
+                "Enterprise plan requires contacting sales.",
+            ]),
+            title="Code Helper Pricing",
+            url="https://codehelper.example/pricing",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+
+    assert record.entity_type == "pricing_plan"
+    assert "Free" in record.fields["free_plan"]
+    assert "$0" in record.fields["free_plan"]
+    assert "$10" in record.fields["paid_plan_starting_price"]
+    assert "trial" in record.fields["trial_available"].lower()
+    assert "code completion" in record.fields["feature"].lower()
+    assert record.field_evidence["free_plan"].source_kind == "pricing_plan"
+    assert record.entity["free_tier"] is True
+    assert record.entity["paid_plan_starting_price"]
+    assert len(record.entity["plans"]) >= 3
+
+
+def test_job_extraction_uses_apply_link_and_posted_date(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    pipeline = KnowledgeExtractionPipeline()
+    page = _page(
+        "Full Stack Java Developer job in Hyderabad. Posted 3 days ago. Entry level experience accepted.",
+        title="Full Stack Java Developer - ExampleSoft",
+        url="https://examplesoft.example/careers/java",
+    )
+    page.interactive_elements.append(
+        InteractiveElement(type="a", selector="#apply", text="Apply now", href="https://examplesoft.example/jobs/java/apply", visible=True)
+    )
+
+    snapshot = pipeline.observe(
+        session_id="job-schema-fields",
+        task="Capture title, company, location, posted date, experience, and job link.",
+        page_context=page,
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert record.fields["company"] == "ExampleSoft"
+    assert "Hyderabad" in record.fields["location"]
+    assert "Posted 3 days ago" in record.fields["posted_date"]
+    assert record.fields["apply_url"] == "https://examplesoft.example/jobs/java/apply"
+
+
+def test_page_reader_builds_job_posting_candidates_from_cards():
+    page = PageContext(
+        url="https://jobs.example/careers",
+        title="ExampleSoft Careers",
+        metadata={"description": "Open roles"},
+        interactive_elements=[
+            InteractiveElement(type="a", selector="#java", text="Apply now", href="https://jobs.example/apply/java", visible=True),
+            InteractiveElement(type="a", selector="#react", text="React Engineer job", href="https://jobs.example/jobs/react", visible=True),
+        ],
+        content_blocks=[
+            ContentBlock(
+                selector=".job-card-1",
+                text="Full Stack Java Developer. Location: Hyderabad. Experience: 2-4 years. Posted 3 days ago. Full-time. Apply now.",
+                href="https://jobs.example/jobs/java",
+            ),
+            ContentBlock(
+                selector=".job-card-2",
+                text="React Frontend Engineer. Remote. Associate experience accepted. Posted today.",
+                href="https://jobs.example/jobs/react",
+            ),
+        ],
+        headings=["ExampleSoft Careers"],
+        selected_text="",
+        visible_text="",
+        images=[],
+    )
+
+    artifact = read_page(page)
+
+    assert len(artifact.job_postings) == 2
+    assert artifact.job_postings[0]["title"] == "Full Stack Java Developer"
+    assert artifact.job_postings[0]["location"] == "Hyderabad"
+    assert artifact.job_postings[0]["experience"] == "2-4 years"
+    assert artifact.job_postings[0]["apply_url"] == "https://jobs.example/apply/java"
+
+
+def test_job_extraction_prefers_structured_job_posting_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    monkeypatch.setattr(settings, "v50_synthesis", "active")
+    pipeline = KnowledgeExtractionPipeline()
+    page = PageContext(
+        url="https://linkedin.example/jobs/search",
+        title="LinkedIn Jobs Search",
+        metadata={"description": "Search results"},
+        interactive_elements=[
+            InteractiveElement(type="a", selector="#apply", text="Apply now", href="https://linkedin.example/jobs/view/123/apply", visible=True),
+        ],
+        content_blocks=[
+            ContentBlock(
+                selector=".job-card",
+                text="Associate Full Stack Java Developer at ExampleSoft. Hyderabad, Telangana. Posted today. Entry level. Apply now.",
+                href="https://linkedin.example/jobs/view/123",
+            ),
+        ],
+        headings=["Full Stack Java Developer Hyderabad"],
+        selected_text="",
+        visible_text="",
+        images=[],
+    )
+
+    snapshot = pipeline.observe(
+        session_id="job-card-schema-fields",
+        task="Capture title, company, location, posted date, experience needed, and application link.",
+        page_context=page,
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert record.fields["title"] == "Associate Full Stack Java Developer"
+    assert record.fields["company"] == "ExampleSoft"
+    assert "Hyderabad" in record.fields["location"]
+    assert record.fields["posted_date"] == "Posted today"
+    assert record.fields["experience"] == "Entry level"
+    assert record.fields["apply_url"] == "https://linkedin.example/jobs/view/123/apply"
+    assert record.field_evidence["title"].source_kind == "job_posting"
+    assert record.entity["job_candidates"]
 
 
 def test_validation_reports_missing_fields():

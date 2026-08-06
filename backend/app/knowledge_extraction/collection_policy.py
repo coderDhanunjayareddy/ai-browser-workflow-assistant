@@ -14,6 +14,7 @@ class CollectionPolicy:
     policy_id: str
     collection_type: Literal["directory", "search_results", "generic_list"]
     requested_count: int
+    minimum_pages: int
     max_pages: int
     stop_conditions: list[str]
     dedupe_keys: list[str]
@@ -62,6 +63,8 @@ class CollectionPageState:
     next_url: str | None
     total_seen_count: int
     new_item_count: int
+    pages_visited_count: int
+    visited_pages: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -81,11 +84,13 @@ def build_collection_policy(task: str) -> CollectionPolicy | None:
     elif any(term in text for term in ("search results", "serp", "top results")):
         collection_type = "search_results"
     requested_count = _requested_count(text)
-    max_pages = min(max(2, (requested_count + 9) // 10), 10)
+    minimum_pages = _minimum_pages(text)
+    max_pages = min(max(2, minimum_pages, (requested_count + 9) // 10), 10)
     return CollectionPolicy(
         policy_id="collection_policy_" + hashlib.sha1(text.encode("utf-8")).hexdigest()[:12],
         collection_type=collection_type,
         requested_count=requested_count,
+        minimum_pages=minimum_pages,
         max_pages=max_pages,
         stop_conditions=["requested_count_reached", "max_pages_reached", "no_new_items", "no_next_page"],
         dedupe_keys=["normalized_url", "normalized_name", "source_text_hash"],
@@ -103,15 +108,18 @@ def evaluate_collection_page(
 ) -> CollectionPageState:
     seen = set(seen_item_keys or set())
     visited = {_normalize_url(url) for url in set(visited_pages or set()) if _normalize_url(url)}
+    current_url = _normalize_url(page.canonical_url)
+    visited_with_current = {url for url in [*visited, current_url] if url}
     items = _item_candidates(page, policy)
     new_items = [item for item in items if item.item_key not in seen]
     pagination = _pagination_candidates(page)
-    next_url = _next_url(pagination, visited)
+    next_url = _next_url(pagination, visited_with_current)
     total_seen = len(seen | {item.item_key for item in items})
+    pages_visited = len(visited_with_current)
     stop_reason = ""
-    if total_seen >= policy.requested_count:
+    if total_seen >= policy.requested_count and pages_visited >= policy.minimum_pages:
         stop_reason = "requested_count_reached"
-    elif len(visited) >= policy.max_pages:
+    elif pages_visited >= policy.max_pages:
         stop_reason = "max_pages_reached"
     elif not new_items and seen:
         stop_reason = "no_new_items"
@@ -128,6 +136,8 @@ def evaluate_collection_page(
         next_url=next_url,
         total_seen_count=total_seen,
         new_item_count=len(new_items),
+        pages_visited_count=pages_visited,
+        visited_pages=sorted(visited_with_current),
     )
 
 
@@ -155,6 +165,8 @@ def evaluate_collection_pages(task: str, pages: list[PageReadArtifact]) -> Colle
             next_url=state.next_url,
             total_seen_count=state.total_seen_count,
             new_item_count=state.new_item_count,
+            pages_visited_count=len(visited),
+            visited_pages=sorted(visited),
         )
     return state
 
@@ -175,6 +187,19 @@ def _requested_count(text: str) -> int:
         if match:
             return max(1, min(int(match.group(1)), 200))
     return 50
+
+
+def _minimum_pages(text: str) -> int:
+    patterns = [
+        r"\bacross\s+at\s+least\s+(\d{1,2})\s+pages?\b",
+        r"\bat\s+least\s+(\d{1,2})\s+pages?\b",
+        r"\bacross\s+(\d{1,2})\s+pages?\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            return max(1, min(int(match.group(1)), 10))
+    return 1
 
 
 def _item_candidates(page: PageReadArtifact, policy: CollectionPolicy) -> list[CollectionItemCandidate]:

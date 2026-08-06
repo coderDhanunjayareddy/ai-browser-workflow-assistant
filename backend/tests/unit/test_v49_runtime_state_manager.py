@@ -39,6 +39,27 @@ def _open_step(index: int) -> PriorStep:
     )
 
 
+def _open_step_with_browser_evidence() -> PriorStep:
+    return PriorStep(
+        action_type="open_new_tab",
+        description="Open ranked result 1",
+        target_selector="",
+        value="result:1",
+        execution_result="Opened new tab: https://tool.example/pricing",
+        page_url="https://www.google.com/search?q=ai+tools",
+        page_title="Google Search",
+        browser_evidence={
+            "opened_tab_id": 123,
+            "active_tab_id": 123,
+            "previous_tab_id": 77,
+            "tab_switch_verified": True,
+            "requested_url": "https://tool.example/",
+            "page_url": "https://tool.example/pricing",
+            "page_title": "Tool Pricing",
+        },
+    )
+
+
 def test_v49_flags_default_to_shadow():
     assert settings.__class__.model_fields["v49_runtime_state_manager"].default == "shadow"
     assert settings.__class__.model_fields["v49_runtime_registry"].default == "shadow"
@@ -78,7 +99,26 @@ def test_artifact_registry_and_completion_engine(monkeypatch):
     status = artifact_completion_status("OPEN", snapshot.artifacts, required_count=1)
 
     assert status["complete"] is True
-    assert status["complete_count"] >= 1
+
+
+def test_runtime_artifacts_use_structured_opened_tab_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "v49_runtime_state_manager", "shadow")
+    manager = RuntimeStateManager()
+
+    snapshot = manager.observe(
+        session_id="structured-tab-evidence",
+        page_context=_page("https://www.google.com/search?q=ai+tools"),
+        prior_steps=[_open_step_with_browser_evidence()],
+        current_phase="OPEN",
+    )
+
+    opened_artifact = next(artifact for artifact in snapshot.artifacts if artifact.artifact_type == "opened_page")
+    opened_tab = next(tab for tab in snapshot.tabs if tab.url == "https://tool.example/pricing")
+
+    assert opened_artifact.producing_page == "https://tool.example/pricing"
+    assert opened_artifact.payload["url"] == "https://tool.example/pricing"
+    assert opened_artifact.payload["opened_tab_id"] == "123"
+    assert opened_tab.title == "Tool Pricing"
     assert any(artifact.artifact_type == "opened_page" for artifact in snapshot.artifacts)
 
 

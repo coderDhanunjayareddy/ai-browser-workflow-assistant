@@ -58,6 +58,9 @@ test('visible file input activates upload without fabricating file contents', ()
   assert.equal(result.upload_attempted, true)
   assert.equal(result.upload_completed, false)
   assert.equal(result.filename, null)
+  assert.equal(result.upload_target_selector, '#file')
+  assert.equal(result.upload_requires_user_file_selection, true)
+  assert.equal(result.upload_accepted, false)
 })
 
 test('hidden file input can be activated through backed control metadata', () => {
@@ -83,6 +86,9 @@ test('upload verification reports selected filename when file is already present
   assert.equal(result.success, true)
   assert.equal(result.upload_completed, true)
   assert.equal(result.filename, 'resume.pdf')
+  assert.equal(result.upload_files_count, 1)
+  assert.equal(result.upload_requires_user_file_selection, false)
+  assert.equal(result.upload_accepted, true)
 })
 
 test('non-upload and destructive upload actions are ignored', () => {

@@ -14,6 +14,20 @@ export interface BasicExecutionResult {
   action_id: string
   page_context?: unknown
   browser_timeline?: Record<string, number | string | boolean | null>
+  form_field_name?: string | null
+  form_field_label?: string | null
+  form_field_type?: string | null
+  form_id?: string | null
+  field_valid?: boolean
+  validation_message?: string | null
+  form_valid?: boolean
+  invalid_field_count?: number
+  filled_field_count?: number
+  submit_control_detected?: boolean
+  next_page_url?: string | null
+  pagination_mode?: string | null
+  pagination_control_label?: string | null
+  pagination_used_fallback_click?: boolean
   wave2_capability?: string
   wave2_validated?: boolean
   wave3_capability?: string
@@ -70,6 +84,12 @@ export interface VerifiedExecutionResult extends BasicExecutionResult {
   recovery_reason?: string | null
   upload_attempted?: boolean
   upload_completed?: boolean
+  upload_target_selector?: string | null
+  upload_input_hidden?: boolean
+  upload_files_count?: number
+  upload_backed_by_file_input?: boolean
+  upload_requires_user_file_selection?: boolean
+  upload_accepted?: boolean
   download_detected?: boolean
   download_completed?: boolean
   filename?: string | null

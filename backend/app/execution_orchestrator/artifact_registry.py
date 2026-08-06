@@ -24,10 +24,14 @@ def build_artifacts(page_context: Any, prior_steps: list[Any]) -> ArtifactRegist
         result = str(data.get("execution_result") or "")
         value = str(data.get("value") or "")
         page_url = str(data.get("page_url") or "")
+        browser_evidence = data.get("browser_evidence") if isinstance(data.get("browser_evidence"), dict) else {}
+        evidence_url = _evidence_url(browser_evidence)
         if page_url.startswith(("http://", "https://")):
             _append_unique(visited_urls, page_url)
+        if evidence_url:
+            _append_unique(visited_urls, evidence_url)
         if action_type == "open_new_tab" and _success(result):
-            url = _url(value) or page_url
+            url = evidence_url or _url(value) or page_url
             if url:
                 _append_unique(opened_pages, url)
         if action_type == "fill" and _success(result):
@@ -90,3 +94,12 @@ def _success(result: str) -> bool:
 def _url(value: str) -> str | None:
     match = re.search(r"https?://[^\s<>'\"]+", value or "", flags=re.IGNORECASE)
     return match.group(0).rstrip("),.;]") if match else None
+
+
+def _evidence_url(evidence: dict[str, Any]) -> str | None:
+    for key in ("page_url", "requested_url", "opened_url", "url"):
+        candidate = str(evidence.get(key) or "")
+        url = _url(candidate)
+        if url:
+            return url
+    return None

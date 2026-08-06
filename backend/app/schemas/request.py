@@ -50,6 +50,7 @@ class PriorStep(BaseModel):
     page_url: Optional[str] = None
     page_title: Optional[str] = None
     page_metadata: dict[str, str] = Field(default_factory=dict, max_length=20)
+    browser_evidence: dict[str, Any] = Field(default_factory=dict, max_length=30)
 
 
 class AnalyzeRequest(BaseModel):

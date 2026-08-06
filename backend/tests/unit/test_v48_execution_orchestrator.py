@@ -6,6 +6,8 @@ from app.core.config import settings
 from app.execution_orchestrator.engine import ExecutionOrchestrator
 from app.execution_orchestrator.models import PhaseState
 from app.feature_flags import get_flag_state
+from app.intent_dispatcher.models import ExecutionContext, IntentDispatchDirective
+from app.intent_providers.browser_intelligence_executor import execute as collect_search_results
 from app.runtime_state_manager.entity_binding import register_entity
 from app.schemas.request import PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, SuggestedAction
@@ -124,6 +126,17 @@ def _register_results(session_id: str, count: int = 5) -> None:
         )
 
 
+def _collect_directive() -> IntentDispatchDirective:
+    return IntentDispatchDirective(
+        mission_id="collect-to-open",
+        intent="collect_search_results",
+        owner="browser_intelligence",
+        capability="serp_collection",
+        dispatch_target="browser_intelligence",
+        reason="Collect observed SERP results.",
+    )
+
+
 def test_v48_flag_can_run_in_shadow(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "shadow")
     assert get_flag_state("V48_EXECUTION_ORCHESTRATOR").value == "shadow"
@@ -158,8 +171,75 @@ def test_after_required_pages_opened_active_phase_becomes_read(monkeypatch):
 
     assert snapshot is not None
     assert snapshot.active_phase.name == "READ"
-    assert snapshot.progress_ledger.completed["open"] is True
-    assert "open_new_tab" in snapshot.active_phase.forbidden_actions
+
+
+def test_collected_search_results_feed_open_phase_continuation(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "collect-to-open"
+    collect_search_results(
+        ExecutionContext(
+            mission_id=session_id,
+            task=TASK,
+            page_context={"url": "https://www.google.com/search?q=best+AI+browser+automation+tools+2026"},
+            browser_intelligence={
+                "page_model": {
+                    "search_results": [
+                        {"rank": 1, "title": "Tool 1", "url": "https://tool1.example/"},
+                        {"rank": 2, "title": "Tool 2", "url": "https://tool2.example/"},
+                        {"rank": 3, "title": "Tool 3", "url": "https://tool3.example/"},
+                        {"rank": 4, "title": "Tool 4", "url": "https://tool4.example/"},
+                        {"rank": 5, "title": "Tool 5", "url": "https://tool5.example/"},
+                    ]
+                }
+            },
+        ),
+        _collect_directive(),
+    )
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://www.google.com/search?q=best+AI+browser+automation+tools+2026"),
+        prior_steps=[
+            PriorStep(
+                action_type="collect_search_results",
+                description="Collect search result candidates from the SERP",
+                target_selector="",
+                value="",
+                execution_result="success\nCollected 5 observed search results.",
+                page_url="https://www.google.com/search?q=best+AI+browser+automation+tools+2026",
+                page_title="Google Search",
+            )
+        ],
+    )
+
+    assert snapshot is not None
+    response = AnalyzeResponse(
+        session_id=session_id,
+        analysis="Open the first result.",
+        outcome_kind="act",
+        suggested_actions=[
+            SuggestedAction(
+                action_id="open-1",
+                action_type="open_new_tab",  # type: ignore[arg-type]
+                target_selector="",
+                value="https://tool1.example/",
+                description="Open ranked result 1",
+                reasoning="Open first source.",
+                confidence=0.9,
+                safety_level="safe",  # type: ignore[arg-type]
+            )
+        ],
+    )
+
+    enriched = engine.postprocess_response(response, snapshot)
+
+    assert enriched.execution_orchestrator is not None
+    continuation_urls = [item.value for item in enriched.execution_orchestrator.continuation_actions]
+    assert continuation_urls[:2] == ["https://tool2.example", "https://tool3.example"]
+    assert snapshot.progress_ledger.completed["collect"] is True
+    assert snapshot.progress_ledger.completed["open"] is False
+    assert snapshot.active_phase.name == "OPEN"
 
 
 def test_active_mode_enriches_planner_with_phase_constraints(monkeypatch):

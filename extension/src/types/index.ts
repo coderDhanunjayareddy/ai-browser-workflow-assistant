@@ -167,6 +167,7 @@ export interface PriorStep {
   page_url?: string
   page_title?: string
   page_metadata?: Record<string, string>
+  browser_evidence?: Record<string, string | number | boolean | null>
 }
 
 export interface CompletedAction {
@@ -226,6 +227,20 @@ export interface ExecutionResult {
   action_id: string
   page_context?: PageContext
   browser_timeline?: Record<string, number | string | boolean | null>
+  form_field_name?: string | null
+  form_field_label?: string | null
+  form_field_type?: string | null
+  form_id?: string | null
+  field_valid?: boolean
+  validation_message?: string | null
+  form_valid?: boolean
+  invalid_field_count?: number
+  filled_field_count?: number
+  submit_control_detected?: boolean
+  next_page_url?: string | null
+  pagination_mode?: string | null
+  pagination_control_label?: string | null
+  pagination_used_fallback_click?: boolean
   verification?: ActionVerification
   execution_duration_ms?: number
   recovery_attempted?: boolean
@@ -235,6 +250,12 @@ export interface ExecutionResult {
   recovery_reason?: string | null
   upload_attempted?: boolean
   upload_completed?: boolean
+  upload_target_selector?: string | null
+  upload_input_hidden?: boolean
+  upload_files_count?: number
+  upload_backed_by_file_input?: boolean
+  upload_requires_user_file_selection?: boolean
+  upload_accepted?: boolean
   download_detected?: boolean
   download_completed?: boolean
   filename?: string | null

@@ -22,6 +22,9 @@ class PageReadArtifact:
     contact_blocks: list[str]
     navigation_context: list[dict[str, str]]
     timestamp_ms: int
+    pricing_plans: list[dict[str, str]] = field(default_factory=list)
+    documentation_sections: list[dict[str, str]] = field(default_factory=list)
+    job_postings: list[dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -33,7 +36,7 @@ class FieldEvidence:
     value: str
     source_url: str
     source_text: str
-    source_kind: Literal["title", "heading", "paragraph", "section", "pricing_block", "contact_block", "form", "url", "collection_item", "missing"]
+    source_kind: Literal["title", "heading", "paragraph", "section", "documentation_section", "pricing_block", "pricing_plan", "job_posting", "contact_block", "form", "url", "collection_item", "missing"]
     confidence: float
     missing_reason: str = ""
 

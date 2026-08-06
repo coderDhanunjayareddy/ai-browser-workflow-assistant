@@ -369,6 +369,189 @@ test('execute to refresh to analyze loop sends fresh observation with prior step
   assert.match(request.supplemental_context, /Authoritative user-provided answers/)
 })
 
+test('open new tab prior step carries structured browser evidence', () => {
+  const openedContext = pageContext({
+    url: 'https://tool.example/pricing',
+    title: 'Tool Pricing',
+    visible_text: 'Pricing details are visible',
+  })
+  const request = buildAnalyzeRequestBody(
+    'session-1',
+    'Open top results and compare pricing.',
+    openedContext,
+    [completedAction({
+      action: {
+        action_id: 'open-1',
+        action_type: 'open_new_tab',
+        value: 'result:1',
+        description: 'Open ranked result 1',
+      },
+      result: {
+        success: true,
+        message: 'Opened new tab: https://tool.example/pricing',
+        action_id: 'open-1',
+        opened_tab_id: 123,
+        previous_tab_id: 77,
+        active_tab_id: 123,
+        tab_switch_verified: true,
+        browser_timeline: {
+          requested_url: 'https://tool.example/',
+          opened_window_id: 1,
+          navigation_complete_ms: 456,
+        },
+      },
+      page_snapshot: {
+        url: 'https://tool.example/pricing',
+        title: 'Tool Pricing',
+        metadata: {},
+      },
+    })],
+    [],
+  )
+
+  assert.equal(request.prior_steps.length, 1)
+  assert.equal(request.prior_steps[0].browser_evidence.opened_tab_id, 123)
+  assert.equal(request.prior_steps[0].browser_evidence.previous_tab_id, 77)
+  assert.equal(request.prior_steps[0].browser_evidence.tab_switch_verified, true)
+  assert.equal(request.prior_steps[0].browser_evidence.page_url, 'https://tool.example/pricing')
+  assert.equal(request.prior_steps[0].browser_evidence.page_title, 'Tool Pricing')
+  assert.equal(request.prior_steps[0].browser_evidence.requested_url, 'https://tool.example/')
+})
+
+test('fill prior step carries form validation evidence', () => {
+  const request = buildAnalyzeRequestBody(
+    'session-1',
+    'Fill the sandbox form with fake data and fix validation errors.',
+    pageContext({
+      url: 'https://forms.example/sandbox',
+      title: 'Sandbox Form',
+      visible_text: 'Test form',
+    }),
+    [completedAction({
+      action: action({
+        action_id: 'fill-1',
+        action_type: 'fill',
+        target_selector: '#email',
+        value: 'alex.tester@example.test',
+        description: 'Fill email',
+      }),
+      result: {
+        success: true,
+        message: 'Filled field: #email',
+        action_id: 'fill-1',
+        form_field_name: 'email',
+        form_field_label: 'Email',
+        form_field_type: 'email',
+        field_valid: true,
+        form_valid: false,
+        invalid_field_count: 1,
+        filled_field_count: 1,
+        submit_control_detected: true,
+      },
+      page_snapshot: {
+        url: 'https://forms.example/sandbox',
+        title: 'Sandbox Form',
+        metadata: {},
+      },
+    })],
+    [],
+  )
+
+  const evidence = request.prior_steps[0].browser_evidence
+  assert.equal(evidence.form_field_name, 'email')
+  assert.equal(evidence.field_valid, true)
+  assert.equal(evidence.form_valid, false)
+  assert.equal(evidence.invalid_field_count, 1)
+  assert.match(request.prior_steps[0].execution_result, /Form Valid: no/)
+  assert.match(request.prior_steps[0].execution_result, /Invalid Fields: 1/)
+})
+
+test('navigate next page prior step carries pagination evidence', () => {
+  const request = buildAnalyzeRequestBody(
+    'session-1',
+    'Collect directory entries across at least 3 pages.',
+    pageContext({
+      url: 'https://directory.example/page/2',
+      title: 'Directory Page 2',
+      visible_text: 'More listings',
+    }),
+    [completedAction({
+      action: action({
+        action_id: 'next-1',
+        action_type: 'navigate_next_page',
+        target_selector: '',
+        value: 'https://directory.example/page/2',
+        description: 'Go to next page',
+      }),
+      result: {
+        success: true,
+        message: 'Navigating to next page: https://directory.example/page/2',
+        action_id: 'next-1',
+        next_page_url: 'https://directory.example/page/2',
+        pagination_mode: 'next_link',
+        pagination_control_label: 'Next',
+        pagination_used_fallback_click: false,
+      },
+      page_snapshot: {
+        url: 'https://directory.example/page/2',
+        title: 'Directory Page 2',
+        metadata: {},
+      },
+    })],
+    [],
+  )
+
+  const evidence = request.prior_steps[0].browser_evidence
+  assert.equal(evidence.next_page_url, 'https://directory.example/page/2')
+  assert.equal(evidence.pagination_mode, 'next_link')
+  assert.equal(evidence.pagination_control_label, 'Next')
+  assert.equal(evidence.pagination_used_fallback_click, false)
+})
+
+test('upload prior step carries file broker evidence', () => {
+  const request = buildAnalyzeRequestBody(
+    'session-1',
+    'Upload a small PDF file and report the result.',
+    pageContext({
+      url: 'https://upload.example/files',
+      title: 'Upload Files',
+      visible_text: 'Upload accepted',
+    }),
+    [completedAction({
+      action: action({
+        action_id: 'upload-1',
+        action_type: 'click',
+        target_selector: '#file',
+        description: 'Upload file',
+      }),
+      result: {
+        success: true,
+        message: 'File upload already selected: test.pdf',
+        action_id: 'upload-1',
+        upload_attempted: true,
+        upload_completed: true,
+        filename: 'test.pdf',
+        upload_target_selector: '#file',
+        upload_files_count: 1,
+        upload_backed_by_file_input: true,
+        upload_requires_user_file_selection: false,
+        upload_accepted: true,
+      },
+      page_snapshot: {
+        url: 'https://upload.example/files',
+        title: 'Upload Files',
+        metadata: {},
+      },
+    })],
+    [],
+  )
+
+  const evidence = request.prior_steps[0].browser_evidence
+  assert.equal(evidence.upload_target_selector, '#file')
+  assert.equal(evidence.upload_files_count, 1)
+  assert.equal(evidence.upload_accepted, true)
+})
+
 test('context budget manager leaves under-budget context unchanged', () => {
   const context = buildBudgetedPlannerContext([
     { heading: 'Mission Snapshot', content: 'Goal: Find invoice total', priority: 1 },
