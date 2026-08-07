@@ -10,6 +10,7 @@ SUCCESS_PREFIXES = (
     "navigated",
     "navigating",
     "opened",
+    "focused",
     "waited",
     "scrolled",
 )

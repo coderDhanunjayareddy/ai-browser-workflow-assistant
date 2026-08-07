@@ -301,8 +301,16 @@ export function validateObservableProgress(
   action: SuggestedAction,
   before: PageContext | null,
   after: PageContext,
+  result?: Pick<ExecutionResult, 'success' | 'tab_switch_verified'>,
 ): string | null {
   if (!before || !actionNeedsObservableProgress(action)) return null
+  if (
+    (action.action_type === 'focus_existing_tab' || action.action_type === 'switch_tab') &&
+    result?.success &&
+    result.tab_switch_verified === true
+  ) {
+    return null
+  }
 
   const changed = contextFingerprint(before) !== contextFingerprint(after)
   const navigated = before.url !== after.url
@@ -1390,7 +1398,7 @@ export function useWorkflow() {
             type: 'EXTRACT_CONTEXT',
           })
           if (res.context) {
-            const progressError = validateObservableProgress(action, pageContext, res.context)
+            const progressError = validateObservableProgress(action, pageContext, res.context, result)
             const semanticMismatch = detectExecutionSemanticMismatch(action, pageContext, res.context)
             pageContextAfterAction = res.context
             setPageContext(res.context)

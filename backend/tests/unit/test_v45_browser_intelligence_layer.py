@@ -5,7 +5,7 @@ from app.browser_intelligence import (
     format_browser_intelligence_for_planner,
 )
 from app.browser_intelligence.action_verification import ActionVerificationEngine
-from app.browser_intelligence.adapters import GoogleSearchAdapter
+from app.browser_intelligence.adapters import BingSearchAdapter, DuckDuckGoSearchAdapter, GoogleSearchAdapter
 from app.browser_intelligence.page_understanding import PageUnderstandingEngine
 from app.browser_intelligence.selector_engine import SelectorIntelligenceEngine
 from app.capability_platform.browser_registry import get_browser_capability
@@ -144,6 +144,140 @@ def test_google_open_result_returns_open_new_tab_expectation():
     assert opened["action_type"] == "open_new_tab"
     assert opened["value"] == "https://playwright.dev/"
     assert opened["expected"]["tab_count_delta"] == 1
+
+
+def test_bing_serp_text_fallback_trims_glued_url_tokens():
+    context = PageContext(
+        url="https://www.bing.com/search?q=best+AI+browser+automation+tools+2026",
+        title="best AI browser automation tools 2026 - Search",
+        metadata={},
+        interactive_elements=[],
+        content_blocks=[
+            ContentBlock(
+                selector="#result",
+                text=(
+                    "Browser automation tools 2026 https://example.comTHE BEST "
+                    "AI browser automation tools compared"
+                ),
+            )
+        ],
+        headings=["Search results"],
+        selected_text="",
+        visible_text="Browser automation tools 2026",
+        images=[],
+    )
+
+    results = BingSearchAdapter().getOrganicResults(context)
+
+    assert [result.url for result in results] == ["https://example.com"]
+
+
+def test_bing_serp_text_fallback_filters_irrelevant_results():
+    context = PageContext(
+        url="https://www.bing.com/search?q=best+AI+browser+automation+tools+2026",
+        title="best AI browser automation tools 2026 - Search",
+        metadata={},
+        interactive_elements=[],
+        content_blocks=[
+            ContentBlock(
+                selector="#bad",
+                text="tripadvisor.inhttps://www.tripadvisor.inTHE 10 BEST Restaurants in Rohtak",
+            ),
+            ContentBlock(
+                selector="#good",
+                text="AI browser automation tools compared https://browser-use.com/",
+            ),
+        ],
+        headings=["Search results"],
+        selected_text="",
+        visible_text="AI browser automation tools",
+        images=[],
+    )
+
+    results = BingSearchAdapter().getOrganicResults(context)
+
+    assert [result.url for result in results] == ["https://browser-use.com/"]
+
+
+def test_bing_serp_interactive_anchors_filter_irrelevant_query_mismatches():
+    context = PageContext(
+        url="https://www.bing.com/search?q=best+AI+browser+automation+tools+2026",
+        title="best AI browser automation tools 2026 - Search",
+        metadata={},
+        interactive_elements=[
+            InteractiveElement(
+                type="a",
+                text="THE 10 BEST Restaurants in Rohtak (Updated August 2026)",
+                selector='a[href="https://www.tripadvisor.in/Restaurants-g1216533-Rohtak_Rohtak_District_Haryana.html"]',
+                visible=True,
+                href="https://www.tripadvisor.in/Restaurants-g1216533-Rohtak_Rohtak_District_Haryana.html",
+            ),
+            InteractiveElement(
+                type="a",
+                text="Best AI Browser Automation Tools 2026: Honest Rankings",
+                selector='a[href="https://scored.tools/blog/best-ai-browser-automation-tools-2026/"]',
+                visible=True,
+                href="https://scored.tools/blog/best-ai-browser-automation-tools-2026/",
+            ),
+            InteractiveElement(
+                type="a",
+                text="AI Parenting Apps in 2026: Tools That Support Families",
+                selector='a[href="https://skycrumbs.com/blog/ai-parenting-apps-2026"]',
+                visible=True,
+                href="https://skycrumbs.com/blog/ai-parenting-apps-2026",
+            ),
+        ],
+        content_blocks=[],
+        headings=["Search results"],
+        selected_text="",
+        visible_text="AI browser automation tools",
+        images=[],
+    )
+
+    results = BingSearchAdapter().getOrganicResults(context)
+
+    assert [result.url for result in results] == ["https://scored.tools/blog/best-ai-browser-automation-tools-2026/"]
+
+
+def test_duckduckgo_serp_filters_irrelevant_ai_tools_neighbors():
+    context = PageContext(
+        url="https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026&ia=web",
+        title="best AI browser automation tools 2026 at DuckDuckGo",
+        metadata={},
+        interactive_elements=[
+            InteractiveElement(
+                type="a",
+                text="AI Browser Automation in 2026: Best Tools Tested and Ranked",
+                selector='a[href="https://skycrumbs.com/blog/ai-browser-automation-2026"]',
+                visible=True,
+                href="https://skycrumbs.com/blog/ai-browser-automation-2026",
+            ),
+            InteractiveElement(
+                type="a",
+                text="AI Parenting Apps in 2026: Tools That Support Families",
+                selector='a[href="https://skycrumbs.com/blog/ai-parenting-apps-2026"]',
+                visible=True,
+                href="https://skycrumbs.com/blog/ai-parenting-apps-2026",
+            ),
+            InteractiveElement(
+                type="a",
+                text="AI Carbon Footprint Apps 2026: Track and Reduce Your Impact",
+                selector='a[href="https://skycrumbs.com/blog/ai-carbon-footprint-apps-2026"]',
+                visible=True,
+                href="https://skycrumbs.com/blog/ai-carbon-footprint-apps-2026",
+            ),
+        ],
+        content_blocks=[],
+        headings=["Search results"],
+        selected_text="",
+        visible_text="AI browser automation tools",
+        images=[],
+    )
+
+    results = DuckDuckGoSearchAdapter().getOrganicResults(context)
+
+    assert [result.url for result in results] == ["https://skycrumbs.com/blog/ai-browser-automation-2026"]
+    assert PageUnderstandingEngine().build_page_model(context).adapter == "duckduckgo_search"
 
 
 def test_page_understanding_builds_semantic_search_model():

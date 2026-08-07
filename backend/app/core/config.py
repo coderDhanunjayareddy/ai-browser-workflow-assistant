@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     # Real browser-agent missions run observe/plan/act/verify loops across
     # several pages. Keep these configurable so validation and production can
     # enforce budgets without prematurely stopping multi-step research.
-    workflow_max_steps: int = 80
-    workflow_max_tokens: int = 200_000
+    workflow_max_steps: int = 120
+    workflow_max_tokens: int = 500_000
     workflow_max_retries: int = 8
     workflow_max_duration_seconds: int = 900
 

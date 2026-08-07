@@ -120,8 +120,14 @@ def _read_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any
     read_steps = 0
     for step in prior_steps:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        action_type = str(data.get("action_type") or "").lower()
+        result = str(data.get("execution_result") or "")
         text = f"{data.get('description', '')} {data.get('page_analysis', '')}".lower()
-        if any(term in text for term in ("read", "extract", "summarize", "pricing", "limitation")):
+        if action_type in {"focus_existing_tab", "switch_tab"} and is_openable_browser_url(str(data.get("value") or "")):
+            read_steps += 1
+        elif result.startswith("success") and action_type in {"focus_existing_tab", "switch_tab"}:
+            read_steps += 1
+        elif any(term in text for term in ("read", "extract", "summarize", "pricing", "limitation")):
             read_steps += 1
     return read_steps >= min(target, max(len(artifacts.opened_pages), 1))
 

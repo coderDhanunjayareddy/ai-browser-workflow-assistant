@@ -10,6 +10,7 @@ from app.browser_intelligence.selector_engine import SelectorIntelligenceEngine,
 
 _GOOGLE_HOSTS = {"www.google.com", "google.com"}
 _BING_HOSTS = {"www.bing.com", "bing.com"}
+_DUCKDUCKGO_HOSTS = {"duckduckgo.com", "www.duckduckgo.com"}
 _GOOGLE_BLOCKED_HOSTS = {
     "accounts.google.com",
     "maps.google.com",
@@ -35,6 +36,46 @@ _SERP_EXCLUSION_TERMS = (
     "maps",
     "related searches",
 )
+_QUERY_STOPWORDS = {
+    "about",
+    "after",
+    "also",
+    "and",
+    "any",
+    "are",
+    "best",
+    "for",
+    "from",
+    "into",
+    "near",
+    "official",
+    "open",
+    "page",
+    "pages",
+    "past",
+    "real",
+    "result",
+    "results",
+    "search",
+    "source",
+    "sources",
+    "the",
+    "this",
+    "top",
+    "use",
+    "web",
+    "with",
+}
+_QUERY_TERM_SYNONYMS = {
+    "ai": ("ai", "agent", "llm", "copilot"),
+    "automation": ("automation", "automate", "testing", "test", "end-to-end", "e2e", "selenium", "playwright"),
+    "browser": ("browser", "web", "chrome"),
+    "tools": ("tools", "tool", "platform", "framework", "stack"),
+    "careers": ("careers", "career", "jobs", "job", "opening", "openings", "hiring"),
+    "companies": ("companies", "company", "firm", "firms"),
+    "documentation": ("documentation", "docs", "doc", "quickstart", "guide", "api"),
+    "pricing": ("pricing", "price", "plans", "plan", "free", "trial"),
+}
 
 
 def _getattr(item: Any, name: str, default: Any = "") -> Any:
@@ -47,6 +88,7 @@ def _normalize_url(raw: str, base_url: str) -> str:
     raw = (raw or "").strip()
     if not raw:
         return ""
+    raw = _trim_glued_url_token(raw)
     if raw.startswith("/url?"):
         query = parse_qs(urlparse(raw).query)
         if query.get("q"):
@@ -102,6 +144,8 @@ def _is_external_organic(url: str, *, engine_hosts: set[str]) -> bool:
     host = parsed.netloc.lower().removeprefix("www.")
     if not host:
         return False
+    if not _host_looks_valid(host):
+        return False
     if host in {h.removeprefix("www.") for h in engine_hosts}:
         return False
     if host in {h.removeprefix("www.") for h in _GOOGLE_BLOCKED_HOSTS}:
@@ -111,9 +155,70 @@ def _is_external_organic(url: str, *, engine_hosts: set[str]) -> bool:
     return True
 
 
+def _host_looks_valid(host: str) -> bool:
+    labels = [label for label in host.split(".") if label]
+    if len(labels) < 2:
+        return False
+    tld = labels[-1]
+    if not (2 <= len(tld) <= 24 and tld.isalpha()):
+        return False
+    return True
+
+
+def _trim_glued_url_token(raw: str) -> str:
+    import re
+
+    # Search snippets sometimes arrive as one glued token:
+    # "https://example.inTHE 10 BEST...". Stop at an uppercase title boundary
+    # after a plausible public suffix so the browser never opens a fake host.
+    match = re.search(r"^(https?://.+?\.[a-z]{2,24})(?=[A-Z]{2,})", raw)
+    if match:
+        return match.group(1)
+    return raw
+
+
 def _looks_excluded(text: str) -> bool:
     lower = " ".join(text.lower().split())
     return any(term in lower for term in _SERP_EXCLUSION_TERMS)
+
+
+def _fallback_result_relevant(title: str, text: str, url: str) -> bool:
+    combined = f" {title} {text} {url} ".lower()
+    return any(term in combined for term in ("browser", "automation", "agent", " ai ", "/ai", "ai-"))
+
+
+def _query_terms(page_url: str) -> list[str]:
+    import re
+
+    parsed = urlparse(str(page_url or ""))
+    raw_query = " ".join(parse_qs(parsed.query).get("q", []))
+    if not raw_query:
+        return []
+    terms = []
+    for token in re.findall(r"[a-zA-Z][a-zA-Z0-9+#.-]{2,}", unquote(raw_query).lower()):
+        clean = token.strip(".-")
+        if clean and clean not in _QUERY_STOPWORDS and not clean.isdigit():
+            terms.append(clean)
+    seen: set[str] = set()
+    return [term for term in terms if not (term in seen or seen.add(term))]
+
+
+def search_result_matches_query_intent(title: str, text: str, url: str, page_url: str) -> bool:
+    terms = _query_terms(page_url)
+    if not terms:
+        return True
+    combined = f" {title} {text} {url} ".lower()
+    if {"browser", "automation"}.issubset(set(terms)) and not (
+        _term_matches("browser", combined) or _term_matches("automation", combined)
+    ):
+        return False
+    matched = sum(1 for term in terms if _term_matches(term, combined))
+    return matched >= 1
+
+
+def _term_matches(term: str, combined: str) -> bool:
+    aliases = _QUERY_TERM_SYNONYMS.get(term, (term,))
+    return any(alias in combined for alias in aliases)
 
 
 @dataclass(frozen=True)
@@ -257,6 +362,17 @@ class BingSearchAdapter(GoogleSearchAdapter):
 
     def getOrganicResults(self, page_context: Any) -> list[SearchResult]:
         return extract_search_results(page_context, engine_hosts=_BING_HOSTS, limit=10)
+
+
+class DuckDuckGoSearchAdapter(GoogleSearchAdapter):
+    name = "duckduckgo_search"
+
+    def matches(self, page_context: Any) -> bool:
+        parsed = urlparse(str(getattr(page_context, "url", "") or ""))
+        return parsed.netloc.lower() in _DUCKDUCKGO_HOSTS and bool(parsed.query)
+
+    def getOrganicResults(self, page_context: Any) -> list[SearchResult]:
+        return extract_search_results(page_context, engine_hosts=_DUCKDUCKGO_HOSTS, limit=10)
 
 
 class LinkedInJobsAdapter(SiteAdapter):
@@ -418,8 +534,10 @@ def extract_search_results(page_context: Any, *, engine_hosts: set[str], limit: 
             continue
         if href in seen_urls:
             continue
-        seen_urls.add(href)
         title = text or _title_from_block(block_text) or _display_url(href)
+        if not search_result_matches_query_intent(title, block_text, href, page_url):
+            continue
+        seen_urls.add(href)
         candidate_selector = selectors_id_for(selector) if selector else None
         candidates.append((
             index,
@@ -450,8 +568,15 @@ def extract_search_results(page_context: Any, *, engine_hosts: set[str], limit: 
                 href = _normalize_url(raw_url, page_url)
                 if href in seen_urls or not _is_external_organic(href, engine_hosts=engine_hosts):
                     continue
-                seen_urls.add(href)
                 title = _title_from_block(text) or _display_url(href)
+                if not search_result_matches_query_intent(title, text, href, page_url):
+                    continue
+                if not _fallback_result_relevant(title, text, href):
+                    continue
+                relevance = _result_relevance_score(title, text, href)
+                if relevance < 0.62:
+                    continue
+                seen_urls.add(href)
                 candidates.append((
                     index,
                     SearchResult(
@@ -466,7 +591,7 @@ def extract_search_results(page_context: Any, *, engine_hosts: set[str], limit: 
                         source_domain=urlparse(href).netloc.lower(),
                         source_type="organic",
                         is_ad=False,
-                        relevance_score=_result_relevance_score(title, text, href),
+                        relevance_score=relevance,
                         metadata={"source": "content_block_url", "engine_hosts": sorted(engine_hosts)},
                     ),
                 ))
@@ -530,6 +655,7 @@ class AdapterRegistry:
         self.adapters: list[SiteAdapter] = [
             GoogleSearchAdapter(),
             BingSearchAdapter(),
+            DuckDuckGoSearchAdapter(),
             LinkedInJobsAdapter(),
             GitHubAdapter(),
             GmailAdapter(),

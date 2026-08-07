@@ -1070,8 +1070,11 @@ class WorkflowOrchestrator:
             self._evaluate_governance_shadow(result)
             latency_ms = int((time.perf_counter() - started) * 1000)
             # Provider-neutral approximation; exact provider usage can replace this
-            # without changing budget or analytics contracts.
-            token_estimate = ai_service.estimate_tokens(json.dumps(compressed_context))
+            # without changing budget or analytics contracts. Estimate the same
+            # provider-safe projection sent by ai_service.analyze, not the richer
+            # internal context used by deterministic runtime layers.
+            planner_budget_context = ai_service.budget_compressed_planner_context(compressed_context)
+            token_estimate = ai_service.estimate_tokens(json.dumps(planner_budget_context))
             token_estimate += ai_service.estimate_tokens(json.dumps(_planner_output_budget_projection(result)))
             record_planner_call(self.db, self.session_id, token_estimate, latency_ms)
             self.budget_manager.consume(tokens=token_estimate)

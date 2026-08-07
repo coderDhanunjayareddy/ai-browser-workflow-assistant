@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from typing import Any
 
@@ -91,13 +92,28 @@ class ExecutionOrchestrator:
         if not result.suggested_actions:
             return result
         action = result.suggested_actions[0]
+        search_provider_reroute = _reroute_challenged_search_navigation_response(result, snapshot, action)
+        if search_provider_reroute is not None:
+            return attach_phase_execution_directive(search_provider_reroute, snapshot)
+        read_response = _read_phase_backend_response(result, snapshot, action)
+        if read_response is not None:
+            return read_response
         open_response = _open_phase_entity_response(result, snapshot, action.action_type)
         if open_response is not None:
             return attach_phase_execution_directive(open_response, snapshot)
         if not action_allowed(action.action_type, snapshot.active_phase):
+            collect_navigation = _collect_external_navigation_to_collection_response(result, snapshot, action)
+            if collect_navigation is not None:
+                return collect_navigation
             recovery_navigation = _collect_search_recovery_navigation_response(result, snapshot, action)
             if recovery_navigation is not None:
                 return attach_phase_execution_directive(recovery_navigation, snapshot)
+            resource_focus = _resource_phase_focus_response(result, snapshot)
+            if resource_focus is not None:
+                return attach_phase_execution_directive(resource_focus, snapshot)
+            partial_open = _collect_partial_open_response(result, snapshot, action)
+            if partial_open is not None:
+                return partial_open
             collect_response = _collect_before_open_response(result, snapshot, action.action_type)
             if collect_response is not None:
                 return collect_response
@@ -163,15 +179,114 @@ def _collect_search_recovery_navigation_response(
         return None
     if str(action.action_type or "").lower() != "navigate":
         return None
-    target_url = str(action.value or "")
+    target_url = _extract_http_url(" ".join([
+        str(action.value or ""),
+        str(action.description or ""),
+        str(action.reasoning or ""),
+    ])) or str(action.value or "")
     current_url = snapshot.artifacts.visited_urls[-1] if snapshot.artifacts.visited_urls else ""
-    if not (_is_search_results_url(target_url) and _is_search_results_url(current_url)):
+    if not (_is_safe_http_url(target_url) and _is_search_results_url(current_url)):
         return None
+    if not (_is_search_results_url(target_url) or _is_search_provider_url(target_url)):
+        return None
+    action.value = target_url
     return AnalyzeResponse(
         session_id=result.session_id,
         analysis=(
             f"{result.analysis}\n\nExecution Orchestrator allowed search-provider recovery navigation "
             "inside COLLECT because the current provider did not yield enough openable candidates."
+        ),
+        outcome_kind=result.outcome_kind,
+        clarification_question=result.clarification_question,
+        report=result.report,
+        replan=result.replan,
+        suggested_actions=[action],
+    )
+
+
+def _collect_external_navigation_to_collection_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action: SuggestedAction,
+) -> AnalyzeResponse | None:
+    if snapshot.active_phase.name != "COLLECT":
+        return None
+    if str(action.action_type or "").lower() != "navigate":
+        return None
+    target_url = _extract_http_url(" ".join([
+        str(action.value or ""),
+        str(action.description or ""),
+        str(action.reasoning or ""),
+    ])) or str(action.value or "")
+    current_url = snapshot.artifacts.visited_urls[-1] if snapshot.artifacts.visited_urls else ""
+    if not (_is_safe_http_url(target_url) and _is_search_results_url(current_url)):
+        return None
+    if _is_search_results_url(target_url) or _is_search_provider_url(target_url):
+        return None
+
+    directive = IntentDispatchDirective(
+        mission_id=result.session_id,
+        intent="collect_search_results",
+        owner="browser_intelligence",
+        capability="serp_collection",
+        dispatch_target="browser_intelligence",
+        browser_executable=False,
+        reason=(
+            "Collect visible organic search-result entities before navigating to external source URLs."
+        ),
+        payload={
+            "action_type": "collect_search_results",
+            "description": "Collect visible search result candidates before opening sources",
+            "reasoning": "External source URLs must be grounded as registered search-result entities first.",
+            "confidence": 0.9,
+            "safety_level": "safe",
+        },
+    )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator converted external COLLECT navigation "
+            "into deterministic search-result collection before opening sources."
+        ),
+        outcome_kind="act",
+        suggested_actions=[],
+        intent_dispatch=directive,
+    )
+
+
+def _collect_partial_open_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action: SuggestedAction,
+) -> AnalyzeResponse | None:
+    if snapshot.active_phase.name != "COLLECT":
+        return None
+    if str(action.action_type or "").lower() != "open_new_tab":
+        return None
+    collected = int(snapshot.progress_ledger.current_counts.get("collected_items", 0) or 0)
+    if collected <= 0:
+        return None
+    opened_urls = {_canonical_opened_url(url) for url in snapshot.artifacts.opened_pages}
+    entity = _first_openable_entity(snapshot.session_id, opened_urls=opened_urls)
+    if entity is not None and entity.canonical_url:
+        action = SuggestedAction(
+            action_id=f"orchestrator_collect_partial_open_{entity.entity_id[-12:]}",
+            action_type="open_new_tab",
+            target_selector="",
+            value=f"entity:{entity.entity_id}",
+            description=f"Open collected source: {entity.title or entity.canonical_url}",
+            reasoning=(
+                "Execution Orchestrator grounded a partial COLLECT open to a registered "
+                f"search-result entity_id={entity.entity_id} before URL execution."
+            ),
+            confidence=max(0.0, min(1.0, float(entity.confidence or 0.82))),
+            safety_level="safe",
+        )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator allowed opening an available collected source "
+            "because partial collection already produced a grounded candidate."
         ),
         outcome_kind=result.outcome_kind,
         clarification_question=result.clarification_question,
@@ -193,6 +308,184 @@ def _is_search_results_url(url: str) -> bool:
     return False
 
 
+def _is_search_provider_url(url: str) -> bool:
+    from urllib.parse import urlsplit
+
+    parsed = urlsplit(str(url or ""))
+    host = parsed.netloc.lower().removeprefix("www.")
+    return parsed.scheme in {"http", "https"} and host in {"google.com", "bing.com", "duckduckgo.com"}
+
+
+def _reroute_challenged_search_navigation_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action: SuggestedAction,
+) -> AnalyzeResponse | None:
+    if str(action.action_type or "").lower() != "navigate":
+        return None
+    target_url = _extract_http_url(" ".join([
+        str(action.value or ""),
+        str(action.description or ""),
+        str(action.reasoning or ""),
+    ])) or str(action.value or "")
+    if not _is_search_results_url(target_url):
+        return None
+    challenged_hosts = _challenged_search_hosts(snapshot.artifacts.visited_urls)
+    target_host = _search_host(target_url)
+    if not target_host or target_host not in challenged_hosts:
+        return None
+    query = _query_from_search_url(target_url)
+    if not query:
+        return None
+    for provider_url in (
+        f"https://duckduckgo.com/?q={query}",
+        f"https://www.bing.com/search?q={query}",
+    ):
+        host = _search_host(provider_url)
+        if host and host not in challenged_hosts and _canonical_opened_url(provider_url) != _canonical_opened_url(target_url):
+            action.value = provider_url
+            action.description = f"Recover search by avoiding challenged provider: {query}"
+            action.reasoning = (
+                "Execution Orchestrator rerouted search navigation because the requested "
+                "provider already showed a challenge/no-results surface during this mission."
+            )
+            return AnalyzeResponse(
+                session_id=result.session_id,
+                analysis=(
+                    f"{result.analysis}\n\nExecution Orchestrator rerouted challenged search-provider "
+                    "navigation to a non-challenged provider."
+                ),
+                outcome_kind=result.outcome_kind,
+                clarification_question=result.clarification_question,
+                report=result.report,
+                replan=result.replan,
+                suggested_actions=[action],
+            )
+    return None
+
+
+def _challenged_search_hosts(urls: list[str]) -> set[str]:
+    from urllib.parse import urlsplit
+
+    challenged: set[str] = set()
+    for url in urls:
+        parsed = urlsplit(str(url or ""))
+        host = parsed.netloc.lower().removeprefix("www.")
+        path = parsed.path.lower()
+        if host == "google.com" and path.startswith(("/sorry", "/challenge", "/consent")):
+            challenged.add(host)
+    return challenged
+
+
+def _search_host(url: str) -> str:
+    from urllib.parse import urlsplit
+
+    return urlsplit(str(url or "")).netloc.lower().removeprefix("www.")
+
+
+def _query_from_search_url(url: str) -> str:
+    from urllib.parse import parse_qs, quote_plus, urlsplit
+
+    raw = parse_qs(urlsplit(str(url or "")).query).get("q", [""])[0]
+    return quote_plus(raw)
+
+
+def _is_safe_http_url(url: str) -> bool:
+    from urllib.parse import urlsplit
+
+    parsed = urlsplit(str(url or ""))
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _extract_http_url(value: str) -> str | None:
+    match = re.search(r"https?://[^\s<>'\"]+", str(value or ""), flags=re.IGNORECASE)
+    return match.group(0).rstrip("),.;]") if match else None
+
+
+def _resource_phase_focus_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+) -> AnalyzeResponse | None:
+    if snapshot.active_phase.name not in {"READ", "EXTRACT", "VALIDATE"}:
+        return None
+    opened = [url for url in snapshot.artifacts.opened_pages if _canonical_opened_url(url)]
+    if not opened:
+        return None
+    read = {_canonical_opened_url(url) for url in snapshot.artifacts.visited_urls}
+    target_url = next((url for url in opened if _canonical_opened_url(url) not in read), opened[0])
+    action = SuggestedAction(
+        action_id=f"orchestrator_{snapshot.active_phase.name.lower()}_focus_recovery",
+        action_type="focus_existing_tab",
+        target_selector="",
+        value=f"url:{target_url}",
+        description=f"Focus opened source for {snapshot.active_phase.name.lower()} phase: {target_url}",
+        reasoning=(
+            "Execution Orchestrator recovered an invalid planner action by focusing an opened "
+            f"resource required for the active {snapshot.active_phase.name} phase."
+        ),
+        confidence=0.86,
+        safety_level="safe",
+    )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator recovered the {snapshot.active_phase.name} phase "
+            "by focusing an opened source instead of allowing a forbidden navigation."
+        ),
+        outcome_kind="act",
+        suggested_actions=[action],
+    )
+
+
+def _read_phase_backend_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action: SuggestedAction,
+) -> AnalyzeResponse | None:
+    if snapshot.active_phase.name != "READ":
+        return None
+    if str(action.action_type or "").lower() not in {
+        "wait",
+        "scroll",
+        "focus_existing_tab",
+        "switch_tab",
+        "navigate",
+        "open_new_tab",
+    }:
+        return None
+    current_url = snapshot.artifacts.visited_urls[-1] if snapshot.artifacts.visited_urls else ""
+    if not _is_opened_resource(snapshot, current_url):
+        return None
+    directive = IntentDispatchDirective(
+        mission_id=result.session_id,
+        intent="read_page",
+        owner="knowledge_extraction",
+        capability="page_reading",
+        dispatch_target="knowledge_extraction_pipeline",
+        browser_executable=False,
+        reason="Read the currently focused opened source page with the backend knowledge extraction pipeline.",
+        payload={
+            "action_type": "read_page",
+            "description": f"Read opened source page: {current_url}",
+            "reasoning": (
+                "READ phase should extract evidence from the currently focused source instead of waiting repeatedly."
+            ),
+            "confidence": 0.9,
+            "safety_level": "safe",
+        },
+    )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator routed READ phase to backend page reading "
+            "for the focused opened source."
+        ),
+        outcome_kind="act",
+        suggested_actions=[],
+        intent_dispatch=directive,
+    )
+
+
 def _open_phase_entity_response(
     result: AnalyzeResponse,
     snapshot: ExecutionOrchestratorSnapshot,
@@ -205,7 +498,8 @@ def _open_phase_entity_response(
     target = int(snapshot.progress_ledger.target_counts.get("opened_pages", 1) or 1)
     if snapshot.progress_ledger.current_counts.get("opened_pages", 0) >= target:
         return None
-    entity = _first_openable_entity(snapshot.session_id)
+    opened_urls = {_canonical_opened_url(url) for url in snapshot.artifacts.opened_pages}
+    entity = _first_openable_entity(snapshot.session_id, opened_urls=opened_urls)
     if entity is None or not entity.canonical_url:
         return None
 
@@ -235,10 +529,11 @@ def _open_phase_entity_response(
     )
 
 
-def _first_openable_entity(session_id: str):
+def _first_openable_entity(session_id: str, *, opened_urls: set[str] | None = None):
     from app.browser_url_policy import is_openable_browser_url
     from app.runtime_state_manager.entity_binding import list_entities
 
+    opened_urls = {url for url in (opened_urls or set()) if url}
     entities = [
         entity
         for entity in list_entities(session_id)
@@ -246,6 +541,7 @@ def _first_openable_entity(session_id: str):
         and entity.state != "INVALID"
         and entity.entity_type in {"search_result", "semantic_element", "link", "card", "list_item", "table_row"}
         and is_openable_browser_url(entity.canonical_url)
+        and _canonical_opened_url(entity.canonical_url) not in opened_urls
     ]
     if not entities:
         return None
@@ -266,6 +562,22 @@ def _entity_rank(entity) -> int:
         return int((entity.metadata or {}).get("rank") or 9999)
     except (TypeError, ValueError):
         return 9999
+
+
+def _canonical_opened_url(url: str) -> str:
+    from urllib.parse import urlsplit, urlunsplit
+
+    parsed = urlsplit(str(url or "").strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path.rstrip("/") or "/", parsed.query, "")).lower()
+
+
+def _is_opened_resource(snapshot: ExecutionOrchestratorSnapshot, url: str) -> bool:
+    current = _canonical_opened_url(url)
+    if not current:
+        return False
+    return current in {_canonical_opened_url(opened) for opened in snapshot.artifacts.opened_pages}
 
 
 def observe_execution_orchestrator(

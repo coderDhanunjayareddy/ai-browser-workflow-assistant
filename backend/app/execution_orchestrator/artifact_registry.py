@@ -30,6 +30,10 @@ def build_artifacts(page_context: Any, prior_steps: list[Any]) -> ArtifactRegist
             _append_unique(visited_urls, page_url)
         if evidence_url:
             _append_unique(visited_urls, evidence_url)
+        if action_type in {"focus_existing_tab", "switch_tab"} and _success(result):
+            focused_url = _url(value)
+            if focused_url:
+                _append_unique(visited_urls, focused_url)
         if action_type == "open_new_tab" and _success(result):
             url = evidence_url or _url(value) or page_url
             if url:

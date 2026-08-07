@@ -1,0 +1,5 @@
+2026/08/07-23:13:45.960 3844 Creating DB C:\Work\AI_Browser_Assist\docs\production_validation\live_sidepanel\profile_1786124625046\Default\Local Storage\leveldb since it was missing.
+2026/08/07-23:13:46.013 3844 Reusing MANIFEST C:\Work\AI_Browser_Assist\docs\production_validation\live_sidepanel\profile_1786124625046\Default\Local Storage\leveldb/MANIFEST-000001
+2026/08/07-23:14:28.266 4544 Level-0 table #5: started
+2026/08/07-23:14:28.279 4544 Level-0 table #5: 41922 bytes OK
+2026/08/07-23:14:28.284 4544 Delete type=0 #3

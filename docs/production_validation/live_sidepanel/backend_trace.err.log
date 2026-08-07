@@ -1,0 +1,5 @@
+INFO:     Started server process [37460]
+INFO:     Waiting for application startup.
+Mission Blueprint config: env_file=C:\Work\AI_Browser_Assist\backend\.env mission_blueprint_v1=active mission_blueprint_active=True
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

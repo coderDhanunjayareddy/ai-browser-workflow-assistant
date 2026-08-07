@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.execution_orchestrator.models import ArtifactRegistry, ExecutionBudgets
+from app.runtime_state_manager.execution_result import is_successful_execution_result
 
 
 def build_budgets(prior_steps: list[Any], artifacts: ArtifactRegistry) -> ExecutionBudgets:
@@ -32,6 +33,13 @@ def _retry_count(prior_steps: list[Any]) -> int:
     signatures: dict[str, int] = {}
     for step in prior_steps:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        result = str(data.get("execution_result") or "")
+        result_text = result.lower()
+        if is_successful_execution_result(result) and not any(
+            marker in result_text
+            for marker in ("no_effect", "no visible change", "retrying", "failed", "error")
+        ):
+            continue
         signature = "|".join([
             str(data.get("action_type") or ""),
             str(data.get("target_selector") or ""),

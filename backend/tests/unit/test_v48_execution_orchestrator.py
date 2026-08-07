@@ -184,11 +184,11 @@ def test_collected_search_results_feed_open_phase_continuation(monkeypatch):
             browser_intelligence={
                 "page_model": {
                     "search_results": [
-                        {"rank": 1, "title": "Tool 1", "url": "https://tool1.example/"},
-                        {"rank": 2, "title": "Tool 2", "url": "https://tool2.example/"},
-                        {"rank": 3, "title": "Tool 3", "url": "https://tool3.example/"},
-                        {"rank": 4, "title": "Tool 4", "url": "https://tool4.example/"},
-                        {"rank": 5, "title": "Tool 5", "url": "https://tool5.example/"},
+                        {"rank": 1, "title": "Browser automation Tool 1", "url": "https://tool1.example/"},
+                        {"rank": 2, "title": "Browser automation Tool 2", "url": "https://tool2.example/"},
+                        {"rank": 3, "title": "Browser automation Tool 3", "url": "https://tool3.example/"},
+                        {"rank": 4, "title": "Browser automation Tool 4", "url": "https://tool4.example/"},
+                        {"rank": 5, "title": "Browser automation Tool 5", "url": "https://tool5.example/"},
                     ]
                 }
             },
@@ -251,7 +251,7 @@ def test_registered_search_entities_count_as_collected_items(monkeypatch):
             browser_intelligence={
                 "page_model": {
                     "search_results": [
-                        {"rank": index, "title": f"Tool {index}", "url": f"https://tool{index}.example/"}
+                        {"rank": index, "title": f"Browser automation Tool {index}", "url": f"https://tool{index}.example/"}
                         for index in range(1, 6)
                     ]
                 }
@@ -284,7 +284,7 @@ def test_open_phase_recovers_invalid_scroll_by_opening_registered_entity(monkeyp
             browser_intelligence={
                 "page_model": {
                     "search_results": [
-                        {"rank": index, "title": f"Tool {index}", "url": f"https://tool{index}.example/"}
+                        {"rank": index, "title": f"Browser automation Tool {index}", "url": f"https://tool{index}.example/"}
                         for index in range(1, 6)
                     ]
                 }
@@ -303,7 +303,7 @@ def test_open_phase_recovers_invalid_scroll_by_opening_registered_entity(monkeyp
 
     assert result.outcome_kind == "act"
     assert result.suggested_actions[0].action_type == "open_new_tab"
-    assert result.suggested_actions[0].value == "https://tool1.example"
+    assert result.suggested_actions[0].value.rstrip("/") == "https://tool1.example"
     assert result.execution_orchestrator is not None
     assert [action.action_type for action in result.execution_orchestrator.continuation_actions] == [
         "open_new_tab",
@@ -324,7 +324,7 @@ def test_open_phase_recovers_wait_loop_by_opening_registered_entity(monkeypatch)
             browser_intelligence={
                 "page_model": {
                     "search_results": [
-                        {"rank": index, "title": f"Tool {index}", "url": f"https://tool{index}.example/"}
+                        {"rank": index, "title": f"Browser automation Tool {index}", "url": f"https://tool{index}.example/"}
                         for index in range(1, 6)
                     ]
                 }
@@ -342,7 +342,7 @@ def test_open_phase_recovers_wait_loop_by_opening_registered_entity(monkeypatch)
     result = ExecutionOrchestrator().postprocess_response(_planner_action("wait", value="1000"), snapshot)
 
     assert result.suggested_actions[0].action_type == "open_new_tab"
-    assert result.suggested_actions[0].value == "https://tool1.example"
+    assert result.suggested_actions[0].value.rstrip("/") == "https://tool1.example"
     assert snapshot.progress_ledger.completed["open"] is False
     assert snapshot.active_phase.name == "OPEN"
 
@@ -364,7 +364,7 @@ def test_active_mode_enriches_planner_with_phase_constraints(monkeypatch):
     assert "open_new_tab" in enriched["planner_phase_constraints"]["forbidden_actions"]
 
 
-def test_active_read_phase_rejects_more_open_tab_actions(monkeypatch):
+def test_active_read_phase_recovers_more_open_tab_actions_by_reading_focused_source(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     engine = ExecutionOrchestrator()
     snapshot = engine.build_snapshot(
@@ -376,10 +376,128 @@ def test_active_read_phase_rejects_more_open_tab_actions(monkeypatch):
 
     result = engine.postprocess_response(_planner_action("open_new_tab", value="https://tool1.example/"), snapshot)
 
-    assert result.outcome_kind == "replan"
+    assert result.outcome_kind == "act"
     assert result.suggested_actions == []
-    assert result.replan is not None
-    assert "Current phase: READ" in result.replan.reason
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "read_page"
+    assert result.replan is None
+
+
+def test_read_phase_routes_forbidden_navigation_on_opened_source_to_backend_page_read(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="read-focus-recovery",
+        task=TASK,
+        page_context=_page("https://tool1.example/"),
+        prior_steps=_opened_steps(5),
+    )
+
+    result = engine.postprocess_response(
+        _planner_action("navigate", value="https://www.google.com/search?q=more+sources"),
+        snapshot,
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions == []
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "read_page"
+    assert result.replan is None
+
+
+def test_read_phase_recovery_advances_after_focused_source(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="read-focus-advance",
+        task=TASK,
+        page_context=_page("https://tool1.example/"),
+        prior_steps=[
+            *_opened_steps(5),
+            PriorStep(
+                action_type="focus_existing_tab",
+                description="Focus opened source for read phase",
+                target_selector="",
+                value="url:https://tool1.example/",
+                execution_result="success",
+                page_url="https://tool1.example/",
+                page_title="Tool 1",
+            ),
+        ],
+    )
+
+    result = engine.postprocess_response(
+        _planner_action("navigate", value="https://www.google.com/search?q=more+sources"),
+        snapshot,
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions == []
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "read_page"
+    assert result.replan is None
+
+
+def test_read_phase_routes_repeated_focus_on_opened_source_to_backend_page_read(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="read-repeated-focus",
+        task=TASK,
+        page_context=_page("https://tool1.example/"),
+        prior_steps=[
+            *_opened_steps(5),
+            PriorStep(
+                action_type="focus_existing_tab",
+                description="Focus opened source for read phase",
+                target_selector="",
+                value="url:https://tool1.example/",
+                execution_result="Focused tab: Tool 1",
+                page_url="https://tool1.example/",
+                page_title="Tool 1",
+            ),
+        ],
+    )
+
+    result = engine.postprocess_response(
+        _planner_action("focus_existing_tab", value="url:https://tool1.example/"),
+        snapshot,
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions == []
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "read_page"
+
+
+def test_read_phase_routes_wait_on_opened_source_to_backend_page_read(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="read-backend-handoff",
+        task=TASK,
+        page_context=_page("https://tool1.example/"),
+        prior_steps=[
+            *_opened_steps(5),
+            PriorStep(
+                action_type="focus_existing_tab",
+                description="Focus opened source for read phase",
+                target_selector="",
+                value="url:https://tool1.example/",
+                execution_result="success",
+                page_url="https://tool1.example/",
+                page_title="Tool 1",
+            ),
+        ],
+    )
+
+    result = engine.postprocess_response(_wait_action(), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions == []
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "read_page"
+    assert result.intent_dispatch.owner == "knowledge_extraction"
 
 
 def test_active_collect_phase_collects_results_before_opening_tabs(monkeypatch):
@@ -399,6 +517,46 @@ def test_active_collect_phase_collects_results_before_opening_tabs(monkeypatch):
     assert result.intent_dispatch is not None
     assert result.intent_dispatch.intent == "collect_search_results"
     assert result.intent_dispatch.owner == "browser_intelligence"
+
+
+def test_active_collect_phase_allows_opening_partial_collected_candidate(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "collect-partial-open"
+    _register_results(session_id, 1)
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"),
+        prior_steps=[],
+    )
+
+    result = engine.postprocess_response(_planner_action("open_new_tab", value="https://tool1.example/"), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "open_new_tab"
+    assert result.suggested_actions[0].value.startswith("entity:ent_")
+    assert result.replan is None
+
+
+def test_active_collect_partial_open_grounds_unregistered_url_to_registered_entity(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "collect-partial-open-grounded"
+    _register_results(session_id, 1)
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"),
+        prior_steps=[],
+    )
+
+    result = engine.postprocess_response(_planner_action("open_new_tab", value="https://unknown.example/"), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "open_new_tab"
+    assert result.suggested_actions[0].value.startswith("entity:ent_")
+    assert "registered search-result" in result.suggested_actions[0].reasoning
 
 
 def test_active_collect_phase_allows_search_provider_recovery_navigation(monkeypatch):
@@ -422,7 +580,94 @@ def test_active_collect_phase_allows_search_provider_recovery_navigation(monkeyp
     assert result.replan is None
 
 
-def test_active_read_phase_allows_focus_tab(monkeypatch):
+def test_active_collect_phase_allows_search_provider_entrypoint_recovery(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="collect-provider-entrypoint-recovery",
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026&rdr=1"),
+        prior_steps=[],
+    )
+
+    result = engine.postprocess_response(_planner_action("navigate", value="https://www.google.com/"), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "navigate"
+    assert result.suggested_actions[0].value == "https://www.google.com/"
+    assert result.replan is None
+
+
+def test_search_navigation_avoids_provider_that_already_challenged(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="avoid-challenged-search-provider",
+        task=TASK,
+        page_context=_page("https://www.usecarly.com/"),
+        prior_steps=[
+            PriorStep(
+                action_type="navigate",
+                description="Execute the research search query",
+                target_selector="",
+                value="https://www.google.com/search?q=best+AI+browser+automation+tools+2026",
+                execution_result="Navigating to: https://www.google.com/search?q=best+AI+browser+automation+tools+2026",
+                page_url="https://www.google.com/sorry/index?continue=https%3A%2F%2Fwww.google.com%2Fsearch%3Fq%3Dbest%2BAI%2Bbrowser%2Bautomation%2Btools%2B2026",
+                page_title="Google",
+            )
+        ],
+    )
+
+    result = engine.postprocess_response(
+        _planner_action("navigate", value="https://www.google.com/search?q=best+AI+browser+automation+tools+2026"),
+        snapshot,
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "navigate"
+    assert result.suggested_actions[0].value == "https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"
+    assert "rerouted" in result.suggested_actions[0].reasoning.lower()
+
+
+def test_active_collect_phase_converts_external_navigation_to_search_result_collection(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="collect-safe-web-navigation",
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026&rdr=1"),
+        prior_steps=[],
+    )
+
+    result = engine.postprocess_response(_planner_action("navigate", value="https://example.com/source"), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions == []
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "collect_search_results"
+    assert result.intent_dispatch.owner == "browser_intelligence"
+
+
+def test_active_collect_phase_extracts_embedded_navigation_url(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="collect-embedded-navigation-url",
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026&rdr=1"),
+        prior_steps=[],
+    )
+    response = _planner_action("navigate", value="Open https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026")
+
+    result = engine.postprocess_response(response, snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "navigate"
+    assert result.suggested_actions[0].value == "https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"
+    assert result.replan is None
+
+
+def test_active_read_phase_routes_focus_tab_on_opened_source_to_backend_page_read(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     engine = ExecutionOrchestrator()
     snapshot = engine.build_snapshot(
@@ -435,7 +680,9 @@ def test_active_read_phase_allows_focus_tab(monkeypatch):
     result = engine.postprocess_response(_planner_action("focus_existing_tab"), snapshot)
 
     assert result.outcome_kind == "act"
-    assert result.suggested_actions[0].action_type == "focus_existing_tab"
+    assert result.suggested_actions == []
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "read_page"
 
 
 def test_active_read_phase_attaches_generalized_phase_queue(monkeypatch):
@@ -572,6 +819,25 @@ def test_active_open_phase_skips_already_opened_entities(monkeypatch):
         "https://tool4.example",
         "https://tool5.example",
     ]
+
+
+def test_open_phase_recovery_skips_already_opened_entity(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "open-recovery-skip-opened"
+    _register_results(session_id, 5)
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://tool1.example/"),
+        prior_steps=[*_collected_steps(5), *_opened_steps(1)],
+    )
+
+    result = engine.postprocess_response(_planner_action("wait"), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "open_new_tab"
+    assert result.suggested_actions[0].value == "https://tool2.example"
 
 
 def test_active_open_phase_dedupes_duplicate_canonical_targets(monkeypatch):

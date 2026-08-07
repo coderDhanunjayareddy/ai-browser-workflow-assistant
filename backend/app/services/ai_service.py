@@ -783,6 +783,20 @@ def _canonicalize_planner_action_item(item: dict[str, Any]) -> dict[str, Any]:
         return item
 
     command = action_text.lower()
+    head = re.split(r"\s+", command, maxsplit=1)[0].strip()
+    if head in _CANONICAL_BROWSER_ACTIONS or head in _ACTION_ALIASES:
+        canonical = _ACTION_ALIASES.get(head, head)
+        repaired = dict(item)
+        repaired["action_type"] = canonical
+        if canonical in {"navigate", "open_new_tab"} and not _extract_http_url(str(repaired.get("value") or "")):
+            repaired["value"] = url
+        repaired["target_selector"] = repaired.get("target_selector") or ""
+        repaired["description"] = repaired.get("description") or f"{canonical.replace('_', ' ')} {url}"
+        repaired["reasoning"] = repaired.get("reasoning") or (
+            "Recovered a canonical planner action whose action_type included extra argument text."
+        )
+        return repaired
+
     open_prefixes = (
         "open new tab",
         "open in new tab",

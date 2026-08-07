@@ -4,6 +4,7 @@ import re
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from app.browser_url_policy import is_openable_browser_url
+from app.browser_intelligence.adapters import search_result_matches_query_intent
 from app.intent_dispatcher.models import ExecutionContext, IntentDispatchDirective, IntentExecutionEvidence
 from app.intent_dispatcher.registry import IntentOwnerRegistration, register_intent_executor, register_intent_owner
 from app.intent_providers.common import execution_result
@@ -91,7 +92,8 @@ def _extract_search_results(context: ExecutionContext) -> list[dict]:
         normalized = _normalize_content_block(block, index)
         if normalized.get("url"):
             results.append(normalized)
-    return _dedupe_results(results)
+    source_page = str(_read(context.page_context, "url") or "")
+    return _dedupe_results(results, source_page=source_page)
 
 
 def _search_result_containers(context: ExecutionContext) -> list:
@@ -163,12 +165,12 @@ def _normalize_content_block(block, index: int) -> dict:
     }
 
 
-def _dedupe_results(results: list[dict]) -> list[dict]:
+def _dedupe_results(results: list[dict], *, source_page: str = "") -> list[dict]:
     seen: set[str] = set()
     deduped: list[dict] = []
     for result in results:
         key = _canonical_result_url(str(result.get("url") or ""))
-        if not key or key in seen or not _openable_search_result(key, result):
+        if not key or key in seen or not _openable_search_result(key, result, source_page=source_page):
             continue
         seen.add(key)
         item = dict(result)
@@ -191,8 +193,19 @@ def _canonical_result_url(url: str) -> str:
     return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path.rstrip("/") or "/", parsed.query, ""))
 
 
-def _openable_search_result(canonical_url: str, result: dict) -> bool:
+def _openable_search_result(canonical_url: str, result: dict, *, source_page: str = "") -> bool:
     if bool(result.get("is_ad")):
+        return False
+    if source_page and not search_result_matches_query_intent(
+        str(result.get("title") or ""),
+        " ".join([
+            str(result.get("snippet") or ""),
+            str(result.get("description") or ""),
+            str(result.get("displayed_url") or ""),
+        ]),
+        canonical_url,
+        source_page,
+    ):
         return False
     return is_openable_browser_url(canonical_url)
 

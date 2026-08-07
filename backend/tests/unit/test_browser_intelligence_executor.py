@@ -85,16 +85,16 @@ def test_collects_serp_results_merges_structured_and_visible_block_sources():
         page_context={
             "url": "https://www.bing.com/search?q=browser+automation",
             "content_blocks": [
-                {"href": "https://tool2.example/", "text": "Tool 2", "selector": "#r2"},
-                {"href": "https://tool3.example/", "text": "Tool 3", "selector": "#r3"},
-                {"href": "https://tool4.example/", "text": "Tool 4", "selector": "#r4"},
-                {"href": "https://tool5.example/", "text": "Tool 5", "selector": "#r5"},
+                {"href": "https://tool2.example/", "text": "Browser automation tool 2", "selector": "#r2"},
+                {"href": "https://tool3.example/", "text": "Browser automation tool 3", "selector": "#r3"},
+                {"href": "https://tool4.example/", "text": "Browser automation tool 4", "selector": "#r4"},
+                {"href": "https://tool5.example/", "text": "Browser automation tool 5", "selector": "#r5"},
             ],
         },
         browser_intelligence={
             "page_model": {
                 "search_results": [
-                    {"rank": 1, "title": "Tool 1", "url": "https://tool1.example/"},
+                    {"rank": 1, "title": "Browser automation tool 1", "url": "https://tool1.example/"},
                 ]
             }
         },
@@ -181,8 +181,8 @@ def test_collect_search_results_registers_ranked_entities_for_open_phase():
         browser_intelligence={
             "page_model": {
                 "search_results": [
-                    {"rank": 1, "title": "Tool A", "url": "https://tool-a.example/pricing", "relevance_score": 0.91},
-                    {"rank": 2, "title": "Tool B", "url": "https://tool-b.example/docs", "relevance_score": 0.84},
+                    {"rank": 1, "title": "AI browser automation Tool A", "url": "https://tool-a.example/pricing", "relevance_score": 0.91},
+                    {"rank": 2, "title": "Browser automation Tool B docs", "url": "https://tool-b.example/docs", "relevance_score": 0.84},
                 ]
             }
         },
@@ -225,6 +225,44 @@ def test_collect_search_results_filters_ads_and_unwraps_google_redirects():
     assert results[0]["url"] == "https://www.google.com/url?q=https%3A%2F%2Fexternal.example%2Fguide&sa=U"
     assert results[0]["normalized_url"] == "https://external.example/guide"
     assert results[0]["source_domain"] == "external.example"
+
+
+def test_collect_search_results_filters_query_mismatched_generic_serp_items():
+    context = ExecutionContext(
+        mission_id="serp-query-intent-filter",
+        task="Open the top 5 relevant results about AI browser automation tools.",
+        page_context={"url": "https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026&ia=web"},
+        browser_intelligence={
+            "page_model": {
+                "search_results": [
+                    {
+                        "rank": 1,
+                        "title": "AI Browser Automation in 2026: Best Tools Tested and Ranked",
+                        "url": "https://skycrumbs.com/blog/ai-browser-automation-2026",
+                    },
+                    {
+                        "rank": 2,
+                        "title": "AI Parenting Apps in 2026: Tools That Support Families",
+                        "url": "https://skycrumbs.com/blog/ai-parenting-apps-2026",
+                    },
+                    {
+                        "rank": 3,
+                        "title": "AI Carbon Footprint Apps 2026: Track and Reduce Your Impact",
+                        "url": "https://skycrumbs.com/blog/ai-carbon-footprint-apps-2026",
+                    },
+                ]
+            }
+        },
+    )
+
+    result = execute(context, _directive())
+
+    payload = result.evidence[0].payload
+    assert payload["search_result_count"] == 1
+    assert payload["registered_entity_count"] == 1
+    assert payload["search_results"][0]["url"] == "https://skycrumbs.com/blog/ai-browser-automation-2026"
+    entities = [entity for entity in list_entities("serp-query-intent-filter") if entity.entity_type == "search_result"]
+    assert [entity.canonical_url for entity in entities] == ["https://skycrumbs.com/blog/ai-browser-automation-2026"]
 
 
 def test_collect_search_results_ignores_search_provider_challenge_page():

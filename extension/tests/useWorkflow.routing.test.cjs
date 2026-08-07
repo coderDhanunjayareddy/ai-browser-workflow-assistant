@@ -427,6 +427,33 @@ test('validateObservableProgress still rejects no-effect clicks', () => {
   assert.match(error, /did not visibly change after click/)
 })
 
+test('validateObservableProgress accepts verified tab focus without visible page change', () => {
+  const before = pageContext({
+    url: 'https://tool.example/',
+    title: 'Tool',
+    visible_text: 'Tool details',
+  })
+  const after = pageContext({
+    url: 'https://tool.example/',
+    title: 'Tool',
+    visible_text: 'Tool details',
+  })
+
+  const error = validateObservableProgress(
+    action({
+      action_type: 'focus_existing_tab',
+      value: 'url:https://tool.example/',
+      description: 'Focus opened source tab',
+      target_selector: '',
+    }),
+    before,
+    after,
+    { success: true, tab_switch_verified: true },
+  )
+
+  assert.equal(error, null)
+})
+
 test('open new tab prior step carries structured browser evidence', () => {
   const openedContext = pageContext({
     url: 'https://tool.example/pricing',

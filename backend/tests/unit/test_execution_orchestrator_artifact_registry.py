@@ -42,3 +42,28 @@ def test_opened_pages_prefer_structured_browser_evidence_url() -> None:
 
     assert artifacts.opened_pages == ["https://tool.example/pricing"]
     assert "https://tool.example/pricing" in artifacts.visited_urls
+
+
+def test_focus_existing_tab_counts_target_url_as_visited() -> None:
+    artifacts = build_artifacts(
+        _page(),
+        [
+            PriorStep(
+                action_type="focus_existing_tab",
+                description="Focus opened source for read phase",
+                target_selector="",
+                value="url:https://tool.example/pricing",
+                execution_result="success",
+                page_url="https://tool.example/pricing",
+                page_title="Tool Pricing",
+                browser_evidence={
+                    "active_tab_id": 123,
+                    "tab_switch_verified": True,
+                    "page_url": "https://tool.example/pricing",
+                    "page_title": "Tool Pricing",
+                },
+            )
+        ],
+    )
+
+    assert "https://tool.example/pricing" in artifacts.visited_urls

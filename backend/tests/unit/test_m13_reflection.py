@@ -107,6 +107,27 @@ def test_parse_response_canonicalizes_command_shaped_navigation_action():
     assert result.suggested_actions[0].value == "https://www.google.com"
 
 
+def test_parse_response_recovers_url_glued_to_open_new_tab_action_type():
+    raw = json.dumps({
+        "analysis": "mode+evidence",
+        "outcome_kind": "act",
+        "suggested_actions": [{
+            "action_type": "open_new_tab https://awesomeagents.ai",
+            "target_selector": None,
+            "value": None,
+            "description": "Open collected source",
+            "reasoning": "Read the source enough to extract evidence.",
+            "confidence": 0.8,
+            "safety_level": "safe",
+        }],
+    })
+
+    result = parse_response(raw, "command-open-tab-session")
+
+    assert result.suggested_actions[0].action_type == "open_new_tab"
+    assert result.suggested_actions[0].value == "https://awesomeagents.ai"
+
+
 # ── _detect_repeat_trigger (pure) ────────────────────────────────────────────
 
 def test_trigger_matches_when_page_changed_unknown():

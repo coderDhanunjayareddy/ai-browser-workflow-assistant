@@ -346,6 +346,31 @@ def test_focus_tab_grounding_translates_logical_tab_to_browser_url_reference(mon
     assert "logical_tab_" not in (action.value or "")
 
 
+def test_open_entity_reference_grounds_to_registered_url(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    session_id = "kernel-entity-reference-open"
+    entity = register_entity(
+        session_id,
+        entity_type="search_result",
+        title="Awesome Agents",
+        canonical_url="https://awesomeagents.ai/",
+        source_layer="browser_intelligence",
+    )
+
+    result = SemanticExecutionKernel().postprocess_response(
+        result=_response("open_new_tab", value=f"entity:{entity.entity_id}"),
+        session_id=session_id,
+        task="Open the top collected source.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    action = result.suggested_actions[0]
+    assert action.action_type == "open_new_tab"
+    assert action.value == "https://awesomeagents.ai"
+
+
 def test_focus_tab_grounding_rejects_unresolved_logical_tab_before_browser_boundary(monkeypatch):
     monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
     result = SemanticExecutionKernel().postprocess_response(
