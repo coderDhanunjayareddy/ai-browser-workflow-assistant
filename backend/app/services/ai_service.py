@@ -85,10 +85,19 @@ _STRING_LIMITS_BY_KEY = {
 
 def _planner_context_char_budget() -> int:
     raw = os.environ.get("AI_BROWSER_PLANNER_CONTEXT_CHAR_BUDGET", "")
+    provider = selected_provider()
+    default_budget = _DEFAULT_PLANNER_CONTEXT_CHAR_BUDGET
+    min_budget = 4_000
+    if provider == "openrouter":
+        default_budget = min(
+            default_budget,
+            int(getattr(settings, "openrouter_planner_context_char_budget", 1200) or 1200),
+        )
+        min_budget = 200
     try:
-        return max(4_000, int(raw)) if raw else _DEFAULT_PLANNER_CONTEXT_CHAR_BUDGET
+        return max(min_budget, int(raw)) if raw else default_budget
     except ValueError:
-        return _DEFAULT_PLANNER_CONTEXT_CHAR_BUDGET
+        return default_budget
 
 
 def _truncate_text(value: str, limit: int) -> str:
@@ -341,6 +350,15 @@ SYSTEM_PROMPT = """You are an AI browser workflow assistant. Decide the NEXT out
 - "replan": the current approach is not working and a different strategy is needed. suggested_actions must be empty; set "replan": {"reason": "why this approach should change"}."""
 
 
+COMPACT_SYSTEM_PROMPT = """Return one JSON object only:
+{"analysis":"mode+evidence","outcome_kind":"act|report|wait|ask|replan","clarification_question":null,"report":null,"replan":null,"suggested_actions":[]}
+Use only provided context. One step. Valid actions: click,fill,scroll,navigate,wait,select_option,choose_date,hover,keyboard_shortcut,open_new_tab,switch_tab,close_tab,focus_existing_tab. Selectors/URLs must come from context. Research modes are SEARCH,COLLECT,EXTRACT,VERIFY,REPORT; do not put modes in action_type. Report only with evidence."""
+
+
+def _system_prompt_for_provider(provider: str) -> str:
+    return COMPACT_SYSTEM_PROMPT if provider == "openrouter" else SYSTEM_PROMPT
+
+
 # ── Prompt builder ────────────────────────────────────────────────────────────
 
 def build_user_message(
@@ -402,6 +420,17 @@ def _anthropic_headers() -> dict[str, str]:
     }
 
 
+def _grok_headers() -> dict[str, str]:
+    api_key = (settings.grok_api_key or "").strip()
+    if not api_key or api_key == "your-grok-api-key":
+        raise ValueError("GROK_API_KEY is not configured")
+
+    return {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+
 def _extract_provider_error(response: httpx.Response) -> str:
     try:
         payload = response.json()
@@ -416,6 +445,19 @@ def _extract_provider_error(response: httpx.Response) -> str:
     return response.text or response.reason_phrase
 
 
+def _openrouter_token_cap(requested: int) -> int:
+    configured = int(getattr(settings, "openrouter_max_tokens", requested) or requested)
+    return max(64, min(int(requested), configured))
+
+
+def _openrouter_affordable_token_cap(message: str) -> int | None:
+    match = re.search(r"can only afford\s+(\d+)", message, flags=re.IGNORECASE)
+    if not match:
+        return None
+    affordable = int(match.group(1))
+    return affordable - 16 if affordable > 80 else affordable
+
+
 def _call_openrouter_chat(
     messages: list[dict],
     *,
@@ -426,28 +468,40 @@ def _call_openrouter_chat(
         "model": settings.openrouter_model,
         "messages": messages,
         "temperature": 0,
-        "max_tokens": max_tokens,
+        "max_tokens": _openrouter_token_cap(max_tokens),
     }
     if response_format:
         body["response_format"] = response_format
 
     _t0 = time.perf_counter()
-    try:
-        with httpx.Client(timeout=60.0) as client:
-            response = client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=_openrouter_headers(),
-                json=body,
-            )
-        response.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        status_code = exc.response.status_code
-        message = _extract_provider_error(exc.response)
-        if status_code == 429 or status_code >= 500:
-            raise TransientAIError(message) from exc
-        raise AIProviderError("OpenRouter", status_code, message) from exc
-    except httpx.HTTPError as exc:
-        raise TransientAIError(str(exc)) from exc
+    for attempt in range(2):
+        try:
+            with httpx.Client(timeout=60.0) as client:
+                response = client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=_openrouter_headers(),
+                    json=body,
+                )
+            response.raise_for_status()
+            break
+        except httpx.HTTPStatusError as exc:
+            status_code = exc.response.status_code
+            message = _extract_provider_error(exc.response)
+            affordable_cap = _openrouter_affordable_token_cap(message)
+            if (
+                status_code == 402
+                and attempt == 0
+                and affordable_cap is not None
+                and affordable_cap >= 64
+                and affordable_cap < int(body["max_tokens"])
+            ):
+                body["max_tokens"] = affordable_cap
+                continue
+            if status_code == 429 or status_code >= 500:
+                raise TransientAIError(message) from exc
+            raise AIProviderError("OpenRouter", status_code, message) from exc
+        except httpx.HTTPError as exc:
+            raise TransientAIError(str(exc)) from exc
 
     payload = response.json()
     try:
@@ -533,6 +587,70 @@ def _call_anthropic_messages(
                          "messages": body["messages"], "system": body.get("system"),
                          "temperature": body.get("temperature"), "max_tokens": body["max_tokens"]},
                 response={"raw_text": text, "stop_reason": payload.get("stop_reason"),
+                          "usage": payload.get("usage")},
+                latency_ms=(time.perf_counter() - _t0) * 1000)
+        except Exception:
+            pass
+
+    return text
+
+
+def _call_grok_chat(
+    messages: list[dict],
+    *,
+    response_format: dict | None = None,
+    max_tokens: int = 512,
+) -> str:
+    body = {
+        "model": settings.grok_model,
+        "messages": messages,
+        "temperature": 0,
+        "max_tokens": max_tokens,
+    }
+    if response_format:
+        body["response_format"] = response_format
+
+    _t0 = time.perf_counter()
+    try:
+        with httpx.Client(timeout=60.0) as client:
+            response = client.post(
+                "https://api.grok.ai/v1/chat/completions",
+                headers=_grok_headers(),
+                json=body,
+            )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code
+        message = _extract_provider_error(exc.response)
+        if status_code == 429 or status_code >= 500:
+            raise TransientAIError(message) from exc
+        raise AIProviderError("Grok", status_code, message) from exc
+    except httpx.HTTPError as exc:
+        raise TransientAIError(str(exc)) from exc
+
+    payload = response.json()
+    try:
+        content = payload["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise AIProviderError("Grok", 502, f"Unexpected Grok response: {payload}") from exc
+
+    if isinstance(content, str):
+        text = content
+    elif isinstance(content, list):
+        text = "".join(str(part.get("text", "")) for part in content if isinstance(part, dict))
+    else:
+        text = str(content or "")
+
+    if settings.trace_mode:
+        try:
+            from app.diagnostics import trace_sink
+            _choice0 = (payload.get("choices") or [{}])[0]
+            trace_sink.record_provider_exchange(
+                request={"provider": "grok", "model": body["model"],
+                         "messages": body["messages"], "temperature": body["temperature"],
+                         "max_tokens": body["max_tokens"],
+                         "response_format": body.get("response_format")},
+                response={"raw_text": text, "finish_reason": _choice0.get("finish_reason"),
                           "usage": payload.get("usage")},
                 latency_ms=(time.perf_counter() - _t0) * 1000)
         except Exception:
@@ -757,11 +875,25 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
 
     actions: list[SuggestedAction] = []
     intent_dispatch = None
-    for item in suggested_raw[:1]:
-        action_type = item.get("action_type", "")
+    for raw_item in suggested_raw[:1]:
+        item = raw_item if isinstance(raw_item, dict) else {"action_type": str(raw_item or "")}
+        action_type = str(item.get("action_type", "") or "")
         from app.intent_dispatcher import dispatch_intent
 
         intent_dispatch = dispatch_intent(intent=action_type, payload=item)
+        if intent_dispatch is None and action_type.upper() == "COLLECT":
+            collect_payload = {
+                "action_type": "collect_search_results",
+                "description": item.get("description") or "Collect visible result candidates.",
+                "reasoning": item.get("reasoning") or "Normalize planner COLLECT mode into deterministic collection.",
+                "confidence": item.get("confidence", 0.75),
+                "safety_level": item.get("safety_level", "safe"),
+                "mission_id": session_id,
+            }
+            intent_dispatch = dispatch_intent(intent="collect_search_results", payload=collect_payload)
+            data["suggested_actions"] = []
+            data["outcome_kind"] = "act"
+            break
         if intent_dispatch is None:
             raise ValueError(f"Unsupported action_type from AI: {action_type}")
         if not intent_dispatch.browser_executable:
@@ -1387,6 +1519,15 @@ def generate_text(system_prompt: str, user_message: str) -> str:
             max_tokens=1024,
         )
 
+    if provider == "grok":
+        return _call_grok_chat(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            max_tokens=1024,
+        )
+
     if provider != "gemini":
         raise ValueError(f"Unsupported AI_PROVIDER={settings.ai_provider}")
     if not settings.gemini_api_key:
@@ -1530,6 +1671,7 @@ def analyze(
         )
 
     provider = selected_provider()
+    planner_system_prompt = _system_prompt_for_provider(provider)
 
     is_extraction_task = any(k in task.lower() for k in ["extraction agent", "extract all", "structured json", "section 10", "product details", "output format", "section 19"])
 
@@ -1570,6 +1712,30 @@ def analyze(
                 max_tokens=2048,
             )
             _safe_debug_print(f"[AI Service] Raw text response from OpenRouter (Extraction):\n{raw_text[:300]}...\n")
+
+            cleaned_text = raw_text.strip()
+            if cleaned_text.startswith("```"):
+                cleaned_text = re.sub(r"^```(?:json)?\s*", "", cleaned_text, flags=re.IGNORECASE)
+                cleaned_text = re.sub(r"\s*```$", "", cleaned_text)
+                cleaned_text = cleaned_text.strip()
+
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=cleaned_text,
+                clarification_question=None,
+                suggested_actions=[],
+            )
+
+        if provider == "grok":
+            content = [{"type": "text", "text": user_message}]
+            for _, img_bytes, mime_type in downloaded:
+                content.append(_image_content_part(img_bytes, mime_type))
+
+            raw_text = _call_grok_chat(
+                [{"role": "user", "content": content}],
+                max_tokens=2048,
+            )
+            _safe_debug_print(f"[AI Service] Raw text response from Grok (Extraction):\n{raw_text[:300]}...\n")
 
             cleaned_text = raw_text.strip()
             if cleaned_text.startswith("```"):
@@ -1674,52 +1840,56 @@ def analyze(
     if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
         _safe_debug_print(f"[AI Service] Standard workflow task via {provider}. Skipping image downloader.")
 
-    if provider == "openrouter":
-        raw = _call_openrouter_chat(
+    if provider == "openrouter" or provider == "grok":
+        call_fn = _call_openrouter_chat if provider == "openrouter" else _call_grok_chat
+        raw = call_fn(
             [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": planner_system_prompt},
                 {"role": "user", "content": user_message},
             ],
             response_format={"type": "json_object"},
             max_tokens=512,
         )
         if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
-            _safe_debug_print(f"[AI Service] Raw JSON response from OpenRouter (Workflow):\n{raw}\n")
+            _safe_debug_print(
+                f"[AI Service] Raw JSON response from {provider.capitalize()} (Workflow):\n{raw}\n"
+            )
         for repair_attempt in range(2):
             try:
                 result = parse_response(raw, session_id)
                 trigger = _detect_repeat_trigger(result, compressed_context)
                 if trigger is None:
                     return finalize(result)
-                # M1.3: bounded, fail-safe reflection — one extra call, only when the
-                # primary candidate repeats a recent no-progress action (Part 6).
                 try:
-                    reflected_raw = _call_openrouter_chat(
+                    reflected_raw = call_fn(
                         [
-                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "system", "content": planner_system_prompt},
                             {"role": "user", "content": user_message + _reflection_directive(trigger)},
                         ],
                         response_format={"type": "json_object"},
                         max_tokens=512,
                     )
                     if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
-                        _safe_debug_print(f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n")
+                        _safe_debug_print(
+                            f"[AI Service] M1.3 reflection triggered; raw reflected response:\n{reflected_raw}\n"
+                        )
                     return finalize(parse_response(reflected_raw, session_id))
                 except Exception as reflect_err:
                     _safe_debug_print(f"[AI Service] M1.3 reflection call failed, keeping original action: {reflect_err}")
                     return finalize(result)
             except Exception as e:
+                debug_log = "debug_openrouter_raw.json" if provider == "openrouter" else "debug_grok_raw.json"
                 try:
-                    with open("debug_openrouter_raw.json", "w", encoding="utf-8") as f:
+                    with open(debug_log, "w", encoding="utf-8") as f:
                         f.write(f"Error: {str(e)}\n\nRaw:\n{raw}")
                 except Exception:
                     pass
-                _safe_debug_print(f"[AI Service ERROR] OpenRouter parse attempt {repair_attempt} failed: {e}")
+                _safe_debug_print(f"[AI Service ERROR] {provider.capitalize()} parse attempt {repair_attempt} failed: {e}")
                 if not isinstance(e, json.JSONDecodeError):
                     raise
-                raw = _call_openrouter_chat(
+                raw = call_fn(
                     [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "system", "content": planner_system_prompt},
                         {
                             "role": "user",
                             "content": (
@@ -1737,7 +1907,7 @@ def analyze(
     if provider == "anthropic":
         raw = _call_anthropic_messages(
             [{"role": "user", "content": user_message}],
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=planner_system_prompt,
             max_tokens=512,
         )
         if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
@@ -1751,7 +1921,7 @@ def analyze(
                 try:
                     reflected_raw = _call_anthropic_messages(
                         [{"role": "user", "content": user_message + _reflection_directive(trigger)}],
-                        system_prompt=SYSTEM_PROMPT,
+                        system_prompt=planner_system_prompt,
                         max_tokens=512,
                     )
                     if diagnostic_terminal_enabled("AI_BROWSER_AI_RAW_TRACE"):
@@ -1779,7 +1949,7 @@ def analyze(
                             ),
                         },
                     ],
-                    system_prompt=SYSTEM_PROMPT,
+                    system_prompt=planner_system_prompt,
                     max_tokens=512,
                 )
 
@@ -1801,7 +1971,7 @@ def analyze(
                 model=settings.gemini_model,
                 contents=contents,
                 config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
+                    system_instruction=planner_system_prompt,
                     response_mime_type="application/json",
                     temperature=0,
                 ),
@@ -1826,7 +1996,7 @@ def analyze(
             trace_sink.record_provider_exchange(
                 request={"provider": "gemini", "model": settings.gemini_model,
                          "messages": [{"role": "user", "content": user_message}],
-                         "system": SYSTEM_PROMPT, "temperature": 0, "max_tokens": None,
+                         "system": planner_system_prompt, "temperature": 0, "max_tokens": None,
                          "response_format": {"type": "json_object"}},
                 response={"raw_text": raw, "finish_reason": None, "usage": None},
                 latency_ms=0.0)
@@ -1847,7 +2017,7 @@ def analyze(
                     model=settings.gemini_model,
                     contents=contents + [types.Part.from_text(text=_reflection_directive(trigger))],
                     config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_PROMPT,
+                        system_instruction=planner_system_prompt,
                         response_mime_type="application/json",
                         temperature=0,
                     ),
@@ -1862,7 +2032,7 @@ def analyze(
                                          {"role": "user", "content": user_message},
                                          {"role": "user", "content": _reflection_directive(trigger)},
                                      ],
-                                     "system": SYSTEM_PROMPT, "temperature": 0, "max_tokens": None,
+                                     "system": planner_system_prompt, "temperature": 0, "max_tokens": None,
                                      "response_format": {"type": "json_object"}},
                             response={"raw_text": reflected_raw, "finish_reason": None, "usage": None},
                             latency_ms=0.0)
@@ -1887,7 +2057,7 @@ def analyze(
                 model=settings.gemini_model,
                 contents=contents,
                 config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
+                    system_instruction=planner_system_prompt,
                     response_mime_type="application/json",
                     temperature=0,
                 ),
@@ -1899,7 +2069,7 @@ def analyze(
                     trace_sink.record_provider_exchange(
                         request={"provider": "gemini", "model": settings.gemini_model,
                                  "messages": [{"role": "user", "content": user_message}],
-                                 "system": SYSTEM_PROMPT, "temperature": 0, "max_tokens": None,
+                                 "system": planner_system_prompt, "temperature": 0, "max_tokens": None,
                                  "response_format": {"type": "json_object"}},
                         response={"raw_text": raw, "finish_reason": None, "usage": None},
                         latency_ms=0.0)

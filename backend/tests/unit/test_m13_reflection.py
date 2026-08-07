@@ -16,7 +16,7 @@ import pytest
 from app.core.config import settings
 from app.schemas.response import AnalyzeResponse, SuggestedAction
 from app.services import ai_service
-from app.services.ai_service import _detect_repeat_trigger, _reflection_directive
+from app.services.ai_service import _detect_repeat_trigger, _reflection_directive, parse_response
 
 
 def _action(action_type="click", selector="#p2", description="click page 2") -> SuggestedAction:
@@ -45,6 +45,31 @@ def _raw(action_type="click", selector="#p2", description="click page 2") -> str
             "confidence": 0.9, "safety_level": "safe",
         }],
     })
+
+
+def test_parse_response_normalizes_collect_mode_action_to_backend_intent():
+    result = parse_response(_raw(action_type="COLLECT"), "collect-mode-session")
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions == []
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "collect_search_results"
+    assert result.intent_dispatch.browser_executable is False
+
+
+def test_parse_response_normalizes_string_collect_action_to_backend_intent():
+    raw = json.dumps({
+        "analysis": "collect mode",
+        "outcome_kind": "act",
+        "suggested_actions": ["COLLECT"],
+    })
+
+    result = parse_response(raw, "collect-string-session")
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions == []
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "collect_search_results"
 
 
 # ── _detect_repeat_trigger (pure) ────────────────────────────────────────────
@@ -234,6 +259,41 @@ def test_gemini_trigger_reflects_to_different_action(gemini, monkeypatch):
                                          "page_changed": None}]))
     assert len(fake_client.models.calls) == 2
     assert result.suggested_actions[0].target_selector == "#next"
+
+
+@pytest.fixture
+def grok(monkeypatch):
+    monkeypatch.setattr(settings, "ai_provider", "grok")
+    monkeypatch.setattr(settings, "grok_api_key", "test-key")
+
+
+def test_grok_no_trigger_makes_exactly_one_call(grok, monkeypatch):
+    calls = []
+    def fake_call(messages, **kw):
+        calls.append(messages)
+        return _raw(selector="#next")
+    monkeypatch.setattr(ai_service, "_call_grok_chat", fake_call)
+
+    result = ai_service.analyze(
+        session_id="s", task="paginate", page_context=_pc(), prior_steps=[],
+        compressed_context=_compressed([{"action_type": "click", "selector": "#p2",
+                                         "page_changed": None}]))
+    assert len(calls) == 1
+    assert result.suggested_actions[0].target_selector == "#next"
+
+
+def test_grok_generate_text(grok, monkeypatch):
+    called = []
+    def fake_call(messages, **kw):
+        called.append((messages, kw))
+        return "OK"
+    monkeypatch.setattr(ai_service, "_call_grok_chat", fake_call)
+
+    text = ai_service.generate_text("system", "hello")
+    assert text == "OK"
+    assert len(called) == 1
+    assert called[0][0][0]["content"] == "system"
+    assert called[0][0][1]["content"] == "hello"
 
 
 def _pc():

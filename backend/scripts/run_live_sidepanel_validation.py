@@ -13,7 +13,6 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 EXTENSION_DIR = ROOT / "extension" / "dist"
-PROFILE_DIR = ROOT / "playwright-profile-sidepanel"
 REPORT_DIR = ROOT / "docs" / "production_validation" / "live_sidepanel"
 
 
@@ -256,13 +255,14 @@ def main() -> int:
     args = parser.parse_args()
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    profile_dir = REPORT_DIR / f"profile_{int(time.time() * 1000)}"
     if not EXTENSION_DIR.exists():
         raise SystemExit(f"Extension build not found: {EXTENSION_DIR}")
 
     results: list[TaskRun] = []
     with sync_playwright() as pw:
         context = pw.chromium.launch_persistent_context(
-            str(PROFILE_DIR),
+            str(profile_dir),
             headless=False,
             viewport={"width": 1440, "height": 950},
             args=[
@@ -290,7 +290,7 @@ def main() -> int:
         report = {
             "mode": "extension_sidepanel_playwright",
             "extension_id": extension_id,
-            "started_profile": str(PROFILE_DIR),
+            "started_profile": str(profile_dir),
             "results": [asdict(item) for item in results],
         }
         out = REPORT_DIR / "live_sidepanel_first10_latest.json"

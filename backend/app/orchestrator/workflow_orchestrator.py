@@ -1072,7 +1072,7 @@ class WorkflowOrchestrator:
             # Provider-neutral approximation; exact provider usage can replace this
             # without changing budget or analytics contracts.
             token_estimate = ai_service.estimate_tokens(json.dumps(compressed_context))
-            token_estimate += ai_service.estimate_tokens(result.model_dump_json())
+            token_estimate += ai_service.estimate_tokens(json.dumps(_planner_output_budget_projection(result)))
             record_planner_call(self.db, self.session_id, token_estimate, latency_ms)
             self.budget_manager.consume(tokens=token_estimate)
 
@@ -1846,3 +1846,41 @@ def _runtime_decision_from_response(result: Any) -> tuple[str, str]:
     if suggested_actions or execution_status in {"waiting_browser", "browser_action_required", "succeeded"}:
         return "CONTINUE", str(getattr(result, "analysis", "") or "Runtime V1 produced executable work.")
     return "CONTINUE", str(getattr(result, "analysis", "") or "Runtime V1 continued without terminal decision.")
+
+
+def _planner_output_budget_projection(result: Any) -> dict[str, Any]:
+    actions = []
+    for action in list(getattr(result, "suggested_actions", []) or [])[:1]:
+        actions.append(
+            {
+                "action_type": getattr(action, "action_type", ""),
+                "target_selector": getattr(action, "target_selector", ""),
+                "value": getattr(action, "value", None),
+                "description": getattr(action, "description", ""),
+                "reasoning": getattr(action, "reasoning", ""),
+                "safety_level": getattr(action, "safety_level", ""),
+            }
+        )
+    report = getattr(result, "report", None)
+    replan = getattr(result, "replan", None)
+    intent_execution = getattr(result, "intent_execution", None)
+    return {
+        "analysis": str(getattr(result, "analysis", "") or "")[:1200],
+        "outcome_kind": getattr(result, "outcome_kind", None),
+        "suggested_actions": actions,
+        "report": (
+            {
+                "answer": str(getattr(report, "answer", "") or "")[:1200],
+                "claim": str(getattr(report, "claim", "") or "")[:500],
+            }
+            if report is not None
+            else None
+        ),
+        "replan": (
+            {"reason": str(getattr(replan, "reason", "") or "")[:500]}
+            if replan is not None
+            else None
+        ),
+        "intent_execution_status": str(getattr(intent_execution, "status", "") or ""),
+        "intent_execution_reason": str(getattr(intent_execution, "reason", "") or "")[:500],
+    }

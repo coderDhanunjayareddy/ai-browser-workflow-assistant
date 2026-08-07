@@ -61,6 +61,8 @@ API docs: http://localhost:8000/docs
 
 If you use Gemini instead, set `AI_PROVIDER=gemini`, configure
 `GEMINI_API_KEY` and `GEMINI_MODEL`, then run `python check_gemini.py`.
+If you use Grok instead, set `AI_PROVIDER=grok`, configure `GROK_API_KEY` and
+`GROK_MODEL`, then run `python check_grok.py`.
 If `/analyze` returns provider access or quota errors, run the matching checker
 from the `backend` folder before using the extension.
 

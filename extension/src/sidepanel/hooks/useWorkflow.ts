@@ -1567,6 +1567,8 @@ export function useWorkflow() {
     setPageContext(null)
     setState((s) => ({
       ...s,
+      sessionId: crypto.randomUUID(),
+      task: '',
       analysisText: '',
       pendingActions: [],
       activeAction: null,
