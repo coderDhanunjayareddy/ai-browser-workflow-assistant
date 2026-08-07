@@ -72,6 +72,38 @@ export interface ReplanOutcome {
   reason: string
 }
 
+export interface IntentExecutionEvidence {
+  evidence_id: string
+  source: string
+  kind: string
+  summary: string
+  references?: string[]
+  payload?: Record<string, unknown>
+}
+
+export interface IntentExecutionResult {
+  schema_version?: string
+  intent_id: string
+  intent: string
+  owner: string
+  capability: string
+  dispatch_target: string
+  status:
+    | 'succeeded'
+    | 'waiting_browser'
+    | 'browser_action_required'
+    | 'user_interaction_required'
+    | 'waiting_external'
+    | 'mission_completed'
+    | 'failed'
+    | 'blocked'
+  reason: string
+  evidence?: IntentExecutionEvidence[]
+  next_intents?: unknown[]
+  blocking_reason?: string | null
+  browser_action?: Record<string, unknown> | null
+}
+
 export interface AnalyzeResponse {
   session_id: string
   analysis: string
@@ -92,6 +124,7 @@ export interface AnalyzeResponse {
    */
   goal_convergence?: boolean
   execution_orchestrator?: PhaseExecutionDirective | null
+  intent_execution?: IntentExecutionResult | null
 }
 
 export interface IntentDTO {

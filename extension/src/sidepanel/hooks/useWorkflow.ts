@@ -1188,11 +1188,12 @@ export function useWorkflow() {
         if (nextIntent) {
           routed.pendingActions = [actionFromIntent(nextIntent)]
         } else {
-          routed.phase = 'completed'
+          routed.phase = 'failed'
           routed.analysisText = [
             routed.analysisText,
-            'Mission Ledger has no browser intent awaiting execution.',
+            'Mission Ledger has no browser intent awaiting execution before completion evidence was available.',
           ].filter(Boolean).join('\n\n')
+          routed.error = 'No executable browser action was available after analysis.'
         }
       }
       setState((s) => ({
@@ -1232,6 +1233,18 @@ export function useWorkflow() {
           task,
           completedActions,
           validationPriorSteps: nextValidationPriorSteps,
+          workspace: updatedWorkspace,
+          tabWorkspace: updatedTabWorkspace,
+          userInputs,
+          refresh: true,
+        })
+      }
+      if (routed.continueAfterBackendStep) {
+        await runWorkflowLoop({
+          sessionId,
+          task,
+          completedActions,
+          validationPriorSteps,
           workspace: updatedWorkspace,
           tabWorkspace: updatedTabWorkspace,
           userInputs,

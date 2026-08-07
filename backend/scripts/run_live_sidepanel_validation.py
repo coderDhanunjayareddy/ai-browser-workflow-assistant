@@ -208,6 +208,10 @@ def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int) -> T
                 and "mission result is ready" not in lowered
             )
         )
+        planner_replan = "planner requested replan" in lowered or "replan reason:" in lowered
+        if planner_replan:
+            terminal_status = "failed"
+            break
         if false_completion or "failed" in lowered or "error:" in lowered or "observation failed" in lowered:
             terminal_status = "failed"
             break

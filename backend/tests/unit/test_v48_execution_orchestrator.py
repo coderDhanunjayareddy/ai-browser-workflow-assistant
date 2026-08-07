@@ -277,6 +277,25 @@ def test_active_read_phase_rejects_more_open_tab_actions(monkeypatch):
     assert "Current phase: READ" in result.replan.reason
 
 
+def test_active_collect_phase_collects_results_before_opening_tabs(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="collect-before-open",
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"),
+        prior_steps=[],
+    )
+
+    result = engine.postprocess_response(_planner_action("open_new_tab", value="https://tool1.example/"), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions == []
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "collect_search_results"
+    assert result.intent_dispatch.owner == "browser_intelligence"
+
+
 def test_active_read_phase_allows_focus_tab(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     engine = ExecutionOrchestrator()

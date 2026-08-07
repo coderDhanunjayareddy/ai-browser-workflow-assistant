@@ -15,6 +15,7 @@ from app.execution_orchestrator.replay import phase_replay
 from app.execution_orchestrator.telemetry import build_telemetry
 from app.execution_orchestrator.transition_engine import build_transitions
 from app.feature_flags import is_active, is_shadow_or_active
+from app.intent_dispatcher.models import IntentDispatchDirective
 from app.schemas.response import AnalyzeResponse
 
 
@@ -91,11 +92,72 @@ class ExecutionOrchestrator:
             return result
         action = result.suggested_actions[0]
         if not action_allowed(action.action_type, snapshot.active_phase):
+            collect_response = _collect_before_open_response(result, snapshot, action.action_type)
+            if collect_response is not None:
+                return collect_response
             return reject_for_phase(result, snapshot, f"action {action.action_type} is not allowed in phase {snapshot.active_phase.name}")
         return attach_phase_execution_directive(result, snapshot)
 
 
 _orchestrator = ExecutionOrchestrator()
+
+
+def _collect_before_open_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action_type: str,
+) -> AnalyzeResponse | None:
+    if snapshot.active_phase.name != "COLLECT":
+        return None
+    if str(action_type or "").lower() != "open_new_tab":
+        return None
+    if snapshot.progress_ledger.current_counts.get("collected_items", 0) > 0:
+        return None
+    current_url = snapshot.artifacts.visited_urls[-1] if snapshot.artifacts.visited_urls else ""
+    if not _is_search_results_url(current_url):
+        return None
+
+    directive = IntentDispatchDirective(
+        mission_id=result.session_id,
+        intent="collect_search_results",
+        owner="browser_intelligence",
+        capability="serp_collection",
+        dispatch_target="browser_intelligence",
+        browser_executable=False,
+        reason=(
+            "Execution Orchestrator requires deterministic search-result collection "
+            "before opening ranked result entities from the COLLECT phase."
+        ),
+        payload={
+            "action_type": "collect_search_results",
+            "description": "Collect visible search result candidates before opening sources",
+            "reasoning": "Collect and register visible result entities so OPEN phase actions are grounded.",
+            "confidence": 0.9,
+            "safety_level": "safe",
+        },
+    )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator converted the premature open-tab proposal "
+            "into deterministic search-result collection for the active COLLECT phase."
+        ),
+        outcome_kind="act",
+        suggested_actions=[],
+        intent_dispatch=directive,
+    )
+
+
+def _is_search_results_url(url: str) -> bool:
+    from urllib.parse import urlsplit
+
+    parsed = urlsplit(str(url or ""))
+    host = parsed.netloc.lower().removeprefix("www.")
+    if host in {"google.com", "bing.com"} and parsed.path.startswith("/search"):
+        return True
+    if host == "duckduckgo.com" and parsed.query:
+        return True
+    return False
 
 
 def observe_execution_orchestrator(

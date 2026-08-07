@@ -347,6 +347,31 @@ test('routes act-without-action as failed until completion evidence exists', () 
   assert.match(routed.error, /No executable browser action/)
 })
 
+test('routes successful backend-only intent to refresh loop', () => {
+  const routed = route(response({
+    outcome_kind: 'act',
+    suggested_actions: [],
+    intent_execution: {
+      schema_version: 'intent_execution.v1',
+      intent_id: 'collect-1',
+      intent: 'collect_search_results',
+      owner: 'browser_intelligence',
+      capability: 'serp_collection',
+      dispatch_target: 'browser_intelligence',
+      status: 'succeeded',
+      reason: 'Collected 5 observed search results.',
+      evidence: [],
+      next_intents: [],
+      blocking_reason: null,
+    },
+  }))
+
+  assert.equal(routed.phase, 'refreshing')
+  assert.equal(routed.continueAfterBackendStep, true)
+  assert.deepEqual(routed.pendingActions, [])
+  assert.equal(routed.error, null)
+})
+
 test('execute to refresh to analyze loop sends fresh observation with prior steps', () => {
   const freshContext = pageContext({
     url: 'https://example.test/results',
