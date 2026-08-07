@@ -16,7 +16,7 @@ from app.execution_orchestrator.telemetry import build_telemetry
 from app.execution_orchestrator.transition_engine import build_transitions
 from app.feature_flags import is_active, is_shadow_or_active
 from app.intent_dispatcher.models import IntentDispatchDirective
-from app.schemas.response import AnalyzeResponse
+from app.schemas.response import AnalyzeResponse, SuggestedAction
 
 
 class ExecutionOrchestrator:
@@ -95,6 +95,9 @@ class ExecutionOrchestrator:
         if open_response is not None:
             return attach_phase_execution_directive(open_response, snapshot)
         if not action_allowed(action.action_type, snapshot.active_phase):
+            recovery_navigation = _collect_search_recovery_navigation_response(result, snapshot, action)
+            if recovery_navigation is not None:
+                return attach_phase_execution_directive(recovery_navigation, snapshot)
             collect_response = _collect_before_open_response(result, snapshot, action.action_type)
             if collect_response is not None:
                 return collect_response
@@ -148,6 +151,33 @@ def _collect_before_open_response(
         outcome_kind="act",
         suggested_actions=[],
         intent_dispatch=directive,
+    )
+
+
+def _collect_search_recovery_navigation_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action: SuggestedAction,
+) -> AnalyzeResponse | None:
+    if snapshot.active_phase.name != "COLLECT":
+        return None
+    if str(action.action_type or "").lower() != "navigate":
+        return None
+    target_url = str(action.value or "")
+    current_url = snapshot.artifacts.visited_urls[-1] if snapshot.artifacts.visited_urls else ""
+    if not (_is_search_results_url(target_url) and _is_search_results_url(current_url)):
+        return None
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator allowed search-provider recovery navigation "
+            "inside COLLECT because the current provider did not yield enough openable candidates."
+        ),
+        outcome_kind=result.outcome_kind,
+        clarification_question=result.clarification_question,
+        report=result.report,
+        replan=result.replan,
+        suggested_actions=[action],
     )
 
 

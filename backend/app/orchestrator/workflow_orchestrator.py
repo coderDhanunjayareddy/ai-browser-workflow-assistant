@@ -1786,28 +1786,43 @@ def _search_challenge_recovery_action(
     url = str(getattr(page_context, "url", "") or "")
     parsed = urlparse(url)
     host = parsed.netloc.lower().removeprefix("www.")
-    if host != "google.com" or not parsed.path.startswith(("/sorry", "/challenge", "/consent")):
+    if not _is_search_challenge_page(page_context):
         return None
     query = _search_query_from_task(task)
     if not query:
         return None
-    recovery_url = f"https://www.bing.com/search?q={quote_plus(query)}"
-    recovery_identity = recovery_url.rstrip("/").lower()
+
+    provider_urls = [
+        ("bing", f"https://www.bing.com/search?q={quote_plus(query)}"),
+        ("duckduckgo", f"https://duckduckgo.com/?q={quote_plus(query)}"),
+    ]
+    attempted = {_normalize_attempted_search_url(url)}
     for step in prior_steps:
-        value = str(getattr(step, "value", "") or "").rstrip("/").lower()
-        page_url = str(getattr(step, "page_url", "") or "").rstrip("/").lower()
-        if recovery_identity in {value, page_url}:
-            return None
+        attempted.add(_normalize_attempted_search_url(str(getattr(step, "value", "") or "")))
+        attempted.add(_normalize_attempted_search_url(str(getattr(step, "page_url", "") or "")))
+
+    provider_name = ""
+    recovery_url = ""
+    for candidate_name, candidate_url in provider_urls:
+        if candidate_name == host:
+            continue
+        if _normalize_attempted_search_url(candidate_url) in attempted:
+            continue
+        provider_name = candidate_name
+        recovery_url = candidate_url
+        break
+    if not recovery_url:
+        return None
 
     from app.schemas.response import SuggestedAction
 
     return SuggestedAction(
-        action_id="search_provider_recovery_bing",
+        action_id=f"search_provider_recovery_{provider_name}",
         mission_id=session_id,
         action_type="navigate",
         target_selector="",
         value=recovery_url,
-        description=f"Recover search by opening Bing results for: {query}",
+        description=f"Recover search by opening {provider_name.title()} results for: {query}",
         reasoning=(
             "The current search provider returned a challenge/no-results surface. "
             "Switch to an alternate public search provider so organic result collection can continue."
@@ -1815,6 +1830,48 @@ def _search_challenge_recovery_action(
         confidence=0.86,
         safety_level="safe",
     )
+
+
+def _is_search_challenge_page(page_context: Any) -> bool:
+    from urllib.parse import urlparse
+
+    url = str(getattr(page_context, "url", "") or "")
+    parsed = urlparse(url)
+    host = parsed.netloc.lower().removeprefix("www.")
+    path = parsed.path.lower()
+    text = " ".join(
+        str(value or "")
+        for value in (
+            getattr(page_context, "title", ""),
+            getattr(page_context, "visible_text", ""),
+            getattr(page_context, "selected_text", ""),
+        )
+    ).lower()
+    if host == "google.com" and path.startswith(("/sorry", "/challenge", "/consent")):
+        return True
+    challenge_markers = (
+        "one last step",
+        "please solve the challenge",
+        "captcha",
+        "recaptcha",
+        "hcaptcha",
+        "verify you are human",
+        "not a robot",
+        "unusual traffic",
+        "automated queries",
+    )
+    return host in {"google.com", "bing.com", "duckduckgo.com"} and any(marker in text for marker in challenge_markers)
+
+
+def _normalize_attempted_search_url(url: str) -> str:
+    from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
+    parsed = urlparse(str(url or ""))
+    if not parsed.scheme or not parsed.netloc:
+        return ""
+    host = parsed.netloc.lower().removeprefix("www.")
+    query = urlencode([(key, value) for key, value in parse_qsl(parsed.query) if key.lower() == "q"])
+    return urlunparse((parsed.scheme.lower(), host, parsed.path.rstrip("/") or "/", "", query, "")).rstrip("/").lower()
 
 
 def _deterministic_search_collection_response(

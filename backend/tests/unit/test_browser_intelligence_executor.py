@@ -225,3 +225,27 @@ def test_collect_search_results_filters_ads_and_unwraps_google_redirects():
     assert results[0]["url"] == "https://www.google.com/url?q=https%3A%2F%2Fexternal.example%2Fguide&sa=U"
     assert results[0]["normalized_url"] == "https://external.example/guide"
     assert results[0]["source_domain"] == "external.example"
+
+
+def test_collect_search_results_ignores_search_provider_challenge_page():
+    context = ExecutionContext(
+        mission_id="serp-challenge",
+        task="Search and summarize browser automation sources.",
+        page_context={
+            "url": "https://www.bing.com/search?q=best+AI+browser+automation+tools+2026&rdr=1",
+            "title": "best AI browser automation tools 2026 - Search",
+            "visible_text": "One last step\nPlease solve the challenge below to continue",
+            "content_blocks": [
+                {
+                    "href": "https://www.bing.com/search?q=best+AI+browser+automation+tools+2026",
+                    "text": "Please solve the challenge below to continue",
+                }
+            ],
+        },
+    )
+
+    result = execute(context, _directive())
+
+    payload = result.evidence[0].payload
+    assert payload["search_result_count"] == 0
+    assert payload["registered_entity_count"] == 0

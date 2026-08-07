@@ -734,6 +734,85 @@ def _extract_json_object(raw: str) -> str:
     raise json.JSONDecodeError("Unclosed JSON object", text, start)
 
 
+_CANONICAL_BROWSER_ACTIONS = {
+    "click",
+    "fill",
+    "scroll",
+    "navigate",
+    "wait",
+    "select_option",
+    "choose_date",
+    "hover",
+    "keyboard_shortcut",
+    "open_new_tab",
+    "switch_tab",
+    "close_tab",
+    "focus_existing_tab",
+}
+
+_ACTION_ALIASES = {
+    "select": "select_option",
+    "select_option": "select_option",
+    "choose_date": "choose_date",
+    "keyboard": "keyboard_shortcut",
+    "keyboard_shortcut": "keyboard_shortcut",
+    "open_new_tab": "open_new_tab",
+    "new_tab": "open_new_tab",
+    "switch_tab": "switch_tab",
+    "close_tab": "close_tab",
+    "focus_tab": "focus_existing_tab",
+    "focus_existing_tab": "focus_existing_tab",
+}
+
+
+def _canonicalize_planner_action_item(item: dict[str, Any]) -> dict[str, Any]:
+    """Repair common schema drift while preserving the dispatcher as authority."""
+    action_text = str(item.get("action_type", "") or "").strip()
+    if not action_text:
+        return item
+
+    key = re.sub(r"[\s-]+", "_", action_text.lower()).strip("_")
+    canonical = _ACTION_ALIASES.get(key) or (key if key in _CANONICAL_BROWSER_ACTIONS else None)
+    if canonical:
+        repaired = dict(item)
+        repaired["action_type"] = canonical
+        return repaired
+
+    url = _extract_http_url(action_text) or _extract_http_url(str(item.get("value") or ""))
+    if not url:
+        return item
+
+    command = action_text.lower()
+    open_prefixes = (
+        "open new tab",
+        "open in new tab",
+        "open tab",
+    )
+    navigate_prefixes = (
+        "navigate to",
+        "go to",
+        "visit",
+        "browse to",
+        "load",
+    )
+    if command.startswith(open_prefixes):
+        canonical = "open_new_tab"
+    elif command.startswith(navigate_prefixes) or command.startswith("open "):
+        canonical = "navigate"
+    else:
+        return item
+
+    repaired = dict(item)
+    repaired["action_type"] = canonical
+    repaired["value"] = url
+    repaired["target_selector"] = repaired.get("target_selector") or ""
+    repaired["description"] = repaired.get("description") or f"{canonical.replace('_', ' ')} {url}"
+    repaired["reasoning"] = repaired.get("reasoning") or (
+        "Recovered a command-shaped planner action into the canonical browser action schema."
+    )
+    return repaired
+
+
 def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
     """
     Parse and validate the AI JSON response into an AnalyzeResponse.
@@ -877,6 +956,7 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
     intent_dispatch = None
     for raw_item in suggested_raw[:1]:
         item = raw_item if isinstance(raw_item, dict) else {"action_type": str(raw_item or "")}
+        item = _canonicalize_planner_action_item(item)
         action_type = str(item.get("action_type", "") or "")
         if not action_type.strip():
             data["suggested_actions"] = []

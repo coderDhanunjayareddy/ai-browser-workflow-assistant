@@ -318,6 +318,33 @@ def test_blueprint_runtime_recovers_from_search_provider_challenge(db_session, m
     assert "alternate search provider" in response.analysis
 
 
+def test_blueprint_runtime_rotates_search_provider_after_bing_challenge(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.services import ai_service
+
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "active")
+    monkeypatch.setattr(ai_service, "analyze", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("planner should not run")))
+
+    orchestrator = WorkflowOrchestrator("blueprint-bing-recovery-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Open Google Search and search for: `best AI browser automation tools 2026`. Open the top 5 relevant results and return a table.",
+        page_context=PageContext(
+            url="https://www.bing.com/search?q=best+AI+browser+automation+tools+2026&rdr=1",
+            title="best AI browser automation tools 2026 - Search",
+            interactive_elements=[],
+            selected_text="",
+            visible_text="One last step\nPlease solve the challenge below to continue",
+        ),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].action_type == "navigate"
+    assert response.suggested_actions[0].value == "https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"
+    assert "alternate search provider" in response.analysis
+
+
 def test_blueprint_active_explicit_url_collection_starts_at_source_url(db_session, monkeypatch):
     from app.core.config import settings
     from app.services import ai_service

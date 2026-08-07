@@ -401,6 +401,27 @@ def test_active_collect_phase_collects_results_before_opening_tabs(monkeypatch):
     assert result.intent_dispatch.owner == "browser_intelligence"
 
 
+def test_active_collect_phase_allows_search_provider_recovery_navigation(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="collect-provider-recovery",
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026&rdr=1"),
+        prior_steps=[],
+    )
+
+    result = engine.postprocess_response(
+        _planner_action("navigate", value="https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"),
+        snapshot,
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "navigate"
+    assert result.suggested_actions[0].value == "https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"
+    assert result.replan is None
+
+
 def test_active_read_phase_allows_focus_tab(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     engine = ExecutionOrchestrator()

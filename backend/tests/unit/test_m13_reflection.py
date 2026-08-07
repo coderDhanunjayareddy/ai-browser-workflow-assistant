@@ -86,6 +86,27 @@ def test_parse_response_recovers_empty_action_type_as_wait():
     assert result.suggested_actions[0].value == "1000"
 
 
+def test_parse_response_canonicalizes_command_shaped_navigation_action():
+    raw = json.dumps({
+        "analysis": "mode+evidence",
+        "outcome_kind": "act",
+        "suggested_actions": [{
+            "action_type": "navigate to https://www.google.com",
+            "target_selector": None,
+            "value": None,
+            "description": "Open Google",
+            "reasoning": "Need a search engine.",
+            "confidence": 0.8,
+            "safety_level": "safe",
+        }],
+    })
+
+    result = parse_response(raw, "command-navigation-session")
+
+    assert result.suggested_actions[0].action_type == "navigate"
+    assert result.suggested_actions[0].value == "https://www.google.com"
+
+
 # ── _detect_repeat_trigger (pure) ────────────────────────────────────────────
 
 def test_trigger_matches_when_page_changed_unknown():

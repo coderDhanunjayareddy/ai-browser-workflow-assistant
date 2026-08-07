@@ -78,6 +78,8 @@ def _result_payload(result) -> dict:
 
 
 def _extract_search_results(context: ExecutionContext) -> list[dict]:
+    if _is_search_challenge_page(context.page_context):
+        return []
     results = []
     for container in _search_result_containers(context):
         for index, item in enumerate(_as_list(container), start=len(results) + 1):
@@ -113,6 +115,29 @@ def _search_result_containers(context: ExecutionContext) -> list:
 
 def _content_blocks(page_context) -> list:
     return _as_list(_read(page_context, "content_blocks"))
+
+
+def _is_search_challenge_page(page_context) -> bool:
+    url = str(_read(page_context, "url") or "")
+    host = urlsplit(url).netloc.lower().removeprefix("www.")
+    text = " ".join(
+        str(_read(page_context, key) or "")
+        for key in ("title", "visible_text", "selected_text")
+    ).lower()
+    if host == "google.com" and urlsplit(url).path.lower().startswith(("/sorry", "/challenge", "/consent")):
+        return True
+    challenge_markers = (
+        "one last step",
+        "please solve the challenge",
+        "captcha",
+        "recaptcha",
+        "hcaptcha",
+        "verify you are human",
+        "not a robot",
+        "unusual traffic",
+        "automated queries",
+    )
+    return host in {"google.com", "bing.com", "duckduckgo.com"} and any(marker in text for marker in challenge_markers)
 
 
 def _normalize_search_result(item, index: int) -> dict:

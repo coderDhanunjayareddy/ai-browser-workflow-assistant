@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.budget_engine.budget_models import BudgetExceededError, WorkflowBudget
+from app.core.config import settings
 from app.models.db import WorkflowBudgetRecord, WorkflowSession
 
 
@@ -16,7 +17,13 @@ class BudgetManager:
     def get_or_create(self) -> WorkflowBudgetRecord:
         record = self.db.get(WorkflowBudgetRecord, self.session_id)
         if record is None:
-            record = WorkflowBudgetRecord(session_id=self.session_id)
+            record = WorkflowBudgetRecord(
+                session_id=self.session_id,
+                max_steps=settings.workflow_max_steps,
+                max_tokens=settings.workflow_max_tokens,
+                max_retries=settings.workflow_max_retries,
+                max_duration_seconds=settings.workflow_max_duration_seconds,
+            )
             self.db.add(record)
             self.db.flush()
         return record
