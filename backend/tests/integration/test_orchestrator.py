@@ -7,7 +7,7 @@ from app.models.db import WorkflowSession
 from app.models.db import MissionIntentRecord
 from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
 from app.schemas.intent import IntentEvidence
-from app.schemas.request import InteractiveElement, PageContext
+from app.schemas.request import ContentBlock, InteractiveElement, PageContext
 from app.schemas.response import AnalyzeResponse, ReportOutcome, SuggestedAction
 
 
@@ -43,6 +43,29 @@ def page(url: str) -> PageContext:
         ],
         selected_text="",
         visible_text="Continue",
+    )
+
+
+def search_results_page(url: str = "https://www.bing.com/search?q=best+AI+browser+automation+tools+2026") -> PageContext:
+    return PageContext(
+        url=url,
+        title="Search Results",
+        interactive_elements=[],
+        content_blocks=[
+            ContentBlock(
+                text="Browser Use - AI browser automation",
+                selector="#result-1",
+                href="https://browser-use.com/",
+            ),
+            ContentBlock(
+                text="Skyvern - browser workflow automation",
+                selector="#result-2",
+                href="https://www.skyvern.com/",
+            ),
+        ],
+        headings=["Search results"],
+        selected_text="",
+        visible_text="Browser Use https://browser-use.com/\nSkyvern https://www.skyvern.com/",
     )
 
 
@@ -367,6 +390,35 @@ def test_blueprint_completion_expands_next_ready_intent_without_analyze(db_sessi
         db_session.query(MissionIntentRecord)
         .filter(MissionIntentRecord.mission_id == "blueprint-progress-session")
         .filter(MissionIntentRecord.blueprint_node_id == "open_search_engine")
+        .one()
+    )
+    assert completed.status == "COMPLETED"
+
+
+def test_blueprint_collects_search_results_without_planner_after_search_recovery(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.services import ai_service
+
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "active")
+    monkeypatch.setattr(ai_service, "analyze", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("planner should not run")))
+
+    prompt = "Open Google and search best AI browser automation tools 2026, open top 5, read each page, extract fields, and report."
+    orchestrator = WorkflowOrchestrator("blueprint-serp-collect-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task=prompt,
+        page_context=search_results_page(),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response.analysis.startswith("Mission Blueprint collected search result candidates deterministically")
+    assert response.suggested_actions == []
+    assert response.intent_execution is not None
+    assert response.intent_execution.status == "succeeded"
+    completed = (
+        db_session.query(MissionIntentRecord)
+        .filter(MissionIntentRecord.mission_id == "blueprint-serp-collect-session")
+        .filter(MissionIntentRecord.blueprint_node_id == "collect_serp_results")
         .one()
     )
     assert completed.status == "COMPLETED"

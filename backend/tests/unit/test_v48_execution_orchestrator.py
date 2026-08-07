@@ -238,6 +238,111 @@ def test_collected_search_results_feed_open_phase_continuation(monkeypatch):
     continuation_urls = [item.value for item in enriched.execution_orchestrator.continuation_actions]
     assert continuation_urls[:2] == ["https://tool2.example", "https://tool3.example"]
     assert snapshot.progress_ledger.completed["collect"] is True
+
+
+def test_registered_search_entities_count_as_collected_items(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "registered-entities-collect-count"
+    collect_search_results(
+        ExecutionContext(
+            mission_id=session_id,
+            task=TASK,
+            page_context={"url": "https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"},
+            browser_intelligence={
+                "page_model": {
+                    "search_results": [
+                        {"rank": index, "title": f"Tool {index}", "url": f"https://tool{index}.example/"}
+                        for index in range(1, 6)
+                    ]
+                }
+            },
+        ),
+        _collect_directive(),
+    )
+
+    snapshot = ExecutionOrchestrator().build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"),
+        prior_steps=[],
+    )
+
+    assert snapshot is not None
+    assert snapshot.progress_ledger.current_counts["collected_items"] == 5
+    assert snapshot.progress_ledger.completed["collect"] is True
+    assert snapshot.active_phase.name == "OPEN"
+
+
+def test_open_phase_recovers_invalid_scroll_by_opening_registered_entity(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "open-phase-scroll-recovery"
+    collect_search_results(
+        ExecutionContext(
+            mission_id=session_id,
+            task=TASK,
+            page_context={"url": "https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"},
+            browser_intelligence={
+                "page_model": {
+                    "search_results": [
+                        {"rank": index, "title": f"Tool {index}", "url": f"https://tool{index}.example/"}
+                        for index in range(1, 6)
+                    ]
+                }
+            },
+        ),
+        _collect_directive(),
+    )
+    snapshot = ExecutionOrchestrator().build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"),
+        prior_steps=[],
+    )
+
+    result = ExecutionOrchestrator().postprocess_response(_planner_action("scroll", value="down"), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "open_new_tab"
+    assert result.suggested_actions[0].value == "https://tool1.example"
+    assert result.execution_orchestrator is not None
+    assert [action.action_type for action in result.execution_orchestrator.continuation_actions] == [
+        "open_new_tab",
+        "open_new_tab",
+        "open_new_tab",
+        "open_new_tab",
+    ]
+
+
+def test_open_phase_recovers_wait_loop_by_opening_registered_entity(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "open-phase-wait-recovery"
+    collect_search_results(
+        ExecutionContext(
+            mission_id=session_id,
+            task=TASK,
+            page_context={"url": "https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"},
+            browser_intelligence={
+                "page_model": {
+                    "search_results": [
+                        {"rank": index, "title": f"Tool {index}", "url": f"https://tool{index}.example/"}
+                        for index in range(1, 6)
+                    ]
+                }
+            },
+        ),
+        _collect_directive(),
+    )
+    snapshot = ExecutionOrchestrator().build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"),
+        prior_steps=[],
+    )
+
+    result = ExecutionOrchestrator().postprocess_response(_planner_action("wait", value="1000"), snapshot)
+
+    assert result.suggested_actions[0].action_type == "open_new_tab"
+    assert result.suggested_actions[0].value == "https://tool1.example"
     assert snapshot.progress_ledger.completed["open"] is False
     assert snapshot.active_phase.name == "OPEN"
 

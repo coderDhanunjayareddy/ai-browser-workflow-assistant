@@ -84,8 +84,6 @@ def _extract_search_results(context: ExecutionContext) -> list[dict]:
             normalized = _normalize_search_result(item, index)
             if normalized.get("url"):
                 results.append(normalized)
-    if results:
-        return _dedupe_results(results)
 
     for index, block in enumerate(_content_blocks(context.page_context)[:10], start=1):
         normalized = _normalize_content_block(block, index)

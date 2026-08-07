@@ -32,7 +32,7 @@ class ExecutionOrchestrator:
             return None
         started = time.perf_counter()
         artifacts = build_artifacts(page_context, prior_steps)
-        ledger = build_progress_ledger(task, artifacts, prior_steps)
+        ledger = build_progress_ledger(task, artifacts, prior_steps, session_id=session_id)
         category = workflow_category(task)
         phases, active_phase = build_phases(category, ledger)
         budgets = build_budgets(prior_steps, artifacts)
@@ -91,6 +91,9 @@ class ExecutionOrchestrator:
         if not result.suggested_actions:
             return result
         action = result.suggested_actions[0]
+        open_response = _open_phase_entity_response(result, snapshot, action.action_type)
+        if open_response is not None:
+            return attach_phase_execution_directive(open_response, snapshot)
         if not action_allowed(action.action_type, snapshot.active_phase):
             collect_response = _collect_before_open_response(result, snapshot, action.action_type)
             if collect_response is not None:
@@ -158,6 +161,81 @@ def _is_search_results_url(url: str) -> bool:
     if host == "duckduckgo.com" and parsed.query:
         return True
     return False
+
+
+def _open_phase_entity_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action_type: str,
+) -> AnalyzeResponse | None:
+    if snapshot.active_phase.name != "OPEN":
+        return None
+    if str(action_type or "").lower() in {"open_new_tab", "focus_existing_tab", "switch_tab"}:
+        return None
+    target = int(snapshot.progress_ledger.target_counts.get("opened_pages", 1) or 1)
+    if snapshot.progress_ledger.current_counts.get("opened_pages", 0) >= target:
+        return None
+    entity = _first_openable_entity(snapshot.session_id)
+    if entity is None or not entity.canonical_url:
+        return None
+
+    from app.schemas.response import SuggestedAction
+
+    action = SuggestedAction(
+        action_id=f"orchestrator_open_recovery_{entity.entity_id[-12:]}",
+        action_type="open_new_tab",
+        target_selector="",
+        value=entity.canonical_url,
+        description=f"Open collected source: {entity.title or entity.canonical_url}",
+        reasoning=(
+            "Execution Orchestrator recovered an invalid planner action for the OPEN phase "
+            f"by opening a registered search-result entity_id={entity.entity_id}."
+        ),
+        confidence=max(0.0, min(1.0, float(entity.confidence or 0.82))),
+        safety_level="safe",
+    )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator recovered the OPEN phase by selecting "
+            "the first registered source entity instead of the invalid planner action."
+        ),
+        outcome_kind="act",
+        suggested_actions=[action],
+    )
+
+
+def _first_openable_entity(session_id: str):
+    from app.browser_url_policy import is_openable_browser_url
+    from app.runtime_state_manager.entity_binding import list_entities
+
+    entities = [
+        entity
+        for entity in list_entities(session_id)
+        if entity.canonical_url
+        and entity.state != "INVALID"
+        and entity.entity_type in {"search_result", "semantic_element", "link", "card", "list_item", "table_row"}
+        and is_openable_browser_url(entity.canonical_url)
+    ]
+    if not entities:
+        return None
+    return sorted(
+        entities,
+        key=lambda entity: (
+            _entity_rank(entity),
+            0 if entity.entity_type == "search_result" else 1,
+            -float(entity.confidence or 0.0),
+            entity.title,
+            entity.entity_id,
+        ),
+    )[0]
+
+
+def _entity_rank(entity) -> int:
+    try:
+        return int((entity.metadata or {}).get("rank") or 9999)
+    except (TypeError, ValueError):
+        return 9999
 
 
 def observe_execution_orchestrator(

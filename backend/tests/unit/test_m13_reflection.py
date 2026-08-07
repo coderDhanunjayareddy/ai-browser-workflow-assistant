@@ -72,6 +72,20 @@ def test_parse_response_normalizes_string_collect_action_to_backend_intent():
     assert result.intent_dispatch.intent == "collect_search_results"
 
 
+def test_parse_response_recovers_empty_action_type_as_wait():
+    raw = json.dumps({
+        "analysis": "mode+evidence",
+        "outcome_kind": "act",
+        "suggested_actions": [{"action_type": ""}],
+    })
+
+    result = parse_response(raw, "empty-action-session")
+
+    assert result.outcome_kind == "wait"
+    assert result.suggested_actions[0].action_type == "wait"
+    assert result.suggested_actions[0].value == "1000"
+
+
 # ── _detect_repeat_trigger (pure) ────────────────────────────────────────────
 
 def test_trigger_matches_when_page_changed_unknown():

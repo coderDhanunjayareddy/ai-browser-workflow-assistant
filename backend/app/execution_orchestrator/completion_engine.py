@@ -3,10 +3,17 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from app.browser_url_policy import is_openable_browser_url
 from app.execution_orchestrator.models import ArtifactRegistry, ProgressLedger
 
 
-def build_progress_ledger(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any]) -> ProgressLedger:
+def build_progress_ledger(
+    task: str,
+    artifacts: ArtifactRegistry,
+    prior_steps: list[Any],
+    *,
+    session_id: str | None = None,
+) -> ProgressLedger:
     targets = _targets(task)
     current = {
         "opened_pages": len(artifacts.opened_pages),
@@ -15,7 +22,12 @@ def build_progress_ledger(task: str, artifacts: ArtifactRegistry, prior_steps: l
         "uploaded_files": len(artifacts.uploaded_files),
         "downloads": len(artifacts.downloads),
         "forms": len(artifacts.forms),
-        "collected_items": max(len(artifacts.opened_pages), len(artifacts.extracted_records), _count_collected(prior_steps)),
+        "collected_items": max(
+            len(artifacts.opened_pages),
+            len(artifacts.extracted_records),
+            _count_collected(prior_steps),
+            _count_registered_collected(session_id),
+        ),
     }
     completed = {
         "discover": current["visited_urls"] > 0,
@@ -74,6 +86,26 @@ def _count_collected(prior_steps: list[Any]) -> int:
         if "collect" in description and result.startswith("success"):
             count += _collected_result_count(result) or 1
     return count
+
+
+def _count_registered_collected(session_id: str | None) -> int:
+    if not session_id:
+        return 0
+    try:
+        from app.runtime_state_manager.entity_binding import list_entities
+
+        return len(
+            [
+                entity
+                for entity in list_entities(session_id)
+                if entity.entity_type == "search_result"
+                and entity.state != "INVALID"
+                and entity.canonical_url
+                and is_openable_browser_url(entity.canonical_url)
+            ]
+        )
+    except Exception:
+        return 0
 
 
 def _collected_result_count(result: str) -> int:

@@ -78,6 +78,41 @@ def test_collects_serp_results_from_serialized_semantic_page_model():
     assert results[0]["relevance_score"] == 0.5
 
 
+def test_collects_serp_results_merges_structured_and_visible_block_sources():
+    context = ExecutionContext(
+        mission_id="serp-merge-sources",
+        task="Open the top 5 relevant results.",
+        page_context={
+            "url": "https://www.bing.com/search?q=browser+automation",
+            "content_blocks": [
+                {"href": "https://tool2.example/", "text": "Tool 2", "selector": "#r2"},
+                {"href": "https://tool3.example/", "text": "Tool 3", "selector": "#r3"},
+                {"href": "https://tool4.example/", "text": "Tool 4", "selector": "#r4"},
+                {"href": "https://tool5.example/", "text": "Tool 5", "selector": "#r5"},
+            ],
+        },
+        browser_intelligence={
+            "page_model": {
+                "search_results": [
+                    {"rank": 1, "title": "Tool 1", "url": "https://tool1.example/"},
+                ]
+            }
+        },
+    )
+
+    result = execute(context, _directive())
+
+    results = result.evidence[0].payload["search_results"]
+    assert result.evidence[0].payload["search_result_count"] == 5
+    assert [item["normalized_url"] for item in results] == [
+        "https://tool1.example/",
+        "https://tool2.example/",
+        "https://tool3.example/",
+        "https://tool4.example/",
+        "https://tool5.example/",
+    ]
+
+
 def test_collects_serp_results_dedupes_same_url_fragments():
     context = ExecutionContext(
         mission_id="serp-test",

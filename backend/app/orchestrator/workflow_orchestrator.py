@@ -1455,6 +1455,30 @@ class WorkflowOrchestrator:
                     },
                 )
                 return response
+            search_collection = _deterministic_search_collection_response(
+                db=self.db,
+                session_id=self.session_id,
+                task=task,
+                page_context=page_context,
+                prior_steps=prior_steps,
+                runtime_state_snapshot=runtime_state_snapshot,
+                browser_intelligence_artifact=browser_intelligence_artifact,
+                knowledge_snapshot=knowledge_snapshot,
+                mission_completion_snapshot=mission_completion_snapshot,
+                orchestrator_snapshot=orchestrator_snapshot,
+                kernel_snapshot=kernel_snapshot,
+            )
+            if search_collection is not None:
+                self._record_v3_event(
+                    "mission_blueprint.search_results_collected_without_planner",
+                    {
+                        "blueprint_id": blueprint.blueprint_id,
+                        "revision": blueprint.revision,
+                        "reason": "search_results_page_no_queued_work",
+                        "queue_status": search_collection.intent_execution.status if search_collection.intent_execution else None,
+                    },
+                )
+                return search_collection
             if readiness.ready_nodes and not expansion.generated_intent_ids:
                 reason = (
                     "Blueprint has ready nodes but no executable browser intents after URL and safety filtering. "
@@ -1790,6 +1814,108 @@ def _search_challenge_recovery_action(
         ),
         confidence=0.86,
         safety_level="safe",
+    )
+
+
+def _deterministic_search_collection_response(
+    *,
+    db: Session,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    prior_steps: list,
+    runtime_state_snapshot: Any,
+    browser_intelligence_artifact: Any,
+    knowledge_snapshot: Any,
+    mission_completion_snapshot: Any,
+    orchestrator_snapshot: Any,
+    kernel_snapshot: Any,
+) -> Any | None:
+    if not _is_search_results_url(str(getattr(page_context, "url", "") or "")):
+        return None
+    if _blueprint_node_completed(db, mission_id=session_id, node_id="collect_serp_results"):
+        return None
+
+    from app.intent_dispatcher.models import ExecutionContext, IntentDispatchDirective
+    from app.intent_runtime import execute_intent_queue
+    from app.schemas.response import AnalyzeResponse
+    from app.services import mission_ledger_service
+
+    directive = IntentDispatchDirective(
+        mission_id=session_id,
+        intent="collect_search_results",
+        owner="browser_intelligence",
+        capability="serp_collection",
+        dispatch_target="browser_intelligence",
+        browser_executable=False,
+        reason="Collect visible search result candidates from the current search results page without planner fallback.",
+        payload={
+            "action_type": "collect_search_results",
+            "description": "Collect visible search result candidates",
+            "reasoning": "The current page is a search results page; deterministic collection can register openable entities.",
+            "confidence": 0.9,
+            "safety_level": "safe",
+            "blueprint_node_id": "collect_serp_results",
+            "blueprint_objective": "Collect search result candidates from the SERP",
+        },
+    )
+    execution_context = ExecutionContext(
+        mission_id=session_id,
+        task=task,
+        page_context=page_context,
+        prior_steps=prior_steps,
+        runtime_state=runtime_state_snapshot,
+        browser_intelligence=browser_intelligence_artifact,
+        knowledge=knowledge_snapshot,
+        completion_state=mission_completion_snapshot,
+        phase_state=orchestrator_snapshot,
+        kernel_state=kernel_snapshot,
+        metadata={"source": "mission_blueprint_deterministic_search_collection"},
+    )
+    queue_result = execute_intent_queue(
+        mission_id=session_id,
+        initial_intents=[directive],
+        context=execution_context,
+    )
+    mission_ledger_service.record_queue_result(
+        db,
+        mission_id=session_id,
+        initial_intent=directive,
+        queue_result=queue_result,
+    )
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis=(
+            "Mission Blueprint collected search result candidates deterministically. "
+            "Planner fallback was not invoked."
+        ),
+        outcome_kind="act",
+        suggested_actions=[],
+        intent_dispatch=directive,
+        intent_execution=queue_result,
+    )
+
+
+def _is_search_results_url(url: str) -> bool:
+    parsed = urlparse(str(url or ""))
+    host = parsed.netloc.lower().removeprefix("www.")
+    if host in {"google.com", "bing.com"} and parsed.path.startswith("/search"):
+        return True
+    if host == "duckduckgo.com" and parsed.query:
+        return True
+    return False
+
+
+def _blueprint_node_completed(db: Session, *, mission_id: str, node_id: str) -> bool:
+    from app.models.db import MissionIntentRecord
+
+    return (
+        db.query(MissionIntentRecord)
+        .filter(MissionIntentRecord.mission_id == mission_id)
+        .filter(MissionIntentRecord.blueprint_node_id == node_id)
+        .filter(MissionIntentRecord.status == "COMPLETED")
+        .first()
+        is not None
     )
 
 

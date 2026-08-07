@@ -878,6 +878,22 @@ def parse_response(raw: str, session_id: str) -> AnalyzeResponse:
     for raw_item in suggested_raw[:1]:
         item = raw_item if isinstance(raw_item, dict) else {"action_type": str(raw_item or "")}
         action_type = str(item.get("action_type", "") or "")
+        if not action_type.strip():
+            data["suggested_actions"] = []
+            data["outcome_kind"] = "wait"
+            actions.append(
+                SuggestedAction(
+                    action_id=str(uuid.uuid4()),
+                    action_type="wait",  # type: ignore[arg-type]
+                    target_selector="window",
+                    value="1000",
+                    description="Wait for the page state to become actionable.",
+                    reasoning="The planner returned an empty action_type; recover with a bounded wait and fresh observation.",
+                    confidence=0.4,
+                    safety_level="safe",  # type: ignore[arg-type]
+                )
+            )
+            break
         from app.intent_dispatcher import dispatch_intent
 
         intent_dispatch = dispatch_intent(intent=action_type, payload=item)
