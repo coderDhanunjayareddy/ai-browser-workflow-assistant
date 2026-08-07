@@ -197,6 +197,27 @@ class SemanticExecutionKernel:
                 "entity_urls": [(entity.canonical_url or entity.url) for entity in snapshot.entities[:40]],
             },
         )
+        repaired_snapshot = _repair_page_evidenced_open_url(
+            kernel=self,
+            snapshot=snapshot,
+            result=result,
+            session_id=session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=prior_steps,
+        )
+        if repaired_snapshot is not None:
+            snapshot = repaired_snapshot
+            tracer.clear_failures(session_id)
+            _debug_v494_kernel(
+                "PAGE_EVIDENCED_URL_REPAIR_APPLIED",
+                {
+                    "mission_id": session_id,
+                    "planner_turn_id": planner_turn_id,
+                    "semantic_entity_count": len(snapshot.entities),
+                    "proposal": snapshot.proposal.to_dict() if snapshot.proposal else None,
+                },
+            )
         failures_before = tracer.failures(session_id)
         latest_failure_before = failures_before[-1] if failures_before else None
         current_lookup_succeeded = bool(snapshot.proposal and snapshot.proposal.entity_id)
@@ -322,6 +343,84 @@ def _replan_from_kernel(result: AnalyzeResponse, recovery: RecoveryDecision, rea
         replan=ReplanOutcome(reason=f"{reason}. Recovery strategy: {recovery.strategy} ({recovery.reason})."),
         suggested_actions=[],
     )
+
+
+def _repair_page_evidenced_open_url(
+    *,
+    kernel: SemanticExecutionKernel,
+    snapshot: KernelSnapshot,
+    result: AnalyzeResponse,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    prior_steps: list[Any],
+) -> KernelSnapshot | None:
+    action = result.suggested_actions[0] if result.suggested_actions else None
+    value = str(getattr(action, "value", "") or "").strip() if action else ""
+    action_type = str(getattr(action, "action_type", "") or "").lower() if action else ""
+    if action_type != "open_new_tab" or not value.startswith(("http://", "https://")):
+        return None
+    if not snapshot.eligibility or "entity_missing" not in snapshot.eligibility.failures:
+        return None
+    if not _page_evidence_contains_url(page_context, value):
+        return None
+
+    from app.runtime_state_manager.entity_binding import register_entity
+
+    register_entity(
+        session_id,
+        entity_type="search_result",
+        source_layer="page_evidence",
+        title=str(getattr(action, "description", "") or value),
+        canonical_url=value,
+        confidence=0.74,
+        source_page=str(getattr(page_context, "url", "") or ""),
+        metadata={"repair": "page_evidenced_open_url", "action_id": getattr(action, "action_id", "") or ""},
+    )
+    return kernel.build_snapshot(
+        session_id=session_id,
+        task=task,
+        page_context=page_context,
+        prior_steps=prior_steps,
+        planner_response=result,
+    )
+
+
+def _page_evidence_contains_url(page_context: Any, url: str) -> bool:
+    from urllib.parse import urlparse
+
+    target = url.rstrip("/").lower()
+    parsed = urlparse(url)
+    host = parsed.netloc.lower().removeprefix("www.")
+    path = parsed.path.rstrip("/").lower()
+    evidence_parts: list[str] = [
+        str(getattr(page_context, "url", "") or ""),
+        str(getattr(page_context, "title", "") or ""),
+        str(getattr(page_context, "visible_text", "") or ""),
+        str(getattr(page_context, "selected_text", "") or ""),
+    ]
+    for element in list(getattr(page_context, "interactive_elements", []) or []):
+        evidence_parts.extend(
+            str(_read_context_item(element, key) or "")
+            for key in ("href", "text", "selector", "aria_label", "title")
+        )
+    for block in list(getattr(page_context, "content_blocks", []) or []):
+        evidence_parts.extend(
+            str(_read_context_item(block, key) or "")
+            for key in ("href", "text", "title", "selector")
+        )
+    evidence = "\n".join(evidence_parts).lower()
+    if target in evidence:
+        return True
+    if host and host in evidence:
+        return not path or path == "/" or path in evidence
+    return False
+
+
+def _read_context_item(item: Any, key: str) -> Any:
+    if isinstance(item, dict):
+        return item.get(key)
+    return getattr(item, key, None)
 
 
 def _planner_turn_id(session_id: str, result: AnalyzeResponse) -> str:

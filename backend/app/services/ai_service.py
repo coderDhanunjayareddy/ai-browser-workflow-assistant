@@ -57,7 +57,7 @@ def _safe_debug_print(message: str) -> None:
         print(safe, flush=True)
 
 
-_DEFAULT_PLANNER_CONTEXT_CHAR_BUDGET = 14_000
+_DEFAULT_PLANNER_CONTEXT_CHAR_BUDGET = 5_500
 _LIST_LIMITS_BY_KEY = {
     "relevant_elements": 30,
     "search_results": 12,

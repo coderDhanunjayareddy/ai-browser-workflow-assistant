@@ -175,6 +175,10 @@ class EntityPipelineTracer:
         with self._lock:
             return list(self._failures.get(mission_id, []))
 
+    def clear_failures(self, mission_id: str) -> None:
+        with self._lock:
+            self._failures.pop(mission_id, None)
+
     def telemetry(self, mission_id: str) -> dict[str, Any]:
         events = self.events(mission_id, limit=1200)
         failures = self.failures(mission_id)

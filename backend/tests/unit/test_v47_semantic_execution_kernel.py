@@ -193,6 +193,46 @@ def test_active_entity_pipeline_reports_exact_stage_for_missing_planner_url(monk
     ]
 
 
+def test_active_kernel_accepts_open_url_when_visible_page_evidence_contains_it(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    monkeypatch.setattr(settings, "v493_entity_pipeline_trace", "active")
+    engine = SemanticExecutionKernel()
+    session_id = "kernel-page-evidenced-url"
+    url = "https://evidenced.example/result"
+    page = PageContext(
+        url="https://www.bing.com/search?q=browser",
+        title="Bing Search",
+        metadata={},
+        interactive_elements=[],
+        content_blocks=[
+            ContentBlock(
+                selector="#result-text",
+                text=f"Evidenced Result {url} is visible in the current search results.",
+                href=None,
+            )
+        ],
+        headings=["Search results"],
+        selected_text="",
+        visible_text=f"Evidenced Result {url} is visible in the current search results.",
+        images=[],
+    )
+
+    result = engine.postprocess_response(
+        result=_response("open_new_tab", value=url),
+        session_id=session_id,
+        task="Open the external result. Return final answer.",
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].value == url
+    assert [
+        entity for entity in list_entities(session_id)
+        if entity.source_layer == "page_evidence" and entity.canonical_url == url
+    ]
+
+
 def test_kernel_loop_prevention_rejects_duplicate_proposal(monkeypatch):
     monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
     engine = SemanticExecutionKernel()
