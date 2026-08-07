@@ -177,6 +177,7 @@ interface AnalyzeRoutingResult {
   goalConvergence: boolean
   error: string | null
   continueAfterRejectedReport: boolean
+  continueAfterBackendStep: boolean
   rejectedReportPriorStep: PriorStep | null
 }
 
@@ -795,6 +796,7 @@ export function routeAnalyzeOutcome(
       goalConvergence: Boolean(result.goal_convergence),
       error: null,
       continueAfterRejectedReport: false,
+      continueAfterBackendStep: false,
       rejectedReportPriorStep: null,
     }
   }
@@ -817,6 +819,7 @@ export function routeAnalyzeOutcome(
         goalConvergence: Boolean(result.goal_convergence),
         error: null,
         continueAfterRejectedReport: false,
+        continueAfterBackendStep: false,
         rejectedReportPriorStep: null,
       }
     }
@@ -831,6 +834,7 @@ export function routeAnalyzeOutcome(
       goalConvergence: Boolean(result.goal_convergence),
       error: null,
       continueAfterRejectedReport: true,
+      continueAfterBackendStep: false,
       rejectedReportPriorStep: buildRejectedReportPriorStep(result),
     }
   }
@@ -847,11 +851,31 @@ export function routeAnalyzeOutcome(
       goalConvergence: Boolean(result.goal_convergence),
       error: null,
       continueAfterRejectedReport: false,
+      continueAfterBackendStep: false,
       rejectedReportPriorStep: null,
     }
   }
 
   if (allowedActions.length === 0) {
+    if (result.intent_execution?.status === 'succeeded') {
+      return {
+        phase: 'refreshing',
+        analysisText: [
+          result.analysis,
+          result.intent_execution.reason ? `Backend step completed: ${result.intent_execution.reason}` : '',
+        ].filter(Boolean).join('\n\n'),
+        pendingActions: [],
+        clarificationQuestion: null,
+        contractOutcome: outcomeKind,
+        report: null,
+        replan: null,
+        goalConvergence: Boolean(result.goal_convergence),
+        error: null,
+        continueAfterRejectedReport: false,
+        continueAfterBackendStep: true,
+        rejectedReportPriorStep: null,
+      }
+    }
     return {
       phase: 'failed',
       analysisText: [
@@ -866,6 +890,7 @@ export function routeAnalyzeOutcome(
       goalConvergence: Boolean(result.goal_convergence),
       error: 'No executable browser action was returned before mission completion evidence was available.',
       continueAfterRejectedReport: false,
+      continueAfterBackendStep: false,
       rejectedReportPriorStep: null,
     }
   }
@@ -883,6 +908,7 @@ export function routeAnalyzeOutcome(
     goalConvergence: Boolean(result.goal_convergence),
     error: null,
     continueAfterRejectedReport: false,
+    continueAfterBackendStep: false,
     rejectedReportPriorStep: null,
   }
 }
