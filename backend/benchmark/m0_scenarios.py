@@ -441,6 +441,226 @@ def build_m0_scenarios() -> list[M0TaskDefinition]:
         timeout_ms=15_000, max_steps=3, retry_budget=1,
     ))
 
+    # ───────────────────── FIRST-10 PRODUCT VALIDATION TASKS ─────────────────
+    tasks.append(M0TaskDefinition(
+        task_id="first10__01_search_ai_browser_tools", site_id="google_com",
+        website="Google Search", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.cross_site,
+        goal=(
+            "Open Google Search and search for: `best AI browser automation tools 2026`. "
+            "From the first page of results: 1. Open the top 5 relevant results in new tabs. "
+            "2. Read each page enough to identify the product name, main purpose, pricing "
+            "mention, and one key limitation. 3. Create a clean comparison table with "
+            "columns: Tool, Purpose, Pricing, Limitation, URL. 4. Return the table only."
+        ),
+        start_url="https://www.google.com/search?q=best+AI+browser+automation+tools+2026",
+        success_criteria=[
+            _c(K.extracted_value_matches, "comparison table fields",
+               target=r"Tool.+Purpose.+Pricing.+Limitation.+URL"),
+            _c(K.extracted_value_matches, "pricing evidence", target=r"(free|trial|\$|pricing|paid)"),
+            _c(K.min_completed_steps, "multi-source reading", value=5),
+        ],
+        failure_criteria=[
+            _fc(FK.dom_error_present, "captcha", target="unusual traffic"),
+            _fc(FK.http_error, "rate limited", target="429"),
+        ],
+        timeout_ms=300_000, max_steps=35, retry_budget=3,
+        notes="Validates search_result_collection, multi_tab_open_read, and schema extraction.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="first10__02_hyderabad_careers_extract", site_id="google_com",
+        website="Google Search", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.cross_site,
+        goal=(
+            "Open Google Search and search for: `Hyderabad software companies careers`. "
+            "Choose 3 company websites from the results that look relevant. For each company: "
+            "1. Open the careers page. 2. Find any current software developer or full stack "
+            "developer openings. 3. Extract the job title, location, experience needed, and "
+            "application link. 4. Return the result in a table."
+        ),
+        start_url="https://www.google.com/search?q=Hyderabad+software+companies+careers",
+        success_criteria=[
+            _c(K.extracted_value_matches, "job table fields",
+               target=r"(job title|title).+location.+experience.+(application|apply)"),
+            _c(K.extracted_value_matches, "Hyderabad evidence", target=r"Hyderabad"),
+            _c(K.min_completed_steps, "company pages visited", value=4),
+        ],
+        failure_criteria=[_fc(FK.http_error, "rate limited", target="429")],
+        timeout_ms=300_000, max_steps=35, retry_budget=3,
+        notes="Validates company-site job semantics and extraction.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="first10__03_linkedin_jobs_discovery", site_id="linkedin_com",
+        website="LinkedIn Jobs", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.search,
+        goal=(
+            "Go to LinkedIn Jobs and search for: `Full Stack Java Developer Hyderabad`. "
+            "Apply these filters if available: Experience level Entry level or Associate; "
+            "Date posted Past week; On-site/Hybrid/Remote any. Then collect the first 10 "
+            "relevant jobs with title, company, location, posted date, and job link. Remove "
+            "duplicates and return the jobs ranked by relevance."
+        ),
+        start_url="https://www.linkedin.com/jobs/search/?keywords=Full%20Stack%20Java%20Developer&location=Hyderabad",
+        preconditions=Preconditions(auth_required=True, auth_strategy="session_state",
+                                    auth_state_file="linkedin_com.json"),
+        success_criteria=[
+            _c(K.extracted_value_matches, "job result fields",
+               target=r"title.+company.+location.+(posted|date).+link"),
+            _c(K.extracted_value_matches, "target role evidence", target=r"(Java|Full Stack|Hyderabad)"),
+        ],
+        failure_criteria=[
+            _fc(FK.url_matches_error, "login wall", target=r"/login"),
+            _fc(FK.dom_error_present, "auth wall", target="Sign in"),
+        ],
+        timeout_ms=240_000, max_steps=25, retry_budget=2,
+        notes="Auth/CAPTCHA gated by site policy; skip is an environment gate, not product failure.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="first10__04_ai_code_assistant_pricing", site_id="google_com",
+        website="Google Search", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.cross_site,
+        goal=(
+            "Open the official websites of 3 AI code assistant products from search results. "
+            "For each product: 1. Find the pricing page. 2. Capture the free plan, paid plan "
+            "starting price, and whether a trial is available. 3. Capture one feature clearly "
+            "mentioned on the pricing or product page. 4. Return a comparison table with source URLs."
+        ),
+        start_url="https://www.google.com/search?q=AI+code+assistant+pricing+official",
+        success_criteria=[
+            _c(K.extracted_value_matches, "pricing comparison fields",
+               target=r"(free plan|free).+(paid|price|\$).+(trial).+(feature).+(URL|source)"),
+            _c(K.min_completed_steps, "pricing pages visited", value=4),
+        ],
+        timeout_ms=300_000, max_steps=35, retry_budget=3,
+        notes="Validates pricing-page semantics and multi-source comparison.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="first10__05_browser_automation_docs", site_id="google_com",
+        website="Google Search", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.cross_site,
+        goal=(
+            "Search the web for official documentation or product pages about browser automation tools. "
+            "Pick 3 different tools and for each one: 1. Find the official documentation page. "
+            "2. Extract the supported languages, main use case, and whether it supports browser control. "
+            "3. Note one setup requirement. 4. Return the answer in markdown bullets, grouped by tool."
+        ),
+        start_url="https://www.google.com/search?q=official+browser+automation+documentation+tools",
+        success_criteria=[
+            _c(K.extracted_value_matches, "documentation fields",
+               target=r"(supported languages|languages).+(use case).+(browser control).+(setup)"),
+            _c(K.min_completed_steps, "docs pages visited", value=4),
+        ],
+        timeout_ms=300_000, max_steps=35, retry_budget=3,
+        notes="Validates documentation semantics.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="first10__06_directory_multipage_collection", site_id="google_com",
+        website="Google Search", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.pagination,
+        goal=(
+            "Open a real public business directory or professional directory search result. "
+            "Collect 20 entries across at least 3 pages. For each entry: capture name, category, "
+            "city, and website if available. Avoid duplicates. Put the results into a table. "
+            "If any entry is missing a website, leave it blank rather than guessing."
+        ),
+        start_url="https://www.google.com/search?q=public+business+directory+software+companies+Hyderabad",
+        success_criteria=[
+            _c(K.extracted_value_matches, "directory fields",
+               target=r"name.+category.+city.+website"),
+            _c(K.extracted_value_matches, "collection count evidence", target=r"(20|twenty|at least 3 pages|3 pages)"),
+            _c(K.min_completed_steps, "pagination used", value=5),
+        ],
+        timeout_ms=360_000, max_steps=45, retry_budget=3,
+        notes="Validates directory pagination and duplicate-safe collection.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="first10__07_saas_signup_workflow", site_id="saas_signup",
+        website="Real SaaS Signup", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.form_submit,
+        goal=(
+            "Open a real SaaS website that offers a free account or free trial. Complete the full "
+            "signup flow using only a test email you control. After signup: verify the welcome page "
+            "or dashboard loads; locate one setting, one profile field, and one billing or plan page; "
+            "capture screenshots of the successful login state and the profile page; return a short report."
+        ),
+        start_url="https://www.google.com/search?q=SaaS+free+account+signup+test",
+        skip_reason="requires a controlled test email inbox and site-specific account-creation authorization",
+        success_criteria=[
+            _c(K.extracted_value_matches, "signup report",
+               target=r"(dashboard|welcome).+(profile).+(billing|plan)"),
+        ],
+        timeout_ms=420_000, max_steps=50, retry_budget=2,
+        notes="Environment-gated until a disposable inbox/account policy is configured.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="first10__08_real_file_upload", site_id="file_upload_public",
+        website="Public Upload Site", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.upload,
+        goal=(
+            "Open a real website that allows file upload for logged-in users or public upload. "
+            "Upload a small PDF or image file. Then confirm the file was accepted; find where "
+            "the uploaded file appears; if the site provides a share link or processing result, "
+            "copy it; return the result with the exact page path and any visible status text."
+        ),
+        start_url="https://www.google.com/search?q=public+test+file+upload+site",
+        success_criteria=[
+            _c(K.extracted_value_matches, "upload result fields",
+               target=r"(accepted|uploaded|success).+(path|URL|link|status)"),
+            _c(K.min_completed_steps, "upload workflow attempted", value=3),
+        ],
+        timeout_ms=300_000, max_steps=30, retry_budget=3,
+        notes="Validates file upload broker against public upload targets.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="first10__09_safe_test_form_validation", site_id="test_form_public",
+        website="Public Test Form", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.form_submit,
+        goal=(
+            "Open a real government, university, or company form that is publicly accessible and safe "
+            "to use with test data. Fill the form with clearly fake test data, but make it look realistic. "
+            "Then check whether the form shows validation errors; fix any errors the page reports; submit "
+            "only if it is a genuine test or sandbox form; report the validation rules encountered and "
+            "whether submission succeeded."
+        ),
+        start_url="https://www.selenium.dev/selenium/web/web-form.html",
+        success_criteria=[
+            _c(K.extracted_value_matches, "validation report",
+               target=r"(validation|error|required|submitted|success)"),
+            _c(K.min_completed_steps, "form interaction", value=3),
+        ],
+        timeout_ms=180_000, max_steps=20, retry_budget=2,
+        notes="Uses a real public browser-testing form, so submit is safe.",
+    ))
+
+    tasks.append(M0TaskDefinition(
+        task_id="first10__10_ai_browser_testing_best_practices", site_id="google_com",
+        website="Google Search", difficulty=Difficulty.complex,
+        category=BenchmarkCategory.cross_site,
+        goal=(
+            "Use Google Search and official websites to research: `AI browser automation testing best practices`. "
+            "Do this in order: 1. Open at least 5 authoritative sources. 2. Extract the top recommended testing "
+            "practices. 3. Separate practices into reliability, observability, recovery, and safety. "
+            "4. Create a final checklist with 1 line per practice. 5. Cite the source URL next to each line."
+        ),
+        start_url="https://www.google.com/search?q=AI+browser+automation+testing+best+practices",
+        success_criteria=[
+            _c(K.extracted_value_matches, "best-practice groups",
+               target=r"reliability.+observability.+recovery.+safety"),
+            _c(K.extracted_value_matches, "source citations", target=r"https?://"),
+            _c(K.min_completed_steps, "authoritative sources visited", value=5),
+        ],
+        timeout_ms=360_000, max_steps=45, retry_budget=3,
+        notes="Validates complex research extraction and cited final output.",
+    ))
+
     return tasks
 
 

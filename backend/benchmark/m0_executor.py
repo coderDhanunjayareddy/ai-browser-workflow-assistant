@@ -114,17 +114,33 @@ class PlaywrightDriver(Driver):
                upload_file: Optional[str] = None) -> "PlaywrightDriver":
         from playwright.sync_api import sync_playwright  # lazy
         pw = sync_playwright().start()
-        browser = pw.chromium.launch(headless=headless, args=["--disable-blink-features=AutomationControlled"])
         ctx_kwargs = {
             "viewport": {"width": 1366, "height": 900},
             "user_agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                            "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+            "accept_downloads": True,
         }
         if storage_state and os.path.exists(storage_state):
             ctx_kwargs["storage_state"] = storage_state
-        context = browser.new_context(**ctx_kwargs)
+        launch_args = ["--disable-blink-features=AutomationControlled"]
+        channel = os.environ.get("M0_BROWSER_CHANNEL") or None
+        profile_dir = os.environ.get("M0_BROWSER_PROFILE_DIR") or ""
+        if profile_dir:
+            os.makedirs(profile_dir, exist_ok=True)
+            launch_kwargs = {"headless": headless, "args": launch_args, **ctx_kwargs}
+            if channel:
+                launch_kwargs["channel"] = channel
+            context = pw.chromium.launch_persistent_context(profile_dir, **launch_kwargs)
+            browser = context.browser
+            page = context.pages[0] if context.pages else context.new_page()
+        else:
+            launch_kwargs = {"headless": headless, "args": launch_args}
+            if channel:
+                launch_kwargs["channel"] = channel
+            browser = pw.chromium.launch(**launch_kwargs)
+            context = browser.new_context(**ctx_kwargs)
+            page = context.new_page()
         context.add_init_script(injected_js())
-        page = context.new_page()
         return cls(page, context, browser, pw, upload_file=upload_file)
 
     def close(self) -> None:

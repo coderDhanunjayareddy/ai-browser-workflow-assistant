@@ -8,6 +8,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.browser_url_policy import is_openable_browser_url
 from app.intent_dispatcher.models import IntentDispatchDirective
 from app.mission.blueprint.models import BlueprintNode, BlueprintNodeKind, MissionBlueprint
 from app.mission.blueprint.readiness import BlueprintReadinessSnapshot
@@ -152,6 +153,9 @@ def compile_node_to_intents(
         if node.kind == BlueprintNodeKind.OBJECTIVE and provider == "mission_blueprint" and action in {"record_objective", "record_node_ready"}:
             return []
     templates = _templates_for_node(node)
+    open_result_payload = _open_result_payload(node, ranked_results or [])
+    if node.node_id.startswith("open_result_") and not open_result_payload.get("value"):
+        return []
     return [
         IntentDispatchDirective(
             intent_id=f"intent_{uuid.uuid4().hex}",
@@ -175,7 +179,7 @@ def compile_node_to_intents(
                 "blueprint_objective": node.objective,
                 "wave_3b_compiled": True,
                 **dict(node.metadata.get("action_payload") or {}),
-                **_open_result_payload(node, ranked_results or []),
+                **open_result_payload,
             },
         )
         for template in templates
@@ -218,7 +222,12 @@ def _ranked_results_from_ledger(db: Session, *, mission_id: str) -> list[dict[st
             payload = _read(item, "payload") or {}
             ranked_results = _read(payload, "ranked_results")
             if ranked_results:
-                return [dict(result) for result in ranked_results if isinstance(result, dict)]
+                return [
+                    dict(result)
+                    for result in ranked_results
+                    if isinstance(result, dict)
+                    and is_openable_browser_url(str(_read(result, "url") or _read(result, "href") or ""))
+                ]
     return []
 
 

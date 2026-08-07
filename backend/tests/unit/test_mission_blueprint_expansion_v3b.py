@@ -313,6 +313,145 @@ def test_open_result_expansion_uses_ranked_result_from_ledger(monkeypatch):
         engine.dispose()
 
 
+def test_open_result_expansion_filters_internal_search_engine_urls(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+    db, engine = _session()
+    try:
+        mission_id = "expand-ranked-open-filtered"
+        repository = SqlAlchemyMissionBlueprintRepository(db)
+        service = MissionBlueprintPersistenceService(repository)
+        blueprint = service.create(
+            mission_id=mission_id,
+            objective="Research sources",
+            nodes=[_open_result_node(1)],
+        )
+        mission_ledger_service.ensure_session(db, mission_id)
+        db.add(
+            MissionIntentRecord(
+                intent_id="rank-intent-filtered",
+                mission_id=mission_id,
+                intent="rank_records",
+                provider="validation",
+                capability="validation",
+                dispatch_target="validation",
+                execution_owner="validation",
+                status="COMPLETED",
+                payload={},
+                evidence=[
+                    {
+                        "payload": {
+                            "ranked_results": [
+                                {
+                                    "rank": 1,
+                                    "title": "Google challenge",
+                                    "url": "https://www.google.com/sorry/index?continue=https%3A%2F%2Fwww.google.com%2Fsearch%3Fq%3Dbrowser",
+                                },
+                                {
+                                    "rank": 2,
+                                    "title": "Google internal search",
+                                    "url": "https://www.google.com/search?q=best+AI+browser+automation+tools+2026",
+                                },
+                                {
+                                    "rank": 3,
+                                    "title": "External source",
+                                    "url": "https://example.com/browser-automation",
+                                },
+                            ]
+                        }
+                    }
+                ],
+                blueprint_id=blueprint.blueprint_id,
+                blueprint_node_id="rank_results",
+                blueprint_revision=blueprint.revision,
+            )
+        )
+        db.commit()
+        readiness = BlueprintReadinessEvaluator().evaluate(blueprint)
+
+        BlueprintExpansionEngine(db=db, repository=repository).expand_ready_nodes(
+            mission_id=mission_id,
+            readiness=readiness,
+        )
+
+        record = (
+            db.query(MissionIntentRecord)
+            .filter(MissionIntentRecord.mission_id == mission_id)
+            .filter(MissionIntentRecord.blueprint_node_id == "open_result_1")
+            .one()
+        )
+        assert record.intent == "open_new_tab"
+        assert record.payload["value"] == "https://example.com/browser-automation"
+        assert record.payload["rank"] == 3
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+def test_open_result_expansion_skips_action_when_no_openable_ranked_url(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+    db, engine = _session()
+    try:
+        mission_id = "expand-ranked-open-none"
+        repository = SqlAlchemyMissionBlueprintRepository(db)
+        service = MissionBlueprintPersistenceService(repository)
+        blueprint = service.create(
+            mission_id=mission_id,
+            objective="Research sources",
+            nodes=[_open_result_node(1)],
+        )
+        mission_ledger_service.ensure_session(db, mission_id)
+        db.add(
+            MissionIntentRecord(
+                intent_id="rank-intent-none",
+                mission_id=mission_id,
+                intent="rank_records",
+                provider="validation",
+                capability="validation",
+                dispatch_target="validation",
+                execution_owner="validation",
+                status="COMPLETED",
+                payload={},
+                evidence=[
+                    {
+                        "payload": {
+                            "ranked_results": [
+                                {
+                                    "rank": 1,
+                                    "title": "Google challenge",
+                                    "url": "https://www.google.com/sorry/index?continue=https%3A%2F%2Fwww.google.com%2Fsearch%3Fq%3Dbrowser",
+                                }
+                            ]
+                        }
+                    }
+                ],
+                blueprint_id=blueprint.blueprint_id,
+                blueprint_node_id="rank_results",
+                blueprint_revision=blueprint.revision,
+            )
+        )
+        db.commit()
+        readiness = BlueprintReadinessEvaluator().evaluate(blueprint)
+
+        result = BlueprintExpansionEngine(db=db, repository=repository).expand_ready_nodes(
+            mission_id=mission_id,
+            readiness=readiness,
+        )
+
+        records = (
+            db.query(MissionIntentRecord)
+            .filter(MissionIntentRecord.mission_id == mission_id)
+            .filter(MissionIntentRecord.blueprint_node_id == "open_result_1")
+            .all()
+        )
+        assert result.generated_intent_ids == []
+        assert records == []
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
 def test_blueprint_knowledge_intents_use_registered_dispatch_target(monkeypatch):
     monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
     db, engine = _session()

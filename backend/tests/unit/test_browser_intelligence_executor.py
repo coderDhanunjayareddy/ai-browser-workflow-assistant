@@ -176,6 +176,7 @@ def test_collect_search_results_filters_ads_and_unwraps_google_redirects():
                 "search_results": [
                     {"rank": 1, "title": "Ad", "url": "https://ad.example/", "is_ad": True},
                     {"rank": 2, "title": "Google Search", "url": "https://www.google.com/search?q=other"},
+                    {"rank": 3, "title": "Google Sorry", "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3Dbrowser"},
                     {"rank": 3, "title": "External", "url": "https://www.google.com/url?q=https%3A%2F%2Fexternal.example%2Fguide&sa=U"},
                 ]
             }

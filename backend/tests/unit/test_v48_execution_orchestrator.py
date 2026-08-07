@@ -352,6 +352,62 @@ def test_active_open_phase_attaches_orchestrator_continuation_queue(monkeypatch)
     ]
 
 
+def test_active_open_phase_filters_search_engine_internal_pages(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "phase-queue-filter-internal-serp"
+    register_entity(
+        session_id,
+        entity_type="semantic_element",
+        source_layer="browser_intelligence",
+        title="Google challenge",
+        canonical_url="https://www.google.com/sorry/index?continue=https%3A%2F%2Fwww.google.com%2Fsearch%3Fq%3Dbrowser",
+        confidence=0.99,
+        metadata={"rank": "1"},
+    )
+    register_entity(
+        session_id,
+        entity_type="search_result",
+        source_layer="browser_intelligence",
+        title="Google internal search",
+        canonical_url="https://www.google.com/search?q=best+AI+browser+automation+tools+2026",
+        confidence=0.98,
+        metadata={"rank": "2"},
+    )
+    register_entity(
+        session_id,
+        entity_type="search_result",
+        source_layer="browser_intelligence",
+        title="Tool 2",
+        canonical_url="https://tool2.example/",
+        confidence=0.92,
+        metadata={"rank": "3"},
+    )
+    register_entity(
+        session_id,
+        entity_type="link",
+        source_layer="browser_intelligence",
+        title="Tool 3",
+        canonical_url="https://tool3.example/",
+        confidence=0.91,
+        metadata={"rank": "4"},
+    )
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://www.google.com/sorry/index"),
+        prior_steps=_collected_steps(5),
+    )
+
+    result = engine.postprocess_response(_planner_action("open_new_tab", value="https://tool1.example/"), snapshot)
+
+    assert result.execution_orchestrator is not None
+    assert [action.value for action in result.execution_orchestrator.continuation_actions] == [
+        "https://tool2.example",
+        "https://tool3.example",
+    ]
+
+
 def test_active_open_phase_skips_already_opened_entities(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     session_id = "phase-queue-skip-opened"

@@ -270,6 +270,22 @@ function contextFingerprint(ctx: PageContext | null): string {
   ].map(normalizeForCompare).join('\n')
 }
 
+function normalizeUrlForCompare(value: string | null | undefined): string {
+  const raw = (value ?? '').trim()
+  if (!raw) return ''
+  try {
+    const parsed = new URL(raw)
+    parsed.hash = ''
+    if ((parsed.protocol === 'https:' && parsed.port === '443') || (parsed.protocol === 'http:' && parsed.port === '80')) {
+      parsed.port = ''
+    }
+    const normalized = parsed.toString()
+    return normalized.endsWith('/') ? normalized.slice(0, -1) : normalized
+  } catch {
+    return raw.replace(/#.*$/, '').replace(/\/$/, '')
+  }
+}
+
 function actionNeedsObservableProgress(action: SuggestedAction): boolean {
   if (action.action_type === 'navigate') return true
   if (action.action_type === 'navigate_next_page') return true
@@ -280,7 +296,7 @@ function actionNeedsObservableProgress(action: SuggestedAction): boolean {
   )
 }
 
-function validateObservableProgress(
+export function validateObservableProgress(
   action: SuggestedAction,
   before: PageContext | null,
   after: PageContext,
@@ -289,6 +305,11 @@ function validateObservableProgress(
 
   const changed = contextFingerprint(before) !== contextFingerprint(after)
   const navigated = before.url !== after.url
+  const requestedNavigationReached =
+    action.action_type === 'navigate' &&
+    Boolean(action.value) &&
+    normalizeUrlForCompare(action.value) === normalizeUrlForCompare(after.url)
+  if (requestedNavigationReached) return null
   if (navigated || changed) return null
 
   return `Action reported success, but the page did not visibly change after ${action.action_type}. Retrying from the current page state.`
@@ -832,15 +853,18 @@ export function routeAnalyzeOutcome(
 
   if (allowedActions.length === 0) {
     return {
-      phase: 'completed',
-      analysisText: result.analysis,
+      phase: 'failed',
+      analysisText: [
+        result.analysis,
+        'No executable browser action was returned, and no verified report/result was available.',
+      ].filter(Boolean).join('\n\n'),
       pendingActions: [],
       clarificationQuestion: null,
       contractOutcome: outcomeKind,
       report: null,
       replan: null,
       goalConvergence: Boolean(result.goal_convergence),
-      error: null,
+      error: 'No executable browser action was returned before mission completion evidence was available.',
       continueAfterRejectedReport: false,
       rejectedReportPriorStep: null,
     }
@@ -1246,7 +1270,17 @@ export function useWorkflow() {
   // ── Approve ─────────────────────────────────────────────────────────────────
 
   const approveAction = useCallback(async () => {
-    const { pendingActions, sessionId, task, completedActions, analysisText } = state
+    const {
+      pendingActions,
+      sessionId,
+      task,
+      completedActions,
+      analysisText,
+      validationPriorSteps,
+      workspace,
+      tabWorkspace,
+      userInputs,
+    } = state
     const action = pendingActions[0]
     if (!action) return
 
@@ -1419,18 +1453,16 @@ export function useWorkflow() {
       return
     }
 
-    setState((s) => ({
-      ...s,
-      phase: 'completed',
-      activeAction: null,
-      pendingActions: [],
+    await runWorkflowLoop({
+      sessionId,
+      task,
+      refresh: true,
       completedActions: newCompleted,
-      analysisText: [
-        s.analysisText,
-        'Mission Ledger has no further browser intent assigned.',
-      ].filter(Boolean).join('\n\n'),
-      error: null,
-    }))
+      validationPriorSteps,
+      workspace,
+      tabWorkspace,
+      userInputs,
+    })
   }, [state, pageContext])
 
   const continueWithInput = useCallback(async (answer: string) => {

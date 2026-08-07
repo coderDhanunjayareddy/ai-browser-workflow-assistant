@@ -274,6 +274,27 @@ def test_blueprint_active_analyze_bypasses_planner_and_queues_first_browser_inte
     assert records[0].status == "WAITING_BROWSER"
 
 
+def test_blueprint_runtime_recovers_from_search_provider_challenge(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.services import ai_service
+
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "active")
+    monkeypatch.setattr(ai_service, "analyze", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("planner should not run")))
+
+    orchestrator = WorkflowOrchestrator("blueprint-search-recovery-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Open Google Search and search for: `best AI browser automation tools 2026`. Open the top 5 relevant results and return a table.",
+        page_context=page("https://www.google.com/sorry/index?continue=https%3A%2F%2Fwww.google.com%2Fsearch%3Fq%3Dbrowser"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].action_type == "navigate"
+    assert response.suggested_actions[0].value == "https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"
+    assert "alternate search provider" in response.analysis
+
+
 def test_blueprint_active_explicit_url_collection_starts_at_source_url(db_session, monkeypatch):
     from app.core.config import settings
     from app.services import ai_service

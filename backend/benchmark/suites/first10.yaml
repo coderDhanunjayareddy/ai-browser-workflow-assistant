@@ -1,0 +1,17 @@
+name: first10
+description: >
+  First milestone validation suite for the AI Browser Assist product goal. These tasks map
+  to the 10 user-facing validation prompts and run through the M0 observe/analyze/execute
+  loop with real Playwright browser control. Auth/account tasks are explicitly environment
+  gated when required resources are not configured.
+task_ids:
+  - first10__01_search_ai_browser_tools
+  - first10__02_hyderabad_careers_extract
+  - first10__03_linkedin_jobs_discovery
+  - first10__04_ai_code_assistant_pricing
+  - first10__05_browser_automation_docs
+  - first10__06_directory_multipage_collection
+  - first10__07_saas_signup_workflow
+  - first10__08_real_file_upload
+  - first10__09_safe_test_form_validation
+  - first10__10_ai_browser_testing_best_practices

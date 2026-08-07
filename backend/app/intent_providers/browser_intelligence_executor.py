@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 
+from app.browser_url_policy import is_openable_browser_url
 from app.intent_dispatcher.models import ExecutionContext, IntentDispatchDirective, IntentExecutionEvidence
 from app.intent_dispatcher.registry import IntentOwnerRegistration, register_intent_executor, register_intent_owner
 from app.intent_providers.common import execution_result
@@ -170,14 +171,7 @@ def _canonical_result_url(url: str) -> str:
 def _openable_search_result(canonical_url: str, result: dict) -> bool:
     if bool(result.get("is_ad")):
         return False
-    parsed = urlsplit(canonical_url)
-    host = parsed.netloc.lower()
-    if not host:
-        return False
-    if any(host == domain or host.endswith(f".{domain}") for domain in {"google.com", "bing.com", "duckduckgo.com"}):
-        blocked_paths = ("/search", "/url", "/preferences", "/settings", "/maps", "/images", "/videos", "/news")
-        return not any(parsed.path.startswith(path) for path in blocked_paths)
-    return True
+    return is_openable_browser_url(canonical_url)
 
 
 def _register_search_result_entities(context: ExecutionContext, results: list[dict]):

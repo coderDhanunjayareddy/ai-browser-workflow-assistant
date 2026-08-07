@@ -53,6 +53,7 @@ const {
   updateTabFactCount,
   updateMissionSnapshot,
   updateTaskWorkspace,
+  validateObservableProgress,
   workflowLoopObservationPhase,
   shouldAutoExecuteAction,
 } = require(path.join(outDir, 'sidepanel/hooks/useWorkflow.js'))
@@ -334,15 +335,16 @@ test('preserves backward compatibility when outcome_kind is absent', () => {
   assert.equal(askRoute.clarificationQuestion, 'What date should I enter?')
 })
 
-test('routes completion when no executable action remains', () => {
+test('routes act-without-action as failed until completion evidence exists', () => {
   const routed = route(response({
     outcome_kind: 'act',
     suggested_actions: [],
   }))
 
-  assert.equal(routed.phase, 'completed')
+  assert.equal(routed.phase, 'failed')
   assert.equal(routed.contractOutcome, 'act')
   assert.deepEqual(routed.pendingActions, [])
+  assert.match(routed.error, /No executable browser action/)
 })
 
 test('execute to refresh to analyze loop sends fresh observation with prior steps', () => {
@@ -367,6 +369,37 @@ test('execute to refresh to analyze loop sends fresh observation with prior step
   assert.match(request.prior_steps[0].execution_result, /Execution: success/)
   assert.match(request.supplemental_context, /Active Goal/)
   assert.match(request.supplemental_context, /Authoritative user-provided answers/)
+})
+
+test('validateObservableProgress accepts navigate when requested URL is already reached', () => {
+  const before = pageContext({ url: 'https://www.google.com/', title: 'Google', visible_text: 'Google Search' })
+  const after = pageContext({ url: 'https://www.google.com/', title: 'Google', visible_text: 'Google Search' })
+
+  const error = validateObservableProgress(
+    action({
+      action_type: 'navigate',
+      value: 'https://www.google.com',
+      description: 'Open Google',
+      target_selector: '',
+    }),
+    before,
+    after,
+  )
+
+  assert.equal(error, null)
+})
+
+test('validateObservableProgress still rejects no-effect clicks', () => {
+  const before = pageContext()
+  const after = pageContext()
+
+  const error = validateObservableProgress(
+    action({ action_type: 'click', description: 'Open result', target_selector: '#result' }),
+    before,
+    after,
+  )
+
+  assert.match(error, /did not visibly change after click/)
 })
 
 test('open new tab prior step carries structured browser evidence', () => {

@@ -1382,7 +1382,7 @@ class WorkflowOrchestrator:
             from app.mission.blueprint.readiness import BlueprintReadinessEvaluator
             from app.mission.blueprint.repository import SqlAlchemyMissionBlueprintRepository
             from app.mission.intelligence.blueprint_builder import create_and_store_blueprint
-            from app.schemas.response import AnalyzeResponse, SuggestedAction
+            from app.schemas.response import AnalyzeResponse, ReplanOutcome, SuggestedAction
             from app.services import mission_ledger_service
 
             repository = SqlAlchemyMissionBlueprintRepository(self.db)
@@ -1428,6 +1428,54 @@ class WorkflowOrchestrator:
                 mission_id=self.session_id,
                 readiness=readiness,
             )
+            search_recovery = _search_challenge_recovery_action(
+                session_id=self.session_id,
+                task=task,
+                page_context=page_context,
+                prior_steps=prior_steps,
+            )
+            if search_recovery is not None:
+                response = AnalyzeResponse(
+                    session_id=self.session_id,
+                    analysis=(
+                        "Search provider challenge/no-results state detected. "
+                        "Recovering by switching to an alternate search provider before continuing evidence collection."
+                    ),
+                    outcome_kind="act",
+                    suggested_actions=[search_recovery],
+                )
+                self._record_v3_event(
+                    "mission_blueprint.search_provider_recovery",
+                    {
+                        "blueprint_id": blueprint.blueprint_id,
+                        "revision": blueprint.revision,
+                        "reason": "search_provider_challenge",
+                        "recovery_action": search_recovery.action_type,
+                        "recovery_url": search_recovery.value,
+                    },
+                )
+                return response
+            if readiness.ready_nodes and not expansion.generated_intent_ids:
+                reason = (
+                    "Blueprint has ready nodes but no executable browser intents after URL and safety filtering. "
+                    "The current discovery surface may be blocked or may not expose usable results."
+                )
+                self._record_v3_event(
+                    "mission_blueprint.no_executable_ready_nodes",
+                    {
+                        "blueprint_id": blueprint.blueprint_id,
+                        "revision": blueprint.revision,
+                        "ready_nodes": readiness.ready_nodes,
+                        "blocked_nodes": readiness.blocked_nodes,
+                    },
+                )
+                return AnalyzeResponse(
+                    session_id=self.session_id,
+                    analysis=reason,
+                    outcome_kind="replan",
+                    suggested_actions=[],
+                    replan=ReplanOutcome(reason=reason),
+                )
             if not readiness.ready_nodes and not expansion.generated_intent_ids:
                 self._record_v3_event(
                     "mission_blueprint.planner_fallback",
@@ -1700,6 +1748,65 @@ def _blueprint_stale_for_task(blueprint: Any, task: str) -> bool:
         if not isinstance(payload, dict) or not _is_http_url(str(payload.get("value") or "")):
             return True
     return False
+
+
+def _search_challenge_recovery_action(
+    *,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    prior_steps: list,
+) -> Any | None:
+    from urllib.parse import quote_plus, urlparse
+
+    url = str(getattr(page_context, "url", "") or "")
+    parsed = urlparse(url)
+    host = parsed.netloc.lower().removeprefix("www.")
+    if host != "google.com" or not parsed.path.startswith(("/sorry", "/challenge", "/consent")):
+        return None
+    query = _search_query_from_task(task)
+    if not query:
+        return None
+    recovery_url = f"https://www.bing.com/search?q={quote_plus(query)}"
+    recovery_identity = recovery_url.rstrip("/").lower()
+    for step in prior_steps:
+        value = str(getattr(step, "value", "") or "").rstrip("/").lower()
+        page_url = str(getattr(step, "page_url", "") or "").rstrip("/").lower()
+        if recovery_identity in {value, page_url}:
+            return None
+
+    from app.schemas.response import SuggestedAction
+
+    return SuggestedAction(
+        action_id="search_provider_recovery_bing",
+        mission_id=session_id,
+        action_type="navigate",
+        target_selector="",
+        value=recovery_url,
+        description=f"Recover search by opening Bing results for: {query}",
+        reasoning=(
+            "The current search provider returned a challenge/no-results surface. "
+            "Switch to an alternate public search provider so organic result collection can continue."
+        ),
+        confidence=0.86,
+        safety_level="safe",
+    )
+
+
+def _search_query_from_task(task: str) -> str:
+    text = " ".join(str(task or "").split())
+    patterns = (
+        r"search\s+for:\s*`([^`]+)`",
+        r"search\s+for:\s*['\"]([^'\"]+)['\"]",
+        r"search\s+for\s+`([^`]+)`",
+        r"search\s+for\s+(.+?)(?:\.|\n|$)",
+        r"use\s+google\s+search\s+and\s+official\s+websites\s+to\s+research:\s*`([^`]+)`",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return match.group(1).strip(" .,:;`")
+    return ""
 
 
 def _explicit_url_collection_task(task: str) -> bool:

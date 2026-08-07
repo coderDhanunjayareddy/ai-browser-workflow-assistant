@@ -57,6 +57,156 @@ def _safe_debug_print(message: str) -> None:
         print(safe, flush=True)
 
 
+_DEFAULT_PLANNER_CONTEXT_CHAR_BUDGET = 14_000
+_LIST_LIMITS_BY_KEY = {
+    "relevant_elements": 30,
+    "search_results": 12,
+    "semantic_elements": 24,
+    "semantic_entities": 24,
+    "selector_candidates": 24,
+    "recent_actions": 8,
+    "important_failures": 8,
+    "read_artifacts": 8,
+    "extraction_records": 12,
+    "tabs": 12,
+    "artifacts": 12,
+}
+_STRING_LIMITS_BY_KEY = {
+    "text": 900,
+    "visible_text": 1_200,
+    "content": 1_200,
+    "content_preview": 900,
+    "description": 700,
+    "execution_result": 500,
+    "reason": 500,
+    "summary": 700,
+}
+
+
+def _planner_context_char_budget() -> int:
+    raw = os.environ.get("AI_BROWSER_PLANNER_CONTEXT_CHAR_BUDGET", "")
+    try:
+        return max(4_000, int(raw)) if raw else _DEFAULT_PLANNER_CONTEXT_CHAR_BUDGET
+    except ValueError:
+        return _DEFAULT_PLANNER_CONTEXT_CHAR_BUDGET
+
+
+def _truncate_text(value: str, limit: int) -> str:
+    if len(value) <= limit:
+        return value
+    return value[: max(0, limit - 24)].rstrip() + " ...[truncated]"
+
+
+def _budget_context_value(value: Any, *, key: str = "", depth: int = 0, string_scale: float = 1.0) -> Any:
+    if depth > 8:
+        return "[truncated-depth]"
+    if isinstance(value, dict):
+        return {
+            str(k): _budget_context_value(v, key=str(k), depth=depth + 1, string_scale=string_scale)
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        limit = _LIST_LIMITS_BY_KEY.get(key, 20)
+        return [
+            _budget_context_value(item, key=key, depth=depth + 1, string_scale=string_scale)
+            for item in value[:limit]
+        ]
+    if isinstance(value, str):
+        base_limit = _STRING_LIMITS_BY_KEY.get(key, 1_500)
+        return _truncate_text(value, max(120, int(base_limit * string_scale)))
+    return value
+
+
+def budget_compressed_planner_context(context: Dict[str, Any], *, char_budget: Optional[int] = None) -> Dict[str, Any]:
+    """Return a provider-safe projection of planner context.
+
+    The orchestrator builds rich semantic context for execution. Provider accounts and
+    model tiers can still have smaller prompt ceilings, so the final AI boundary needs a
+    deterministic size guard that preserves high-value lists before trimming text.
+    """
+    budget = char_budget or _planner_context_char_budget()
+    projected = _budget_context_value(context)
+    if len(json.dumps(projected, ensure_ascii=False)) <= budget:
+        return projected
+
+    for scale in (0.65, 0.45, 0.3):
+        projected = _budget_context_value(context, string_scale=scale)
+        if len(json.dumps(projected, ensure_ascii=False)) <= budget:
+            return projected
+
+    projected = _budget_context_value(context, string_scale=0.25)
+    browser_intelligence = projected.get("browser_intelligence")
+    if isinstance(browser_intelligence, dict):
+        for list_key in ("semantic_elements", "semantic_entities", "selector_candidates"):
+            if isinstance(browser_intelligence.get(list_key), list):
+                browser_intelligence[list_key] = browser_intelligence[list_key][:8]
+        if isinstance(browser_intelligence.get("search_results"), list):
+            browser_intelligence["search_results"] = browser_intelligence["search_results"][:10]
+    if isinstance(projected.get("relevant_elements"), list):
+        projected["relevant_elements"] = projected["relevant_elements"][:16]
+    if isinstance(projected.get("recent_actions"), list):
+        projected["recent_actions"] = projected["recent_actions"][-4:]
+    if len(json.dumps(projected, ensure_ascii=False)) <= budget:
+        return projected
+
+    minimal = {
+        "active_goal": context.get("active_goal", ""),
+        "verified_facts": _budget_context_value(context.get("verified_facts", {}), string_scale=0.25),
+        "relevant_elements": projected.get("relevant_elements", [])[:10]
+        if isinstance(projected.get("relevant_elements"), list)
+        else [],
+        "browser_intelligence": {
+            "search_results": (
+                browser_intelligence.get("search_results", [])[:10]
+                if isinstance(browser_intelligence, dict) and isinstance(browser_intelligence.get("search_results"), list)
+                else []
+            ),
+            "semantic_elements": (
+                browser_intelligence.get("semantic_elements", [])[:8]
+                if isinstance(browser_intelligence, dict) and isinstance(browser_intelligence.get("semantic_elements"), list)
+                else []
+            ),
+        },
+        "recent_actions": projected.get("recent_actions", [])[-4:]
+        if isinstance(projected.get("recent_actions"), list)
+        else [],
+        "budget_notice": {
+            "original_chars": len(json.dumps(context, ensure_ascii=False)),
+            "budget_chars": budget,
+            "projection": "minimal",
+        },
+    }
+    if len(json.dumps(minimal, ensure_ascii=False)) <= budget:
+        return minimal
+
+    compact_results: list[dict[str, Any]] = []
+    if isinstance(browser_intelligence, dict) and isinstance(browser_intelligence.get("search_results"), list):
+        for item in browser_intelligence.get("search_results", [])[:10]:
+            if isinstance(item, dict):
+                compact_results.append({
+                    "rank": item.get("rank"),
+                    "title": _truncate_text(str(item.get("title") or ""), 160),
+                    "url": item.get("url"),
+                })
+    return {
+        "active_goal": _truncate_text(str(context.get("active_goal", "")), 600),
+        "browser_intelligence": {"search_results": compact_results},
+        "recent_actions": [
+            _budget_context_value(item, string_scale=0.15)
+            for item in (
+                projected.get("recent_actions", [])[-2:]
+                if isinstance(projected.get("recent_actions"), list)
+                else []
+            )
+        ],
+        "budget_notice": {
+            "original_chars": len(json.dumps(context, ensure_ascii=False)),
+            "budget_chars": budget,
+            "projection": "compact_minimal",
+        },
+    }
+
+
 def download_image(url: str) -> tuple[str, bytes, str] | None:
     if url.startswith("data:image"):
         try:
@@ -1343,6 +1493,7 @@ def analyze(
     if compressed_context is not None:
         # Interactive planning receives no full DOM/tree/replay. The five-key
         # contract keeps planner input stable and auditable.
+        compressed_context = budget_compressed_planner_context(compressed_context)
         _log_live_path_prompt_context(session_id, compressed_context)
         try:
             from app.runtime_state_manager.entity_pipeline_trace import record_prompt_entities

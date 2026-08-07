@@ -4,6 +4,7 @@ import hashlib
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from app.browser_url_policy import is_openable_browser_url
 from app.execution_orchestrator.models import ExecutionOrchestratorSnapshot, PhaseName
 from app.intent_dispatcher import dispatch_intent
 from app.intent_dispatcher.models import IntentDispatchDirective
@@ -157,6 +158,7 @@ def _openable_entities(session_id: str) -> list[UnifiedEntity]:
         entity
         for entity in list_entities(session_id)
         if entity.canonical_url
+        and is_openable_browser_url(entity.canonical_url)
         and entity.state != "INVALID"
         and entity.entity_type in {"search_result", "semantic_element", "link", "card", "list_item", "table_row"}
     ]
