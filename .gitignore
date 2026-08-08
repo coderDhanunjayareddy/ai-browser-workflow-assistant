@@ -89,3 +89,4 @@ backend/debug_anthropic_raw.json
 backend/backend.log
 backend/*.log
 
+*.log
