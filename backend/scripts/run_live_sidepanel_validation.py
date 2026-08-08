@@ -160,12 +160,41 @@ def _ensure_auto_mode(sidepanel) -> None:
     text = _sidepanel_text(sidepanel)
     if "Auto mode: safe steps run automatically" in text:
         return
+    try:
+        clicked = sidepanel.evaluate(
+            """() => {
+                const titled = Array.from(document.querySelectorAll('[title]'))
+                    .find((el) => (el.getAttribute('title') || '').toLowerCase().includes('auto mode'));
+                const target = titled?.querySelector('div') || titled;
+                if (target instanceof HTMLElement) {
+                    target.click();
+                    return true;
+                }
+                const labels = Array.from(document.querySelectorAll('label, span, div'))
+                    .filter((el) => (el.textContent || '').trim().toLowerCase() === '🤖 auto'
+                        || (el.textContent || '').trim().toLowerCase() === 'auto');
+                const label = labels[labels.length - 1];
+                if (label instanceof HTMLElement) {
+                    label.click();
+                    return true;
+                }
+                return false;
+            }"""
+        )
+        if clicked:
+            time.sleep(0.3)
+            if "Auto mode: safe steps run automatically" in _sidepanel_text(sidepanel):
+                return
+    except Exception:
+        pass
     for locator in (
+        sidepanel.locator("[title*='Auto mode']").first,
         sidepanel.locator("label", has_text=re.compile(r"Auto", re.I)).first,
         sidepanel.get_by_text(re.compile(r"Auto$", re.I)).first,
         sidepanel.get_by_text("Auto", exact=False).first,
     ):
         try:
+            locator.scroll_into_view_if_needed(timeout=1000)
             locator.click(timeout=1500)
             time.sleep(0.3)
             if "Auto mode: safe steps run automatically" in _sidepanel_text(sidepanel):
@@ -175,12 +204,31 @@ def _ensure_auto_mode(sidepanel) -> None:
 
 
 def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
+    try:
+        clicked = sidepanel.evaluate(
+            """() => {
+                const buttons = Array.from(document.querySelectorAll('button'));
+                const button = buttons.find((el) => /approve/i.test(el.textContent || ''));
+                if (button instanceof HTMLElement) {
+                    button.scrollIntoView({ block: 'center', inline: 'center' });
+                    button.click();
+                    return true;
+                }
+                return false;
+            }"""
+        )
+        if clicked:
+            return True
+    except Exception:
+        pass
     for locator in (
         sidepanel.get_by_role("button", name=re.compile(r"Approve", re.I)).first,
+        sidepanel.locator("button", has_text=re.compile(r"Approve", re.I)).first,
         sidepanel.get_by_text(re.compile(r"Approve", re.I)).first,
     ):
         try:
             if locator.is_visible(timeout=500):
+                locator.scroll_into_view_if_needed(timeout=1000)
                 locator.click(timeout=timeout_ms)
                 return True
         except Exception:
@@ -224,10 +272,13 @@ def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int) -> T
     while time.time() < deadline:
         text = _sidepanel_text(sidepanel)
         lowered = text.lower()
+        _ensure_auto_mode(sidepanel)
         if "✕ stop workflow" in lowered or "stop workflow" in lowered:
             pass
         if "requires approval" in lowered or "✓ approve" in lowered or "approve" in lowered:
-            _approve_pending_action(sidepanel, timeout_ms=1200)
+            if _approve_pending_action(sidepanel, timeout_ms=1200):
+                time.sleep(0.7)
+                continue
         false_completion = (
             "mission stopped without a verified report" in lowered
             or "no executable browser action was returned" in lowered

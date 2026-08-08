@@ -7,7 +7,7 @@ from app.models.db import WorkflowSession
 from app.models.db import MissionIntentRecord
 from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
 from app.schemas.intent import IntentEvidence
-from app.schemas.request import ContentBlock, InteractiveElement, PageContext
+from app.schemas.request import ContentBlock, InteractiveElement, PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, ReportOutcome, SuggestedAction
 
 
@@ -105,6 +105,21 @@ def directory_page(url: str = "https://directory.example/page/1") -> PageContext
         ),
         images=[],
     )
+
+
+def opened_source_steps(count: int = 5) -> list[PriorStep]:
+    return [
+        PriorStep(
+            action_type="open_new_tab",
+            description=f"Open ranked result {index}",
+            target_selector="",
+            value=f"https://tool{index}.example/",
+            execution_result="success",
+            page_url="https://www.bing.com/search?q=best+AI+browser+automation+tools+2026",
+            page_title="Search Results",
+        )
+        for index in range(1, count + 1)
+    ]
 
 
 @pytest.mark.parametrize("url", [
@@ -449,6 +464,71 @@ def test_blueprint_collects_search_results_without_planner_after_search_recovery
         .one()
     )
     assert completed.status == "COMPLETED"
+
+
+def test_read_phase_focuses_unread_source_without_planner(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.services import ai_service
+
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(ai_service, "analyze", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("planner should not run")))
+
+    orchestrator = WorkflowOrchestrator("deterministic-read-focus-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Open the top 5 relevant results in new tabs. Read each page. Extract Tool, Purpose, Pricing, Limitation, URL.",
+        page_context=search_results_page(),
+        prior_steps=opened_source_steps(5),
+        supplemental_context="",
+    )
+
+    assert response.analysis.startswith("Execution Orchestrator continued READ phase deterministically")
+    assert response.intent_execution is not None
+    assert response.intent_execution.status in {"waiting_browser", "browser_action_required"}
+    assert response.suggested_actions
+    assert response.suggested_actions[0].action_type == "focus_existing_tab"
+    assert response.suggested_actions[0].value == "url:https://tool1.example/"
+
+
+def test_read_phase_after_observing_focused_source_moves_to_next_unread_without_planner(db_session, monkeypatch):
+    from app.core.config import settings
+    from app.services import ai_service
+
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(ai_service, "analyze", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("planner should not run")))
+
+    orchestrator = WorkflowOrchestrator("deterministic-read-page-session", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Open the top 5 relevant results in new tabs. Read each page. Extract Tool, Purpose, Pricing, Limitation, URL.",
+        page_context=PageContext(
+            url="https://tool1.example/",
+            title="Tool 1",
+            metadata={},
+            interactive_elements=[],
+            content_blocks=[
+                ContentBlock(
+                    text="Tool 1 is an AI browser automation product. Pricing starts at $10. Limitation: beta integrations.",
+                    selector="#main",
+                    href=None,
+                )
+            ],
+            headings=["Tool 1"],
+            selected_text="",
+            visible_text="Tool 1 is an AI browser automation product. Pricing starts at $10. Limitation: beta integrations.",
+            images=[],
+        ),
+        prior_steps=opened_source_steps(5),
+        supplemental_context="",
+    )
+
+    assert response.analysis.startswith("Execution Orchestrator continued READ phase deterministically")
+    assert response.intent_execution is not None
+    assert response.intent_execution.status in {"waiting_browser", "browser_action_required"}
+    assert response.suggested_actions
+    assert response.suggested_actions[0].action_type == "focus_existing_tab"
+    assert response.suggested_actions[0].value == "url:https://tool2.example/"
 
 
 def test_ledger_failure_does_not_alter_execution_recording(db_session, monkeypatch):

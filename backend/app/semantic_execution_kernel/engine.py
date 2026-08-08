@@ -235,6 +235,18 @@ class SemanticExecutionKernel:
         current_lookup_entity_id = snapshot.proposal.entity_id if snapshot.proposal else None
         current_lookup_url = snapshot.proposal.parameters.get("canonical_url") or snapshot.proposal.parameters.get("value") if snapshot.proposal else None
         pipeline_failure = tracer.active_failure_response(result, session_id)
+        if pipeline_failure is not None and snapshot.proposal and snapshot.proposal.action_type == "SEARCH_WEB":
+            pipeline_failure = None
+            tracer.clear_failures(session_id)
+            _debug_v494_kernel(
+                "SEARCH_WEB_IGNORED_ACTIVE_ENTITY_FAILURE",
+                {
+                    "mission_id": session_id,
+                    "planner_turn_id": planner_turn_id,
+                    "branch_reason": "current search navigation is discovery work and must not replay stale entity lookup failures",
+                    "current_lookup_url": current_lookup_url,
+                },
+            )
         if pipeline_failure is not None:
             origin = latest_failure_before.to_dict() if latest_failure_before else {}
             created_at = int(origin.get("created_at") or 0)

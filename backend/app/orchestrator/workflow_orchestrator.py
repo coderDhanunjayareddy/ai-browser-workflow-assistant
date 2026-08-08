@@ -31,6 +31,7 @@ from app.grounding.telemetry import record_grounding_metrics
 from app.mission.v3 import MissionIntelligenceEngine
 from app.policy import GovernanceDecisionEngine
 from app.run_ledger.reader import RunLedgerReader
+from app.schemas.response import AnalyzeResponse
 from app.semantic_page.cache import SemanticGraphCache
 from app.semantic_page.telemetry import record_graph_metrics
 from app.verification import ValidationEngine
@@ -761,6 +762,29 @@ class WorkflowOrchestrator:
                 mission_completion_snapshot.to_compact_context() if mission_completion_snapshot else {},
             )
             return completion
+        read_continuation = _deterministic_read_phase_response(
+            db=self.db,
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+            runtime_state_snapshot=runtime_state_snapshot,
+            knowledge_snapshot=knowledge_snapshot,
+            mission_completion_snapshot=mission_completion_snapshot,
+            orchestrator_snapshot=orchestrator_snapshot,
+        )
+        if read_continuation is not None:
+            self._record_v3_event(
+                "execution_orchestrator.read_phase_continuation_without_planner",
+                {
+                    "active_phase": orchestrator_snapshot.active_phase.name if orchestrator_snapshot else None,
+                    "read_count": len(knowledge_snapshot.read_artifacts) if knowledge_snapshot else 0,
+                    "opened_count": len(orchestrator_snapshot.artifacts.opened_pages) if orchestrator_snapshot else 0,
+                    "queue_status": read_continuation.intent_execution.status if read_continuation.intent_execution else None,
+                    "browser_action": bool(read_continuation.suggested_actions),
+                },
+            )
+            return read_continuation
         from app.semantic_execution_kernel import (
             enrich_planner_context_with_kernel,
             observe_semantic_execution_kernel,
@@ -1954,6 +1978,217 @@ def _deterministic_search_collection_response(
         intent_dispatch=directive,
         intent_execution=queue_result,
     )
+
+
+def _deterministic_read_phase_response(
+    *,
+    db: Session,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    prior_steps: list[Any],
+    runtime_state_snapshot: Any,
+    knowledge_snapshot: Any,
+    mission_completion_snapshot: Any,
+    orchestrator_snapshot: Any,
+) -> AnalyzeResponse | None:
+    if orchestrator_snapshot is None or orchestrator_snapshot.active_phase.name != "READ":
+        return None
+    opened = _dedupe_opened_source_urls(list(getattr(orchestrator_snapshot.artifacts, "opened_pages", []) or []))
+    if not opened:
+        return None
+    target = int(orchestrator_snapshot.progress_ledger.target_counts.get("opened_pages", 1) or 1)
+    required = max(1, min(target, len(opened)))
+    read_urls = {
+        _normalize_url_for_read(getattr(read, "canonical_url", ""))
+        for read in list(getattr(knowledge_snapshot, "read_artifacts", []) or [])
+    }
+    read_urls.discard("")
+    opened_identities = {_normalize_url_for_read(url): url for url in opened}
+    if len(read_urls.intersection(opened_identities.keys())) >= required:
+        return None
+
+    current_url = str(getattr(page_context, "url", "") or "")
+    current_identity = _normalize_url_for_read(current_url)
+    if current_identity and current_identity in opened_identities and current_identity not in read_urls:
+        return _execute_read_page_intent(
+            db=db,
+            session_id=session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=prior_steps,
+            runtime_state_snapshot=runtime_state_snapshot,
+            knowledge_snapshot=knowledge_snapshot,
+            mission_completion_snapshot=mission_completion_snapshot,
+            orchestrator_snapshot=orchestrator_snapshot,
+        )
+
+    next_url = next((url for url in opened if _normalize_url_for_read(url) not in read_urls), opened[0])
+    return _execute_focus_source_intent(
+        db=db,
+        session_id=session_id,
+        task=task,
+        page_context=page_context,
+        prior_steps=prior_steps,
+        runtime_state_snapshot=runtime_state_snapshot,
+        knowledge_snapshot=knowledge_snapshot,
+        mission_completion_snapshot=mission_completion_snapshot,
+        orchestrator_snapshot=orchestrator_snapshot,
+        next_url=next_url,
+    )
+
+
+def _execute_read_page_intent(
+    *,
+    db: Session,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    prior_steps: list[Any],
+    runtime_state_snapshot: Any,
+    knowledge_snapshot: Any,
+    mission_completion_snapshot: Any,
+    orchestrator_snapshot: Any,
+) -> AnalyzeResponse | None:
+    from app.intent_runtime import ExecutionContext, dispatch_intent, execute_intent_queue
+    from app.services import mission_ledger_service
+
+    current_url = str(getattr(page_context, "url", "") or "")
+    directive = dispatch_intent(
+        intent="read_page",
+        payload={
+            "action_type": "read_page",
+            "description": f"Read opened source page: {current_url}",
+            "reasoning": "Deterministic READ phase continuation reads the focused opened source before planner fallback.",
+            "confidence": 0.9,
+            "safety_level": "safe",
+            "mission_id": session_id,
+        },
+    )
+    if directive is None:
+        return None
+    directive.mission_id = session_id
+    execution_context = ExecutionContext(
+        mission_id=session_id,
+        task=task,
+        page_context=page_context,
+        prior_steps=prior_steps,
+        runtime_state=runtime_state_snapshot,
+        knowledge=knowledge_snapshot,
+        completion_state=mission_completion_snapshot,
+        phase_state=orchestrator_snapshot,
+        metadata={"source": "deterministic_read_phase_continuation"},
+    )
+    queue_result = execute_intent_queue(mission_id=session_id, initial_intents=[directive], context=execution_context)
+    mission_ledger_service.record_queue_result(db, mission_id=session_id, initial_intent=directive, queue_result=queue_result)
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis=(
+            "Execution Orchestrator continued READ phase deterministically. "
+            "Focused source content was read by the backend knowledge pipeline."
+        ),
+        outcome_kind="act",
+        suggested_actions=[],
+        intent_dispatch=directive,
+        intent_execution=queue_result,
+    )
+
+
+def _execute_focus_source_intent(
+    *,
+    db: Session,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    prior_steps: list[Any],
+    runtime_state_snapshot: Any,
+    knowledge_snapshot: Any,
+    mission_completion_snapshot: Any,
+    orchestrator_snapshot: Any,
+    next_url: str,
+) -> AnalyzeResponse | None:
+    from app.intent_runtime import ExecutionContext, dispatch_intent, execute_intent_queue
+    from app.schemas.response import SuggestedAction
+    from app.services import mission_ledger_service
+
+    directive = dispatch_intent(
+        intent="focus_existing_tab",
+        payload={
+            "action_type": "focus_existing_tab",
+            "target_selector": "",
+            "value": f"url:{next_url}",
+            "description": f"Focus unread opened source for READ phase: {next_url}",
+            "reasoning": "Deterministic READ phase continuation focuses the next unread opened source before planner fallback.",
+            "confidence": 0.88,
+            "safety_level": "safe",
+            "mission_id": session_id,
+        },
+    )
+    if directive is None:
+        return None
+    directive.mission_id = session_id
+    execution_context = ExecutionContext(
+        mission_id=session_id,
+        task=task,
+        page_context=page_context,
+        prior_steps=prior_steps,
+        runtime_state=runtime_state_snapshot,
+        knowledge=knowledge_snapshot,
+        completion_state=mission_completion_snapshot,
+        phase_state=orchestrator_snapshot,
+        metadata={"source": "deterministic_read_phase_continuation"},
+    )
+    queue_result = execute_intent_queue(mission_id=session_id, initial_intents=[directive], context=execution_context)
+    mission_ledger_service.record_queue_result(db, mission_id=session_id, initial_intent=directive, queue_result=queue_result)
+    suggested_actions: list[SuggestedAction] = []
+    if queue_result.status in {"waiting_browser", "browser_action_required"} and queue_result.browser_action:
+        browser_payload = queue_result.browser_action
+        suggested_actions = [
+            SuggestedAction(
+                action_id=str(browser_payload.get("action_id") or browser_payload.get("intent_id") or directive.intent_id),
+                intent_id=str(browser_payload.get("intent_id") or directive.intent_id),
+                mission_id=session_id,
+                action_type=str(browser_payload.get("action_type") or directive.intent),
+                target_selector=str(browser_payload.get("target_selector") or ""),
+                value=browser_payload.get("value"),
+                description=str(browser_payload.get("description") or directive.reason),
+                reasoning=str(browser_payload.get("reasoning") or directive.reason),
+                confidence=float(browser_payload.get("confidence") or 0.88),
+                safety_level=str(browser_payload.get("safety_level") or "safe"),  # type: ignore[arg-type]
+            )
+        ]
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis=(
+            "Execution Orchestrator continued READ phase deterministically. "
+            f"Next unread opened source selected: {next_url}"
+        ),
+        outcome_kind="act",
+        suggested_actions=suggested_actions,
+        intent_dispatch=directive,
+        intent_execution=queue_result,
+    )
+
+
+def _dedupe_opened_source_urls(urls: list[str]) -> list[str]:
+    from app.browser_url_policy import is_openable_browser_url
+
+    seen: set[str] = set()
+    result: list[str] = []
+    for url in urls:
+        identity = _normalize_url_for_read(url)
+        if not identity or identity in seen or not is_openable_browser_url(url):
+            continue
+        seen.add(identity)
+        result.append(url)
+    return result
+
+
+def _normalize_url_for_read(url: str) -> str:
+    parsed = urlparse(str(url or "").strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}{parsed.path.rstrip('/')}".rstrip("/")
 
 
 def _is_search_results_url(url: str) -> bool:
