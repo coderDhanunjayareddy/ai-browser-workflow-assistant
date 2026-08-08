@@ -218,6 +218,17 @@ class SemanticExecutionKernel:
                     "proposal": snapshot.proposal.to_dict() if snapshot.proposal else None,
                 },
             )
+        if snapshot.proposal and snapshot.proposal.action_type == "SEARCH_WEB":
+            tracer.clear_failures(session_id)
+            _debug_v494_kernel(
+                "SEARCH_WEB_CLEARED_STALE_ENTITY_FAILURES",
+                {
+                    "mission_id": session_id,
+                    "planner_turn_id": planner_turn_id,
+                    "branch_reason": "search navigation discovers entities and must not be blocked by stale entity lookup failures",
+                    "proposal": snapshot.proposal.to_dict(),
+                },
+            )
         failures_before = tracer.failures(session_id)
         latest_failure_before = failures_before[-1] if failures_before else None
         current_lookup_succeeded = bool(snapshot.proposal and snapshot.proposal.entity_id)

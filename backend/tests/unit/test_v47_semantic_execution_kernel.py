@@ -193,6 +193,35 @@ def test_active_entity_pipeline_reports_exact_stage_for_missing_planner_url(monk
     ]
 
 
+def test_search_navigation_clears_stale_entity_lookup_failure(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    monkeypatch.setattr(settings, "v493_entity_pipeline_trace", "active")
+    engine = SemanticExecutionKernel()
+    session_id = "kernel-search-clears-stale-entity-failure"
+
+    failed = engine.postprocess_response(
+        result=_response("open_new_tab", value="https://missing.example.test/not-registered"),
+        session_id=session_id,
+        task="Search the web and open relevant result pages.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+    assert failed.outcome_kind == "replan"
+
+    recovered = engine.postprocess_response(
+        result=_response("navigate", value="https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"),
+        session_id=session_id,
+        task="Search the web and open relevant result pages.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+
+    assert recovered.outcome_kind == "act"
+    assert recovered.suggested_actions[0].action_type == "navigate"
+    assert recovered.suggested_actions[0].value == "https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"
+    assert recovered.replan is None
+
+
 def test_active_kernel_accepts_open_url_when_visible_page_evidence_contains_it(monkeypatch):
     monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
     monkeypatch.setattr(settings, "v493_entity_pipeline_trace", "active")

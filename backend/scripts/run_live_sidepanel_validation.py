@@ -156,6 +156,38 @@ def _sidepanel_text(page) -> str:
         return f"[body read failed: {exc}]"
 
 
+def _ensure_auto_mode(sidepanel) -> None:
+    text = _sidepanel_text(sidepanel)
+    if "Auto mode: safe steps run automatically" in text:
+        return
+    for locator in (
+        sidepanel.locator("label", has_text=re.compile(r"Auto", re.I)).first,
+        sidepanel.get_by_text(re.compile(r"Auto$", re.I)).first,
+        sidepanel.get_by_text("Auto", exact=False).first,
+    ):
+        try:
+            locator.click(timeout=1500)
+            time.sleep(0.3)
+            if "Auto mode: safe steps run automatically" in _sidepanel_text(sidepanel):
+                return
+        except Exception:
+            continue
+
+
+def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
+    for locator in (
+        sidepanel.get_by_role("button", name=re.compile(r"Approve", re.I)).first,
+        sidepanel.get_by_text(re.compile(r"Approve", re.I)).first,
+    ):
+        try:
+            if locator.is_visible(timeout=500):
+                locator.click(timeout=timeout_ms)
+                return True
+        except Exception:
+            continue
+    return False
+
+
 def _open_workflow_panel(sidepanel) -> None:
     sidepanel.bring_to_front()
     workflow_tab = sidepanel.get_by_role("button", name=re.compile(r"^Workflow$", re.I))
@@ -184,8 +216,7 @@ def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int) -> T
     _click_if_visible(sidepanel, "Clear")
     textarea = sidepanel.locator("textarea[placeholder*='Describe what you want']").first
     textarea.fill(prompt, timeout=10_000)
-    if "Auto mode: safe steps run automatically" not in _sidepanel_text(sidepanel):
-        _click_if_visible(sidepanel, "Auto")
+    _ensure_auto_mode(sidepanel)
     sidepanel.get_by_role("button", name=re.compile("Analyze", re.I)).click(timeout=10_000)
 
     terminal_status = "timeout"
@@ -196,7 +227,7 @@ def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int) -> T
         if "✕ stop workflow" in lowered or "stop workflow" in lowered:
             pass
         if "requires approval" in lowered or "✓ approve" in lowered or "approve" in lowered:
-            _click_if_visible(sidepanel, "Approve", timeout_ms=1200)
+            _approve_pending_action(sidepanel, timeout_ms=1200)
         false_completion = (
             "mission stopped without a verified report" in lowered
             or "no executable browser action was returned" in lowered

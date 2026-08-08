@@ -1,0 +1,6 @@
+2026/08/08-00:40:28.764 4ed4 Creating DB C:\Work\AI_Browser_Assist\docs\production_validation\live_sidepanel\profile_1786129563451\Default\IndexedDB\https_scrapfly.io_0.indexeddb.leveldb since it was missing.
+2026/08/08-00:40:28.775 4ed4 Reusing MANIFEST C:\Work\AI_Browser_Assist\docs\production_validation\live_sidepanel\profile_1786129563451\Default\IndexedDB\https_scrapfly.io_0.indexeddb.leveldb/MANIFEST-000001
+2026/08/08-00:40:29.107 4ed4 Level-0 table #5: started
+2026/08/08-00:40:29.129 4ed4 Level-0 table #5: 1350 bytes OK
+2026/08/08-00:40:29.131 4ed4 Delete type=0 #3
+2026/08/08-00:40:29.132 4ed4 Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)

@@ -405,6 +405,51 @@ def test_read_phase_routes_forbidden_navigation_on_opened_source_to_backend_page
     assert result.replan is None
 
 
+def test_source_cap_blocks_extra_open_and_advances_to_read_focus(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "source-cap-extra-open"
+    _register_results(session_id, 8)
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://search.example/results"),
+        prior_steps=_opened_steps(5),
+    )
+
+    result = engine.postprocess_response(_planner_action("open_new_tab", value="https://tool6.example/"), snapshot)
+
+    assert snapshot.active_phase.name == "READ"
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "focus_existing_tab"
+    assert result.suggested_actions[0].value == "url:https://tool1.example/"
+    assert "source collection cap" in result.analysis
+
+
+def test_source_cap_blocks_search_navigation_after_required_sources_opened(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "source-cap-search-navigation"
+    _register_results(session_id, 8)
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"),
+        prior_steps=_opened_steps(5),
+    )
+
+    result = engine.postprocess_response(
+        _planner_action("navigate", value="https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"),
+        snapshot,
+    )
+
+    assert snapshot.active_phase.name == "READ"
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "focus_existing_tab"
+    assert result.suggested_actions[0].value == "url:https://tool1.example/"
+    assert "opened source target 5/5" in result.suggested_actions[0].reasoning
+
+
 def test_read_phase_recovery_advances_after_focused_source(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     engine = ExecutionOrchestrator()
@@ -627,6 +672,40 @@ def test_search_navigation_avoids_provider_that_already_challenged(monkeypatch):
     assert result.suggested_actions[0].action_type == "navigate"
     assert result.suggested_actions[0].value == "https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"
     assert "rerouted" in result.suggested_actions[0].reasoning.lower()
+
+
+def test_search_recovery_prefers_unopened_collected_source_over_provider_loop(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    session_id = "avoid-search-provider-loop-with-collected-source"
+    _register_results(session_id, 5)
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id=session_id,
+        task=TASK,
+        page_context=_page("https://www.browserstack.com/"),
+        prior_steps=[
+            PriorStep(
+                action_type="navigate",
+                description="Execute the research search query",
+                target_selector="",
+                value="https://www.google.com/search?q=best+AI+browser+automation+tools+2026",
+                execution_result="Navigating to: https://www.google.com/search?q=best+AI+browser+automation+tools+2026",
+                page_url="https://www.google.com/sorry/index?continue=https%3A%2F%2Fwww.google.com%2Fsearch%3Fq%3Dbest%2BAI%2Bbrowser%2Bautomation%2Btools%2B2026",
+                page_title="Google",
+            ),
+            *_opened_steps(4),
+        ],
+    )
+
+    result = engine.postprocess_response(
+        _planner_action("navigate", value="https://www.google.com/search?q=best+AI+browser+automation+tools+2026"),
+        snapshot,
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "open_new_tab"
+    assert result.suggested_actions[0].value.startswith("entity:ent_")
+    assert "unopened collected source" in result.suggested_actions[0].reasoning
 
 
 def test_active_collect_phase_converts_external_navigation_to_search_result_collection(monkeypatch):

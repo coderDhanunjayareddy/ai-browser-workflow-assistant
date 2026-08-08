@@ -92,12 +92,15 @@ class ExecutionOrchestrator:
         if not result.suggested_actions:
             return result
         action = result.suggested_actions[0]
-        search_provider_reroute = _reroute_challenged_search_navigation_response(result, snapshot, action)
-        if search_provider_reroute is not None:
-            return attach_phase_execution_directive(search_provider_reroute, snapshot)
         read_response = _read_phase_backend_response(result, snapshot, action)
         if read_response is not None:
             return read_response
+        source_cap = _source_cap_transition_response(result, snapshot, action)
+        if source_cap is not None:
+            return attach_phase_execution_directive(source_cap, snapshot)
+        search_provider_reroute = _reroute_challenged_search_navigation_response(result, snapshot, action)
+        if search_provider_reroute is not None:
+            return attach_phase_execution_directive(search_provider_reroute, snapshot)
         open_response = _open_phase_entity_response(result, snapshot, action.action_type)
         if open_response is not None:
             return attach_phase_execution_directive(open_response, snapshot)
@@ -122,6 +125,50 @@ class ExecutionOrchestrator:
 
 
 _orchestrator = ExecutionOrchestrator()
+
+
+def _source_cap_transition_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action: SuggestedAction,
+) -> AnalyzeResponse | None:
+    action_type = str(action.action_type or "").lower()
+    if action_type not in {"navigate", "open_new_tab"}:
+        return None
+    target = int(snapshot.progress_ledger.target_counts.get("opened_pages", 1) or 1)
+    opened_count = int(snapshot.progress_ledger.current_counts.get("opened_pages", 0) or 0)
+    if opened_count < target:
+        return None
+    opened = _opened_source_urls(snapshot)
+    if not opened:
+        return None
+    read = {_canonical_opened_url(url) for url in snapshot.artifacts.visited_urls}
+    target_url = next((url for url in opened if _canonical_opened_url(url) not in read), opened[0])
+    action = SuggestedAction(
+        action_id=f"orchestrator_source_cap_focus_{len(opened)}",
+        action_type="focus_existing_tab",
+        target_selector="",
+        value=f"url:{target_url}",
+        description=f"Focus opened source after source cap reached: {target_url}",
+        reasoning=(
+            "Execution Orchestrator stopped additional source opening because the mission "
+            f"already reached the opened source target {opened_count}/{target}; continuing with READ evidence."
+        ),
+        confidence=0.88,
+        safety_level="safe",
+    )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator enforced the source collection cap "
+            f"({opened_count}/{target}) and advanced to reading opened sources."
+        ),
+        outcome_kind="act",
+        clarification_question=result.clarification_question,
+        report=result.report,
+        replan=result.replan,
+        suggested_actions=[action],
+    )
 
 
 def _collect_before_open_response(
@@ -337,6 +384,38 @@ def _reroute_challenged_search_navigation_response(
     query = _query_from_search_url(target_url)
     if not query:
         return None
+    target = int(snapshot.progress_ledger.target_counts.get("opened_pages", 1) or 1)
+    opened_count = int(snapshot.progress_ledger.current_counts.get("opened_pages", 0) or 0)
+    if opened_count >= target:
+        return None
+    opened_urls = {_canonical_opened_url(url) for url in snapshot.artifacts.opened_pages}
+    entity = _first_openable_entity(snapshot.session_id, opened_urls=opened_urls)
+    if entity is not None and entity.canonical_url:
+        action = SuggestedAction(
+            action_id=f"orchestrator_search_recovery_open_{entity.entity_id[-12:]}",
+            action_type="open_new_tab",
+            target_selector="",
+            value=f"entity:{entity.entity_id}",
+            description=f"Open collected source instead of repeating search recovery: {entity.title or entity.canonical_url}",
+            reasoning=(
+                "Execution Orchestrator avoided a repeated search-provider navigation because "
+                f"the mission already has an unopened collected source entity_id={entity.entity_id}."
+            ),
+            confidence=max(0.0, min(1.0, float(entity.confidence or 0.82))),
+            safety_level="safe",
+        )
+        return AnalyzeResponse(
+            session_id=result.session_id,
+            analysis=(
+                f"{result.analysis}\n\nExecution Orchestrator continued with a collected source "
+                "instead of repeating challenged search-provider recovery."
+            ),
+            outcome_kind="act",
+            clarification_question=result.clarification_question,
+            report=result.report,
+            replan=result.replan,
+            suggested_actions=[action],
+        )
     for provider_url in (
         f"https://duckduckgo.com/?q={query}",
         f"https://www.bing.com/search?q={query}",
@@ -395,6 +474,20 @@ def _is_safe_http_url(url: str) -> bool:
 
     parsed = urlsplit(str(url or ""))
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _opened_source_urls(snapshot: ExecutionOrchestratorSnapshot) -> list[str]:
+    from app.browser_url_policy import is_openable_browser_url
+
+    seen: set[str] = set()
+    urls: list[str] = []
+    for url in snapshot.artifacts.opened_pages:
+        identity = _canonical_opened_url(url)
+        if not identity or identity in seen or not is_openable_browser_url(url):
+            continue
+        seen.add(identity)
+        urls.append(url)
+    return urls
 
 
 def _extract_http_url(value: str) -> str | None:
