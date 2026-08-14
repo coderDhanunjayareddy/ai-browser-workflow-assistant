@@ -71,6 +71,57 @@ def _search_page() -> PageContext:
     )
 
 
+def _pagination_page() -> PageContext:
+    return PageContext(
+        url="http://127.0.0.1:5051/pagination",
+        title="Pagination",
+        metadata={},
+        interactive_elements=[
+            InteractiveElement(type="a", selector="#p1", text="1", href="?page=1", visible=True),
+            InteractiveElement(type="a", selector="#p2", text="2", href="?page=2", visible=True),
+            InteractiveElement(type="a", selector="#next", text="Next", href="?page=2", visible=True),
+        ],
+        content_blocks=[],
+        headings=["Paged List"],
+        selected_text="",
+        visible_text="Paged List Item A Item B Prev 1 2 Next page 1",
+        images=[],
+    )
+
+
+def test_explicit_pagination_scroll_is_repaired_to_visible_page_control(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    result = AnalyzeResponse(
+        session_id="pagination-repair",
+        analysis="Navigate to page 2.",
+        outcome_kind="wait",
+        suggested_actions=[
+            SuggestedAction(
+                action_id="scroll-pagination",
+                action_type="scroll",  # type: ignore[arg-type]
+                target_selector="window",
+                value="down",
+                description="Collect more visible entries",
+                reasoning="Scroll for more entries.",
+                confidence=0.8,
+                safety_level="safe",  # type: ignore[arg-type]
+            )
+        ],
+    )
+
+    repaired = SemanticExecutionKernel().postprocess_response(
+        result=result,
+        session_id="pagination-repair",
+        task="Navigate to page 2 of the paged list and confirm page 2 items appear",
+        page_context=_pagination_page(),
+        prior_steps=[],
+    )
+
+    assert repaired.outcome_kind == "act"
+    assert repaired.suggested_actions[0].action_type == "click"
+    assert repaired.suggested_actions[0].target_selector == "#p2"
+
+
 def _whatsapp_page() -> PageContext:
     return PageContext(
         url="https://web.whatsapp.com/",

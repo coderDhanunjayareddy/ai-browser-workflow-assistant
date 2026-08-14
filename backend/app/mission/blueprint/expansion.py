@@ -156,8 +156,30 @@ def compile_node_to_intents(
     open_result_payload = _open_result_payload(node, ranked_results or [])
     if node.node_id.startswith("open_result_") and not open_result_payload.get("value"):
         return []
-    return [
-        IntentDispatchDirective(
+    payload = {
+        "description": node.objective,
+        "reasoning": f"Blueprint node objective: {node.objective}",
+        "confidence": 0.8,
+        "safety_level": "safe",
+        "blueprint_id": blueprint.blueprint_id,
+        "blueprint_node_id": node.node_id,
+        "blueprint_revision": blueprint.revision,
+        "blueprint_objective": node.objective,
+        "wave_3b_compiled": True,
+        **dict(node.metadata.get("action_payload") or {}),
+        **open_result_payload,
+    }
+    directives: list[IntentDispatchDirective] = []
+    for template in templates:
+        action_payload = {
+            "action_type": template["intent"],
+            **payload,
+        }
+        if template["intent"] in {"navigate", "open_new_tab"} and not is_openable_browser_url(
+            str(action_payload.get("value") or action_payload.get("url") or "")
+        ):
+            continue
+        directives.append(IntentDispatchDirective(
             intent_id=f"intent_{uuid.uuid4().hex}",
             mission_id=blueprint.mission_id,
             parent_intent_id=None,
@@ -167,23 +189,9 @@ def compile_node_to_intents(
             dispatch_target=template["dispatch_target"],
             browser_executable=template["owner"] == "browser_control",
             reason=f"Compiled from Blueprint node {node.node_id}: {node.objective}",
-            payload={
-                "action_type": template["intent"],
-                "description": template["description"],
-                "reasoning": f"Blueprint node objective: {node.objective}",
-                "confidence": 0.8,
-                "safety_level": "safe",
-                "blueprint_id": blueprint.blueprint_id,
-                "blueprint_node_id": node.node_id,
-                "blueprint_revision": blueprint.revision,
-                "blueprint_objective": node.objective,
-                "wave_3b_compiled": True,
-                **dict(node.metadata.get("action_payload") or {}),
-                **open_result_payload,
-            },
-        )
-        for template in templates
-    ]
+            payload={**action_payload, "description": template["description"]},
+        ))
+    return directives
 
 
 def _open_result_payload(node: BlueprintNode, ranked_results: list[dict[str, Any]]) -> dict[str, Any]:

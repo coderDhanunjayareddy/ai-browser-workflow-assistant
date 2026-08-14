@@ -105,8 +105,8 @@ def test_expands_only_ready_nodes_into_queued_ledger_intents(monkeypatch):
 
         records = db.query(MissionIntentRecord).filter(MissionIntentRecord.mission_id == "expand-ready").all()
         assert result.expanded_nodes == ["discover_sources"]
-        assert len(result.generated_intent_ids) == 3
-        assert len(records) == 3
+        assert len(result.generated_intent_ids) == 2
+        assert len(records) == 2
         assert {record.status for record in records} == {"QUEUED"}
         assert {record.blueprint_id for record in records} == {blueprint.blueprint_id}
         assert {record.blueprint_node_id for record in records} == {"discover_sources"}
@@ -135,7 +135,7 @@ def test_expansion_is_idempotent_and_does_not_duplicate_intents(monkeypatch):
         first = engine_.expand_ready_nodes(mission_id="expand-idempotent", readiness=readiness)
         second = engine_.expand_ready_nodes(mission_id="expand-idempotent", readiness=readiness)
 
-        assert db.query(MissionIntentRecord).filter(MissionIntentRecord.mission_id == "expand-idempotent").count() == 3
+        assert db.query(MissionIntentRecord).filter(MissionIntentRecord.mission_id == "expand-idempotent").count() == 2
         assert db.query(MissionBlueprintExpansionRecord).count() == 1
         assert first.generated_intent_ids == second.generated_intent_ids
         assert second.node_results[0].skipped_reason == "already_expanded"
@@ -203,7 +203,7 @@ def test_expansion_history_api_exposes_generated_intents(monkeypatch):
         assert response.status_code == 200, response.text
         payload = response.json()
         assert payload["expanded_nodes"] == ["discover_sources"]
-        assert len(payload["generated_intent_ids"]) == 3
+        assert len(payload["generated_intent_ids"]) == 2
         assert payload["expansions"][0]["diagnostics"]["execution_impact"] == "queued_only_no_dispatch"
     finally:
         db.close()
@@ -481,6 +481,33 @@ def test_blueprint_knowledge_intents_use_registered_dispatch_target(monkeypatch)
         assert read_directive.dispatch_target == KNOWLEDGE_EXTRACTION_DISPATCH_TARGET
         assert extract_directive.owner == "knowledge_extraction"
         assert extract_directive.dispatch_target == KNOWLEDGE_EXTRACTION_DISPATCH_TARGET
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+def test_ungrounded_blueprint_navigation_is_not_compiled(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+    db, engine = _session()
+    try:
+        repository = SqlAlchemyMissionBlueprintRepository(db)
+        blueprint = MissionBlueprintPersistenceService(repository).create(
+            mission_id="reject-ungrounded-navigation",
+            objective="Reach the already open target page",
+            nodes=[
+                BlueprintNode(
+                    node_id="reach_target_state",
+                    objective="Reach target state",
+                    kind=BlueprintNodeKind.DISCOVERY,
+                    required_capability="Browser",
+                    expansion_template={"provider": "browser_control", "action": "navigate"},
+                    metadata={"action_payload": {}},
+                )
+            ],
+        )
+
+        assert compile_node_to_intents(blueprint, blueprint.nodes[0]) == []
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)

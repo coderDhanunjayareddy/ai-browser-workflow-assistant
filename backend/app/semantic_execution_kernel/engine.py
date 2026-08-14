@@ -312,6 +312,9 @@ class SemanticExecutionKernel:
                 },
             )
             return pipeline_failure
+        pagination_repair = _repair_explicit_pagination_action(result, snapshot, task)
+        if pagination_repair is not None:
+            return pagination_repair
         if snapshot.eligibility and not snapshot.eligibility.eligible:
             repaired_interactive = _repair_ungrounded_interactive_action(result, snapshot)
             if repaired_interactive is not None:
@@ -383,6 +386,42 @@ class SemanticExecutionKernel:
             },
         )
         return result
+
+
+def _repair_explicit_pagination_action(
+    result: AnalyzeResponse,
+    snapshot: KernelSnapshot,
+    task: str,
+) -> AnalyzeResponse | None:
+    proposal = snapshot.proposal
+    if proposal is None or proposal.action_type != "COLLECT_RESULTS" or not result.suggested_actions:
+        return None
+    task_text = str(task or "").lower()
+    if not any(term in task_text for term in ("page 2", "next page", "paged list", "pagination")):
+        return None
+    preferred_titles = ("2", "page 2") if "page 2" in task_text else ("next", "next page")
+    entity = next(
+        (
+            candidate
+            for title in preferred_titles
+            for candidate in snapshot.entities
+            if candidate.title.strip().lower() == title
+            and bool(candidate.browser_bindings.selector)
+        ),
+        None,
+    )
+    if entity is None:
+        return None
+    action = result.suggested_actions[0]
+    action.action_type = "click"  # type: ignore[assignment]
+    action.target_selector = str(entity.browser_bindings.selector or "")
+    action.value = None
+    action.reasoning = (
+        "Semantic Execution Kernel repaired collection scrolling to the explicit, "
+        f"observed pagination control {entity.title!r}."
+    )
+    result.outcome_kind = "act"
+    return result
 
 
 def _repair_unsupported_contact_ambiguity(

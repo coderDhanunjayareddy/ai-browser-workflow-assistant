@@ -136,3 +136,17 @@ def test_search_challenge_navigation_does_not_count_as_opened_source_page() -> N
     )
 
     assert artifacts.opened_pages == []
+
+
+def test_prepositioned_non_search_page_can_be_reconciled_as_opened() -> None:
+    page = _page().model_copy(update={"url": "http://127.0.0.1:5051/login"})
+
+    artifacts = build_artifacts(page, [], include_current_page_as_opened=True)
+
+    assert artifacts.opened_pages == ["http://127.0.0.1:5051/login"]
+
+
+def test_prepositioned_search_surface_is_not_reconciled_as_opened_source() -> None:
+    artifacts = build_artifacts(_page(), [], include_current_page_as_opened=True)
+
+    assert artifacts.opened_pages == []

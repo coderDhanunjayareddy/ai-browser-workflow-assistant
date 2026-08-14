@@ -116,6 +116,8 @@ def _collected_result_count(result: str) -> int:
 
 
 def _read_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any]) -> bool:
+    if artifacts.opened_pages and _is_current_page_interaction(task.lower()):
+        return True
     target = _targets(task).get("opened_pages", 1)
     read_steps = 0
     for step in prior_steps:
@@ -142,6 +144,28 @@ def _read_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any
         elif any(term in text for term in ("read", "extract", "summarize", "pricing", "limitation")):
             read_steps += 1
     return read_steps >= min(target, max(len(artifacts.opened_pages), 1))
+
+
+def _is_current_page_interaction(text: str) -> bool:
+    return any(
+        term in text
+        for term in (
+            "log in",
+            "login",
+            "sign in",
+            "fill",
+            "form",
+            "modal",
+            "setting",
+            "upload",
+            "signup",
+            "sign up",
+            "page 2",
+            "next page",
+            "paged list",
+            "pagination",
+        )
+    )
 
 
 def _requires_extraction(task: str) -> bool:
@@ -177,6 +201,17 @@ def _is_interactive_task(text: str) -> bool:
             "create",
             "update",
             "save",
+            "log in",
+            "login",
+            "sign in",
+            "modal",
+            "fill",
+            "form",
+            "upload",
+            "page 2",
+            "next page",
+            "paged list",
+            "pagination",
         )
     )
 

@@ -43,6 +43,8 @@ FORBIDDEN_ACTIONS: dict[PhaseName, list[str]] = {
 
 def workflow_category(task: str) -> str:
     text = task.lower()
+    if any(term in text for term in ("navigate to page", "page 2", "next page", "paged list", "pagination")):
+        return "interactive_browser_task"
     if any(term in text for term in ("job", "career", "opening", "linkedin")):
         return "job_search"
     if any(term in text for term in ("upload", "file accepted", "share link")):
@@ -72,6 +74,11 @@ def _is_interactive_browser_task(text: str) -> bool:
         "create",
         "update",
         "save",
+        "log in",
+        "login",
+        "sign in",
+        "modal",
+        "fill",
     )
     browser_goal_terms = ("open", "go to", "navigate", "use", "login", "sign in")
     return any(term in text for term in action_terms) and any(term in text for term in browser_goal_terms)

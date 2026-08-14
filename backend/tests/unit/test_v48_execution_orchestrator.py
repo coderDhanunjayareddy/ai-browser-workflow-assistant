@@ -201,6 +201,41 @@ def test_research_open_phase_keeps_direct_navigation_forbidden(monkeypatch):
     assert "navigate" in open_phase.forbidden_actions
 
 
+def test_prepositioned_fixture_pages_advance_to_interaction_phase(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    cases = (
+        (
+            'Log in with username "tester" and password "secret123", then confirm the welcome message appears',
+            "http://127.0.0.1:5051/login",
+            "fill",
+        ),
+        (
+            "Navigate to page 2 of the paged list and confirm page 2 items appear",
+            "http://127.0.0.1:5051/pagination",
+            "click",
+        ),
+        (
+            "Open the settings modal, then save the setting",
+            "http://127.0.0.1:5051/modal",
+            "click",
+        ),
+    )
+
+    for index, (task, url, expected_action) in enumerate(cases):
+        snapshot = ExecutionOrchestrator().build_snapshot(
+            session_id=f"fixture-reconcile-{index}",
+            task=task,
+            page_context=_page(url),
+            prior_steps=[],
+        )
+
+        assert snapshot is not None
+        assert snapshot.workflow_category == "interactive_browser_task"
+        assert snapshot.artifacts.opened_pages == [url]
+        assert snapshot.active_phase.name == "VALIDATE"
+        assert expected_action in snapshot.active_phase.allowed_actions
+
+
 def test_interactive_browser_task_stays_in_validate_for_browser_interaction(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     engine = ExecutionOrchestrator()
@@ -556,6 +591,24 @@ def test_source_cap_blocks_extra_open_and_advances_to_read_focus(monkeypatch):
     assert result.suggested_actions[0].action_type == "focus_existing_tab"
     assert result.suggested_actions[0].value == "url:https://tool1.example/"
     assert "source collection cap" in result.analysis
+
+
+def test_source_cap_does_not_hijack_interactive_app_navigation(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    snapshot = ExecutionOrchestrator().build_snapshot(
+        session_id="interactive-source-cap",
+        task="Open the settings modal, then save the setting",
+        page_context=_page("http://127.0.0.1:5051/modal"),
+        prior_steps=[],
+    )
+
+    assert snapshot is not None
+    proposed = _planner_action("click")
+    proposed.suggested_actions[0].target_selector = "#open"
+    result = ExecutionOrchestrator().postprocess_response(proposed, snapshot)
+
+    assert result.suggested_actions[0].action_type == "click"
+    assert result.suggested_actions[0].target_selector == "#open"
 
 
 def test_source_cap_blocks_search_navigation_after_required_sources_opened(monkeypatch):

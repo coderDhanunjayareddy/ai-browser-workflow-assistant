@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 from app.browser_url_policy import is_openable_browser_url
 from app.execution_orchestrator.artifact_registry import build_artifacts
@@ -33,9 +34,14 @@ class ExecutionOrchestrator:
         if not is_shadow_or_active("V48_EXECUTION_ORCHESTRATOR"):
             return None
         started = time.perf_counter()
-        artifacts = build_artifacts(page_context, prior_steps)
-        ledger = build_progress_ledger(task, artifacts, prior_steps, session_id=session_id)
         category = workflow_category(task)
+        current_url = str(getattr(page_context, "url", "") or "")
+        artifacts = build_artifacts(
+            page_context,
+            prior_steps,
+            include_current_page_as_opened=_current_page_is_task_surface(task, category, current_url),
+        )
+        ledger = build_progress_ledger(task, artifacts, prior_steps, session_id=session_id)
         phases, active_phase = build_phases(category, ledger)
         budgets = build_budgets(prior_steps, artifacts)
         transitions = build_transitions(phases)
@@ -135,11 +141,31 @@ class ExecutionOrchestrator:
 _orchestrator = ExecutionOrchestrator()
 
 
+def _current_page_is_task_surface(task: str, category: str, current_url: str) -> bool:
+    if category not in {"interactive_browser_task", "form_filling", "saas_signup", "file_upload"}:
+        return False
+    host = urlparse(current_url).netloc.lower().split(":", 1)[0].removeprefix("www.")
+    if not host:
+        return False
+    task_text = task.lower()
+    known_surfaces = {
+        "whatsapp": ("web.whatsapp.com",),
+        "gmail": ("mail.google.com",),
+        "linkedin": ("linkedin.com",),
+    }
+    for marker, expected_hosts in known_surfaces.items():
+        if marker in task_text:
+            return any(host == expected or host.endswith(f".{expected}") for expected in expected_hosts)
+    return True
+
+
 def _source_cap_transition_response(
     result: AnalyzeResponse,
     snapshot: ExecutionOrchestratorSnapshot,
     action: SuggestedAction,
 ) -> AnalyzeResponse | None:
+    if snapshot.workflow_category not in {"multi_page_research", "job_search", "documentation_extraction"}:
+        return None
     action_type = str(action.action_type or "").lower()
     if action_type not in {"navigate", "open_new_tab"}:
         return None

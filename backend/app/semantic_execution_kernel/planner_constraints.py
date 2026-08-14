@@ -165,8 +165,8 @@ def legal_action_prompt(entities: list[SemanticEntity]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
     if any(entity.url for entity in entities):
         actions.append(_semantic_intent("OPEN_ENTITY", "URL-backed entities are available", "execution_orchestrator"))
-    if any(entity.semantic_type == "button" for entity in entities):
-        actions.append(_semantic_intent("CLICK_ENTITY", "button entities are available", "browser_control"))
+    if any(entity.semantic_type in {"button", "link"} for entity in entities):
+        actions.append(_semantic_intent("CLICK_ENTITY", "clickable button or link entities are available", "browser_control"))
     if any(entity.semantic_type == "form" for entity in entities):
         actions.append(_semantic_intent("FILL_FORM", "form entities are available", "browser_control"))
     actions.extend([

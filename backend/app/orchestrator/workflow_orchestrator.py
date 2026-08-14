@@ -817,6 +817,22 @@ class WorkflowOrchestrator:
                 },
             )
             return interactive_state
+        observed_control = _deterministic_observed_control_response(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+        )
+        if observed_control is not None:
+            self._record_v3_event(
+                "observed_control.selected_without_planner",
+                {
+                    "page_url": str(getattr(page_context, "url", "") or ""),
+                    "action_type": observed_control.suggested_actions[0].action_type,
+                    "target_selector": observed_control.suggested_actions[0].target_selector,
+                },
+            )
+            return observed_control
         from app.semantic_execution_kernel import (
             enrich_planner_context_with_kernel,
             observe_semantic_execution_kernel,
@@ -1441,7 +1457,7 @@ class WorkflowOrchestrator:
             from app.mission.blueprint.readiness import BlueprintReadinessEvaluator
             from app.mission.blueprint.repository import SqlAlchemyMissionBlueprintRepository
             from app.mission.intelligence.blueprint_builder import create_and_store_blueprint
-            from app.schemas.response import AnalyzeResponse, ReplanOutcome, SuggestedAction
+            from app.schemas.response import AnalyzeResponse, SuggestedAction
             from app.services import mission_ledger_service
 
             repository = SqlAlchemyMissionBlueprintRepository(self.db)
@@ -1556,7 +1572,7 @@ class WorkflowOrchestrator:
             if readiness.ready_nodes and not expansion.generated_intent_ids:
                 reason = (
                     "Blueprint has ready nodes but no executable browser intents after URL and safety filtering. "
-                    "The current discovery surface may be blocked or may not expose usable results."
+                    "Falling back to the grounded planner for the observed page."
                 )
                 self._record_v3_event(
                     "mission_blueprint.no_executable_ready_nodes",
@@ -1567,13 +1583,7 @@ class WorkflowOrchestrator:
                         "blocked_nodes": readiness.blocked_nodes,
                     },
                 )
-                return AnalyzeResponse(
-                    session_id=self.session_id,
-                    analysis=reason,
-                    outcome_kind="replan",
-                    suggested_actions=[],
-                    replan=ReplanOutcome(reason=reason),
-                )
+                return None
             if not readiness.ready_nodes and not expansion.generated_intent_ids:
                 self._record_v3_event(
                     "mission_blueprint.planner_fallback",
@@ -2132,6 +2142,120 @@ def _interactive_page_state(page_context: Any) -> dict[str, str | bool]:
         ):
             state["file_selector"] = selector
     return state
+
+
+def _deterministic_observed_control_response(
+    *,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    prior_steps: list[Any],
+) -> AnalyzeResponse | None:
+    from app.schemas.response import SuggestedAction
+
+    task_text = str(task or "").lower()
+    elements = [
+        element.model_dump() if hasattr(element, "model_dump") else dict(element)
+        for element in list(getattr(page_context, "interactive_elements", []) or [])
+        if bool(getattr(element, "visible", True) if not isinstance(element, dict) else element.get("visible", True))
+    ]
+
+    selector = ""
+    action_type = ""
+    value: str | None = None
+    description = ""
+
+    if any(term in task_text for term in ("page 2", "paged list", "pagination")):
+        attempted_clicks = {
+            str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "")
+            for step in prior_steps
+            if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "click"
+        }
+        control = _find_observed_control(elements, exact_labels=("2", "page 2"), selector_terms=("p2", "page-2"))
+        if control is not None and str(control.get("selector") or "") in attempted_clicks:
+            control = _find_observed_control(elements, exact_labels=("next", "next page"), label_terms=("next",), selector_terms=("next",))
+        if control is not None:
+            selector = str(control.get("selector") or "")
+            action_type = "click"
+            description = "Open the explicitly requested second page using the observed pagination control"
+    elif "modal" in task_text:
+        control = _find_observed_control(elements, label_terms=("save",))
+        if control is None:
+            control = _find_observed_control(elements, label_terms=("open modal", "settings"))
+        if control is not None:
+            selector = str(control.get("selector") or "")
+            action_type = "click"
+            description = "Use the observed modal control required by the task"
+    elif any(term in task_text for term in ("log in", "login", "sign in")):
+        completed_fills = {
+            str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "")
+            for step in prior_steps
+            if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "fill"
+            and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("execution_result") or "").lower().startswith("success")
+        }
+        username_control = _find_observed_control(elements, selector_terms=("username", "user", "email"), label_terms=("username", "email"))
+        password_control = _find_observed_control(elements, selector_terms=("password", "passwd"), label_terms=("password",))
+        submit_control = _find_observed_control(elements, label_terms=("sign in", "log in", "login", "submit"))
+        if username_control is not None and str(username_control.get("selector") or "") not in completed_fills:
+            selector = str(username_control.get("selector") or "")
+            value = _quoted_task_value(task, "username")
+            action_type = "fill" if value else ""
+            description = "Fill the observed username field with the explicitly supplied credential"
+        elif password_control is not None and str(password_control.get("selector") or "") not in completed_fills:
+            selector = str(password_control.get("selector") or "")
+            value = _quoted_task_value(task, "password")
+            action_type = "fill" if value else ""
+            description = "Fill the observed password field with the explicitly supplied credential"
+        elif submit_control is not None:
+            selector = str(submit_control.get("selector") or "")
+            action_type = "click"
+            description = "Submit the observed login form after its required fields were filled"
+
+    if not action_type or not selector:
+        return None
+    action = SuggestedAction(
+        action_id="observed_control_" + hashlib.sha1(f"{action_type}|{selector}|{value or ''}".encode("utf-8")).hexdigest()[:12],
+        action_type=action_type,  # type: ignore[arg-type]
+        target_selector=selector,
+        value=value,
+        description=description,
+        reasoning="The requested control is visible in the current browser observation and is grounded by its selector.",
+        confidence=0.96,
+        safety_level="safe",
+    )
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis="Selected a deterministic action from an explicitly requested, currently observed browser control.",
+        outcome_kind="act",
+        suggested_actions=[action],
+    )
+
+
+def _find_observed_control(
+    elements: list[dict[str, Any]],
+    *,
+    exact_labels: tuple[str, ...] = (),
+    label_terms: tuple[str, ...] = (),
+    selector_terms: tuple[str, ...] = (),
+) -> dict[str, Any] | None:
+    exact = {label.lower() for label in exact_labels}
+    for element in elements:
+        selector = str(element.get("selector") or "")
+        if not selector:
+            continue
+        label = " ".join(
+            str(element.get(key) or "")
+            for key in ("text", "aria_label", "accessibility_name", "placeholder", "name")
+        ).strip().lower()
+        selector_lower = selector.lower()
+        if label in exact or any(term in label for term in label_terms) or any(term in selector_lower for term in selector_terms):
+            return element
+    return None
+
+
+def _quoted_task_value(task: str, field: str) -> str | None:
+    match = re.search(rf"\b{re.escape(field)}\s+[\"']([^\"']+)[\"']", str(task or ""), flags=re.IGNORECASE)
+    return match.group(1) if match else None
 
 
 def _first_matching_phrase(text: str, phrases: tuple[str, ...]) -> str:

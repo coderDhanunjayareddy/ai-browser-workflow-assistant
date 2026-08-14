@@ -8,7 +8,12 @@ from app.execution_orchestrator.models import ArtifactRegistry
 from app.runtime_state_manager.execution_result import is_successful_execution_result
 
 
-def build_artifacts(page_context: Any, prior_steps: list[Any]) -> ArtifactRegistry:
+def build_artifacts(
+    page_context: Any,
+    prior_steps: list[Any],
+    *,
+    include_current_page_as_opened: bool = False,
+) -> ArtifactRegistry:
     opened_pages: list[str] = []
     visited_urls: list[str] = []
     uploaded_files: list[str] = []
@@ -57,6 +62,8 @@ def build_artifacts(page_context: Any, prior_steps: list[Any]) -> ArtifactRegist
     current_url = str(getattr(page_context, "url", "") or "")
     if current_url.startswith(("http://", "https://")):
         _append_unique(visited_urls, current_url)
+        if include_current_page_as_opened and not _is_search_surface_url(current_url):
+            _append_unique(opened_pages, current_url)
     extracted_records = _records_from_page(page_context)
     return ArtifactRegistry(
         opened_pages=opened_pages,
