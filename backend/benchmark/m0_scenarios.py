@@ -1,10 +1,9 @@
 """
 M0 — Benchmark task definitions (the dataset).
 
-28 declarative tasks: 11 local fixtures (offline, deterministic regression anchors),
-14 real-site tasks, and 3 capability-specific tasks. Pure data — no control flow, no
-browser, no AI. The runner drives them. Do not invent additional tasks here; this set
-maps 1:1 to docs/benchmark-m0.md Part 4.
+38 declarative tasks: the original 28-task M0 dataset plus 10 first-product-validation
+tasks. Pure data — no control flow, no browser, no AI. The runner drives them. Phase 0
+uses an explicit suite file so adding a scenario cannot silently change its denominator.
 
 start_url may contain the literal "{fixture_base}" placeholder, which the runner replaces
 with the running FixtureServer base_url for is_fixture tasks.

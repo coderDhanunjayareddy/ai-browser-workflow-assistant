@@ -1,0 +1,46 @@
+name: phase0_baseline
+description: >
+  Frozen Phase 0 representative baseline. The explicit task list prevents new scenarios
+  from silently changing the denominator. It contains deterministic fixtures, public
+  no-auth sites, authenticated applications, file transfer, multi-tab, cross-site, and
+  first-10 product workflows. Missing auth is recorded as SKIPPED, never as success.
+task_ids:
+  - youtube_com__video_search
+  - github_com__repo_search
+  - instagram_com__profile_view
+  - fixture__login_form
+  - zomato_com__restaurant_search
+  - fixture__pagination
+  - fixture__modal_dialog
+  - fixture__file_upload
+  - fixture__invoice_total_report
+  - amazon_in__product_search_price
+  - flipkart_com__product_filter
+  - linkedin_com__people_search
+  - github_com__pr_read_comments
+  - docs_google_com__create_type
+  - booking_com__hotel_search
+  - fixture__multistep_form
+  - canva_com__create_design
+  - fixture__infinite_scroll
+  - makemytrip_com__flight_search
+  - amazon_in__add_to_cart
+  - gmail_com__read_summarize
+  - fixture__table_edit
+  - cross_site__amazon_search_github_compare
+  - sheets_google_com__enter_data
+  - generic_gov__form_fill
+  - fixture__file_download
+  - fixture__dynamic_load
+  - fixture__accordion
+  - first10__01_search_ai_browser_tools
+  - first10__02_hyderabad_careers_extract
+  - first10__03_linkedin_jobs_discovery
+  - first10__04_ai_code_assistant_pricing
+  - first10__05_browser_automation_docs
+  - first10__06_directory_multipage_collection
+  - first10__07_saas_signup_workflow
+  - first10__08_real_file_upload
+  - first10__09_safe_test_form_validation
+  - first10__10_ai_browser_testing_best_practices
+

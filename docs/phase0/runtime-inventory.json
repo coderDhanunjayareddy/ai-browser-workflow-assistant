@@ -1,0 +1,3570 @@
+{
+  "schema_version": "phase0.runtime-inventory.v1",
+  "method": "conservative static import reachability",
+  "status_semantics": {
+    "live": "reachable from a current extension/backend product entry root",
+    "shadow": "registered/reachable code outside the core extension request path",
+    "test-only": "referenced by tests but not by configured product roots",
+    "stub": "source explicitly identifies the implementation as a stub or no-op",
+    "dead": "not statically reachable; review dynamic imports before deletion"
+  },
+  "counts": {
+    "dead": 12,
+    "live": 359,
+    "shadow": 238,
+    "stub": 7,
+    "test-only": 94
+  },
+  "modules": [
+    {
+      "path": "backend/app/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/adapters/amazon/adapter.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/adapters/base_adapter.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/adapters/gmail/adapter.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/adapters/makemytrip/adapter.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/adapters/whatsapp/adapter.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/api/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/api/routes/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/analyze.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/api/routes/approvals.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/assist.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/api/routes/authorization.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/benchmarks.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/browser.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/certification.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/cognitive.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/cognitive_runtime.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/decisions.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/gateway.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/governance.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/health.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/api/routes/intelligence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/intent.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/api/routes/mission.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/mission_blueprint.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/mission_intelligence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/plans.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/product.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/api/routes/research.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/runtime.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/system.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/tabs.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/trust.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/unified.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/validation.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/website_intelligence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/workflow.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/approvals/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/approvals/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/approvals/generator.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/approvals/inspector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/approvals/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/approvals/persistence.py",
+      "status": "stub",
+      "evidence": "explicit stub/no-op marker in source"
+    },
+    {
+      "path": "backend/app/approvals/queue.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/approvals/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/approvals/timeline.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/assist/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/assist/ambient_assistant.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/authorization/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/authorization/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/authorization/engine.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/authorization/inspector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/authorization/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/authorization/persistence.py",
+      "status": "stub",
+      "evidence": "explicit stub/no-op marker in source"
+    },
+    {
+      "path": "backend/app/authorization/readiness.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/authorization/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/authorization/timeline.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_catalog.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_controller.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_diagnostics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_executor.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_export.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_metrics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_reports.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_repository.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_runner.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_score.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_service.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_trace.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/benchmark/benchmark_validator.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/inspector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/mission_refresh.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/persistence.py",
+      "status": "stub",
+      "evidence": "explicit stub/no-op marker in source"
+    },
+    {
+      "path": "backend/app/browser/recommendation.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/sync_service.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/timeline.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser/trust_refresh.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/browser_intelligence/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/action_verification.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/adapters.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/cache.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/dynamic_dom.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/health.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/integration.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/memory.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/page_understanding.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/recovery.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/selector_engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/visual_grounding.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_intelligence/waits.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/browser_url_policy.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/budget_engine/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/budget_engine/budget_enforcer.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/budget_engine/budget_manager.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/budget_engine/budget_models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/capability_platform/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/capability_platform/browser_registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/capability_platform/constraints.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/capability_platform/discovery.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/capability_platform/health.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/capability_platform/manifest.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/capability_platform/metrics.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/capability_platform/permissions.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/capability_platform/registry.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/certification/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/certification/failure_catalog.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/certification/fixtures.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/certification/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/certification/reliability.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/certification/report.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/certification/runner.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/certification/scenarios.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/certification/trace.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/cognitive_core/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/analytics.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/conversation_manager.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/entity_registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/goal_tracker.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/intent_continuity.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/memory_cleanup.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/cognitive_core/memory_store.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/reference_resolver.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/workflow_bridge.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_core/workflow_context.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/clarification.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/comparison.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/comparison_explanations.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/comparison_metrics.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/comparison_models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/comparison_report.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/comparison_repository.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/comparison_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/confidence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/confidence_engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/context.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/contradiction.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/controller.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/decision_engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/decision_models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/decision_rules.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/decision_scores.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/diagnostics.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/evidence.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/explanations.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/freshness.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/fusion.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/interpreter.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/lifecycle.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/metrics.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/policy.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/priority.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/progress.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/recommendations.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/recovery.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/replanning.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/repository.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/requirements.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/snapshots.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/state_machine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/transitions.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/versioning.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/cognitive_runtime/waits.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/context/tab_context_engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_compression/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_compression/compressor.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_compression/relevance_ranker.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_compression/state_summarizer.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_packet/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_packet/adapter.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_packet/budget.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_packet/builder.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_packet/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_packet/projection.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/context_packet/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/contracts/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/base.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/contracts/capabilities.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/evaluation.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/governance.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/grounding.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/ledger_events.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/contracts/mission_state.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/registry.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/semantic_graph.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/serialization.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/validation.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/validator.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/contracts/versions.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/conversation/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/conversation/manager.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/conversation/store.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/core/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/core/config.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/core/database.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/core/schema_migrations.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/cost_controller/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/cost_controller/budgets.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/cost_controller/meter.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/cost_controller/policy.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/cost_controller/telemetry.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/decisions/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/aggregator.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/feed.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/inspector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/persistence.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/decisions/priority.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/sources/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/sources/browser.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/sources/mission.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/sources/research.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/sources/trust.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/decisions/timeline.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/diagnostics/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/diagnostics/console.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/diagnostics/trace_sink.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/domain_models.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/evaluation/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/regression.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/scorecards.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/scoring.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/signals.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/action_history.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/completion_detector.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/execution_continuity/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/goal_tracker.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/mission_progress.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/progress_validator.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/replanner.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/tab_state.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_continuity/workflow_state.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_gateway/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/adapter.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/audit.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/adaptive_resolver.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/auth_handoff.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/capabilities.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/diagnostics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/errors.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/exec_timeline.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/execution_validation.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/failure_classes.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/metrics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/monitor.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/playwright_adapter.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/recovery.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/replay.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/resolver.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/rich_text.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/run.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/session.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/smart_waits.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/wave2_core.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/wave3_visual.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/browser/wave4_enterprise.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/contracts.py",
+      "status": "stub",
+      "evidence": "explicit stub/no-op marker in source"
+    },
+    {
+      "path": "backend/app/execution_gateway/dispatcher.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/engine.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/inspector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/mock_adapter.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/retry_engine.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/rollback_engine.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/runner.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/timeline.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_gateway/validation.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/artifact_registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/budgets.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/completion_engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/phase_execution.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/phase_state_machine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/planner_gating.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/recovery.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_orchestrator/transition_engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/execution_planning/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_planning/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_planning/inspector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_planning/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_planning/persistence.py",
+      "status": "stub",
+      "evidence": "explicit stub/no-op marker in source"
+    },
+    {
+      "path": "backend/app/execution_planning/planner.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_planning/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_planning/rollback.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_planning/timeline.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/execution_planning/validator.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/exploration/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/exploration/candidate_evaluator.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/exploration/candidate_generator.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/exploration/exploration_planner.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/extraction_v2/extractor_v2.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/extraction_v2/grounded_registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/extraction_v2/semantic_models.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/failure_engine/classifier.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/failure_engine/remedy_db.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/feature_flags.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/file_engine/file_workflow.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/file_upload_broker/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/file_upload_broker/policy.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/form_workflow/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/form_workflow/spec.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/governance/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/governance/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/governance/eligibility.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/governance/generator.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/governance/inspector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/governance/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/governance/persistence.py",
+      "status": "stub",
+      "evidence": "explicit stub/no-op marker in source"
+    },
+    {
+      "path": "backend/app/governance/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/governance/timeline.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/grounding/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/grounding/cache.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/grounding/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/grounding/resolver.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/grounding/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/analytics.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/approval_advisor.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/bootstrap_generator.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/goal_decomposer.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/opportunity_detector.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/plan_builder.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/readiness_analyzer.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intelligence/recommendation_engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/intent/router.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_dispatcher/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_dispatcher/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_dispatcher/registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_providers/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_providers/browser_executor.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_providers/browser_intelligence_executor.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_providers/common.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_providers/completion_executor.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_providers/knowledge_executor.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_providers/runtime_executor.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_providers/validation_executor.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_runtime/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/intent_runtime/context.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/intent_runtime/dispatcher.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/intent_runtime/models.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/intent_runtime/queue.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/intent_runtime/registry.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/collection_policy.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/extraction_engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/page_reader.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/report_engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/research_spec.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/synthesizer.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/knowledge_extraction/validator.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/locator_engine/locator_ranker.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/locator_engine/locator_registry.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/locator_engine/locator_score.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/main.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/memory/learning_layer.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/mission/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/affinity.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/blueprint/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/mission/blueprint/expansion.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/blueprint/migrations.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/mission/blueprint/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/blueprint/readiness.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/blueprint/repository.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/blueprint/service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/bootstrap.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/context_registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/blocker_detector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/blueprint_builder.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/intelligence/engine.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/information_gap.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/mission_plan.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/intelligence/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/next_action_planner.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/readiness_scorer.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/state_advisor.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/intelligence/workflow_recommender.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/lifecycle.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/memory.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/persistence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/restoration.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/store.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/timeline.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/mission/v3/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/v3/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/v3/fsm.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/v3/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/v3/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission/v3/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_completion/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_completion/criteria.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_completion/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_completion/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_completion/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_completion/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_result/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/mission_result/api.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_result/builder.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_result/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_result/persistence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_result/repository.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/mission_result/serializer.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/mission_result/service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/models/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/models/db.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/observability/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/observability/health.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/observability/metrics.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/observability/tracing.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/orchestrator/goal_convergence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/orchestrator/planner_recovery.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/orchestrator/recovery_manager.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/orchestrator/report_verifier.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/orchestrator/strategy_generation.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/orchestrator/tab_manager.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/orchestrator/workflow_orchestrator.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/policy/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/policy/constraints.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/policy/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/policy/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/policy/phase0_taxonomy.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/policy/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/policy/rules.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/policy/scheduler.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/policy/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/product/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/product/dependencies.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/product/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/product/repositories.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/product/schemas.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/product/security.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/product/serializers.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/product/services.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/recovery/recovery_orchestrator.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/replay/screenshot_store.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/replay/timeline_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/analytics.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/planner.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/providers/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/research/providers/ai_knowledge.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/providers/base.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/providers/duckduckgo.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/providers/page_context.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/session_manager.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/synthesizer.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/research/workflow_bridge.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/run_ledger/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/run_ledger/migrations.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/run_ledger/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/run_ledger/persistence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/run_ledger/privacy.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/run_ledger/projections.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/run_ledger/reader.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/run_ledger/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/run_ledger/writer.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/cache.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/context.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/detector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/diff.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/events.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/inspector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/persistence.py",
+      "status": "stub",
+      "evidence": "explicit stub/no-op marker in source"
+    },
+    {
+      "path": "backend/app/runtime/prefetch.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime/sync_service.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/artifacts.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/browser_action_reference.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/checkpoints.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/completion.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/consistency.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/entity_binding.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/entity_pipeline_trace.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/execution_result.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/logical_resources.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/recovery.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/sync.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/runtime_state_manager/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/scheduler/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/scheduler/jobs.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/scheduler/policies.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/scheduler/queue.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/schema_validation/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schema_validation/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schema_validation/validator.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/schemas/analytics.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/schemas/approvals.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/schemas/assist.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/schemas/authorization.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/schemas/browser.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/decisions.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/execution_gateway.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/schemas/execution_planning.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/schemas/governance.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/schemas/history.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/schemas/intent.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/schemas/mission.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/mission_blueprint.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/mission_intelligence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/request.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/schemas/response.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/schemas/runtime.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/tabs.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/trust.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/unified.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/schemas/workflow.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/browser_context_registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/eligibility.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/entity_registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/evidence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/grounding.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/loop_prevention.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/mission_state.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/observability.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/planner_constraints.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/progress_ledger.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/recovery.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/semantic_action_registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_execution_kernel/state_sync.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_page/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/semantic_page/builder.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_page/cache.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_page/classifiers.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_page/graph.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_page/serializers.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/semantic_page/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/services/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/services/ai_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/services/analytics_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/services/context_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/services/followup_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/services/mission_ledger_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/services/qa_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/services/summarization_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/services/workflow_service.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/signup_policy/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/signup_policy/policy.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/state_engine/persistence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/state_engine/state_models.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/state_engine/state_transitions.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/tabs/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tabs/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tabs/context.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tabs/intelligence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tabs/mission_tab_map.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tabs/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tabs/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tabs/restoration.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/tabs/snapshot.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tabs/task_tab_map.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/task_graph/graph_executor.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/task_graph/graph_models.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/trust/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/action_analyzer.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/analytics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/approval_advisor.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/mission_analyzer.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/policy_engine.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/risk_classifier.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/tab_analyzer.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/trust/workflow_analyzer.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/unified/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/analytics.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/approval_center.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/unified/approval_persistence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/bootstrap_consumer.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/unified/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/persistence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/prefill.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/unified/restoration.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/snapshot.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/store.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/tab_registry.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/unified/task_context_registry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/task_lifecycle.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/task_timeline.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/timeline_persistence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/unified/workflow_continuity.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/validation/__init__.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/validation/benchmark_catalog.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/benchmark_diagnostics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/benchmark_metrics.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/benchmark_models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/benchmark_report.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/benchmark_repository.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/benchmark_runner.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/benchmark_score.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/migration_readiness.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/quality_gates.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/validation_controller.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validation/validation_service.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/validators/amazon_validators.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/validators/base_validator.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/validators/gmail_validators.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/validators/goal_verifier.py",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "backend/app/validators/mmt_validators.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/validators/whatsapp_validators.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/verification/__init__.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/verification/engine.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/verification/evidence.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/verification/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/verification/replay.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/verification/rules.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/verification/telemetry.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/vision/vision_policy.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/vision/vision_service.py",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "backend/app/website_intelligence/__init__.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/analyzer.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/dialog_intelligence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/dom_snapshot.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/execution_hints.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/form_intelligence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/inspector.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/interactive_registry.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/locator_builder.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/models.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/navigation_intelligence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/semantic_analyzer.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/website_intelligence/table_intelligence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "extension/src/background/file_transfer_metadata.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/background/service-worker.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/background/tab_control.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/background/target_tab.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/capabilities/health.ts",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "extension/src/capabilities/manifest.ts",
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
+    },
+    {
+      "path": "extension/src/content/action_verification.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/executor.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/executor_v2.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/extractor.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/extractor_v2.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/file_transfer.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/rich_text.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/selector_recovery.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/wave2_core.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/wave3_visual.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/wave4_enterprise.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/widget_adapters.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/App.tsx",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/contextBudgetManager.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/hooks/useAssist.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/hooks/useHistory.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/hooks/useProduct.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/hooks/useSpeechInput.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/hooks/useWorkflow.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/index.tsx",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/missionState.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/taskWorkspace.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/types/assist.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/types/index.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/utils/messaging.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/workflow/workflowScheduler.ts",
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
+    },
+    {
+      "path": "extension/src/workspace/multiTabWorkspace.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    }
+  ]
+}

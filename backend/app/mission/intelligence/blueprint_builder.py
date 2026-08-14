@@ -230,6 +230,19 @@ def _is_upload_workflow(text: str) -> bool:
     )
 
 
+def _requested_upload_destination(text: str) -> str:
+    goal = str(text or "").strip()
+    patterns = (
+        r"\b(?:contact|recipient|friend)\s+(?:named\s+)?([A-Z][\w .'-]{1,60}?)(?=[.,]|\s+(?:through|on|in|and|to|with)\b|$)",
+        r"\bfind\s+(?:the\s+exact\s+)?(?:contact\s+)?(?:named\s+)?([A-Z][\w .'-]{1,60}?)(?=[.,]|\s+(?:through|on|in|and|to|with)\b|$)",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, goal)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+
 def _is_safety_sensitive_browser_workflow(text: str) -> bool:
     if _has(text, "research", "search the web", "google search", "from search results"):
         return False
@@ -516,14 +529,39 @@ def _nodes(
     elif mission_type == MissionType.FILE_PROCESSING:
         if _is_upload_workflow(analysis.primary_objective):
             upload_policy = build_file_upload_broker_policy(analysis.primary_objective)
+            destination = _requested_upload_destination(analysis.primary_objective)
             specs = [
                 _node_spec("define_file_requirement", "Define required upload file and result evidence", BlueprintNodeKind.OBJECTIVE, "File Processing", "file_processing", "define_file_requirement", action_payload=upload_policy.to_dict()),
-                _node_spec("locate_upload_target", "Locate a safe upload target on the page", BlueprintNodeKind.DISCOVERY, "Browser", "browser_control", "navigate"),
-                _node_spec("access_file", "Require user-approved selected file handle", BlueprintNodeKind.ACQUISITION, "File Processing", "file_processing", "access_file", action_payload={"requires_user_selected_file": True}),
-                _node_spec("activate_upload_control", "Activate the visible file upload control", BlueprintNodeKind.ACQUISITION, "Browser", "browser_control", "click", action_payload={"action_type": "click", "file_upload_broker": upload_policy.to_dict()}),
-                _node_spec("validate_file_result", "Validate upload acceptance and result location", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
-                _node_spec("deliver_file_result", "Deliver file upload result", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
             ]
+            if destination:
+                specs.append(
+                    _node_spec(
+                        "open_upload_destination",
+                        f"Open the exact requested destination: {destination}",
+                        BlueprintNodeKind.DISCOVERY,
+                        "Browser",
+                        "browser_control",
+                        "click",
+                        action_payload={"action_type": "click", "value": destination, "destination_name": destination},
+                    )
+                )
+            specs.extend(
+                [
+                    _node_spec(
+                        "locate_upload_target",
+                        "Observe the current destination for a safe upload control",
+                        BlueprintNodeKind.DISCOVERY,
+                        "Browser",
+                        "browser_control",
+                        "wait",
+                        action_payload={"action_type": "wait", "value": "500"},
+                    ),
+                    _node_spec("access_file", "Require user-approved selected file handle", BlueprintNodeKind.ACQUISITION, "File Processing", "file_processing", "access_file", action_payload={"requires_user_selected_file": True}),
+                    _node_spec("activate_upload_control", "Activate the visible file upload control", BlueprintNodeKind.ACQUISITION, "Browser", "browser_control", "click", action_payload={"action_type": "click", "file_upload_broker": upload_policy.to_dict()}),
+                    _node_spec("validate_file_result", "Validate upload acceptance and result location", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
+                    _node_spec("deliver_file_result", "Deliver file upload result", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"),
+                ]
+            )
         else:
             specs = [
                 _node_spec("define_file_requirement", "Define required file operation and output", BlueprintNodeKind.OBJECTIVE, "File Processing", "file_processing", "define_file_requirement"),

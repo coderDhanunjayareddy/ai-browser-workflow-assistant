@@ -63,6 +63,10 @@ python -m benchmark.m0_runner --suite nightly --executor synthetic \
     --output benchmark/reports/m0-baseline-synthetic.json --headless
 ```
 
+For the Phase 0 freeze, use the explicit 38-task `phase0_baseline` suite and enable
+`--trace` in both executor modes. The complete runbook and exit gate are in
+`docs/phase0/README.md`.
+
 Auth-gated tasks (Gmail, Google Docs/Sheets, LinkedIn, Canva) **SKIP automatically** until
 you record auth state (below). Open the generated `*.html` for the visual report.
 
@@ -107,8 +111,9 @@ completion-rate regression beyond the threshold.
 | Suite | Tasks | When |
 |---|---|---|
 | `smoke` | 5 (3 fixtures + 2 no-auth) | every PR (~$0.20) |
-| `nightly` | all 27 (auth tasks skip if unconfigured) | daily, both executor modes |
-| `release` | all 27, run headed with `--no-auto-approve` | before a milestone release |
+| `nightly` | all currently declared tasks (auth tasks skip if unconfigured) | daily, both executor modes |
+| `phase0_baseline` | frozen 38-task denominator | Phase 0 evidence, both modes with traces |
+| `release` | all currently declared tasks, headed with `--no-auto-approve` | before a milestone release |
 
 ---
 

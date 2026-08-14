@@ -107,6 +107,28 @@ def test_parse_response_canonicalizes_command_shaped_navigation_action():
     assert result.suggested_actions[0].value == "https://www.google.com"
 
 
+def test_parse_response_recovers_named_navigation_without_url_as_bounded_wait():
+    raw = json.dumps({
+        "analysis": "The current application state must be observed.",
+        "outcome_kind": "act",
+        "suggested_actions": [{
+            "action_type": "navigate to WhatsApp Web",
+            "target_selector": None,
+            "value": None,
+            "description": "Open the requested application",
+            "reasoning": "Continue the workflow.",
+            "confidence": 0.8,
+            "safety_level": "safe",
+        }],
+    })
+
+    result = parse_response(raw, "named-navigation-without-url-session")
+
+    assert result.suggested_actions[0].action_type == "wait"
+    assert result.suggested_actions[0].value == "500"
+    assert result.suggested_actions[0].target_selector == "window"
+
+
 def test_parse_response_recovers_url_glued_to_open_new_tab_action_type():
     raw = json.dumps({
         "analysis": "mode+evidence",
@@ -147,6 +169,27 @@ def test_parse_response_canonicalizes_contact_search_command_to_fill():
 
     assert result.suggested_actions[0].action_type == "fill"
     assert result.suggested_actions[0].value == "Rahul"
+
+
+def test_parse_response_canonicalizes_click_command_and_preserves_grounding_input():
+    raw = json.dumps({
+        "analysis": "The exact contact result is visible.",
+        "outcome_kind": "act",
+        "suggested_actions": [{
+            "action_type": "click on the contact named Rahul",
+            "target_selector": '[title="Rahul"]',
+            "value": None,
+            "description": "Open the exact Rahul result",
+            "reasoning": "The contact result was observed.",
+            "confidence": 0.9,
+            "safety_level": "safe",
+        }],
+    })
+
+    result = parse_response(raw, "contact-click-session")
+
+    assert result.suggested_actions[0].action_type == "click"
+    assert result.suggested_actions[0].target_selector == '[title="Rahul"]'
 
 
 # ── _detect_repeat_trigger (pure) ────────────────────────────────────────────

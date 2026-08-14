@@ -4,14 +4,14 @@
   "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_1786552560498",
   "results": [
     {
-      "task_id": "WA-FILE-PREFLIGHT-6",
+      "task_id": "WA-FILE-PREFLIGHT-12",
       "status": "needs_info",
-      "duration_s": 43.0,
+      "duration_s": 35.3,
       "phase": "Waiting for info",
       "error": "",
-      "evidence": "AI Browser Assistant\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for info\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nmode+evidence\n\nNEED INFORMATION\n\nThere are multiple contacts named Rahul. Please choose which one you would like to open.\n\nContinue",
-      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\wa-file-preflight-6.png",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\wa-file-preflight-6-target.png",
+      "evidence": "AI Browser Assistant\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for info\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nmode+evidence\n\n\u26a1\nStep 1\nFILL\nSearch for the requested contact or recipient: Rahul\nWhatsApp\nhttps://web.whatsapp.com/\nVerification: verified\nTime: 77ms\nFilled field: #_r_a_\n\nNEED INFORMATION\n\nThere are multiple contacts named Rahul. Please choose which one you would like to open.\n\nContinue",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\wa-file-preflight-12.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\wa-file-preflight-12-target.png",
       "target_controls": [
         {
           "tag": "button",
@@ -96,15 +96,7 @@
         {
           "tag": "input",
           "role": "textbox",
-          "aria_label": "Search or start a new chat",
-          "placeholder": "Search or start a new chat",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "tab",
-          "aria_label": "New list",
+          "aria_label": "",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
@@ -112,7 +104,15 @@
         {
           "tag": "button",
           "role": "",
-          "aria_label": "Close",
+          "aria_label": "End icon button",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "tab",
+          "aria_label": "New list",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""

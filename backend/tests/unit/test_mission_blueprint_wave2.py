@@ -227,6 +227,9 @@ def test_file_upload_goal_creates_upload_broker_graph(monkeypatch):
     node_ids = [node.node_id for node in result.blueprint.nodes]
     assert result.mission_type == MissionType.FILE_PROCESSING
     assert "locate_upload_target" in node_ids
+    locate = next(node for node in result.blueprint.nodes if node.node_id == "locate_upload_target")
+    assert locate.expansion_template["action"] == "wait"
+    assert locate.metadata["action_payload"]["value"] == "500"
     assert "activate_upload_control" in node_ids
     activate = next(node for node in result.blueprint.nodes if node.node_id == "activate_upload_control")
     policy = activate.metadata["action_payload"]["file_upload_broker"]
@@ -249,8 +252,12 @@ def test_natural_language_attachment_goal_uses_upload_broker_and_browser(monkeyp
     node_ids = [node.node_id for node in result.blueprint.nodes]
     assert result.mission_type == MissionType.FILE_PROCESSING
     assert "Browser" in result.capabilities.capabilities
+    assert "open_upload_destination" in node_ids
     assert "locate_upload_target" in node_ids
     assert "activate_upload_control" in node_ids
+    destination = next(node for node in result.blueprint.nodes if node.node_id == "open_upload_destination")
+    assert destination.expansion_template["action"] == "click"
+    assert destination.metadata["action_payload"]["value"] == "Rahul"
 
 
 def test_dependency_graph_is_sequential_acyclic_and_critical(monkeypatch):

@@ -397,19 +397,44 @@ def _repair_unsupported_contact_ambiguity(
         return None
     if not any(term in question for term in ("contact", "recipient", "match")):
         return None
-    requested = re.search(
-        r"\b(?:contact|recipient|friend)\s+(?:named\s+)?([A-Z][\w .'-]{1,60}?)(?:[.,]|\s+(?:through|on|in|and|to)\b|$)",
-        str(task or ""),
-    )
-    if not requested:
+    name = _requested_contact_name(task)
+    if not name:
         return None
-    name = requested.group(1).strip()
+    searched = False
     for step in prior_steps:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
         if str(data.get("action_type") or "").lower() != "fill":
             continue
         if name.lower() in str(data.get("value") or "").lower():
+            searched = True
+            break
+
+    if searched:
+        exact_matches = _exact_interactive_matches(page_context, name)
+        if len(exact_matches) != 1:
             return None
+        selector = exact_matches[0]
+        return AnalyzeResponse(
+            session_id=result.session_id,
+            analysis=(
+                f"{result.analysis}\n\nSemantic Execution Kernel resolved the requested destination from "
+                "one unique exact visible label; partial and embedded text matches were excluded."
+            ),
+            outcome_kind="act",
+            clarification_question=None,
+            report=None,
+            replan=None,
+            suggested_actions=[SuggestedAction(
+                action_id=f"open_exact_contact_{name.lower().replace(' ', '_')}",
+                action_type="click",
+                target_selector=selector,
+                value=name,
+                description=f"Open the unique exact contact or recipient: {name}",
+                reasoning="Exactly one grounded interactive label equals the requested destination name.",
+                confidence=0.94,
+                safety_level="safe",
+            )],
+        )
 
     selector = ""
     for element in list(getattr(page_context, "interactive_elements", []) or []):
@@ -447,6 +472,38 @@ def _repair_unsupported_contact_ambiguity(
             safety_level="safe",
         )],
     )
+
+
+def _requested_contact_name(task: str) -> str:
+    requested = re.search(
+        r"\b(?:contact|recipient|friend)\s+(?:named\s+)?([A-Z][\w .'-]{1,60}?)(?:[.,]|\s+(?:through|on|in|and|to|with)\b|$)",
+        str(task or ""),
+    )
+    return requested.group(1).strip() if requested else ""
+
+
+def _exact_interactive_matches(page_context: Any, requested_name: str) -> list[str]:
+    normalized_requested = " ".join(str(requested_name or "").casefold().split())
+    selectors: list[str] = []
+    seen: set[str] = set()
+    for element in list(getattr(page_context, "interactive_elements", []) or []):
+        data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
+        element_type = str(data.get("type") or "").lower()
+        role = str(data.get("role") or "").lower()
+        if element_type in {"input", "textarea", "select"} or role in {"textbox", "searchbox", "combobox"}:
+            continue
+        labels = {
+            " ".join(str(data.get(key) or "").casefold().split())
+            for key in ("text", "aria_label", "accessibility_name")
+            if str(data.get(key) or "").strip()
+        }
+        if normalized_requested not in labels:
+            continue
+        selector = str(data.get("selector") or "").strip()
+        if selector and selector not in seen:
+            seen.add(selector)
+            selectors.append(selector)
+    return selectors
 
 
 def _replan_from_kernel(result: AnalyzeResponse, recovery: RecoveryDecision, reason: str) -> AnalyzeResponse:

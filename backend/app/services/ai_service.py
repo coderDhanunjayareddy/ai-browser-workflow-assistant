@@ -794,11 +794,38 @@ def _canonicalize_planner_action_item(item: dict[str, Any]) -> dict[str, Any]:
         )
         return repaired
 
+    click_command = re.match(r"^click\s+(?:on\s+)?(?:the\s+)?(.+?)\s*$", action_text, flags=re.IGNORECASE)
+    if click_command:
+        repaired = dict(item)
+        repaired["action_type"] = "click"
+        repaired["target_selector"] = repaired.get("target_selector") or ""
+        repaired["description"] = repaired.get("description") or f"Click {click_command.group(1).strip()}"
+        repaired["reasoning"] = repaired.get("reasoning") or (
+            "Recovered a click-shaped planner command into the canonical click action schema."
+        )
+        return repaired
+
+    command = action_text.lower()
     url = _extract_http_url(action_text) or _extract_http_url(str(item.get("value") or ""))
+    no_url_navigation = re.match(
+        r"^(?:navigate\s+to|go\s+to|visit|browse\s+to|load)\s+\S.+$",
+        command,
+        flags=re.IGNORECASE,
+    )
+    if not url and no_url_navigation:
+        repaired = dict(item)
+        repaired["action_type"] = "wait"
+        repaired["value"] = "500"
+        repaired["target_selector"] = "window"
+        repaired["description"] = "Refresh the current page state before resolving the named destination."
+        repaired["reasoning"] = (
+            "The planner requested navigation without a safe explicit http/https URL; "
+            "use a bounded re-observation instead of inventing a destination."
+        )
+        return repaired
     if not url:
         return item
 
-    command = action_text.lower()
     head = re.split(r"\s+", command, maxsplit=1)[0].strip()
     if head in _CANONICAL_BROWSER_ACTIONS or head in _ACTION_ALIASES:
         canonical = _ACTION_ALIASES.get(head, head)

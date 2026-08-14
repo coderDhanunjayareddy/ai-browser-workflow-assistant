@@ -136,6 +136,71 @@ def test_unsupported_contact_ambiguity_is_repaired_to_grounded_search():
     assert "Search or start new chat" in repaired.suggested_actions[0].target_selector
 
 
+def test_contact_ambiguity_after_search_opens_one_unique_exact_label():
+    context = _whatsapp_page()
+    context.interactive_elements.extend(
+        [
+            InteractiveElement(
+                type="span",
+                text="Rahul",
+                selector='span[title="Rahul"]',
+                visible=True,
+            ),
+            InteractiveElement(
+                type="span",
+                text="Rahul Computers",
+                selector='span[title="Rahul Computers"]',
+                visible=True,
+            ),
+        ]
+    )
+    result = AnalyzeResponse(
+        session_id="mission-contact-exact",
+        analysis="Multiple matching contacts may be visible.",
+        outcome_kind="ask",
+        clarification_question="There are multiple contacts named Rahul. Which one should I open?",
+        suggested_actions=[],
+    )
+
+    repaired = _repair_unsupported_contact_ambiguity(
+        result=result,
+        task="Open WhatsApp Web and find the exact contact named Rahul, then attach a file.",
+        page_context=context,
+        prior_steps=[{"action_type": "fill", "value": "Rahul"}],
+    )
+
+    assert repaired is not None
+    assert repaired.outcome_kind == "act"
+    assert repaired.suggested_actions[0].action_type == "click"
+    assert repaired.suggested_actions[0].target_selector == 'span[title="Rahul"]'
+
+
+def test_contact_ambiguity_after_search_is_preserved_for_multiple_exact_labels():
+    context = _whatsapp_page()
+    context.interactive_elements.extend(
+        [
+            InteractiveElement(type="span", text="Rahul", selector="#chat-rahul", visible=True),
+            InteractiveElement(type="div", text="Rahul", selector="#contact-rahul", visible=True),
+        ]
+    )
+    result = AnalyzeResponse(
+        session_id="mission-contact-ambiguous",
+        analysis="Multiple exact contacts are visible.",
+        outcome_kind="ask",
+        clarification_question="There are multiple contacts named Rahul. Which one should I open?",
+        suggested_actions=[],
+    )
+
+    repaired = _repair_unsupported_contact_ambiguity(
+        result=result,
+        task="Open WhatsApp Web and find the exact contact named Rahul, then attach a file.",
+        page_context=context,
+        prior_steps=[{"action_type": "fill", "value": "Rahul"}],
+    )
+
+    assert repaired is None
+
+
 def _response(action_type: str, *, value: str | None = None, selector: str = "") -> AnalyzeResponse:
     return AnalyzeResponse(
         session_id="kernel-session",
