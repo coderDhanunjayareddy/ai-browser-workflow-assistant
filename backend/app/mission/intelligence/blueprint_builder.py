@@ -224,7 +224,10 @@ def _is_upload_workflow(text: str) -> bool:
     lowered = str(text or "").lower()
     if _has(lowered, "uploaded") and not _has(lowered, "upload a", "upload the", "upload file", "file upload", "allows file upload"):
         return False
-    return _has(lowered, "upload a", "upload the", "upload file", "file upload", "attach file", "choose file", "select file")
+    return bool(
+        _has(lowered, "upload a", "upload the", "upload file", "file upload", "attach file", "choose file", "select file")
+        or re.search(r"\b(?:attach|upload|choose|select)\b(?:\W+\w+){0,5}\W+\bfiles?\b", lowered)
+    )
 
 
 def _is_safety_sensitive_browser_workflow(text: str) -> bool:
@@ -316,7 +319,7 @@ def _capabilities(mission_type: MissionType, analysis: MissionAnalysis) -> Capab
         if _needs_collection_policy(analysis.primary_objective):
             capabilities.append("Collection")
     elif mission_type == MissionType.FILE_PROCESSING:
-        capabilities = ["File Processing", "Validation", "Report Generation"]
+        capabilities = ["File Processing", "Browser", "Validation", "Report Generation"]
         if any("image" in item.lower() or "scan" in item.lower() for item in analysis.constraints):
             capabilities.extend(["OCR", "Vision"])
     else:

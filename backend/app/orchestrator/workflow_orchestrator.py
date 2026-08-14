@@ -1634,6 +1634,20 @@ class WorkflowOrchestrator:
                     )
                 ]
 
+            if not suggested_actions and queue_result.status not in {"succeeded", "mission_completed"}:
+                self._record_v3_event(
+                    "mission_blueprint.planner_fallback",
+                    {
+                        "reason": "blueprint_intent_not_executable",
+                        "blueprint_id": blueprint.blueprint_id,
+                        "revision": blueprint.revision,
+                        "ready_nodes": readiness.ready_nodes,
+                        "queue_status": queue_result.status,
+                        "blocking_reason": queue_result.blocking_reason,
+                    },
+                )
+                return None
+
             response = AnalyzeResponse(
                 session_id=self.session_id,
                 analysis=(
@@ -2036,6 +2050,14 @@ def _deterministic_interactive_state_response(
 ) -> AnalyzeResponse | None:
     text = str(task or "").lower()
     if not any(term in text for term in ("detect", "verify", "whether", "status", "logged in", "login")):
+        return None
+    executable_request = bool(re.search(
+        r"\b(attach|upload|send|fill|submit|click|select|choose|type|enter|reply|post|share)\b"
+        r"|\b(open|start)\s+(?:the\s+)?(?:verified\s+|exact\s+)?(?:conversation|chat)\b"
+        r"|\bfind\s+(?:the\s+)?(?:exact\s+)?contact\s+named\b",
+        text,
+    ))
+    if executable_request:
         return None
     current_url = str(getattr(page_context, "url", "") or "")
     title = str(getattr(page_context, "title", "") or "")

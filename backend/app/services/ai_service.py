@@ -778,6 +778,22 @@ def _canonicalize_planner_action_item(item: dict[str, Any]) -> dict[str, Any]:
         repaired["action_type"] = canonical
         return repaired
 
+    contact_search = re.match(
+        r"^(?:search|find)\s+(?:for\s+)?(?:the\s+)?(?:contact|recipient)\s+(.+?)\s*$",
+        action_text,
+        flags=re.IGNORECASE,
+    )
+    if contact_search:
+        repaired = dict(item)
+        repaired["action_type"] = "fill"
+        repaired["value"] = repaired.get("value") or contact_search.group(1).strip()
+        repaired["target_selector"] = repaired.get("target_selector") or ""
+        repaired["description"] = repaired.get("description") or "Search the grounded contact or recipient field."
+        repaired["reasoning"] = repaired.get("reasoning") or (
+            "Recovered a contact-search command into the canonical fill action schema."
+        )
+        return repaired
+
     url = _extract_http_url(action_text) or _extract_http_url(str(item.get("value") or ""))
     if not url:
         return item

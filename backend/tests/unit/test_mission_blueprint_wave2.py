@@ -235,6 +235,24 @@ def test_file_upload_goal_creates_upload_broker_graph(monkeypatch):
     assert "upload_accepted" in policy["required_evidence"]
 
 
+def test_natural_language_attachment_goal_uses_upload_broker_and_browser(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+
+    result = MissionBlueprintBuilder().build(
+        mission_id="wave2-attachment",
+        user_goal=(
+            "Open WhatsApp Web, find Rahul, and attach the exact local file "
+            "Project_Tracker_Status.xlsx. Do not send until approved."
+        ),
+    )
+
+    node_ids = [node.node_id for node in result.blueprint.nodes]
+    assert result.mission_type == MissionType.FILE_PROCESSING
+    assert "Browser" in result.capabilities.capabilities
+    assert "locate_upload_target" in node_ids
+    assert "activate_upload_control" in node_ids
+
+
 def test_dependency_graph_is_sequential_acyclic_and_critical(monkeypatch):
     monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
 

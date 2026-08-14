@@ -128,6 +128,27 @@ def test_parse_response_recovers_url_glued_to_open_new_tab_action_type():
     assert result.suggested_actions[0].value == "https://awesomeagents.ai"
 
 
+def test_parse_response_canonicalizes_contact_search_command_to_fill():
+    raw = json.dumps({
+        "analysis": "The contact search field is visible.",
+        "outcome_kind": "act",
+        "suggested_actions": [{
+            "action_type": "search for contact Rahul",
+            "target_selector": 'input[aria-label="Search or start a new chat"]',
+            "value": None,
+            "description": "Search for Rahul",
+            "reasoning": "Ground the requested recipient.",
+            "confidence": 0.9,
+            "safety_level": "safe",
+        }],
+    })
+
+    result = parse_response(raw, "contact-search-session")
+
+    assert result.suggested_actions[0].action_type == "fill"
+    assert result.suggested_actions[0].value == "Rahul"
+
+
 # ── _detect_repeat_trigger (pure) ────────────────────────────────────────────
 
 def test_trigger_matches_when_page_changed_unknown():

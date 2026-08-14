@@ -865,6 +865,26 @@ def test_interactive_state_uses_editable_field_semantics_instead_of_chat_preview
     assert "Attachment/file control visible | no | not observed" in response.report.answer
 
 
+def test_interactive_state_does_not_hijack_executable_whatsapp_file_task():
+    snapshot = SimpleNamespace(
+        artifacts=SimpleNamespace(opened_pages=["https://web.whatsapp.com/"]),
+        active_phase=SimpleNamespace(name="OPEN"),
+    )
+
+    response = _deterministic_interactive_state_response(
+        session_id="interactive-file-task",
+        task=(
+            "Open WhatsApp Web. Find the exact contact named Rahul. Open the verified Rahul conversation. "
+            "Attach the exact local file Project_Tracker_Status.xlsx. Verify the recipient and filename. "
+            "Do not click Send until I explicitly approve."
+        ),
+        page_context=whatsapp_page(),
+        orchestrator_snapshot=snapshot,
+    )
+
+    assert response is None
+
+
 def test_ledger_failure_does_not_alter_execution_recording(db_session, monkeypatch):
     from app.core.config import settings
     from app.run_ledger import writer as writer_module
