@@ -5,7 +5,7 @@ from app.schemas.request import ContentBlock, InteractiveElement, PageContext, P
 from app.schemas.response import AnalyzeResponse, SuggestedAction
 from app.runtime_state_manager.entity_binding import bind_runtime_resource, list_entities, register_entity
 from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_replay, entity_pipeline_telemetry
-from app.semantic_execution_kernel.engine import SemanticExecutionKernel
+from app.semantic_execution_kernel.engine import SemanticExecutionKernel, _repair_unsupported_contact_ambiguity
 from app.semantic_execution_kernel.mission_state import build_mission_state
 
 
@@ -111,6 +111,29 @@ def _whatsapp_page() -> PageContext:
         visible_text="Chats Search or start new chat Type a message",
         images=[],
     )
+
+
+def test_unsupported_contact_ambiguity_is_repaired_to_grounded_search():
+    result = AnalyzeResponse(
+        session_id="contact-ambiguity",
+        analysis="mode+evidence",
+        outcome_kind="ask",
+        clarification_question="There are multiple contacts named Rahul. Please choose one.",
+        suggested_actions=[],
+    )
+
+    repaired = _repair_unsupported_contact_ambiguity(
+        result=result,
+        task="Open WhatsApp and find the exact contact named Rahul, then attach a file.",
+        page_context=_whatsapp_page(),
+        prior_steps=[],
+    )
+
+    assert repaired is not None
+    assert repaired.outcome_kind == "act"
+    assert repaired.suggested_actions[0].action_type == "fill"
+    assert repaired.suggested_actions[0].value == "Rahul"
+    assert "Search or start new chat" in repaired.suggested_actions[0].target_selector
 
 
 def _response(action_type: str, *, value: str | None = None, selector: str = "") -> AnalyzeResponse:

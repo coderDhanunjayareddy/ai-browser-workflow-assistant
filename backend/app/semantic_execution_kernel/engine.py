@@ -155,6 +155,14 @@ class SemanticExecutionKernel:
         page_context: Any,
         prior_steps: list[Any],
     ) -> AnalyzeResponse:
+        ambiguity_repair = _repair_unsupported_contact_ambiguity(
+            result=result,
+            task=task,
+            page_context=page_context,
+            prior_steps=prior_steps,
+        )
+        if ambiguity_repair is not None:
+            return ambiguity_repair
         current_request_timestamp = int(time.time() * 1000)
         planner_turn_id = _planner_turn_id(session_id, result)
         _debug_v494_kernel(
@@ -375,6 +383,70 @@ class SemanticExecutionKernel:
             },
         )
         return result
+
+
+def _repair_unsupported_contact_ambiguity(
+    *,
+    result: AnalyzeResponse,
+    task: str,
+    page_context: Any,
+    prior_steps: list[Any],
+) -> AnalyzeResponse | None:
+    question = str(result.clarification_question or "").lower()
+    if result.outcome_kind != "ask" or "multiple" not in question:
+        return None
+    if not any(term in question for term in ("contact", "recipient", "match")):
+        return None
+    requested = re.search(
+        r"\b(?:contact|recipient|friend)\s+(?:named\s+)?([A-Z][\w .'-]{1,60}?)(?:[.,]|\s+(?:through|on|in|and|to)\b|$)",
+        str(task or ""),
+    )
+    if not requested:
+        return None
+    name = requested.group(1).strip()
+    for step in prior_steps:
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        if str(data.get("action_type") or "").lower() != "fill":
+            continue
+        if name.lower() in str(data.get("value") or "").lower():
+            return None
+
+    selector = ""
+    for element in list(getattr(page_context, "interactive_elements", []) or []):
+        data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
+        label = " ".join(
+            str(data.get(key) or "")
+            for key in ("text", "aria_label", "accessibility_name", "placeholder", "role", "type")
+        ).lower()
+        editable = str(data.get("type") or "").lower() in {"input", "textarea", "div"} or str(data.get("role") or "").lower() in {"textbox", "searchbox", "combobox"}
+        if editable and any(term in label for term in ("search", "contact", "recipient", "start new chat")):
+            selector = str(data.get("selector") or "")
+            if selector:
+                break
+    if not selector:
+        return None
+
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nSemantic Execution Kernel rejected an unsupported ambiguity claim "
+            "because no recipient search evidence exists yet."
+        ),
+        outcome_kind="act",
+        clarification_question=None,
+        report=None,
+        replan=None,
+        suggested_actions=[SuggestedAction(
+            action_id=f"ground_contact_search_{name.lower().replace(' ', '_')}",
+            action_type="fill",
+            target_selector=selector,
+            value=name,
+            description=f"Search for the requested contact or recipient: {name}",
+            reasoning="Search the grounded recipient field before deciding whether multiple exact matches exist.",
+            confidence=0.9,
+            safety_level="safe",
+        )],
+    )
 
 
 def _replan_from_kernel(result: AnalyzeResponse, recovery: RecoveryDecision, reason: str) -> AnalyzeResponse:
