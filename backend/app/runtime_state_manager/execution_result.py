@@ -13,6 +13,8 @@ SUCCESS_PREFIXES = (
     "focused",
     "waited",
     "scrolled",
+    "intent execution queue completed",
+    "backend step completed",
 )
 
 

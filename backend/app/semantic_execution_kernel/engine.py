@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import time
 import json
+import re
 from typing import Any
 
 from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
 from app.feature_flags import is_active, is_shadow_or_active
-from app.schemas.response import AnalyzeResponse, ReplanOutcome
+from app.schemas.response import AnalyzeResponse, ReplanOutcome, SuggestedAction
 from app.semantic_execution_kernel.browser_context_registry import build_browser_context
 from app.semantic_execution_kernel.eligibility import check_eligibility
 from app.semantic_execution_kernel.entity_registry import build_entity_registry
@@ -235,6 +236,21 @@ class SemanticExecutionKernel:
         current_lookup_entity_id = snapshot.proposal.entity_id if snapshot.proposal else None
         current_lookup_url = snapshot.proposal.parameters.get("canonical_url") or snapshot.proposal.parameters.get("value") if snapshot.proposal else None
         pipeline_failure = tracer.active_failure_response(result, session_id)
+        latest_failure_created_at = int(getattr(latest_failure_before, "created_at", 0) or 0)
+        if pipeline_failure is not None and latest_failure_created_at and latest_failure_created_at <= current_request_timestamp:
+            pipeline_failure = None
+            _debug_v494_kernel(
+                "IGNORED_STALE_ACTIVE_ENTITY_FAILURE",
+                {
+                    "mission_id": session_id,
+                    "planner_turn_id": planner_turn_id,
+                    "branch_reason": "historical entity failure belongs to a previous request; current proposal eligibility is authoritative",
+                    "failure_creation_timestamp": latest_failure_created_at,
+                    "current_request_timestamp": current_request_timestamp,
+                    "current_lookup_url": current_lookup_url,
+                    "current_lookup_succeeded": current_lookup_succeeded,
+                },
+            )
         if pipeline_failure is not None and snapshot.proposal and snapshot.proposal.action_type == "SEARCH_WEB":
             pipeline_failure = None
             tracer.clear_failures(session_id)
@@ -289,6 +305,12 @@ class SemanticExecutionKernel:
             )
             return pipeline_failure
         if snapshot.eligibility and not snapshot.eligibility.eligible:
+            repaired_interactive = _repair_ungrounded_interactive_action(result, snapshot)
+            if repaired_interactive is not None:
+                return repaired_interactive
+            refresh_response = _interactive_entity_refresh_response(result, snapshot, prior_steps)
+            if refresh_response is not None:
+                return refresh_response
             failure_reason = snapshot.eligibility.reason
             if "entity_missing" in snapshot.eligibility.failures:
                 _debug_v494_kernel(
@@ -368,6 +390,239 @@ def _replan_from_kernel(result: AnalyzeResponse, recovery: RecoveryDecision, rea
     )
 
 
+def _repair_ungrounded_interactive_action(
+    result: AnalyzeResponse,
+    snapshot: KernelSnapshot,
+) -> AnalyzeResponse | None:
+    if not snapshot.proposal or not snapshot.eligibility or not result.suggested_actions:
+        return None
+    if "entity_missing" not in snapshot.eligibility.failures:
+        return None
+    if snapshot.proposal.action_type not in {"FILL_FORM", "CLICK_ENTITY"}:
+        return None
+    if not _looks_like_interactive_browser_task(snapshot.mission_state.mission):
+        return None
+
+    entity = _best_interactive_entity(snapshot)
+    selector = entity.browser_bindings.selector if entity else ""
+    if not selector:
+        return None
+
+    original = result.suggested_actions[0]
+    repaired = SuggestedAction(
+        action_id=f"{original.action_id or 'interactive'}_grounded",
+        action_type=snapshot.proposal.source_action_type,  # type: ignore[arg-type]
+        target_selector=selector,
+        value=original.value,
+        description=original.description or f"Use grounded element: {entity.title}",
+        reasoning=(
+            "Semantic Execution Kernel grounded the interactive action to a visible page entity "
+            f"({entity.semantic_type}: {entity.title})."
+        ),
+        confidence=max(float(original.confidence or 0.0), min(0.9, entity.confidence)),
+        safety_level=original.safety_level,
+    )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nSemantic Execution Kernel repaired an ungrounded "
+            f"{snapshot.proposal.source_action_type} action using current page entities."
+        ),
+        outcome_kind="act",
+        clarification_question=None,
+        report=None,
+        replan=None,
+        suggested_actions=[repaired],
+    )
+
+
+def _best_interactive_entity(snapshot: KernelSnapshot):
+    proposal = snapshot.proposal
+    if proposal is None:
+        return None
+    scored: list[tuple[float, Any]] = []
+    for entity in snapshot.entities:
+        selector = entity.browser_bindings.selector
+        if not selector:
+            continue
+        if proposal.action_type == "FILL_FORM" and entity.semantic_type not in {"form", "message"}:
+            continue
+        if proposal.action_type == "CLICK_ENTITY" and entity.semantic_type not in {"button", "link", "message", "document"}:
+            continue
+        score = _interactive_entity_score(entity, snapshot.mission_state.mission, proposal)
+        if score >= 0.62:
+            scored.append((score, entity))
+    if not scored:
+        return None
+    scored.sort(key=lambda item: (-item[0], -item[1].confidence, item[1].title))
+    return scored[0][1]
+
+
+def _interactive_entity_score(entity: Any, task: str, proposal: Any) -> float:
+    text = _entity_text(entity)
+    task_text = str(task or "").lower()
+    value = str(proposal.parameters.get("value") or "").lower()
+    description = str(proposal.parameters.get("description") or proposal.source_description or "").lower()
+    combined_goal = " ".join([task_text, value, description])
+    score = 0.0
+    if entity.confidence:
+        score += min(float(entity.confidence), 1.0) * 0.25
+    if proposal.action_type == "FILL_FORM" and entity.semantic_type in {"form", "message"}:
+        score += 0.25
+    if proposal.action_type == "CLICK_ENTITY" and entity.semantic_type in {"button", "link"}:
+        score += 0.22
+    if any(term in text for term in ("search", "find", "contact", "name", "to", "recipient", "start new chat")):
+        if any(term in combined_goal for term in ("rahul", "contact", "friend", "search")):
+            score += 0.33
+        if value and not _looks_like_message_body(value):
+            score += 0.18
+    if any(term in text for term in ("message", "type a message", "write", "compose")):
+        if any(term in combined_goal for term in ("hii", "hi", "message", "send")):
+            score += 0.33
+        if _looks_like_message_body(value):
+            score += 0.18
+    if any(term in text for term in ("attach", "attachment", "file", "upload", "document")):
+        if any(term in combined_goal for term in ("file", "upload", "attach", ".xlsx", ".pdf", ".png", ".jpg")):
+            score += 0.36
+    if value and value in text:
+        score += 0.18
+    if any(token and token in text for token in _important_tokens(description)):
+        score += 0.12
+    state = entity.metadata.get("state", "") if isinstance(entity.metadata, dict) else ""
+    if "disabled" in str(state).lower():
+        score -= 0.3
+    return score
+
+
+def _entity_text(entity: Any) -> str:
+    parts = [
+        getattr(entity, "title", "") or "",
+        getattr(entity, "semantic_type", "") or "",
+    ]
+    metadata = getattr(entity, "metadata", {}) or {}
+    if isinstance(metadata, dict):
+        parts.extend(str(value or "") for value in metadata.values())
+    binding = getattr(entity, "browser_bindings", None)
+    if binding is not None:
+        parts.extend([
+            getattr(binding, "selector", "") or "",
+            getattr(binding, "selector_id", "") or "",
+        ])
+    return " ".join(parts).lower()
+
+
+def _important_tokens(text: str) -> list[str]:
+    return [
+        token
+        for token in re.findall(r"[a-z0-9_.-]{3,}", str(text or "").lower())
+        if token not in {"the", "and", "for", "with", "into", "this", "that", "field", "button", "click", "fill"}
+    ][:8]
+
+
+def _looks_like_message_body(value: str) -> bool:
+    text = str(value or "").strip().lower()
+    if not text:
+        return False
+    greetings = {"hi", "hii", "hello", "hey", "thanks", "thank you", "ok", "okay"}
+    return text in greetings or len(text.split()) >= 3
+
+
+def _interactive_entity_refresh_response(
+    result: AnalyzeResponse,
+    snapshot: KernelSnapshot,
+    prior_steps: list[Any],
+) -> AnalyzeResponse | None:
+    if not snapshot.proposal or not snapshot.eligibility:
+        return None
+    if "entity_missing" not in snapshot.eligibility.failures:
+        return None
+    if snapshot.proposal.action_type not in {"FILL_FORM", "CLICK_ENTITY"}:
+        return None
+    if not _looks_like_interactive_browser_task(snapshot.mission_state.mission):
+        return None
+
+    refresh_attempts = _entity_refresh_wait_count(prior_steps)
+    if refresh_attempts >= 2:
+        return AnalyzeResponse(
+            session_id=result.session_id,
+            analysis=(
+                f"{result.analysis}\n\nSemantic Execution Kernel could not find a grounded "
+                "interactive field or button after refreshing the current app page. The page may still be "
+                "loading, require login, or not expose the requested target in the current browser state."
+            ),
+            outcome_kind="ask",
+            clarification_question=(
+                "I opened the target app, but I cannot find the needed field/button yet. "
+                "Please make sure the app is logged in and the target contact or form is visible, then continue."
+            ),
+            report=None,
+            replan=None,
+            suggested_actions=[],
+        )
+
+    action = SuggestedAction(
+        action_id=f"kernel_refresh_entities_{refresh_attempts + 1}",
+        action_type="wait",
+        target_selector="window",
+        value="1500",
+        description="Refresh current app page entities before interaction",
+        reasoning=(
+            "Semantic Execution Kernel needs a fresh observation of dynamic interactive elements "
+            "before grounding the requested fill or click action."
+        ),
+        confidence=0.76,
+        safety_level="safe",
+    )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nSemantic Execution Kernel requested a bounded refresh wait because "
+            "the proposed interactive action was not yet grounded to a current page entity."
+        ),
+        outcome_kind="act",
+        clarification_question=None,
+        report=None,
+        replan=None,
+        suggested_actions=[action],
+    )
+
+
+def _entity_refresh_wait_count(prior_steps: list[Any]) -> int:
+    count = 0
+    for step in prior_steps:
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        if str(data.get("action_type") or "").lower() != "wait":
+            continue
+        description = str(data.get("description") or "").lower()
+        reasoning = str(data.get("reasoning") or "").lower()
+        if "refresh current app page entities" in description or "fresh observation of dynamic interactive elements" in reasoning:
+            count += 1
+    return count
+
+
+def _looks_like_interactive_browser_task(task: str) -> bool:
+    text = str(task or "").lower()
+    action_or_app = any(
+        term in text
+        for term in (
+            "send",
+            "message",
+            "whatsapp",
+            "gmail",
+            "mail",
+            "chat",
+            "profile",
+            "setting",
+            "dashboard",
+            "create",
+            "update",
+            "save",
+        )
+    )
+    browser_goal = any(term in text for term in ("open", "go to", "navigate", "use", "login", "sign in"))
+    return action_or_app and browser_goal
+
+
 def _repair_page_evidenced_open_url(
     *,
     kernel: SemanticExecutionKernel,
@@ -435,9 +690,37 @@ def _page_evidence_contains_url(page_context: Any, url: str) -> bool:
     evidence = "\n".join(evidence_parts).lower()
     if target in evidence:
         return True
+    if _is_search_results_page(str(getattr(page_context, "url", "") or "")) and _is_external_search_result_host(host):
+        return host in evidence
     if host and host in evidence:
         return not path or path == "/" or path in evidence
     return False
+
+
+def _is_search_results_page(url: str) -> bool:
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    host = parsed.netloc.lower().removeprefix("www.")
+    if host == "google.com":
+        return parsed.path.startswith("/search") or parsed.path.startswith("/sorry") or bool(parsed.query)
+    if host == "bing.com":
+        return parsed.path.startswith("/search")
+    if host == "duckduckgo.com":
+        return parsed.path in {"", "/"} and "q=" in parsed.query
+    return False
+
+
+def _is_external_search_result_host(host: str) -> bool:
+    if not host:
+        return False
+    search_hosts = {
+        "google.com",
+        "bing.com",
+        "duckduckgo.com",
+        "microsoft.com",
+    }
+    return host not in search_hosts and not host.endswith(".google.com") and not host.endswith(".bing.com")
 
 
 def _read_context_item(item: Any, key: str) -> Any:

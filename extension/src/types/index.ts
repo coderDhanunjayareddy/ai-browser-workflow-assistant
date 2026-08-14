@@ -346,6 +346,6 @@ export interface SessionHistory {
 export type ExtensionMessage =
   | { type: 'EXTRACT_CONTEXT'; tab_id?: number }
   | { type: 'CONTEXT_RESULT'; context: PageContext }
-  | { type: 'EXECUTE_ACTION'; action: SuggestedAction }
+  | { type: 'EXECUTE_ACTION'; action: SuggestedAction; tab_id: number }
   | { type: 'GET_TAB_WORKSPACE' }
   | { type: 'EXECUTION_RESULT'; action_id: string; result: 'success' | 'failure' | 'element_not_found'; error: string | null }

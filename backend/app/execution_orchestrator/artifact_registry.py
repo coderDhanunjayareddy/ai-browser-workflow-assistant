@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 from app.execution_orchestrator.models import ArtifactRegistry
 from app.runtime_state_manager.execution_result import is_successful_execution_result
@@ -37,6 +38,10 @@ def build_artifacts(page_context: Any, prior_steps: list[Any]) -> ArtifactRegist
         if action_type == "open_new_tab" and _success(result):
             url = evidence_url or _url(value) or page_url
             if url:
+                _append_unique(opened_pages, url)
+        if action_type == "navigate" and _success(result):
+            url = evidence_url or _url(value) or page_url
+            if url and not _is_search_surface_url(url):
                 _append_unique(opened_pages, url)
         if action_type == "fill" and _success(result):
             forms.append({"field": str(data.get("target_selector") or ""), "value": value[:120]})
@@ -107,3 +112,23 @@ def _evidence_url(evidence: dict[str, Any]) -> str | None:
         if url:
             return url
     return None
+
+
+def _is_search_surface_url(url: str) -> bool:
+    parsed = urlparse(url)
+    host = (parsed.netloc or "").lower()
+    path = (parsed.path or "").lower()
+    if host.startswith("www."):
+        host = host[4:]
+    search_hosts = {
+        "google.com",
+        "bing.com",
+        "duckduckgo.com",
+        "search.yahoo.com",
+        "yahoo.com",
+        "perplexity.ai",
+        "copilot.microsoft.com",
+    }
+    if host in search_hosts or any(host.endswith(f".{domain}") for domain in search_hosts):
+        return path in {"", "/", "/search"} or "search" in path or "sorry" in path
+    return False

@@ -31,7 +31,7 @@ from app.grounding.telemetry import record_grounding_metrics
 from app.mission.v3 import MissionIntelligenceEngine
 from app.policy import GovernanceDecisionEngine
 from app.run_ledger.reader import RunLedgerReader
-from app.schemas.response import AnalyzeResponse
+from app.schemas.response import AnalyzeResponse, ReportOutcome
 from app.semantic_page.cache import SemanticGraphCache
 from app.semantic_page.telemetry import record_graph_metrics
 from app.verification import ValidationEngine
@@ -762,6 +762,22 @@ class WorkflowOrchestrator:
                 mission_completion_snapshot.to_compact_context() if mission_completion_snapshot else {},
             )
             return completion
+        knowledge_completion = _deterministic_knowledge_report_response(
+            session_id=self.session_id,
+            knowledge_snapshot=knowledge_snapshot,
+            orchestrator_snapshot=orchestrator_snapshot,
+        )
+        if knowledge_completion is not None:
+            self._record_v3_event(
+                "knowledge_extraction.report_completed_without_planner",
+                {
+                    "report_id": getattr(knowledge_snapshot.report_artifact, "id", None) if knowledge_snapshot else None,
+                    "read_count": len(knowledge_snapshot.read_artifacts) if knowledge_snapshot else 0,
+                    "record_count": len(knowledge_snapshot.extraction_records) if knowledge_snapshot else 0,
+                    "completion_status": dict(getattr(knowledge_snapshot, "completion_status", {}) or {}),
+                },
+            )
+            return knowledge_completion
         read_continuation = _deterministic_read_phase_response(
             db=self.db,
             session_id=self.session_id,
@@ -785,6 +801,22 @@ class WorkflowOrchestrator:
                 },
             )
             return read_continuation
+        interactive_state = _deterministic_interactive_state_response(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            orchestrator_snapshot=orchestrator_snapshot,
+        )
+        if interactive_state is not None:
+            self._record_v3_event(
+                "interactive_state.reported_without_planner",
+                {
+                    "page_url": str(getattr(page_context, "url", "") or ""),
+                    "page_title": str(getattr(page_context, "title", "") or ""),
+                    "active_phase": orchestrator_snapshot.active_phase.name if orchestrator_snapshot else None,
+                },
+            )
+            return interactive_state
         from app.semantic_execution_kernel import (
             enrich_planner_context_with_kernel,
             observe_semantic_execution_kernel,
@@ -964,7 +996,7 @@ class WorkflowOrchestrator:
                 if result.intent_execution.status in {"waiting_browser", "browser_action_required"} and result.intent_execution.browser_action:
                     from app.schemas.response import SuggestedAction
 
-                    browser_payload = result.intent_execution.browser_action
+                    browser_payload = _normalize_browser_action_payload(result.intent_execution.browser_action)
                     result.suggested_actions = [
                         SuggestedAction(
                             action_id=str(browser_payload.get("action_id") or browser_payload.get("intent_id") or result.intent_dispatch.intent_id),
@@ -1364,7 +1396,7 @@ class WorkflowOrchestrator:
             result.suggested_actions = []
             return
 
-        browser_payload = queue_result.browser_action
+        browser_payload = _normalize_browser_action_payload(queue_result.browser_action)
         result.suggested_actions = [
             SuggestedAction(
                 action_id=str(browser_payload.get("action_id") or browser_payload.get("intent_id") or directives[0].intent_id),
@@ -1482,6 +1514,21 @@ class WorkflowOrchestrator:
                     },
                 )
                 return response
+            open_continuation = _deterministic_open_phase_response(
+                session_id=self.session_id,
+                orchestrator_snapshot=orchestrator_snapshot,
+            )
+            if open_continuation is not None:
+                self._record_v3_event(
+                    "mission_blueprint.open_phase_continued_without_planner",
+                    {
+                        "blueprint_id": blueprint.blueprint_id,
+                        "revision": blueprint.revision,
+                        "reason": "opened_sources_below_target",
+                        "action_url": open_continuation.suggested_actions[0].value if open_continuation.suggested_actions else None,
+                    },
+                )
+                return open_continuation
             search_collection = _deterministic_search_collection_response(
                 db=self.db,
                 session_id=self.session_id,
@@ -1571,7 +1618,7 @@ class WorkflowOrchestrator:
             initial_intent, queue_result = executed
             suggested_actions = []
             if queue_result.status in {"waiting_browser", "browser_action_required"} and queue_result.browser_action:
-                browser_payload = queue_result.browser_action
+                browser_payload = _normalize_browser_action_payload(queue_result.browser_action)
                 suggested_actions = [
                     SuggestedAction(
                         action_id=str(browser_payload.get("action_id") or browser_payload.get("intent_id") or initial_intent.intent_id),
@@ -1980,6 +2027,250 @@ def _deterministic_search_collection_response(
     )
 
 
+def _deterministic_interactive_state_response(
+    *,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    orchestrator_snapshot: Any,
+) -> AnalyzeResponse | None:
+    text = str(task or "").lower()
+    if not any(term in text for term in ("detect", "verify", "whether", "status", "logged in", "login")):
+        return None
+    current_url = str(getattr(page_context, "url", "") or "")
+    title = str(getattr(page_context, "title", "") or "")
+    if "web.whatsapp.com" not in current_url.lower() and "whatsapp" not in title.lower():
+        return None
+    opened = list(getattr(getattr(orchestrator_snapshot, "artifacts", None), "opened_pages", []) or []) if orchestrator_snapshot else []
+    if not any("web.whatsapp.com" in str(url).lower() for url in [current_url, *opened]):
+        return None
+
+    state = _interactive_page_state(page_context)
+    report = (
+        "| Check | Status | Evidence |\n"
+        "|---|---|---|\n"
+        f"| Page opened | yes | {current_url or title} |\n"
+        f"| Login/QR required | {'yes' if state['login_required'] else 'no'} | {state['login_evidence'] or 'not observed'} |\n"
+        f"| Contact/search field visible | {'yes' if state['contact_search_selector'] else 'no'} | {state['contact_search_selector'] or 'not observed'} |\n"
+        f"| Message field visible | {'yes' if state['message_selector'] else 'no'} | {state['message_selector'] or 'not observed'} |\n"
+        f"| Attachment/file control visible | {'yes' if state['file_selector'] else 'no'} | {state['file_selector'] or 'not observed'} |"
+    )
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis="Deterministic interactive state detector produced a page-state report from current DOM evidence.",
+        outcome_kind="report",
+        report=ReportOutcome(answer=report, claim="Interactive browser app state was detected from current DOM evidence."),
+        suggested_actions=[],
+        sgv_verified=True,
+        goal_convergence=True,
+        backend_authoritative_report=True,
+    )
+
+
+def _interactive_page_state(page_context: Any) -> dict[str, str | bool]:
+    visible_text = " ".join(str(getattr(page_context, "visible_text", "") or "").split())
+    lower_visible = visible_text.lower()
+    state: dict[str, str | bool] = {
+        "login_required": any(term in lower_visible for term in ("use whatsapp on your computer", "link a device", "scan", "qr code")),
+        "login_evidence": "",
+        "contact_search_selector": "",
+        "message_selector": "",
+        "file_selector": "",
+    }
+    if state["login_required"]:
+        state["login_evidence"] = _first_matching_phrase(lower_visible, ("use whatsapp on your computer", "link a device", "scan", "qr code"))
+    for element in list(getattr(page_context, "interactive_elements", []) or []):
+        data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
+        selector = str(data.get("selector") or "")
+        if not selector:
+            continue
+        label = " ".join(
+            str(data.get(key) or "")
+            for key in ("text", "aria_label", "accessibility_name", "placeholder", "role", "type", "input_type")
+        ).lower()
+        role = str(data.get("role") or "").lower()
+        element_type = str(data.get("type") or "").lower()
+        input_type = str(data.get("input_type") or "").lower()
+        editable = role in {"textbox", "searchbox", "combobox"} or element_type in {"input", "textarea"} or input_type == "contenteditable"
+        button_like = role == "button" or element_type == "button"
+        if (
+            not state["contact_search_selector"]
+            and (
+                (editable and any(term in label for term in ("search", "contact", "recipient")))
+                or "start new chat" in label
+            )
+        ):
+            state["contact_search_selector"] = selector
+        if not state["message_selector"] and editable and any(term in label for term in ("type a message", "message", "compose")):
+            state["message_selector"] = selector
+        if (
+            not state["file_selector"]
+            and (button_like or input_type == "file")
+            and any(term in label for term in ("attach", "attachment", "file", "document", "upload"))
+        ):
+            state["file_selector"] = selector
+    return state
+
+
+def _first_matching_phrase(text: str, phrases: tuple[str, ...]) -> str:
+    return next((phrase for phrase in phrases if phrase in text), "")
+
+
+def _deterministic_knowledge_report_response(
+    *,
+    session_id: str,
+    knowledge_snapshot: Any,
+    orchestrator_snapshot: Any = None,
+) -> AnalyzeResponse | None:
+    if knowledge_snapshot is None:
+        return None
+    report = getattr(knowledge_snapshot, "report_artifact", None)
+    if report is None or getattr(report, "completion_status", "") != "complete":
+        return None
+    completion_status = dict(getattr(knowledge_snapshot, "completion_status", {}) or {})
+    research_spec = getattr(knowledge_snapshot, "research_spec", None)
+    if research_spec is None:
+        return None
+    if not (
+        bool(completion_status.get("source_count"))
+        and bool(completion_status.get("extract"))
+        and bool(completion_status.get("report"))
+    ):
+        return None
+    required_source_count = int(getattr(research_spec, "source_count", 1) or 1)
+    if orchestrator_snapshot is not None:
+        opened_source_count = _distinct_non_search_opened_source_count(orchestrator_snapshot)
+        if opened_source_count < required_source_count:
+            return None
+    if _distinct_non_search_source_count(knowledge_snapshot) < required_source_count:
+        return None
+    content = str(getattr(report, "content", "") or "").strip()
+    if not content:
+        return None
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis="Knowledge Extraction produced a complete evidence-backed report. Planner fallback was not invoked.",
+        outcome_kind="report",
+        clarification_question=None,
+        report=ReportOutcome(
+            answer=content,
+            claim="Required sources were read and the requested output artifact was generated from extraction records.",
+        ),
+        replan=None,
+        suggested_actions=[],
+        sgv_verified=True,
+        goal_convergence=True,
+        backend_authoritative_report=True,
+    )
+
+
+def _distinct_non_search_source_count(knowledge_snapshot: Any) -> int:
+    urls: set[str] = set()
+    for read in list(getattr(knowledge_snapshot, "read_artifacts", []) or []):
+        normalized = _normalize_url_for_read(str(getattr(read, "canonical_url", "") or ""))
+        if normalized and not _is_search_provider_or_results_url(normalized):
+            urls.add(normalized)
+    for record in list(getattr(knowledge_snapshot, "extraction_records", []) or []):
+        normalized = _normalize_url_for_read(str(getattr(record, "source_page", "") or ""))
+        if normalized and not _is_search_provider_or_results_url(normalized):
+            urls.add(normalized)
+    return len(urls)
+
+
+def _distinct_non_search_opened_source_count(orchestrator_snapshot: Any) -> int:
+    urls = {
+        normalized
+        for url in list(getattr(getattr(orchestrator_snapshot, "artifacts", None), "opened_pages", []) or [])
+        for normalized in [_normalize_url_for_read(str(url or ""))]
+        if normalized and not _is_search_provider_or_results_url(normalized)
+    }
+    return len(urls)
+
+
+def _is_search_provider_or_results_url(url: str) -> bool:
+    parsed = urlparse(str(url or ""))
+    host = parsed.netloc.lower().removeprefix("www.")
+    if host in {"google.com", "bing.com", "duckduckgo.com"}:
+        return True
+    return _is_search_results_url(url)
+
+
+def _deterministic_open_phase_response(
+    *,
+    session_id: str,
+    orchestrator_snapshot: Any,
+) -> AnalyzeResponse | None:
+    if orchestrator_snapshot is None or orchestrator_snapshot.active_phase.name != "OPEN":
+        return None
+    target = int(orchestrator_snapshot.progress_ledger.target_counts.get("opened_pages", 1) or 1)
+    current = int(orchestrator_snapshot.progress_ledger.current_counts.get("opened_pages", 0) or 0)
+    if current >= target:
+        return None
+    opened_urls = {_normalize_url_for_read(url) for url in list(getattr(orchestrator_snapshot.artifacts, "opened_pages", []) or [])}
+    entity = _first_unopened_collected_source(session_id, opened_urls=opened_urls)
+    if entity is None or not entity.canonical_url:
+        return None
+
+    from app.schemas.response import SuggestedAction
+
+    action = SuggestedAction(
+        action_id=f"blueprint_open_collected_{entity.entity_id[-12:]}",
+        action_type="open_new_tab",
+        target_selector="",
+        value=entity.canonical_url,
+        description=f"Open collected source: {entity.title or entity.canonical_url}",
+        reasoning=(
+            "Mission Blueprint OPEN phase is below its source target, so execution continues from a durable "
+            f"collected source entity_id={entity.entity_id} instead of planner fallback."
+        ),
+        confidence=max(0.0, min(1.0, float(entity.confidence or 0.86))),
+        safety_level="safe",
+    )
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis=(
+            "Mission Blueprint continued OPEN phase from durable collected source entities. "
+            "Planner fallback was not invoked."
+        ),
+        outcome_kind="act",
+        suggested_actions=[action],
+    )
+
+
+def _first_unopened_collected_source(session_id: str, *, opened_urls: set[str]):
+    from app.browser_url_policy import is_openable_browser_url
+    from app.runtime_state_manager.entity_binding import list_entities
+
+    entities = [
+        entity
+        for entity in list_entities(session_id)
+        if entity.canonical_url
+        and entity.state != "INVALID"
+        and entity.entity_type in {"search_result", "semantic_element", "link", "card", "list_item", "table_row"}
+        and is_openable_browser_url(entity.canonical_url)
+        and _normalize_url_for_read(entity.canonical_url) not in opened_urls
+    ]
+    if not entities:
+        return None
+    return sorted(
+        entities,
+        key=lambda entity: (
+            _entity_rank(entity),
+            0 if entity.entity_type == "search_result" else 1,
+            -float(entity.confidence or 0.0),
+            entity.title,
+            entity.entity_id,
+        ),
+    )[0]
+
+
+def _entity_rank(entity: Any) -> int:
+    try:
+        return int((entity.metadata or {}).get("rank") or 9999)
+    except (TypeError, ValueError):
+        return 9999
+
+
 def _deterministic_read_phase_response(
     *,
     db: Session,
@@ -1992,7 +2283,10 @@ def _deterministic_read_phase_response(
     mission_completion_snapshot: Any,
     orchestrator_snapshot: Any,
 ) -> AnalyzeResponse | None:
-    if orchestrator_snapshot is None or orchestrator_snapshot.active_phase.name != "READ":
+    if orchestrator_snapshot is None:
+        return None
+    active_phase = str(getattr(orchestrator_snapshot.active_phase, "name", "") or "")
+    if active_phase not in {"READ", "EXTRACT", "VALIDATE", "SYNTHESIZE", "REPORT"}:
         return None
     opened = _dedupe_opened_source_urls(list(getattr(orchestrator_snapshot.artifacts, "opened_pages", []) or []))
     if not opened:
@@ -2003,6 +2297,7 @@ def _deterministic_read_phase_response(
         _normalize_url_for_read(getattr(read, "canonical_url", ""))
         for read in list(getattr(knowledge_snapshot, "read_artifacts", []) or [])
     }
+    read_urls.update(_read_urls_from_prior_steps(prior_steps))
     read_urls.discard("")
     opened_identities = {_normalize_url_for_read(url): url for url in opened}
     if len(read_urls.intersection(opened_identities.keys())) >= required:
@@ -2036,6 +2331,43 @@ def _deterministic_read_phase_response(
         orchestrator_snapshot=orchestrator_snapshot,
         next_url=next_url,
     )
+
+
+def _read_urls_from_prior_steps(prior_steps: list[Any]) -> set[str]:
+    urls: set[str] = set()
+    for step in prior_steps:
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        action_type = str(data.get("action_type") or "").lower()
+        if action_type not in {"read_page", "focus_existing_tab", "switch_tab"}:
+            continue
+        result = str(data.get("execution_result") or "").lower()
+        if "success" not in result and "completed" not in result and "intent execution queue completed" not in result:
+            continue
+        for value in (data.get("page_url"), data.get("value"), data.get("description")):
+            normalized = _normalize_url_for_read(_first_http_url(str(value or "")) or str(value or ""))
+            if normalized:
+                urls.add(normalized)
+    return urls
+
+
+def _first_http_url(value: str) -> str:
+    match = re.search(r"https?://[^\s<>'\"]+", value or "", flags=re.IGNORECASE)
+    return match.group(0).rstrip("),.;]") if match else ""
+
+
+def _normalize_browser_action_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+    normalized = dict(payload or {})
+    action_type = str(normalized.get("action_type") or "").lower()
+    selector = str(normalized.get("selector") or normalized.get("target_selector") or "")
+    if action_type in {"navigate", "open_new_tab"}:
+        url = _first_http_url(selector)
+        if url and not normalized.get("value"):
+            normalized["value"] = url
+        if url:
+            normalized["target_selector"] = ""
+    elif "target_selector" not in normalized and selector:
+        normalized["target_selector"] = selector
+    return normalized
 
 
 def _execute_read_page_intent(
@@ -2142,7 +2474,7 @@ def _execute_focus_source_intent(
     mission_ledger_service.record_queue_result(db, mission_id=session_id, initial_intent=directive, queue_result=queue_result)
     suggested_actions: list[SuggestedAction] = []
     if queue_result.status in {"waiting_browser", "browser_action_required"} and queue_result.browser_action:
-        browser_payload = queue_result.browser_action
+        browser_payload = _normalize_browser_action_payload(queue_result.browser_action)
         suggested_actions = [
             SuggestedAction(
                 action_id=str(browser_payload.get("action_id") or browser_payload.get("intent_id") or directive.intent_id),

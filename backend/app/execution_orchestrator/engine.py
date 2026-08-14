@@ -4,6 +4,7 @@ import re
 import time
 from typing import Any
 
+from app.browser_url_policy import is_openable_browser_url
 from app.execution_orchestrator.artifact_registry import build_artifacts
 from app.execution_orchestrator.budgets import build_budgets
 from app.execution_orchestrator.completion_engine import build_progress_ledger
@@ -101,6 +102,13 @@ class ExecutionOrchestrator:
         search_provider_reroute = _reroute_challenged_search_navigation_response(result, snapshot, action)
         if search_provider_reroute is not None:
             return attach_phase_execution_directive(search_provider_reroute, snapshot)
+        direct_open_navigation = _open_phase_direct_navigation_response(result, snapshot, action)
+        if direct_open_navigation is not None:
+            return direct_open_navigation
+        if not action_allowed(action.action_type, snapshot.active_phase):
+            open_collection = _open_phase_search_collection_response(result, snapshot, action)
+            if open_collection is not None:
+                return open_collection
         open_response = _open_phase_entity_response(result, snapshot, action.action_type)
         if open_response is not None:
             return attach_phase_execution_directive(open_response, snapshot)
@@ -215,6 +223,115 @@ def _collect_before_open_response(
         suggested_actions=[],
         intent_dispatch=directive,
     )
+
+
+def _open_phase_search_collection_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action: SuggestedAction,
+) -> AnalyzeResponse | None:
+    if snapshot.active_phase.name != "OPEN":
+        return None
+    if str(action.action_type or "").lower() not in {"scroll", "wait"}:
+        return None
+    target = int(snapshot.progress_ledger.target_counts.get("opened_pages", 1) or 1)
+    opened_count = int(snapshot.progress_ledger.current_counts.get("opened_pages", 0) or 0)
+    if opened_count >= target:
+        return None
+    opened_urls = {_canonical_opened_url(url) for url in snapshot.artifacts.opened_pages}
+    if _openable_entity_count(snapshot.session_id, opened_urls=opened_urls) >= max(1, target - opened_count):
+        return None
+    current_url = next((url for url in reversed(snapshot.artifacts.visited_urls) if _is_search_results_url(url)), "")
+    if not current_url:
+        return None
+
+    directive = IntentDispatchDirective(
+        mission_id=result.session_id,
+        intent="collect_search_results",
+        owner="browser_intelligence",
+        capability="serp_collection",
+        dispatch_target="browser_intelligence",
+        browser_executable=False,
+        reason=(
+            "Execution Orchestrator converted OPEN-phase search-results scrolling into deterministic "
+            "search-result collection because the opened source target has not been reached."
+        ),
+        payload={
+            "action_type": "collect_search_results",
+            "description": "Collect additional visible search result candidates before opening sources",
+            "reasoning": "OPEN phase is below target and needs more grounded source entities.",
+            "confidence": 0.88,
+            "safety_level": "safe",
+        },
+    )
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator converted OPEN-phase search-result scrolling "
+            "into deterministic result collection instead of rejecting the planner action."
+        ),
+        outcome_kind="act",
+        suggested_actions=[],
+        intent_dispatch=directive,
+    )
+
+
+def _openable_entity_count(session_id: str, *, opened_urls: set[str]) -> int:
+    return len(_openable_entities_for_phase(session_id, opened_urls=opened_urls))
+
+
+def _open_phase_direct_navigation_response(
+    result: AnalyzeResponse,
+    snapshot: ExecutionOrchestratorSnapshot,
+    action: SuggestedAction,
+) -> AnalyzeResponse | None:
+    if snapshot.active_phase.name != "OPEN":
+        return None
+    if str(action.action_type or "").lower() != "navigate":
+        return None
+    if snapshot.workflow_category not in {"interactive_browser_task", "saas_signup", "file_upload"}:
+        return None
+    if int(snapshot.progress_ledger.current_counts.get("opened_pages", 0) or 0) > 0:
+        return None
+    target_url = _extract_http_url(" ".join([
+        str(action.value or ""),
+        str(action.description or ""),
+        str(action.reasoning or ""),
+    ])) or _known_app_entry_url(" ".join([
+        str(action.value or ""),
+        str(action.description or ""),
+        str(action.reasoning or ""),
+    ])) or str(action.value or "")
+    if not is_openable_browser_url(target_url):
+        return None
+    action.value = target_url
+    action.target_selector = ""
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nExecution Orchestrator allowed direct OPEN-phase navigation "
+            "because this workflow starts from a known web application entry URL."
+        ),
+        outcome_kind="act",
+        clarification_question=result.clarification_question,
+        report=result.report,
+        replan=result.replan,
+        suggested_actions=[action],
+    )
+
+
+def _known_app_entry_url(text: str) -> str:
+    lowered = str(text or "").lower()
+    known = (
+        (("whatsapp", "whats app"), "https://web.whatsapp.com/"),
+        (("gmail", "google mail"), "https://mail.google.com/"),
+        (("linkedin jobs",), "https://www.linkedin.com/jobs/"),
+        (("linkedin",), "https://www.linkedin.com/"),
+    )
+    for names, url in known:
+        if any(name in lowered for name in names):
+            return url
+    return ""
 
 
 def _collect_search_recovery_navigation_response(
@@ -623,6 +740,11 @@ def _open_phase_entity_response(
 
 
 def _first_openable_entity(session_id: str, *, opened_urls: set[str] | None = None):
+    entities = _openable_entities_for_phase(session_id, opened_urls=opened_urls)
+    return entities[0] if entities else None
+
+
+def _openable_entities_for_phase(session_id: str, *, opened_urls: set[str] | None = None):
     from app.browser_url_policy import is_openable_browser_url
     from app.runtime_state_manager.entity_binding import list_entities
 
@@ -636,8 +758,6 @@ def _first_openable_entity(session_id: str, *, opened_urls: set[str] | None = No
         and is_openable_browser_url(entity.canonical_url)
         and _canonical_opened_url(entity.canonical_url) not in opened_urls
     ]
-    if not entities:
-        return None
     return sorted(
         entities,
         key=lambda entity: (
@@ -647,7 +767,7 @@ def _first_openable_entity(session_id: str, *, opened_urls: set[str] | None = No
             entity.title,
             entity.entity_id,
         ),
-    )[0]
+    )
 
 
 def _entity_rank(entity) -> int:

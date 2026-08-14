@@ -219,6 +219,8 @@ def _semantic_type(data: dict[str, Any]) -> str:
         return "button"
     if input_type in {"file"}:
         return "file"
+    if role in {"textbox", "searchbox", "combobox"}:
+        return "message" if "message" in text or "compose" in text else "form"
     if tag in {"input", "textarea", "select"} or input_type:
         return "form"
     if "table" in role or tag in {"tr", "td", "row"}:

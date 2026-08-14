@@ -102,6 +102,36 @@ def test_page_reader_extracts_structured_visible_content():
     assert artifact.forms[0]["selector"] == "#email"
 
 
+def test_research_extraction_prefers_clean_product_specific_fields(monkeypatch):
+    monkeypatch.setattr(settings, "v50_page_reader", "active")
+    monkeypatch.setattr(settings, "v50_extraction_engine", "active")
+    monkeypatch.setattr(settings, "v50_extraction_validation", "active")
+    pipeline = KnowledgeExtractionPipeline()
+
+    snapshot = pipeline.observe(
+        session_id="research-quality",
+        task="Extract Tool, Purpose, Pricing, Limitation, URL and return a clean comparison table.",
+        page_context=_page(
+            (
+                "Only include results for this site Redo search without this site. "
+                "Browser Use automates browser workflows with AI agents for web task execution. "
+                "Pricing is usage based at about $0.07 per 10-step task. "
+                "It requires Python setup and can be limited by fragile websites."
+            ),
+            title="AI Browser Automation in 2026: Top 6 Tools Compared | Awesome Agents",
+            url="https://awesomeagents.ai/tools/best-ai-browser-automation-tools-2026/",
+        ),
+        current_phase="EXTRACT",
+    )
+
+    record = snapshot.extraction_records[0]
+    assert record.fields["tool"] == "Browser Use"
+    assert "automates browser workflows" in record.fields["purpose"]
+    assert "$0.07" in record.fields["pricing"]
+    assert "requires Python setup" in record.fields["limitation"]
+    assert "Only include results" not in record.fields["purpose"]
+
+
 def test_collection_policy_detects_directory_items_and_next_page():
     policy = build_collection_policy("Collect 20 entries from a multi-page directory.")
     read = read_page(_directory_page())

@@ -44,6 +44,9 @@ import type {
 
 const BACKEND_URL = 'http://localhost:8000'
 const ANALYZE_TIMEOUT_MS = 90_000
+const ACTION_EXECUTION_TIMEOUT_MS = 45_000
+const POST_ACTION_TIMEOUT_MS = 20_000
+const INTENT_UPDATE_TIMEOUT_MS = 20_000
 const MAX_DETAILED_PRIOR_STEPS = 30
 const MAX_TOTAL_PRIOR_STEPS = 30
 const MAX_ANALYSIS_SNAPSHOT_CHARS = 1000
@@ -61,6 +64,24 @@ function errMsg(err: unknown): string {
     return JSON.stringify(err)
   }
   return String(err)
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`))
+    }, timeoutMs)
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer)
+        resolve(value)
+      },
+      (err) => {
+        window.clearTimeout(timer)
+        reject(err)
+      },
+    )
+  })
 }
 
 function formatErrorDetail(detail: unknown, fallback: string): string {
@@ -324,6 +345,60 @@ export function validateObservableProgress(
   return `Action reported success, but the page did not visibly change after ${action.action_type}. Retrying from the current page state.`
 }
 
+export function actionRequiresDomSettle(actionType: SuggestedAction['action_type']): boolean {
+  return (
+    actionType === 'navigate' ||
+    actionType === 'navigate_next_page' ||
+    actionType === 'fill' ||
+    actionType === 'click' ||
+    actionType === 'wait' ||
+    actionType === 'select_option' ||
+    actionType === 'choose_date' ||
+    actionType === 'keyboard_shortcut'
+  )
+}
+
+export function pageContextEvidenceScore(context: PageContext): number {
+  return (
+    context.interactive_elements.filter((element) => element.visible !== false).length * 10_000 +
+    context.content_blocks.length * 1_000 +
+    context.headings.length * 100 +
+    context.visible_text.trim().length
+  )
+}
+
+export function selectRicherPageContext(current: PageContext | null, candidate: PageContext): PageContext {
+  if (!current) return candidate
+  return pageContextEvidenceScore(candidate) > pageContextEvidenceScore(current) ? candidate : current
+}
+
+export function pageContextHasNamedEditableControl(context: PageContext): boolean {
+  return context.interactive_elements.some((element) => {
+    const role = (element.role ?? '').toLowerCase()
+    const editableType = (
+      element.type === 'input' ||
+      element.type === 'textarea' ||
+      role === 'textbox' ||
+      role === 'searchbox' ||
+      role === 'combobox' ||
+      element.input_type === 'contenteditable'
+    )
+    const name = [element.text, element.aria_label, element.accessibility_name, element.placeholder]
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+    return editableType && name.length > 0
+  })
+}
+
+export function postNavigationObservationAttempts(task: string): number {
+  return /\b(search|contact|recipient|message|field|form|login|sign in|upload|attach)\b/i.test(task) ? 8 : 3
+}
+
+export function initialObservationAttempts(task: string): number {
+  return /\b(search|contact|recipient|message|field|form|login|sign in|upload|attach)\b/i.test(task) ? 8 : 1
+}
+
 function detectExecutionSemanticMismatch(
   action: SuggestedAction,
   before: PageContext | null,
@@ -451,6 +526,61 @@ function buildPriorSteps(completed: CompletedAction[]): PriorStep[] {
     browser_evidence: includeDetails ? buildBrowserEvidence(action, result, page_snapshot) : undefined,
   }
   })
+}
+
+function primitiveEvidence(
+  value: unknown,
+): string | number | boolean | null | undefined {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null) {
+    return value
+  }
+  return undefined
+}
+
+export function buildBackendIntentPriorStep(
+  result: AnalyzeResponse,
+  pageContext?: PageContext | null,
+): PriorStep | null {
+  const raw = result.intent_execution as any
+  if (!raw || raw.status !== 'succeeded') return null
+
+  const executions = Array.isArray(raw.executions) ? raw.executions : []
+  const execution = executions[executions.length - 1] ?? executions[0] ?? raw
+  const evidence = Array.isArray(raw.evidence) ? raw.evidence : []
+  const payload = execution?.payload && typeof execution.payload === 'object'
+    ? execution.payload as Record<string, unknown>
+    : {}
+  const evidencePayload = evidence
+    .map((item: any) => item?.payload)
+    .find((item: unknown) => item && typeof item === 'object') as Record<string, unknown> | undefined
+  const mergedPayload = { ...(evidencePayload ?? {}), ...payload }
+  const intent = String(execution?.intent ?? raw.intent ?? payload.action_type ?? 'backend_intent')
+  const evidenceSummary = evidence
+    .map((item: any) => typeof item?.summary === 'string' ? item.summary : '')
+    .filter(Boolean)
+    .join('\n')
+
+  const browserEvidence: Record<string, string | number | boolean | null> = {}
+  for (const [key, value] of Object.entries(mergedPayload)) {
+    const primitive = primitiveEvidence(value)
+    if (primitive !== undefined) browserEvidence[key] = primitive
+  }
+
+  return {
+    action_type: intent,
+    description: String(payload.description ?? `Backend intent completed: ${intent}`),
+    target_selector: null,
+    value: typeof payload.value === 'string' ? payload.value : null,
+    execution_result: [
+      raw.reason ? String(raw.reason) : 'Backend intent execution succeeded.',
+      evidenceSummary,
+    ].filter(Boolean).join('\n').slice(0, MAX_EXECUTION_FEEDBACK_CHARS),
+    page_analysis: result.analysis?.slice(0, MAX_ANALYSIS_SNAPSHOT_CHARS),
+    page_url: pageContext?.url,
+    page_title: pageContext?.title,
+    page_metadata: compactMetadata(pageContext?.metadata),
+    browser_evidence: Object.keys(browserEvidence).length > 0 ? browserEvidence : undefined,
+  }
 }
 
 function buildBrowserEvidence(
@@ -1103,20 +1233,38 @@ export function useWorkflow() {
 
     let ctx: PageContext
     try {
-      const res = await sendToBackground<{ context?: PageContext; error?: string }>({
-        type: 'EXTRACT_CONTEXT',
-      })
-      if (!res.context) {
+      const observationAttempts = completedActions.length === 0 ? initialObservationAttempts(task) : 1
+      let bestContext: PageContext | null = null
+      let observationError = ''
+      for (let attempt = 0; attempt < observationAttempts; attempt += 1) {
+        const res = await sendToBackground<{ context?: PageContext; error?: string }>({
+          type: 'EXTRACT_CONTEXT',
+        })
+        if (res.context) {
+          bestContext = selectRicherPageContext(bestContext, res.context)
+          if (pageContextHasNamedEditableControl(res.context)) break
+        } else {
+          observationError = res.error ?? 'Failed to read page.'
+        }
+        if (attempt + 1 < observationAttempts) {
+          await withTimeout(
+            sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_DOM_SETTLE' }),
+            POST_ACTION_TIMEOUT_MS,
+            'initial DOM settle wait',
+          )
+        }
+      }
+      if (!bestContext) {
         setState((s) => ({
           ...s,
           phase: 'failed',
           pendingActions: [],
           activeAction: null,
-          error: `${refresh ? 'Refresh' : 'Observation'} failed: ${res.error ?? 'Failed to read page.'}`,
+          error: `${refresh ? 'Refresh' : 'Observation'} failed: ${observationError || 'Failed to read page.'}`,
         }))
         return
       }
-      ctx = res.context
+      ctx = bestContext
       setPageContext(ctx)
     } catch (err) {
       setState((s) => ({
@@ -1248,11 +1396,15 @@ export function useWorkflow() {
         })
       }
       if (routed.continueAfterBackendStep) {
+        const backendStep = buildBackendIntentPriorStep(result, ctx)
+        const nextValidationPriorSteps = backendStep
+          ? appendValidationPriorStepOnce(validationPriorSteps, backendStep)
+          : validationPriorSteps
         await runWorkflowLoop({
           sessionId,
           task,
           completedActions,
-          validationPriorSteps,
+          validationPriorSteps: nextValidationPriorSteps,
           workspace: updatedWorkspace,
           tabWorkspace: updatedTabWorkspace,
           userInputs,
@@ -1343,10 +1495,18 @@ export function useWorkflow() {
     // Execute on live page
     let result: ExecutionResult
     try {
-      const res = await sendToBackground<{ result?: ExecutionResult; error?: string }>({
-        type: 'EXECUTE_ACTION',
-        action,
-      })
+      if (typeof pageContext?.tab_id !== 'number') {
+        throw new Error('Browser action is not grounded to an observed tab. Refresh the page context and retry.')
+      }
+      const res = await withTimeout(
+        sendToBackground<{ result?: ExecutionResult; error?: string }>({
+          type: 'EXECUTE_ACTION',
+          action,
+          tab_id: pageContext.tab_id,
+        }),
+        ACTION_EXECUTION_TIMEOUT_MS,
+        `${action.action_type} execution`,
+      )
       result = res.result ?? {
         success: false,
         message: res.error ?? 'Execution returned no result.',
@@ -1364,10 +1524,14 @@ export function useWorkflow() {
         setPageContext(result.page_context)
       } else if (action.action_type === 'open_new_tab' && typeof result.opened_tab_id === 'number') {
         try {
-          const res = await sendToBackground<{ context?: PageContext; error?: string }>({
-            type: 'EXTRACT_CONTEXT',
-            tab_id: result.opened_tab_id,
-          })
+          const res = await withTimeout(
+            sendToBackground<{ context?: PageContext; error?: string }>({
+              type: 'EXTRACT_CONTEXT',
+              tab_id: result.opened_tab_id,
+            }),
+            POST_ACTION_TIMEOUT_MS,
+            'opened tab context extraction',
+          )
           if (res.context) {
             pageContextAfterAction = res.context
             setPageContext(res.context)
@@ -1377,31 +1541,63 @@ export function useWorkflow() {
         }
       }
 
-      if (action.action_type === 'navigate' || action.action_type === 'navigate_next_page') {
-        await sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_TAB_LOAD' })
+      try {
+        if (action.action_type === 'navigate' || action.action_type === 'navigate_next_page') {
+          await withTimeout(
+            sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_TAB_LOAD' }),
+            POST_ACTION_TIMEOUT_MS,
+            'tab load wait',
+          )
+        }
+
+        if (actionRequiresDomSettle(action.action_type)) {
+          await withTimeout(
+            sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_DOM_SETTLE' }),
+            POST_ACTION_TIMEOUT_MS,
+            'DOM settle wait',
+          )
+        }
+      } catch (err) {
+        result = {
+          success: false,
+          message: `Post-action wait failed after ${action.action_type}: ${errMsg(err)}`,
+          action_id: action.action_id,
+        }
       }
 
-      if (
-        action.action_type === 'fill' ||
-        action.action_type === 'click' ||
-        action.action_type === 'wait' ||
-        action.action_type === 'select_option' ||
-        action.action_type === 'choose_date' ||
-        action.action_type === 'keyboard_shortcut'
-      ) {
-        await sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_DOM_SETTLE' })
-      }
-
-      if (actionNeedsObservableProgress(action)) {
+      if (result.success && actionNeedsObservableProgress(action)) {
         try {
-          const res = await sendToBackground<{ context?: PageContext; error?: string }>({
-            type: 'EXTRACT_CONTEXT',
-          })
-          if (res.context) {
-            const progressError = validateObservableProgress(action, pageContext, res.context, result)
-            const semanticMismatch = detectExecutionSemanticMismatch(action, pageContext, res.context)
-            pageContextAfterAction = res.context
-            setPageContext(res.context)
+          const isNavigation = action.action_type === 'navigate' || action.action_type === 'navigate_next_page'
+          const observationAttempts = isNavigation ? postNavigationObservationAttempts(task) : 1
+          let bestContext: PageContext | null = null
+          let extractionError = ''
+          for (let attempt = 0; attempt < observationAttempts; attempt += 1) {
+            const res = await withTimeout(
+              sendToBackground<{ context?: PageContext; error?: string }>({
+                type: 'EXTRACT_CONTEXT',
+              }),
+              POST_ACTION_TIMEOUT_MS,
+              'post-action context extraction',
+            )
+            if (res.context) {
+              bestContext = selectRicherPageContext(bestContext, res.context)
+              if (isNavigation && pageContextHasNamedEditableControl(res.context)) break
+            } else {
+              extractionError = res.error ?? 'page read failed'
+            }
+            if (attempt + 1 < observationAttempts) {
+              await withTimeout(
+                sendToBackground<{ ready: boolean }>({ type: 'WAIT_FOR_DOM_SETTLE' }),
+                POST_ACTION_TIMEOUT_MS,
+                'post-navigation DOM settle wait',
+              )
+            }
+          }
+          if (bestContext) {
+            const progressError = validateObservableProgress(action, pageContext, bestContext, result)
+            const semanticMismatch = detectExecutionSemanticMismatch(action, pageContext, bestContext)
+            pageContextAfterAction = bestContext
+            setPageContext(bestContext)
             if (semanticMismatch) {
               result = {
                 ...result,
@@ -1418,7 +1614,7 @@ export function useWorkflow() {
           } else {
             result = {
               success: false,
-              message: `Could not verify page progress after ${action.action_type}: ${res.error ?? 'page read failed'}`,
+              message: `Could not verify page progress after ${action.action_type}: ${extractionError || 'page read failed'}`,
               action_id: action.action_id,
             }
           }
@@ -1450,7 +1646,14 @@ export function useWorkflow() {
 
     setState((s) => ({ ...s, activeAction: null, completedActions: newCompleted }))
 
-    const intentUpdate = await updateIntentEvidence(sessionId, task, action, pageContextAfterAction, result)
+    const intentUpdate = await withTimeout(
+      updateIntentEvidence(sessionId, task, action, pageContextAfterAction, result),
+      INTENT_UPDATE_TIMEOUT_MS,
+      'intent evidence update',
+    ).catch((err) => {
+      console.error(err)
+      return { nextIntent: null, updated: false }
+    })
     const nextIntent = intentUpdate.nextIntent
     logEvent(sessionId, 'executed', action, pageContextAfterAction,
       result.success ? 'success' : result.message, !intentUpdate.updated)
@@ -1480,7 +1683,14 @@ export function useWorkflow() {
       return
     }
 
-    const missionResult = await fetchMissionResult(sessionId)
+    const missionResult = await withTimeout(
+      fetchMissionResult(sessionId),
+      POST_ACTION_TIMEOUT_MS,
+      'mission result fetch',
+    ).catch((err) => {
+      console.error(err)
+      return null
+    })
     if (missionResult) {
       setState((s) => ({
         ...s,

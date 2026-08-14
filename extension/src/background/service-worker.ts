@@ -1,4 +1,4 @@
-import { extractPageContext } from '../content/extractor'
+import { extractPageContext, mergeInteractiveElementLists } from '../content/extractor'
 import { executeAction } from '../content/executor'
 import { extractPageContextV2 } from '../content/extractor_v2'
 import { executeActionV2 } from '../content/executor_v2'
@@ -31,6 +31,7 @@ import {
   normalizeOpenTabUrl,
   parseTabReference,
 } from './tab_control'
+import { isGroundedBrowserTarget } from './target_tab'
 import {
   activateTab,
   createMultiTabWorkspace,
@@ -139,7 +140,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true
   }
   if (message.type === 'EXECUTE_ACTION') {
-    handleExecuteAction(message.action, sendResponse)
+    handleExecuteAction(message.action, message.tab_id, sendResponse)
     return true
   }
   if (message.type === 'START_VOICE_CAPTURE') {
@@ -353,6 +354,11 @@ async function extractContextWithRetry(tabId?: number) {
             ...v1Context,
             ...v2Context,
             metadata: v1Context.metadata,
+            interactive_elements: mergeInteractiveElementLists(
+              v1Context.interactive_elements,
+              v2Context.interactive_elements,
+              150,
+            ),
             content_blocks: v1Context.content_blocks,
             images: v1Context.images,
             visible_text: v1Context.visible_text || v2Context.visible_text,
@@ -473,11 +479,20 @@ function clickOnceAndReuseTab(action: {
 
 async function handleExecuteAction(
   action: ExecutableAction,
+  observedTabId: number,
   sendResponse: (response: unknown) => void,
 ) {
   try {
-    const tab = await getTargetTab()
-    if (!tab?.id) { sendResponse({ error: 'No active tab found.' }); return }
+    if (!Number.isInteger(observedTabId)) {
+      sendResponse({ error: 'Browser action rejected: no observed tab binding was provided.' })
+      return
+    }
+    const tab = await chrome.tabs.get(observedTabId).catch(() => undefined)
+    const tabUrl = tab?.url ?? ''
+    if (!tab?.id || !isGroundedBrowserTarget(tabUrl)) {
+      sendResponse({ error: 'Browser action rejected: the observed tab is unavailable or is not an http/https page.' })
+      return
+    }
     const startedAt = performance.now()
     const beforeState = await captureActionVerificationState(tab.id, action, tab)
 

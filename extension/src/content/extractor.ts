@@ -1,5 +1,36 @@
 import type { PageContext, InteractiveElement, ContentBlock } from '../types'
 
+export function mergeInteractiveElementLists(
+  ranked: InteractiveElement[],
+  enriched: InteractiveElement[],
+  limit = 150,
+): InteractiveElement[] {
+  const merged: InteractiveElement[] = []
+  const indexes = new Map<string, number>()
+  const keyFor = (element: InteractiveElement) => (
+    element.selector || [element.type, element.text, element.href ?? ''].join('|')
+  )
+
+  for (const element of [...ranked, ...enriched]) {
+    const key = keyFor(element)
+    const existingIndex = indexes.get(key)
+    if (existingIndex === undefined) {
+      indexes.set(key, merged.length)
+      merged.push(element)
+      continue
+    }
+    const existing = merged[existingIndex]
+    merged[existingIndex] = {
+      ...existing,
+      ...element,
+      text: existing.text || element.text,
+      selector: existing.selector || element.selector,
+    }
+  }
+
+  return merged.slice(0, limit)
+}
+
 /**
  * Extracts a structured, size-limited snapshot of the current page.
  *

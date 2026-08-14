@@ -43,6 +43,76 @@ def _page() -> PageContext:
     )
 
 
+def _search_page() -> PageContext:
+    return PageContext(
+        url="https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026",
+        title="best AI browser automation tools 2026 at DuckDuckGo",
+        metadata={},
+        interactive_elements=[
+            InteractiveElement(
+                type="a",
+                selector="#result-browserstack",
+                text="Top 12 Browser Automation Tools in 2026 | BrowserStack",
+                href="https://duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.browserstack.com%2Fguide%2Fbest-browser-automation-tool",
+                visible=True,
+            )
+        ],
+        content_blocks=[
+            ContentBlock(
+                selector="#result-browserstack",
+                text="BrowserStack www.browserstack.com guide best-browser-automation-tool compare browser automation tools.",
+                href="https://duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.browserstack.com%2Fguide%2Fbest-browser-automation-tool",
+            )
+        ],
+        headings=["Search results"],
+        selected_text="",
+        visible_text="BrowserStack www.browserstack.com guide best-browser-automation-tool compare browser automation tools.",
+        images=[],
+    )
+
+
+def _whatsapp_page() -> PageContext:
+    return PageContext(
+        url="https://web.whatsapp.com/",
+        title="WhatsApp",
+        metadata={},
+        interactive_elements=[
+            InteractiveElement(
+                type="div",
+                selector='div[role="textbox"][aria-label="Search or start new chat"]',
+                text="",
+                visible=True,
+                role="textbox",
+                aria_label="Search or start new chat",
+                accessibility_name="Search or start new chat",
+            ),
+            InteractiveElement(
+                type="div",
+                selector='div[contenteditable="true"][aria-label="Type a message"]',
+                text="",
+                visible=True,
+                role="textbox",
+                aria_label="Type a message",
+                accessibility_name="Type a message",
+            ),
+            InteractiveElement(
+                type="button",
+                selector='button[aria-label="Attach"]',
+                text="",
+                visible=True,
+                role="button",
+                aria_label="Attach",
+                accessibility_name="Attach",
+            ),
+        ],
+        content_blocks=[],
+        headings=[],
+        selected_text="",
+        visible_text="Chats Search or start new chat Type a message",
+        images=[],
+    )
+
+
 def _response(action_type: str, *, value: str | None = None, selector: str = "") -> AnalyzeResponse:
     return AnalyzeResponse(
         session_id="kernel-session",
@@ -144,6 +214,98 @@ def test_active_kernel_rejects_unregistered_entity_before_browser_execution(monk
     assert "entity lookup failed" in result.replan.reason
 
 
+def test_interactive_missing_entity_requests_refresh_wait(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    engine = SemanticExecutionKernel()
+    response = _response("fill", value="Rahul")
+
+    result = engine.postprocess_response(
+        result=response,
+        session_id="kernel-interactive-refresh",
+        task="Open WhatsApp Web and send a hii message to Rahul.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "wait"
+    assert "Refresh current app page entities" in result.suggested_actions[0].description
+
+
+def test_interactive_fill_contact_is_grounded_to_visible_search_field(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    engine = SemanticExecutionKernel()
+    response = _response("fill", value="Rahul")
+
+    result = engine.postprocess_response(
+        result=response,
+        session_id="kernel-whatsapp-contact-grounding",
+        task="Open WhatsApp Web and send a hii message to Rahul.",
+        page_context=_whatsapp_page(),
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "fill"
+    assert result.suggested_actions[0].target_selector == 'div[role="textbox"][aria-label="Search or start new chat"]'
+
+
+def test_interactive_fill_message_is_grounded_to_visible_message_box(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    engine = SemanticExecutionKernel()
+    response = _response("fill", value="hii")
+
+    result = engine.postprocess_response(
+        result=response,
+        session_id="kernel-whatsapp-message-grounding",
+        task="Open WhatsApp Web and send a hii message to Rahul.",
+        page_context=_whatsapp_page(),
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "fill"
+    assert result.suggested_actions[0].target_selector == 'div[contenteditable="true"][aria-label="Type a message"]'
+
+
+def test_repeated_interactive_missing_entity_asks_user_to_restore_state(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    engine = SemanticExecutionKernel()
+    response = _response("fill", value="Rahul")
+    prior_steps = [
+        PriorStep(
+            action_type="wait",
+            description="Refresh current app page entities before interaction",
+            target_selector="window",
+            value="1500",
+            execution_result="success",
+            page_url="https://web.whatsapp.com/",
+            page_title="WhatsApp",
+        ),
+        PriorStep(
+            action_type="wait",
+            description="Refresh current app page entities before interaction",
+            target_selector="window",
+            value="1500",
+            execution_result="success",
+            page_url="https://web.whatsapp.com/",
+            page_title="WhatsApp",
+        ),
+    ]
+
+    result = engine.postprocess_response(
+        result=response,
+        session_id="kernel-interactive-ask",
+        task="Open WhatsApp Web and send a hii message to Rahul.",
+        page_context=_page(),
+        prior_steps=prior_steps,
+    )
+
+    assert result.outcome_kind == "ask"
+    assert result.clarification_question is not None
+    assert "logged in" in result.clarification_question.lower()
+
+
 def test_entity_pipeline_replay_groups_contract_boundaries(monkeypatch):
     monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "shadow")
     monkeypatch.setattr(settings, "v493_entity_pipeline_trace", "shadow")
@@ -220,6 +382,63 @@ def test_search_navigation_clears_stale_entity_lookup_failure(monkeypatch):
     assert recovered.suggested_actions[0].action_type == "navigate"
     assert recovered.suggested_actions[0].value == "https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"
     assert recovered.replan is None
+
+
+def test_stale_entity_lookup_failure_does_not_veto_current_eligible_action(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    monkeypatch.setattr(settings, "v493_entity_pipeline_trace", "active")
+    engine = SemanticExecutionKernel()
+    session_id = "kernel-stale-failure-current-action"
+
+    failed = engine.postprocess_response(
+        result=_response("open_new_tab", value="https://missing.example.test/not-registered"),
+        session_id=session_id,
+        task="Open the visible result page.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+    assert failed.outcome_kind == "replan"
+
+    recovered = engine.postprocess_response(
+        result=_response("open_new_tab", value="https://example.test/result/1"),
+        session_id=session_id,
+        task="Open the visible result page.",
+        page_context=_page(),
+        prior_steps=[],
+    )
+
+    assert recovered.outcome_kind == "act"
+    assert recovered.suggested_actions[0].action_type == "open_new_tab"
+    assert recovered.suggested_actions[0].value == "https://example.test/result/1"
+    assert recovered.replan is None
+
+
+def test_search_result_host_evidence_repairs_missing_entity_for_safe_open(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    monkeypatch.setattr(settings, "v493_entity_pipeline_trace", "active")
+    engine = SemanticExecutionKernel()
+    session_id = "kernel-search-host-repair"
+
+    response = _response(
+        "open_new_tab",
+        value="https://www.browserstack.com/guide/best-browser-automation-tool",
+    )
+
+    repaired = engine.postprocess_response(
+        result=response,
+        session_id=session_id,
+        task="Open top relevant search results and compare tools.",
+        page_context=_search_page(),
+        prior_steps=[],
+    )
+
+    assert repaired.outcome_kind == "act"
+    assert repaired.suggested_actions[0].action_type == "open_new_tab"
+    assert repaired.replan is None
+    assert any(
+        entity.canonical_url == "https://www.browserstack.com/guide/best-browser-automation-tool"
+        for entity in list_entities(session_id)
+    )
 
 
 def test_active_kernel_accepts_open_url_when_visible_page_evidence_contains_it(monkeypatch):

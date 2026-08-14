@@ -103,16 +103,40 @@ def upsert_intent(
 
 
 def next_intent(db: Session, *, mission_id: str, provider: str | None = None) -> IntentNextResponse:
-    query = db.query(MissionIntentRecord).filter(MissionIntentRecord.mission_id == mission_id)
-    if provider:
-        query = query.filter(MissionIntentRecord.provider == provider)
-    record = (
-        query.filter(MissionIntentRecord.status.in_(["WAITING_BROWSER", "WAITING_PROVIDER", "QUEUED", "DISPATCHED", "EXECUTING"]))
-        .order_by(MissionIntentRecord.created_at.asc())
-        .first()
-    )
+    while True:
+        query = db.query(MissionIntentRecord).filter(MissionIntentRecord.mission_id == mission_id)
+        if provider:
+            query = query.filter(MissionIntentRecord.provider == provider)
+        record = (
+            query.filter(MissionIntentRecord.status.in_(["WAITING_BROWSER", "WAITING_PROVIDER", "QUEUED", "DISPATCHED", "EXECUTING"]))
+            .order_by(MissionIntentRecord.created_at.asc())
+            .first()
+        )
+        if record is None:
+            return IntentNextResponse(intent=None, status="idle", reason="No executable intent is waiting.")
+        if not _skip_surplus_blueprint_open_result(db, record):
+            break
     if record is None:
         return IntentNextResponse(intent=None, status="idle", reason="No executable intent is waiting.")
+    ungrounded_reason = _ungrounded_browser_action_reason(record)
+    if ungrounded_reason:
+        record.status = "BLOCKED"
+        record.evidence = [
+            *list(record.evidence or []),
+            {
+                "evidence_type": "runtime_guard",
+                "success": False,
+                "message": ungrounded_reason,
+                "payload": {
+                    "guard": "ungrounded_browser_action",
+                    "action_type": (record.payload or {}).get("action_type") or record.intent,
+                },
+            },
+        ]
+        record.completed_at = datetime.utcnow()
+        record.updated_at = datetime.utcnow()
+        db.commit()
+        return IntentNextResponse(intent=None, status="blocked", reason=ungrounded_reason)
     if record.status == "QUEUED":
         record.status = "DISPATCHED"
     elif record.status in {"WAITING_BROWSER", "WAITING_PROVIDER", "DISPATCHED"}:
@@ -321,13 +345,18 @@ def _blueprint_evidence_from_ledger(
 
 
 def _next_executable_record(db: Session, mission_id: str) -> MissionIntentRecord | None:
-    return (
-        db.query(MissionIntentRecord)
-        .filter(MissionIntentRecord.mission_id == mission_id)
-        .filter(MissionIntentRecord.status.in_(["QUEUED", "DISPATCHED", "WAITING_PROVIDER"]))
-        .order_by(MissionIntentRecord.created_at.asc())
-        .first()
-    )
+    while True:
+        record = (
+            db.query(MissionIntentRecord)
+            .filter(MissionIntentRecord.mission_id == mission_id)
+            .filter(MissionIntentRecord.status.in_(["QUEUED", "DISPATCHED", "WAITING_PROVIDER"]))
+            .order_by(MissionIntentRecord.created_at.asc())
+            .first()
+        )
+        if record is None:
+            return None
+        if not _skip_surplus_blueprint_open_result(db, record):
+            return record
 
 
 def _next_backend_record(db: Session, mission_id: str) -> MissionIntentRecord | None:
@@ -339,6 +368,78 @@ def _next_backend_record(db: Session, mission_id: str) -> MissionIntentRecord | 
         .order_by(MissionIntentRecord.created_at.asc())
         .first()
     )
+
+
+def _skip_surplus_blueprint_open_result(db: Session, record: MissionIntentRecord) -> bool:
+    if record.provider != "browser_control" or record.intent != "open_new_tab":
+        return False
+    target = _blueprint_open_result_target(db, mission_id=record.mission_id)
+    if target <= 0:
+        return False
+    completed = (
+        db.query(MissionIntentRecord)
+        .filter(MissionIntentRecord.mission_id == record.mission_id)
+        .filter(MissionIntentRecord.blueprint_node_id.like("open_result_%"))
+        .filter(MissionIntentRecord.status == "COMPLETED")
+        .count()
+    )
+    if completed < target:
+        return False
+    record.status = "SKIPPED"
+    record.completed_at = datetime.utcnow()
+    record.updated_at = datetime.utcnow()
+    record.evidence = [
+        *list(record.evidence or []),
+        {
+            "evidence_id": f"source_cap_skipped:{record.intent_id}",
+            "source": "mission_ledger",
+            "kind": "source_cap",
+            "summary": f"Skipped surplus open_new_tab intent after {completed}/{target} required sources were opened.",
+            "references": [],
+            "payload": {"completed_open_results": completed, "target_open_results": target},
+        },
+    ]
+    db.commit()
+    return True
+
+
+def _ungrounded_browser_action_reason(record: MissionIntentRecord) -> str:
+    if record.provider != "browser_control":
+        return ""
+    payload = dict(record.payload or {})
+    action_type = str(payload.get("action_type") or record.intent or "").lower()
+    if action_type not in {"fill", "click", "select_option", "choose_date", "hover"}:
+        return ""
+    selector = str(payload.get("target_selector") or "").strip()
+    entity_ref = any(
+        str(payload.get(key) or "").strip()
+        for key in ("entity_id", "selector_id", "runtime_resource_id", "artifact_id")
+    )
+    if selector or entity_ref:
+        return ""
+    return (
+        f"Runtime guard blocked an ungrounded {action_type} action before Browser Control: "
+        "no selector, entity, or runtime binding was provided."
+    )
+
+
+def _blueprint_open_result_target(db: Session, *, mission_id: str) -> int:
+    nodes = [
+        str(node_id or "")
+        for (node_id,) in (
+            db.query(MissionIntentRecord.blueprint_node_id)
+            .filter(MissionIntentRecord.mission_id == mission_id)
+            .filter(MissionIntentRecord.blueprint_node_id.like("open_result_%"))
+            .all()
+        )
+    ]
+    indexes: list[int] = []
+    for node_id in nodes:
+        try:
+            indexes.append(int(node_id.rsplit("_", 1)[-1]))
+        except (TypeError, ValueError):
+            continue
+    return max(indexes) if indexes else 0
 
 
 def _directive_from_record(record: MissionIntentRecord) -> IntentDispatchDirective:

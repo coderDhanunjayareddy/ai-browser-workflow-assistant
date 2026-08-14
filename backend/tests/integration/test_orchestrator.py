@@ -1,11 +1,19 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from types import SimpleNamespace
 
 from app.core.database import Base
 from app.models.db import WorkflowSession
 from app.models.db import MissionIntentRecord
-from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
+from app.orchestrator.workflow_orchestrator import (
+    WorkflowOrchestrator,
+    _deterministic_interactive_state_response,
+    _deterministic_knowledge_report_response,
+    _deterministic_open_phase_response,
+    _deterministic_read_phase_response,
+)
+from app.runtime_state_manager.entity_binding import register_entity
 from app.schemas.intent import IntentEvidence
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, ReportOutcome, SuggestedAction
@@ -104,6 +112,44 @@ def directory_page(url: str = "https://directory.example/page/1") -> PageContext
             "Beta Systems Contact team@beta.test Phone +1 555 987 6543"
         ),
         images=[],
+    )
+
+
+def whatsapp_page() -> PageContext:
+    return PageContext(
+        url="https://web.whatsapp.com/",
+        title="WhatsApp",
+        interactive_elements=[
+            InteractiveElement(
+                type="div",
+                text="",
+                selector='div[role="textbox"][aria-label="Search or start new chat"]',
+                visible=True,
+                role="textbox",
+                aria_label="Search or start new chat",
+                accessibility_name="Search or start new chat",
+            ),
+            InteractiveElement(
+                type="div",
+                text="",
+                selector='div[contenteditable="true"][aria-label="Type a message"]',
+                visible=True,
+                role="textbox",
+                aria_label="Type a message",
+                accessibility_name="Type a message",
+            ),
+            InteractiveElement(
+                type="button",
+                text="",
+                selector='button[aria-label="Attach"]',
+                visible=True,
+                role="button",
+                aria_label="Attach",
+                accessibility_name="Attach",
+            ),
+        ],
+        selected_text="",
+        visible_text="Use WhatsApp on your computer Scan QR code Search or start new chat Type a message",
     )
 
 
@@ -252,6 +298,43 @@ def test_legacy_planner_action_is_bridged_into_mission_ledger(db_session, monkey
     assert record.provider == "browser_control"
     assert record.status == "WAITING_BROWSER"
     assert record.payload["action_id"] == "act-legacy"
+
+
+def test_browser_control_navigate_url_in_selector_is_normalized_to_value(db_session, monkeypatch):
+    planned_action = SuggestedAction(
+        action_id="act-wa",
+        action_type="navigate",
+        target_selector="https://web.whatsapp.com/",
+        value=None,
+        description="Open WhatsApp Web",
+        reasoning="Open the app entry point.",
+        confidence=0.8,
+        safety_level="safe",
+    )
+
+    def fake_analyze(**kwargs):
+        return AnalyzeResponse(
+            session_id=kwargs["session_id"],
+            analysis="Planner selected app navigation",
+            suggested_actions=[planned_action],
+        )
+
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, "analyze", fake_analyze)
+
+    orchestrator = WorkflowOrchestrator("wa-selector-normalize", db_session)
+    response = orchestrator.orchestrate_analysis(
+        task="Open WhatsApp Web and detect whether login is required.",
+        page_context=page("https://assistant.local/sidepanel"),
+        prior_steps=[],
+        supplemental_context="",
+    )
+
+    assert response.intent_execution is not None
+    assert response.intent_execution.status == "waiting_browser"
+    assert response.suggested_actions[0].action_type == "navigate"
+    assert response.suggested_actions[0].target_selector == ""
+    assert response.suggested_actions[0].value == "https://web.whatsapp.com/"
 
 
 def test_collection_policy_next_page_action_is_bridged_into_mission_ledger(db_session, monkeypatch):
@@ -529,6 +612,257 @@ def test_read_phase_after_observing_focused_source_moves_to_next_unread_without_
     assert response.suggested_actions
     assert response.suggested_actions[0].action_type == "focus_existing_tab"
     assert response.suggested_actions[0].value == "url:https://tool2.example/"
+
+
+def test_open_phase_continues_from_unopened_collected_source_without_planner():
+    session_id = "open-phase-collected-source-continuation"
+    register_entity(
+        session_id,
+        entity_type="search_result",
+        source_layer="browser_intelligence.search_result_collection",
+        title="First Source",
+        canonical_url="https://sources.example/one",
+        confidence=0.91,
+        metadata={"rank": "1"},
+    )
+    register_entity(
+        session_id,
+        entity_type="search_result",
+        source_layer="browser_intelligence.search_result_collection",
+        title="Second Source",
+        canonical_url="https://sources.example/two",
+        confidence=0.9,
+        metadata={"rank": "2"},
+    )
+    orchestrator_snapshot = SimpleNamespace(
+        active_phase=SimpleNamespace(name="OPEN"),
+        progress_ledger=SimpleNamespace(
+            target_counts={"opened_pages": 2},
+            current_counts={"opened_pages": 1},
+        ),
+        artifacts=SimpleNamespace(opened_pages=["https://sources.example/one"]),
+    )
+
+    response = _deterministic_open_phase_response(
+        session_id=session_id,
+        orchestrator_snapshot=orchestrator_snapshot,
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].action_type == "open_new_tab"
+    assert response.suggested_actions[0].value == "https://sources.example/two"
+    assert "Planner fallback was not invoked" in response.analysis
+
+
+def test_post_read_phase_still_focuses_unread_opened_source(db_session):
+    orchestrator_snapshot = SimpleNamespace(
+        active_phase=SimpleNamespace(name="EXTRACT"),
+        progress_ledger=SimpleNamespace(
+            target_counts={"opened_pages": 3},
+            current_counts={"opened_pages": 3},
+        ),
+        artifacts=SimpleNamespace(
+            opened_pages=[
+                "https://tool1.example/",
+                "https://tool2.example/",
+                "https://tool3.example/",
+            ]
+        ),
+    )
+    knowledge_snapshot = SimpleNamespace(
+        read_artifacts=[
+            SimpleNamespace(canonical_url="https://tool1.example/"),
+        ],
+    )
+
+    response = _deterministic_read_phase_response(
+        db=db_session,
+        session_id="post-read-phase-unread-source",
+        task="Open the top 3 relevant results in new tabs. Read each page and return a table.",
+        page_context=PageContext(
+            url="https://tool1.example/",
+            title="Tool 1",
+            metadata={},
+            interactive_elements=[],
+            content_blocks=[],
+            headings=[],
+            selected_text="",
+            visible_text="Tool 1",
+            images=[],
+        ),
+        prior_steps=[],
+        runtime_state_snapshot=None,
+        knowledge_snapshot=knowledge_snapshot,
+        mission_completion_snapshot=None,
+        orchestrator_snapshot=orchestrator_snapshot,
+    )
+
+    assert response is not None
+    assert response.suggested_actions
+    assert response.suggested_actions[0].action_type == "focus_existing_tab"
+    assert response.suggested_actions[0].value == "url:https://tool2.example/"
+
+
+def test_read_phase_uses_prior_read_page_evidence_to_avoid_repeat_loop(db_session):
+    snapshot = SimpleNamespace(
+        active_phase=SimpleNamespace(name="READ"),
+        artifacts=SimpleNamespace(opened_pages=["https://tool1.example/"]),
+        progress_ledger=SimpleNamespace(target_counts={"opened_pages": 1}),
+    )
+    knowledge = SimpleNamespace(read_artifacts=[])
+    prior = [
+        PriorStep(
+            action_type="read_page",
+            description="Read opened source page: https://tool1.example/",
+            target_selector="",
+            value="",
+            execution_result="Intent execution queue completed.",
+            page_url="https://tool1.example/",
+            page_title="Tool 1",
+        )
+    ]
+
+    response = _deterministic_read_phase_response(
+        db=db_session,
+        session_id="read-prior-dedupe",
+        task="Open the top 1 result and read each page.",
+        page_context=page("https://tool1.example/"),
+        prior_steps=prior,
+        runtime_state_snapshot=None,
+        knowledge_snapshot=knowledge,
+        mission_completion_snapshot=None,
+        orchestrator_snapshot=snapshot,
+    )
+
+    assert response is None
+
+
+def test_complete_knowledge_report_is_promoted_without_planner():
+    knowledge_snapshot = SimpleNamespace(
+        report_artifact=SimpleNamespace(
+            id="report-complete",
+            completion_status="complete",
+            content="| Tool | Purpose | Pricing | Limitation | URL |\n| --- | --- | --- | --- | --- |\n| Example | Test | Free | Demo | https://example.test |",
+        ),
+        research_spec=SimpleNamespace(source_count=1),
+        read_artifacts=[SimpleNamespace(canonical_url="https://example.test")],
+        extraction_records=[SimpleNamespace(source_page="https://example.test")],
+        completion_status={"source_count": True, "extract": True, "report": True},
+    )
+
+    response = _deterministic_knowledge_report_response(
+        session_id="complete-knowledge-report",
+        knowledge_snapshot=knowledge_snapshot,
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.backend_authoritative_report is True
+    assert response.report is not None
+    assert response.report.answer.startswith("| Tool | Purpose | Pricing | Limitation | URL |")
+
+
+def test_complete_report_waits_for_required_opened_non_search_sources():
+    knowledge_snapshot = SimpleNamespace(
+        report_artifact=SimpleNamespace(
+            id="report-too-early",
+            completion_status="complete",
+            content="| Tool | Purpose | Pricing | Limitation | URL |\n| --- | --- | --- | --- | --- |\n| Example | Test | Free | Demo | https://example.test |",
+        ),
+        research_spec=SimpleNamespace(source_count=5),
+        read_artifacts=[
+            SimpleNamespace(canonical_url="https://www.google.com/sorry/index"),
+            SimpleNamespace(canonical_url="https://www.bing.com/search?q=tools"),
+            SimpleNamespace(canonical_url="https://source1.example/"),
+            SimpleNamespace(canonical_url="https://source2.example/"),
+        ],
+        extraction_records=[
+            SimpleNamespace(source_page="https://source1.example/"),
+            SimpleNamespace(source_page="https://source2.example/"),
+        ],
+        completion_status={"source_count": True, "extract": True, "report": True},
+    )
+    orchestrator_snapshot = SimpleNamespace(
+        artifacts=SimpleNamespace(
+            opened_pages=[
+                "https://source1.example/",
+                "https://source2.example/",
+            ]
+        )
+    )
+
+    response = _deterministic_knowledge_report_response(
+        session_id="too-early-report",
+        knowledge_snapshot=knowledge_snapshot,
+        orchestrator_snapshot=orchestrator_snapshot,
+    )
+
+    assert response is None
+
+
+def test_deterministic_interactive_state_reports_whatsapp_login_and_controls():
+    snapshot = SimpleNamespace(
+        artifacts=SimpleNamespace(opened_pages=["https://web.whatsapp.com/"]),
+        active_phase=SimpleNamespace(name="VALIDATE"),
+    )
+
+    response = _deterministic_interactive_state_response(
+        session_id="interactive-state",
+        task="Open WhatsApp Web and detect whether logged in and contact field visible.",
+        page_context=whatsapp_page(),
+        orchestrator_snapshot=snapshot,
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.goal_convergence is True
+    assert response.backend_authoritative_report is True
+    assert response.report is not None
+    assert "Login/QR required | yes" in response.report.answer
+    assert "Contact/search field visible | yes" in response.report.answer
+    assert "Message field visible | yes" in response.report.answer
+    assert "Attachment/file control visible | yes" in response.report.answer
+
+
+def test_interactive_state_uses_editable_field_semantics_instead_of_chat_preview_text():
+    snapshot = SimpleNamespace(
+        artifacts=SimpleNamespace(opened_pages=["https://web.whatsapp.com/"]),
+        active_phase=SimpleNamespace(name="VALIDATE"),
+    )
+    page = PageContext(
+        url="https://web.whatsapp.com/",
+        title="WhatsApp",
+        interactive_elements=[
+            InteractiveElement(type="button", text="Chats", selector='button[aria-label="Chats"]', visible=True, aria_label="Chats"),
+            InteractiveElement(type="div", text="Message preview with a document", selector='[data-testid="list-item-6"]', visible=True, role="listitem"),
+            InteractiveElement(
+                type="input",
+                text="Search or start a new chat",
+                selector='input[aria-label="Search or start a new chat"]',
+                visible=True,
+                role="textbox",
+                aria_label="Search or start a new chat",
+                placeholder="Search or start a new chat",
+            ),
+        ],
+        selected_text="",
+        visible_text="WhatsApp Search or start a new chat",
+    )
+
+    response = _deterministic_interactive_state_response(
+        session_id="interactive-state-semantic-fields",
+        task="Open WhatsApp Web and detect the contact search, message, and attachment fields.",
+        page_context=page,
+        orchestrator_snapshot=snapshot,
+    )
+
+    assert response is not None and response.report is not None
+    assert 'Contact/search field visible | yes | input[aria-label="Search or start a new chat"]' in response.report.answer
+    assert "Message field visible | no | not observed" in response.report.answer
+    assert "Attachment/file control visible | no | not observed" in response.report.answer
 
 
 def test_ledger_failure_does_not_alter_execution_recording(db_session, monkeypatch):

@@ -29,6 +29,8 @@ function compileRouter() {
       '--outDir',
       outDir,
       'src/sidepanel/hooks/useWorkflow.ts',
+      'src/content/extractor.ts',
+      'src/background/target_tab.ts',
     ],
     { cwd: root, stdio: 'inherit' },
   )
@@ -37,8 +39,10 @@ function compileRouter() {
 compileRouter()
 const {
   appendValidationPriorStepOnce,
+  actionRequiresDomSettle,
   actionRequiresExplicitApproval,
   buildAnalyzeRequestBody,
+  buildBackendIntentPriorStep,
   buildBudgetedPlannerContext,
   buildRejectedReportPriorStep,
   cancelWorkflowPatch,
@@ -46,8 +50,13 @@ const {
   createMultiTabWorkspace,
   createTaskWorkspace,
   phaseContinuationActions,
+  pageContextHasNamedEditableControl,
+  pageContextEvidenceScore,
+  initialObservationAttempts,
+  postNavigationObservationAttempts,
   registerTab,
   routeAnalyzeOutcome,
+  selectRicherPageContext,
   PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET,
   summarizeMissionSnapshot,
   updateTabFactCount,
@@ -57,9 +66,88 @@ const {
   workflowLoopObservationPhase,
   shouldAutoExecuteAction,
 } = require(path.join(outDir, 'sidepanel/hooks/useWorkflow.js'))
+const { mergeInteractiveElementLists } = require(path.join(outDir, 'content/extractor.js'))
+const { isGroundedBrowserTarget } = require(path.join(outDir, 'background/target_tab.js'))
 
 test.after(() => {
   fs.rmSync(outDir, { recursive: true, force: true })
+})
+
+test('browser control accepts only grounded http/https page tabs', () => {
+  assert.equal(isGroundedBrowserTarget('https://web.whatsapp.com/'), true)
+  assert.equal(isGroundedBrowserTarget('http://localhost:3000/test'), true)
+  assert.equal(isGroundedBrowserTarget('chrome-extension://abc/sidepanel.html'), false)
+  assert.equal(isGroundedBrowserTarget('chrome://extensions'), false)
+  assert.equal(isGroundedBrowserTarget('about:blank'), false)
+})
+
+test('navigation waits for DOM settle after the tab load completes', () => {
+  assert.equal(actionRequiresDomSettle('navigate'), true)
+  assert.equal(actionRequiresDomSettle('navigate_next_page'), true)
+  assert.equal(actionRequiresDomSettle('open_new_tab'), false)
+})
+
+test('post-navigation observation retains the richest delayed page context', () => {
+  const shell = pageContext({ visible_text: 'Loading', interactive_elements: [] })
+  const hydrated = pageContext({
+    visible_text: 'Chats Search or start new chat',
+    interactive_elements: [
+      { type: 'button', text: 'New chat', selector: '[aria-label="New chat"]', visible: true },
+      { type: 'input', text: '', selector: '[aria-label="Search input textbox"]', visible: true },
+    ],
+  })
+
+  assert.ok(pageContextEvidenceScore(hydrated) > pageContextEvidenceScore(shell))
+  assert.equal(selectRicherPageContext(shell, hydrated), hydrated)
+  assert.equal(selectRicherPageContext(hydrated, shell), hydrated)
+})
+
+test('interactive-field tasks use a bounded extended observation window', () => {
+  assert.equal(postNavigationObservationAttempts('Detect whether the contact search field is visible'), 8)
+  assert.equal(postNavigationObservationAttempts('Read the current documentation page'), 3)
+  assert.equal(initialObservationAttempts('Attach a file to a message recipient'), 8)
+  assert.equal(initialObservationAttempts('Read the current documentation page'), 1)
+  assert.equal(pageContextHasNamedEditableControl(pageContext({ interactive_elements: [] })), false)
+  assert.equal(pageContextHasNamedEditableControl(pageContext({
+    interactive_elements: [{
+      type: 'input',
+      text: '',
+      selector: 'input[aria-label="Search or start a new chat"]',
+      visible: true,
+      role: 'textbox',
+      aria_label: 'Search or start a new chat',
+    }],
+  })), true)
+})
+
+test('context merge preserves ranked controls and enriches duplicate accessibility metadata', () => {
+  const ranked = [
+    { type: 'div', text: 'Search or start new chat', selector: '[contenteditable="true"]', visible: true },
+    { type: 'button', text: 'New chat', selector: '[aria-label="New chat"]', visible: true },
+  ]
+  const enriched = [
+    {
+      type: 'div',
+      text: '',
+      selector: '[contenteditable="true"]',
+      visible: true,
+      role: 'textbox',
+      aria_label: 'Search input textbox',
+      accessibility_name: 'Search input textbox',
+    },
+    { type: 'button', text: 'Menu', selector: '[aria-label="Menu"]', visible: true },
+  ]
+
+  const merged = mergeInteractiveElementLists(ranked, enriched, 3)
+
+  assert.deepEqual(merged.map((element) => element.selector), [
+    '[contenteditable="true"]',
+    '[aria-label="New chat"]',
+    '[aria-label="Menu"]',
+  ])
+  assert.equal(merged[0].text, 'Search or start new chat')
+  assert.equal(merged[0].role, 'textbox')
+  assert.equal(merged[0].aria_label, 'Search input textbox')
 })
 
 function action(overrides = {}) {
@@ -348,7 +436,7 @@ test('routes act-without-action as failed until completion evidence exists', () 
 })
 
 test('routes successful backend-only intent to refresh loop', () => {
-  const routed = route(response({
+  const backendResponse = response({
     outcome_kind: 'act',
     suggested_actions: [],
     intent_execution: {
@@ -364,12 +452,21 @@ test('routes successful backend-only intent to refresh loop', () => {
       next_intents: [],
       blocking_reason: null,
     },
-  }))
+  })
+  const routed = route(backendResponse)
 
   assert.equal(routed.phase, 'refreshing')
   assert.equal(routed.continueAfterBackendStep, true)
   assert.deepEqual(routed.pendingActions, [])
   assert.equal(routed.error, null)
+
+  const priorStep = buildBackendIntentPriorStep(backendResponse, pageContext({
+    url: 'https://example.test/source',
+    title: 'Source page',
+  }))
+  assert.equal(priorStep.action_type, 'collect_search_results')
+  assert.equal(priorStep.page_url, 'https://example.test/source')
+  assert.match(priorStep.execution_result, /Collected 5 observed search results/)
 })
 
 test('execute to refresh to analyze loop sends fresh observation with prior steps', () => {

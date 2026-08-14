@@ -121,6 +121,17 @@ Do this in order:
 ]
 
 
+def _initial_target_url(prompt: str) -> str:
+    text = (prompt or "").lower()
+    if "whatsapp" in text or "watsapp" in text:
+        return "https://web.whatsapp.com/"
+    if "linkedin" in text:
+        return "https://www.linkedin.com/jobs/"
+    if any(term in text for term in ("google", "search", "first page of results", "search results")):
+        return "https://www.google.com/"
+    return "about:blank"
+
+
 @dataclass
 class TaskRun:
     task_id: str
@@ -130,6 +141,8 @@ class TaskRun:
     error: str
     evidence: str
     screenshot: str
+    target_screenshot: str
+    target_controls: list[dict[str, str]]
 
 
 def _extension_id(context) -> str:
@@ -208,7 +221,10 @@ def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
         clicked = sidepanel.evaluate(
             """() => {
                 const buttons = Array.from(document.querySelectorAll('button'));
-                const button = buttons.find((el) => /approve/i.test(el.textContent || ''));
+                const button = buttons.find((el) => {
+                    const text = (el.textContent || '').toLowerCase();
+                    return text.includes('approve') && !el.hasAttribute('disabled');
+                });
                 if (button instanceof HTMLElement) {
                     button.scrollIntoView({ block: 'center', inline: 'center' });
                     button.click();
@@ -236,6 +252,25 @@ def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
     return False
 
 
+def _looks_like_critical_approval(text: str) -> bool:
+    approval_visible = "requires approval" in text or "approve" in text
+    send_like = "send" in text and any(term in text for term in ("message", "whatsapp", "email", "mail"))
+    account_like = any(
+        term in text
+        for term in (
+            "payment",
+            "checkout",
+            "delete",
+            "password",
+            "security",
+            "login",
+            "submit government",
+            "official form",
+        )
+    )
+    return approval_visible and (send_like or account_like)
+
+
 def _open_workflow_panel(sidepanel) -> None:
     sidepanel.bring_to_front()
     workflow_tab = sidepanel.get_by_role("button", name=re.compile(r"^Workflow$", re.I))
@@ -251,17 +286,31 @@ def _open_workflow_panel(sidepanel) -> None:
         raise RuntimeError(f"Workflow panel did not open. Visible side panel text: {text[:1000]}")
 
 
-def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int) -> TaskRun:
+def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int, file_path: str = "") -> TaskRun:
     started = time.time()
     safe_id = task_id.lower()
     target.bring_to_front()
     try:
-        target.goto("https://www.google.com/", wait_until="domcontentloaded", timeout=45_000)
+        target.goto(_initial_target_url(prompt), wait_until="domcontentloaded", timeout=45_000)
     except Exception:
         pass
     sidepanel.bring_to_front()
     _open_workflow_panel(sidepanel)
     _click_if_visible(sidepanel, "Clear")
+    approved_file = Path(file_path).resolve() if file_path else None
+    file_chooser_events: list[str] = []
+
+    def provide_approved_file(chooser) -> None:
+        if approved_file is None or not approved_file.is_file():
+            file_chooser_events.append("chooser_opened_without_valid_approved_file")
+            return
+        try:
+            chooser.set_files(str(approved_file), timeout=15_000)
+            file_chooser_events.append(f"selected:{approved_file.name}")
+        except Exception as exc:
+            file_chooser_events.append(f"selection_failed:{exc}")
+
+    target.on("filechooser", provide_approved_file)
     textarea = sidepanel.locator("textarea[placeholder*='Describe what you want']").first
     textarea.fill(prompt, timeout=10_000)
     _ensure_auto_mode(sidepanel)
@@ -273,6 +322,12 @@ def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int) -> T
         text = _sidepanel_text(sidepanel)
         lowered = text.lower()
         _ensure_auto_mode(sidepanel)
+        if _looks_like_critical_approval(lowered):
+            terminal_status = "needs_approval"
+            break
+        if _approve_pending_action(sidepanel, timeout_ms=1200):
+            time.sleep(0.7)
+            continue
         if "✕ stop workflow" in lowered or "stop workflow" in lowered:
             pass
         if "requires approval" in lowered or "✓ approve" in lowered or "approve" in lowered:
@@ -293,8 +348,19 @@ def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int) -> T
         if planner_replan:
             terminal_status = "failed"
             break
-        if false_completion or "failed" in lowered or "error:" in lowered or "observation failed" in lowered:
+        explicit_failure = (
+            "workflow failed" in lowered
+            or "analysis failed:" in lowered
+            or "observation failed:" in lowered
+            or "execution_failed" in lowered
+            or "execution failed" in lowered
+            or "error:" in lowered
+        )
+        if false_completion or explicit_failure:
             terminal_status = "failed"
+            break
+        if "need information" in lowered or "waiting for info" in lowered:
+            terminal_status = "needs_info"
             break
         if "✓ done" in lowered or "done —" in lowered or "no actions needed" in lowered:
             terminal_status = "completed"
@@ -306,11 +372,39 @@ def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int) -> T
 
     phase = "unknown"
     text = _sidepanel_text(sidepanel)
+    if file_chooser_events:
+        text = f"{text}\n\nFILE CHOOSER EVIDENCE\n" + "\n".join(file_chooser_events)
     for candidate in ["Reading page", "Thinking", "Executing", "Waiting for info", "completed", "failed"]:
         if candidate.lower() in text.lower():
             phase = candidate
     screenshot = REPORT_DIR / f"{safe_id}.png"
-    sidepanel.screenshot(path=str(screenshot), full_page=True)
+    try:
+        sidepanel.screenshot(path=str(screenshot), full_page=True, timeout=10_000)
+    except Exception as exc:
+        text = f"{text}\n\n[screenshot failed: {exc}]"
+        screenshot = REPORT_DIR / f"{safe_id}.screenshot_failed.txt"
+        screenshot.write_text(str(exc), encoding="utf-8")
+    target_screenshot = REPORT_DIR / f"{safe_id}-target.png"
+    try:
+        target.screenshot(path=str(target_screenshot), full_page=True, timeout=10_000)
+    except Exception as exc:
+        target_screenshot = REPORT_DIR / f"{safe_id}-target.screenshot_failed.txt"
+        target_screenshot.write_text(str(exc), encoding="utf-8")
+    try:
+        target_controls = target.locator(
+            '[contenteditable], [role="textbox"], [role="searchbox"], input, textarea, button[aria-label]'
+        ).evaluate_all(
+            """elements => elements.slice(0, 80).map((element) => ({
+                tag: element.tagName.toLowerCase(),
+                role: element.getAttribute('role') || '',
+                aria_label: element.getAttribute('aria-label') || '',
+                placeholder: element.getAttribute('placeholder') || element.getAttribute('data-placeholder') || '',
+                contenteditable: element.getAttribute('contenteditable') || '',
+                testid: element.getAttribute('data-testid') || '',
+            }))"""
+        )
+    except Exception:
+        target_controls = []
     return TaskRun(
         task_id=task_id,
         status=terminal_status,
@@ -319,6 +413,8 @@ def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int) -> T
         error=_extract_error(text),
         evidence=text[-5000:],
         screenshot=str(screenshot),
+        target_screenshot=str(target_screenshot),
+        target_controls=target_controls,
     )
 
 
@@ -330,14 +426,29 @@ def _extract_error(text: str) -> str:
     return ""
 
 
+def _write_report(extension_id: str, profile_dir: Path, results: list[TaskRun]) -> None:
+    report = {
+        "mode": "extension_sidepanel_playwright",
+        "extension_id": extension_id,
+        "started_profile": str(profile_dir),
+        "results": [asdict(item) for item in results],
+    }
+    out = REPORT_DIR / "live_sidepanel_first10_latest.json"
+    out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument("--timeout-s", type=int, default=420)
+    parser.add_argument("--task-id", type=str, default="")
+    parser.add_argument("--prompt", type=str, default="")
+    parser.add_argument("--profile-dir", type=str, default="")
+    parser.add_argument("--file-path", type=str, default="")
     args = parser.parse_args()
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    profile_dir = REPORT_DIR / f"profile_{int(time.time() * 1000)}"
+    profile_dir = Path(args.profile_dir).resolve() if args.profile_dir else REPORT_DIR / f"profile_{int(time.time() * 1000)}"
     if not EXTENSION_DIR.exists():
         raise SystemExit(f"Extension build not found: {EXTENSION_DIR}")
 
@@ -354,30 +465,29 @@ def main() -> int:
         )
         context.set_default_timeout(15_000)
         extension_id = _extension_id(context)
+        selected_tasks = [(args.task_id or "CUSTOM", args.prompt)] if args.prompt else TASKS[: args.limit]
         target = context.new_page()
-        target.goto("https://www.google.com/", wait_until="domcontentloaded")
+        first_prompt = selected_tasks[0][1] if selected_tasks else ""
+        target.goto(_initial_target_url(first_prompt), wait_until="domcontentloaded")
         sidepanel = context.new_page()
         sidepanel.goto(f"chrome-extension://{extension_id}/src/sidepanel/index.html")
         _open_workflow_panel(sidepanel)
         sidepanel.screenshot(path=str(REPORT_DIR / "sidepanel_loaded.png"), full_page=True)
 
-        for task_id, prompt in TASKS[: args.limit]:
+        for task_id, prompt in selected_tasks:
             print(f"[live-sidepanel] starting {task_id}", flush=True)
-            result = _run_task(sidepanel, target, task_id, prompt, args.timeout_s)
+            result = _run_task(sidepanel, target, task_id, prompt, args.timeout_s, args.file_path)
             results.append(result)
+            _write_report(extension_id, profile_dir, results)
             print(f"[live-sidepanel] {task_id} {result.status} {result.duration_s}s", flush=True)
             if result.status == "failed":
                 break
 
-        report = {
-            "mode": "extension_sidepanel_playwright",
-            "extension_id": extension_id,
-            "started_profile": str(profile_dir),
-            "results": [asdict(item) for item in results],
-        }
-        out = REPORT_DIR / "live_sidepanel_first10_latest.json"
-        out.write_text(json.dumps(report, indent=2), encoding="utf-8")
-        context.close()
+        _write_report(extension_id, profile_dir, results)
+        try:
+            context.close()
+        except Exception as exc:
+            print(f"[live-sidepanel] browser close warning: {exc}", flush=True)
     return 0
 
 

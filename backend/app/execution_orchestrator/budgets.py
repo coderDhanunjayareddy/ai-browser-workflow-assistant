@@ -44,6 +44,7 @@ def _retry_count(prior_steps: list[Any]) -> int:
             str(data.get("action_type") or ""),
             str(data.get("target_selector") or ""),
             str(data.get("value") or ""),
+            str(data.get("page_url") or ""),
         ])
         signatures[signature] = signatures.get(signature, 0) + 1
     return max(signatures.values(), default=0)

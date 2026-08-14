@@ -107,6 +107,19 @@ def test_navigation_goal_creates_target_state_graph(monkeypatch):
     assert result.capabilities.capabilities == ["Browser", "Validation"]
 
 
+def test_navigation_goal_resolves_known_web_app_url(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+
+    result = MissionBlueprintBuilder().build(
+        mission_id="wave2-whatsapp-navigation",
+        user_goal="Open WhatsApp Web and send a hii message to Rahul.",
+    )
+
+    reach = next(node for node in result.blueprint.nodes if node.node_id == "reach_target_state")
+    assert reach.metadata["action_payload"]["value"] == "https://web.whatsapp.com/"
+    assert reach.metadata["action_payload"]["action_type"] == "navigate"
+
+
 def test_search_result_pricing_comparison_creates_research_blueprint(monkeypatch):
     monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
 

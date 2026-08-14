@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 
 from app.core.config import settings
+from app.execution_orchestrator.artifact_registry import build_artifacts
+from app.execution_orchestrator.budgets import build_budgets
 from app.execution_orchestrator.engine import ExecutionOrchestrator
 from app.execution_orchestrator.models import PhaseState
 from app.feature_flags import get_flag_state
@@ -158,6 +160,87 @@ def test_shadow_records_phase_state_without_context_enrichment(monkeypatch):
     assert engine.enrich_context({"active_goal": "x"}, snapshot) == {"active_goal": "x"}
 
 
+def test_interactive_open_phase_allows_direct_app_navigation(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="wa-open",
+        task="Open WhatsApp Web and detect whether login is required.",
+        page_context=_page("https://assistant.local/sidepanel"),
+        prior_steps=[],
+    )
+
+    assert snapshot is not None
+    assert snapshot.workflow_category == "interactive_browser_task"
+    assert snapshot.active_phase.name == "OPEN"
+    assert "navigate" in snapshot.active_phase.allowed_actions
+    assert "navigate" not in snapshot.active_phase.forbidden_actions
+
+    planner_response = _planner_action("navigate", value="")
+    planner_response.suggested_actions[0].description = "Open WhatsApp Web"
+    result = engine.postprocess_response(planner_response, snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "navigate"
+    assert result.suggested_actions[0].value == "https://web.whatsapp.com/"
+
+
+def test_research_open_phase_keeps_direct_navigation_forbidden(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    snapshot = ExecutionOrchestrator().build_snapshot(
+        session_id="research-open-contract",
+        task=TASK,
+        page_context=_page("https://www.google.com/search?q=browser+automation"),
+        prior_steps=[],
+    )
+
+    assert snapshot is not None
+    assert snapshot.workflow_category == "multi_page_research"
+    open_phase = next(phase for phase in snapshot.phases if phase.name == "OPEN")
+    assert "navigate" not in open_phase.allowed_actions
+    assert "navigate" in open_phase.forbidden_actions
+
+
+def test_interactive_browser_task_stays_in_validate_for_browser_interaction(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="interactive-whatsapp",
+        task="Open WhatsApp Web and send a hii message to Rahul.",
+        page_context=_page("https://web.whatsapp.com/"),
+        prior_steps=[
+            PriorStep(
+                action_type="navigate",
+                description="Reach target state",
+                target_selector="",
+                value="https://web.whatsapp.com/",
+                execution_result="Navigating to: https://web.whatsapp.com/",
+                page_url="https://web.whatsapp.com/",
+                page_title="WhatsApp",
+                browser_evidence={"page_url": "https://web.whatsapp.com/", "page_title": "WhatsApp"},
+            ),
+            PriorStep(
+                action_type="focus_existing_tab",
+                description="Focus opened source for read phase",
+                target_selector="",
+                value="url:https://web.whatsapp.com/",
+                execution_result="success",
+                page_url="https://web.whatsapp.com/",
+                page_title="WhatsApp",
+            ),
+        ],
+    )
+
+    assert snapshot.workflow_category == "interactive_browser_task"
+    assert snapshot.active_phase.name == "VALIDATE"
+    assert "fill" in snapshot.active_phase.allowed_actions
+
+    result = engine.postprocess_response(_planner_action("fill", value="Rahul"), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "fill"
+
+
 def test_after_required_pages_opened_active_phase_becomes_read(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "shadow")
     engine = ExecutionOrchestrator()
@@ -171,6 +254,55 @@ def test_after_required_pages_opened_active_phase_becomes_read(monkeypatch):
 
     assert snapshot is not None
     assert snapshot.active_phase.name == "READ"
+
+
+def test_backend_read_page_receipts_complete_read_phase(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "shadow")
+    engine = ExecutionOrchestrator()
+    prior_steps = _opened_steps(5) + [
+        PriorStep(
+            action_type="read_page",
+            description=f"Read opened source page: https://tool{index}.example/",
+            target_selector="",
+            value="",
+            execution_result="Intent execution queue completed.\nKnowledge Extraction executed read_page.",
+            page_url=f"https://tool{index}.example/",
+            page_title=f"Tool {index}",
+        )
+        for index in range(1, 6)
+    ]
+
+    snapshot = engine.build_snapshot(
+        session_id="read-page-receipts",
+        task=TASK,
+        page_context=_page("https://tool5.example/"),
+        prior_steps=prior_steps,
+    )
+
+    assert snapshot is not None
+    assert snapshot.progress_ledger.completed["read"] is True
+    assert snapshot.active_phase.name == "EXTRACT"
+
+
+def test_backend_read_page_receipts_do_not_consume_retry_budget():
+    prior_steps = [
+        PriorStep(
+            action_type="read_page",
+            description=f"Read opened source page: https://tool{index}.example/",
+            target_selector="",
+            value="",
+            execution_result="Intent execution queue completed.\nKnowledge Extraction executed read_page.",
+            page_url=f"https://tool{index}.example/",
+            page_title=f"Tool {index}",
+        )
+        for index in range(1, 4)
+    ]
+
+    artifacts = build_artifacts(_page("https://tool3.example/"), prior_steps)
+    budgets = build_budgets(prior_steps, artifacts)
+
+    assert budgets.consumed["retries"] == 0
+    assert "max_retries" not in budgets.exhausted
 
 
 def test_collected_search_results_feed_open_phase_continuation(monkeypatch):
@@ -917,6 +1049,45 @@ def test_open_phase_recovery_skips_already_opened_entity(monkeypatch):
     assert result.outcome_kind == "act"
     assert result.suggested_actions[0].action_type == "open_new_tab"
     assert result.suggested_actions[0].value == "https://tool2.example"
+
+
+def test_open_phase_search_scroll_collects_more_results_instead_of_replan(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="open-search-scroll-collect",
+        task=TASK,
+        page_context=_page("https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"),
+        prior_steps=[
+            PriorStep(
+                action_type="navigate",
+                description="Search",
+                target_selector="",
+                value="https://www.bing.com/search?q=best+AI+browser+automation+tools+2026",
+                execution_result="success",
+                page_url="https://www.bing.com/search?q=best+AI+browser+automation+tools+2026",
+                page_title="Search",
+            ),
+            *_opened_steps(1),
+        ],
+    )
+    snapshot = replace(
+        snapshot,
+        active_phase=PhaseState(
+            name="OPEN",
+            status="active",
+            objective="OPEN: reach 5 opened_pages; currently 1",
+            allowed_actions=["open_new_tab", "focus_existing_tab", "switch_tab", "wait"],
+            forbidden_actions=["navigate", "fill"],
+        ),
+    )
+
+    result = engine.postprocess_response(_planner_action("scroll", value="down"), snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.intent_dispatch is not None
+    assert result.intent_dispatch.intent == "collect_search_results"
+    assert result.suggested_actions == []
 
 
 def test_active_open_phase_dedupes_duplicate_canonical_targets(monkeypatch):

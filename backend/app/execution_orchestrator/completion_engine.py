@@ -35,7 +35,7 @@ def build_progress_ledger(
         "open": current["opened_pages"] >= targets.get("opened_pages", targets.get("collected_items", 1)),
         "read": _read_complete(task, artifacts, prior_steps),
         "extract": current["extracted_records"] >= targets.get("extracted_records", 1) if _requires_extraction(task) else True,
-        "validate": _validate_complete(task, artifacts),
+        "validate": _validate_complete(task, artifacts, prior_steps),
         "synthesize": bool(artifacts.reports or artifacts.tables or artifacts.summaries),
         "report": bool(artifacts.reports),
         "complete": False,
@@ -123,7 +123,19 @@ def _read_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any
         action_type = str(data.get("action_type") or "").lower()
         result = str(data.get("execution_result") or "")
         text = f"{data.get('description', '')} {data.get('page_analysis', '')}".lower()
-        if action_type in {"focus_existing_tab", "switch_tab"} and is_openable_browser_url(str(data.get("value") or "")):
+        result_text = result.lower()
+        if action_type in {"read_page", "read"} and any(
+            marker in result_text
+            for marker in (
+                "intent execution queue completed",
+                "knowledge extraction executed read_page",
+                "executed read_page",
+                "read page",
+                "success",
+            )
+        ):
+            read_steps += 1
+        elif action_type in {"focus_existing_tab", "switch_tab"} and is_openable_browser_url(str(data.get("value") or "")):
             read_steps += 1
         elif result.startswith("success") and action_type in {"focus_existing_tab", "switch_tab"}:
             read_steps += 1
@@ -136,8 +148,10 @@ def _requires_extraction(task: str) -> bool:
     return any(term in task.lower() for term in ("extract", "capture", "table", "summar", "pricing", "limitation", "location", "job"))
 
 
-def _validate_complete(task: str, artifacts: ArtifactRegistry) -> bool:
+def _validate_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any]) -> bool:
     text = task.lower()
+    if _is_interactive_task(text):
+        return _target_state_reached(prior_steps)
     if "upload" in text:
         return bool(artifacts.uploaded_files)
     if "download" in text:
@@ -145,3 +159,46 @@ def _validate_complete(task: str, artifacts: ArtifactRegistry) -> bool:
     if "form" in text:
         return bool(artifacts.forms)
     return bool(artifacts.extracted_records or artifacts.opened_pages)
+
+
+def _is_interactive_task(text: str) -> bool:
+    return any(
+        term in text
+        for term in (
+            "send",
+            "message",
+            "whatsapp",
+            "gmail",
+            "mail",
+            "chat",
+            "profile",
+            "setting",
+            "dashboard",
+            "create",
+            "update",
+            "save",
+        )
+    )
+
+
+def _target_state_reached(prior_steps: list[Any]) -> bool:
+    for step in prior_steps:
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        result = str(data.get("execution_result") or "").lower()
+        description = str(data.get("description") or "").lower()
+        evidence = str(data.get("page_analysis") or "").lower()
+        combined = " ".join((result, description, evidence))
+        if any(
+            marker in combined
+            for marker in (
+                "message sent",
+                "sent successfully",
+                "submitted successfully",
+                "saved successfully",
+                "dashboard loaded",
+                "welcome page",
+                "target state reached",
+            )
+        ):
+            return True
+    return False

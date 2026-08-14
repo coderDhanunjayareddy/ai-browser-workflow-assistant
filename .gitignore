@@ -89,4 +89,12 @@ backend/debug_anthropic_raw.json
 backend/backend.log
 backend/*.log
 
+# Large production validation trace/log files
+docs/production_validation/**/*.log
+docs/production_validation/**/backend_trace.log
+
+# Chrome browser profile directories from live validation runs (large binary data)
+docs/production_validation/live_sidepanel/profile_*/
+docs/production_validation/live_sidepanel/*.screenshot_failed.txt
+
 *.log

@@ -67,3 +67,72 @@ def test_focus_existing_tab_counts_target_url_as_visited() -> None:
     )
 
     assert "https://tool.example/pricing" in artifacts.visited_urls
+
+
+def test_successful_non_search_navigation_counts_as_opened_page() -> None:
+    artifacts = build_artifacts(
+        _page(),
+        [
+            PriorStep(
+                action_type="navigate",
+                description="Open WhatsApp",
+                target_selector="",
+                value="https://web.whatsapp.com/",
+                execution_result="Navigating to: https://web.whatsapp.com/",
+                page_url="https://web.whatsapp.com/",
+                page_title="WhatsApp",
+                browser_evidence={
+                    "page_url": "https://web.whatsapp.com/",
+                    "page_title": "WhatsApp",
+                },
+            )
+        ],
+    )
+
+    assert artifacts.opened_pages == ["https://web.whatsapp.com/"]
+
+
+def test_search_navigation_does_not_count_as_opened_source_page() -> None:
+    artifacts = build_artifacts(
+        _page(),
+        [
+            PriorStep(
+                action_type="navigate",
+                description="Search Google",
+                target_selector="",
+                value="https://www.google.com/search?q=ai+tools",
+                execution_result="Navigating to: https://www.google.com/search?q=ai+tools",
+                page_url="https://www.google.com/search?q=ai+tools",
+                page_title="Google Search",
+                browser_evidence={
+                    "page_url": "https://www.google.com/search?q=ai+tools",
+                    "page_title": "Google Search",
+                },
+            )
+        ],
+    )
+
+    assert artifacts.opened_pages == []
+
+
+def test_search_challenge_navigation_does_not_count_as_opened_source_page() -> None:
+    artifacts = build_artifacts(
+        _page(),
+        [
+            PriorStep(
+                action_type="navigate",
+                description="Execute the research search query",
+                target_selector="",
+                value="https://www.google.com/search?q=ai+tools",
+                execution_result="Navigating to: https://www.google.com/search?q=ai+tools",
+                page_url="https://www.google.com/sorry/index?continue=https://www.google.com/search?q=ai+tools",
+                page_title="Google",
+                browser_evidence={
+                    "page_url": "https://www.google.com/sorry/index?continue=https://www.google.com/search?q=ai+tools",
+                    "page_title": "Google",
+                },
+            )
+        ],
+    )
+
+    assert artifacts.opened_pages == []

@@ -557,9 +557,18 @@ def _nodes(
             )
         specs.append(_node_spec("report_form_result", "Report validation and submission result", BlueprintNodeKind.REPORTING, "Report Generation", "knowledge_extraction", "generate_report"))
     else:
+        target_url = _navigation_target_url(analysis.primary_objective)
         specs = [
             _node_spec("define_target_state", "Define target state", BlueprintNodeKind.OBJECTIVE, "Browser", "mission_blueprint", "record_objective"),
-            _node_spec("reach_target_state", "Reach target state", BlueprintNodeKind.DISCOVERY, "Browser", "browser_control", "navigate"),
+            _node_spec(
+                "reach_target_state",
+                "Reach target state",
+                BlueprintNodeKind.DISCOVERY,
+                "Browser",
+                "browser_control",
+                "navigate",
+                action_payload={"action_type": "navigate", "value": target_url} if target_url else None,
+            ),
             _node_spec("verify_target_state", "Verify target state", BlueprintNodeKind.VALIDATION, "Validation", "validation", "validate_records"),
         ]
     return [
@@ -826,6 +835,24 @@ def _explicit_start_url(text: str) -> str:
     if not match:
         return ""
     return match.group(0).rstrip(".,);]")
+
+
+def _navigation_target_url(text: str) -> str:
+    explicit = _explicit_start_url(text)
+    if explicit:
+        return explicit
+    lowered = str(text or "").lower()
+    known_apps = {
+        "whatsapp web": "https://web.whatsapp.com/",
+        "whatsapp": "https://web.whatsapp.com/",
+        "gmail": "https://mail.google.com/",
+        "linkedin jobs": "https://www.linkedin.com/jobs/",
+        "linkedin": "https://www.linkedin.com/",
+    }
+    for name, url in known_apps.items():
+        if name in lowered:
+            return url
+    return ""
 
 
 def _preferences(text: str) -> list[str]:

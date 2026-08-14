@@ -202,6 +202,10 @@ def _evidence_for_field(field: str, page: PageReadArtifact) -> FieldEvidence:
             website = _link_url(page, ("website", "visit site", "official site", "homepage"))
             return _field_evidence_or_missing(field, website, page, "url", "No website link found in observed page context.")
         return _field_evidence(field, page.canonical_url, page, "url", page.canonical_url, 0.98)
+    if extraction_type_for_page(page) == "research" and key in {"tool", "product", "title", "name", "purpose", "summary", "pricing", "price", "limitation", "limitations"}:
+        research = _research_field_evidence(field, key, page)
+        if research:
+            return research
     if key in {"tool", "product", "title", "name", "company"}:
         value = _company_from_title(page.title) if key == "company" else page.title or (page.headings[0] if page.headings else "")
         return _field_evidence(field, value, page, "title" if page.title else "heading", value, 0.84 if value else 0.0, "No title or heading found.")
@@ -397,6 +401,116 @@ def _best_sentence(candidates: list[str], terms: tuple[str, ...]) -> str:
         if value:
             return value
     return candidates[0] if candidates else ""
+
+
+def extraction_type_for_page(page: PageReadArtifact) -> str:
+    text = " ".join([page.title, *page.headings, *page.paragraphs[:8]]).lower()
+    if any(term in text for term in ("browser automation", "ai browser", "automation tool", "web scraper", "agentic")):
+        return "research"
+    return "generic"
+
+
+def _research_field_evidence(field: str, key: str, page: PageReadArtifact) -> FieldEvidence | None:
+    if key in {"tool", "product", "title", "name"}:
+        value = _research_tool_name(page)
+        return _field_evidence(field, value, page, "title", value, 0.86 if value else 0.0, "No product/tool name found.")
+    if key in {"purpose", "summary"}:
+        value = _research_purpose(page)
+        return _field_evidence_or_missing(field, value, page, "paragraph", "No clear product purpose found.")
+    if key in {"pricing", "price"}:
+        value = _research_pricing(page)
+        return _field_evidence(field, value or "Not mentioned", page, "pricing_block" if value else "missing", value, 0.82 if value else 0.55, "No clear pricing mention found.")
+    if key in {"limitation", "limitations"}:
+        value = _research_limitation(page)
+        return _field_evidence(field, value or "Not mentioned", page, "paragraph" if value else "missing", value, 0.74 if value else 0.55, "No clear limitation mention found.")
+    return None
+
+
+def _research_tool_name(page: PageReadArtifact) -> str:
+    host = urlparse(page.canonical_url).netloc.lower().removeprefix("www.")
+    title = _clean_page_title(page.title)
+    patterns = (
+        r"\b(best\s+for\s+[^:]{1,60}:\s*)?([A-Z][A-Za-z0-9 ._-]{1,35})\s+(?:[-–—:]\s*)?(?:is|automates|offers|provides|helps|lets)\b",
+        r"\b([A-Z][A-Za-z0-9 ._-]{1,35})\s+(?:browser automation|web scraper|ai agent|automation platform)\b",
+    )
+    source = " ".join([title, *page.headings[:8], *page.paragraphs[:8]])
+    for pattern in patterns:
+        match = re.search(pattern, source)
+        if match:
+            value = match.group(match.lastindex or 1).strip(" -–—:")
+            if _is_reasonable_tool_name(value):
+                return _clip(value, 80)
+    if title and not _looks_like_listicle_title(title):
+        return _clip(title, 80)
+    brand = host.split(".")[0].replace("-", " ").replace("_", " ").strip()
+    return _clip(brand.title(), 80) if brand else _clip(title, 80)
+
+
+def _research_purpose(page: PageReadArtifact) -> str:
+    text = _clean_research_text(" ".join([*page.paragraphs[:16], *page.headings[:4]]))
+    terms = ("automates", "automation", "browser", "scrape", "workflow", "testing", "agent", "extract")
+    return _clean_research_text(_sentence_containing(text, terms))
+
+
+def _research_pricing(page: PageReadArtifact) -> str:
+    value = _pricing_plan_value("pricing", page)
+    if value:
+        return _clean_research_text(value)
+    text = _clean_research_text(" ".join([*page.pricing_blocks, *page.paragraphs[:20]]))
+    sentence = _sentence_containing(text, ("$", "free", "pricing", "plan", "/mo", "per month", "trial"))
+    if not sentence:
+        return ""
+    if _noisy_research_sentence(sentence):
+        return ""
+    return _clean_research_text(sentence)
+
+
+def _research_limitation(page: PageReadArtifact) -> str:
+    section_text = [str(value) for section in page.sections[:4] for value in section.values()]
+    text = _clean_research_text(" ".join([*page.paragraphs[:24], *section_text]))
+    sentence = _sentence_containing(text, ("limitation", "limited", "requires", "cannot", "drawback", "downside", "but "))
+    if not sentence or _noisy_research_sentence(sentence):
+        return ""
+    return _clean_research_text(sentence)
+
+
+def _clean_page_title(title: str) -> str:
+    value = re.sub(r"\s+", " ", str(title or "")).strip()
+    value = re.sub(r"\s*\|\s*(.+)$", "", value) if len(value) > 90 else value
+    value = re.sub(r"\s+[-–—]\s+(Google Search|Search|DuckDuckGo|Bing)$", "", value, flags=re.IGNORECASE)
+    return value.strip()
+
+
+def _looks_like_listicle_title(title: str) -> bool:
+    return bool(re.search(r"\b(?:top|best|tools?|compared|ranked|tested|guide|reviews?)\b", title, flags=re.IGNORECASE))
+
+
+def _is_reasonable_tool_name(value: str) -> bool:
+    lower = value.lower()
+    if len(value) < 2 or len(value) > 80:
+        return False
+    if any(term in lower for term in ("top ", "best ", "browser automation", "tools compared", "search")):
+        return False
+    return True
+
+
+def _clean_research_text(value: str) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    text = re.sub(r"(Only include results for this site|Redo search without this site|Block this site from all results|Share feedback about this site)", " ", text)
+    return _clip(text)
+
+
+def _noisy_research_sentence(value: str) -> bool:
+    text = str(value or "")
+    lower = text.lower()
+    return (
+        len(text) > 260
+        or lower.count("free") > 2
+        or lower.count("plan") > 3
+        or "slack scraper" in lower
+        or "product hunt" in lower
+        or "trusted by" in lower and "$" not in lower
+    )
 
 
 def _link_url(page: PageReadArtifact, terms: tuple[str, ...]) -> str:

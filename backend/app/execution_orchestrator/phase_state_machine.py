@@ -11,6 +11,7 @@ GRAPH_BY_CATEGORY: dict[str, list[PhaseName]] = {
     "form_filling": ["DISCOVER", "READ", "EXTRACT", "VALIDATE", "REPORT", "COMPLETE"],
     "saas_signup": ["DISCOVER", "OPEN", "READ", "VALIDATE", "REPORT", "COMPLETE"],
     "documentation_extraction": ["DISCOVER", "COLLECT", "OPEN", "READ", "EXTRACT", "SYNTHESIZE", "REPORT", "COMPLETE"],
+    "interactive_browser_task": ["DISCOVER", "OPEN", "READ", "VALIDATE", "REPORT", "COMPLETE"],
 }
 
 
@@ -20,7 +21,7 @@ ALLOWED_ACTIONS: dict[PhaseName, list[str]] = {
     "OPEN": ["open_new_tab", "focus_existing_tab", "switch_tab", "wait"],
     "READ": ["focus_existing_tab", "switch_tab", "scroll", "wait"],
     "EXTRACT": ["focus_existing_tab", "switch_tab", "scroll", "wait"],
-    "VALIDATE": ["focus_existing_tab", "switch_tab", "wait", "scroll"],
+    "VALIDATE": ["focus_existing_tab", "switch_tab", "wait", "scroll", "fill", "click", "select_option", "choose_date", "hover", "keyboard_shortcut"],
     "SYNTHESIZE": [],
     "REPORT": [],
     "COMPLETE": [],
@@ -52,7 +53,28 @@ def workflow_category(task: str) -> str:
         return "saas_signup"
     if any(term in text for term in ("documentation", "docs", "setup requirement", "supported languages")):
         return "documentation_extraction"
+    if _is_interactive_browser_task(text):
+        return "interactive_browser_task"
     return "multi_page_research"
+
+
+def _is_interactive_browser_task(text: str) -> bool:
+    action_terms = (
+        "send",
+        "message",
+        "whatsapp",
+        "gmail",
+        "mail",
+        "chat",
+        "profile",
+        "setting",
+        "dashboard",
+        "create",
+        "update",
+        "save",
+    )
+    browser_goal_terms = ("open", "go to", "navigate", "use", "login", "sign in")
+    return any(term in text for term in action_terms) and any(term in text for term in browser_goal_terms)
 
 
 def build_phases(category: str, ledger: ProgressLedger) -> tuple[list[PhaseState], PhaseState]:
@@ -66,18 +88,28 @@ def build_phases(category: str, ledger: ProgressLedger) -> tuple[list[PhaseState
             status = "complete"
         else:
             status = "pending"
+        allowed_actions, forbidden_actions = _phase_actions(category, name)
         phases.append(
             PhaseState(
                 name=name,
                 status=status,  # type: ignore[arg-type]
                 objective=_objective(name, ledger),
-                allowed_actions=ALLOWED_ACTIONS[name],
-                forbidden_actions=FORBIDDEN_ACTIONS[name],
+                allowed_actions=allowed_actions,
+                forbidden_actions=forbidden_actions,
                 completion_reason=_completion_reason(name, ledger) if status == "complete" else None,
             )
         )
     active = next(phase for phase in phases if phase.name == active_name)
     return phases, active
+
+
+def _phase_actions(category: str, phase: PhaseName) -> tuple[list[str], list[str]]:
+    allowed = list(ALLOWED_ACTIONS[phase])
+    forbidden = list(FORBIDDEN_ACTIONS[phase])
+    if phase == "OPEN" and category in {"interactive_browser_task", "saas_signup", "file_upload"}:
+        allowed.append("navigate")
+        forbidden.remove("navigate")
+    return allowed, forbidden
 
 
 def next_phase(graph: list[PhaseName], current: PhaseName) -> PhaseName:
