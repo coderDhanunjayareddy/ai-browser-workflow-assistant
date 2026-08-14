@@ -9,17 +9,17 @@
     "dead": "not statically reachable; review dynamic imports before deletion"
   },
   "counts": {
-    "dead": 12,
-    "live": 359,
+    "dead": 38,
+    "live": 379,
     "shadow": 238,
     "stub": 7,
-    "test-only": 94
+    "test-only": 48
   },
   "modules": [
     {
       "path": "backend/app/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/adapters/amazon/adapter.py",
@@ -28,8 +28,8 @@
     },
     {
       "path": "backend/app/adapters/base_adapter.py",
-      "status": "dead",
-      "evidence": "no static reachability from configured product or registered-route roots"
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
     },
     {
       "path": "backend/app/adapters/gmail/adapter.py",
@@ -48,13 +48,13 @@
     },
     {
       "path": "backend/app/api/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/api/routes/__init__.py",
-      "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/api/routes/analyze.py",
@@ -204,7 +204,7 @@
     {
       "path": "backend/app/approvals/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/approvals/analytics.py",
@@ -248,8 +248,8 @@
     },
     {
       "path": "backend/app/assist/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/assist/ambient_assistant.py",
@@ -259,7 +259,7 @@
     {
       "path": "backend/app/authorization/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/authorization/analytics.py",
@@ -303,8 +303,8 @@
     },
     {
       "path": "backend/app/benchmark/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "shadow",
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/benchmark/benchmark_catalog.py",
@@ -379,7 +379,7 @@
     {
       "path": "backend/app/browser/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/browser/analytics.py",
@@ -434,7 +434,7 @@
     {
       "path": "backend/app/browser_intelligence/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/browser_intelligence/action_verification.py",
@@ -519,7 +519,7 @@
     {
       "path": "backend/app/budget_engine/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/budget_engine/budget_enforcer.py",
@@ -538,8 +538,8 @@
     },
     {
       "path": "backend/app/capability_platform/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "shadow",
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/capability_platform/browser_registry.py",
@@ -548,18 +548,18 @@
     },
     {
       "path": "backend/app/capability_platform/constraints.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/capability_platform/discovery.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/capability_platform/health.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/capability_platform/manifest.py",
@@ -568,13 +568,13 @@
     },
     {
       "path": "backend/app/capability_platform/metrics.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/capability_platform/permissions.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/capability_platform/registry.py",
@@ -584,7 +584,7 @@
     {
       "path": "backend/app/certification/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/certification/failure_catalog.py",
@@ -629,7 +629,7 @@
     {
       "path": "backend/app/cognitive_core/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/cognitive_core/analytics.py",
@@ -688,8 +688,8 @@
     },
     {
       "path": "backend/app/cognitive_runtime/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/cognitive_runtime/clarification.py",
@@ -893,8 +893,8 @@
     },
     {
       "path": "backend/app/context/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/context/tab_context_engine.py",
@@ -904,7 +904,7 @@
     {
       "path": "backend/app/context_compression/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/context_compression/compressor.py",
@@ -924,7 +924,7 @@
     {
       "path": "backend/app/context_packet/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/context_packet/adapter.py",
@@ -958,8 +958,8 @@
     },
     {
       "path": "backend/app/contracts/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/contracts/base.py",
@@ -973,18 +973,18 @@
     },
     {
       "path": "backend/app/contracts/evaluation.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/contracts/governance.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/contracts/grounding.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/contracts/ledger_events.py",
@@ -993,8 +993,8 @@
     },
     {
       "path": "backend/app/contracts/mission_state.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/contracts/registry.py",
@@ -1003,8 +1003,8 @@
     },
     {
       "path": "backend/app/contracts/semantic_graph.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/contracts/serialization.py",
@@ -1013,8 +1013,8 @@
     },
     {
       "path": "backend/app/contracts/validation.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/contracts/validator.py",
@@ -1029,7 +1029,7 @@
     {
       "path": "backend/app/conversation/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/conversation/manager.py",
@@ -1043,8 +1043,8 @@
     },
     {
       "path": "backend/app/core/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/core/config.py",
@@ -1064,7 +1064,7 @@
     {
       "path": "backend/app/cost_controller/__init__.py",
       "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "evidence": "package initializer inherits test-only status from descendant modules"
     },
     {
       "path": "backend/app/cost_controller/budgets.py",
@@ -1083,13 +1083,13 @@
     },
     {
       "path": "backend/app/cost_controller/telemetry.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/decisions/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/decisions/aggregator.py",
@@ -1118,8 +1118,8 @@
     },
     {
       "path": "backend/app/decisions/persistence.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/decisions/priority.py",
@@ -1134,7 +1134,7 @@
     {
       "path": "backend/app/decisions/sources/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/decisions/sources/browser.py",
@@ -1164,7 +1164,7 @@
     {
       "path": "backend/app/diagnostics/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/diagnostics/console.py",
@@ -1184,7 +1184,7 @@
     {
       "path": "backend/app/evaluation/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/evaluation/engine.py",
@@ -1229,7 +1229,7 @@
     {
       "path": "backend/app/execution_continuity/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/execution_continuity/action_history.py",
@@ -1294,7 +1294,7 @@
     {
       "path": "backend/app/execution_gateway/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/execution_gateway/adapter.py",
@@ -1314,7 +1314,7 @@
     {
       "path": "backend/app/execution_gateway/browser/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/execution_gateway/browser/adaptive_resolver.py",
@@ -1484,7 +1484,7 @@
     {
       "path": "backend/app/execution_orchestrator/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/execution_orchestrator/artifact_registry.py",
@@ -1549,7 +1549,7 @@
     {
       "path": "backend/app/execution_planning/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/execution_planning/analytics.py",
@@ -1599,27 +1599,27 @@
     {
       "path": "backend/app/exploration/__init__.py",
       "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "evidence": "package initializer inherits test-only status from descendant modules"
     },
     {
       "path": "backend/app/exploration/candidate_evaluator.py",
-      "status": "dead",
-      "evidence": "no static reachability from configured product or registered-route roots"
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
     },
     {
       "path": "backend/app/exploration/candidate_generator.py",
-      "status": "dead",
-      "evidence": "no static reachability from configured product or registered-route roots"
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
     },
     {
       "path": "backend/app/exploration/exploration_planner.py",
-      "status": "dead",
-      "evidence": "no static reachability from configured product or registered-route roots"
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
     },
     {
       "path": "backend/app/extraction_v2/extractor_v2.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/extraction_v2/grounded_registry.py",
@@ -1648,13 +1648,13 @@
     },
     {
       "path": "backend/app/file_engine/file_workflow.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/file_upload_broker/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/file_upload_broker/policy.py",
@@ -1663,8 +1663,8 @@
     },
     {
       "path": "backend/app/form_workflow/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/form_workflow/spec.py",
@@ -1674,7 +1674,7 @@
     {
       "path": "backend/app/governance/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/governance/analytics.py",
@@ -1719,7 +1719,7 @@
     {
       "path": "backend/app/grounding/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/grounding/cache.py",
@@ -1744,7 +1744,7 @@
     {
       "path": "backend/app/intelligence/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/intelligence/analytics.py",
@@ -1798,8 +1798,8 @@
     },
     {
       "path": "backend/app/intent/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/intent/router.py",
@@ -1809,7 +1809,7 @@
     {
       "path": "backend/app/intent_dispatcher/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/intent_dispatcher/models.py",
@@ -1824,7 +1824,7 @@
     {
       "path": "backend/app/intent_providers/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/intent_providers/browser_executor.py",
@@ -1863,38 +1863,38 @@
     },
     {
       "path": "backend/app/intent_runtime/__init__.py",
-      "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "status": "dead",
+      "evidence": "package initializer inherits dead status from descendant modules"
     },
     {
       "path": "backend/app/intent_runtime/context.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/intent_runtime/dispatcher.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/intent_runtime/models.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/intent_runtime/queue.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/intent_runtime/registry.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/knowledge_extraction/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/knowledge_extraction/collection_policy.py",
@@ -1978,8 +1978,8 @@
     },
     {
       "path": "backend/app/mission/__init__.py",
-      "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/mission/affinity.py",
@@ -1993,8 +1993,8 @@
     },
     {
       "path": "backend/app/mission/blueprint/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/mission/blueprint/expansion.py",
@@ -2038,8 +2038,8 @@
     },
     {
       "path": "backend/app/mission/intelligence/__init__.py",
-      "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/mission/intelligence/analytics.py",
@@ -2139,7 +2139,7 @@
     {
       "path": "backend/app/mission/v3/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/mission/v3/engine.py",
@@ -2169,7 +2169,7 @@
     {
       "path": "backend/app/mission_completion/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/mission_completion/criteria.py",
@@ -2198,8 +2198,8 @@
     },
     {
       "path": "backend/app/mission_result/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/mission_result/api.py",
@@ -2228,8 +2228,8 @@
     },
     {
       "path": "backend/app/mission_result/serializer.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/mission_result/service.py",
@@ -2238,8 +2238,8 @@
     },
     {
       "path": "backend/app/models/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/models/db.py",
@@ -2248,13 +2248,13 @@
     },
     {
       "path": "backend/app/observability/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/observability/health.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/observability/metrics.py",
@@ -2304,7 +2304,7 @@
     {
       "path": "backend/app/policy/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/policy/constraints.py",
@@ -2349,7 +2349,7 @@
     {
       "path": "backend/app/product/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/product/dependencies.py",
@@ -2404,7 +2404,7 @@
     {
       "path": "backend/app/research/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/research/analytics.py",
@@ -2428,8 +2428,8 @@
     },
     {
       "path": "backend/app/research/providers/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/research/providers/ai_knowledge.py",
@@ -2469,12 +2469,12 @@
     {
       "path": "backend/app/run_ledger/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/run_ledger/migrations.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/run_ledger/models.py",
@@ -2514,7 +2514,7 @@
     {
       "path": "backend/app/runtime/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/runtime/analytics.py",
@@ -2579,7 +2579,7 @@
     {
       "path": "backend/app/runtime_state_manager/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/runtime_state_manager/artifacts.py",
@@ -2664,7 +2664,7 @@
     {
       "path": "backend/app/scheduler/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/scheduler/jobs.py",
@@ -2673,8 +2673,8 @@
     },
     {
       "path": "backend/app/scheduler/policies.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/scheduler/queue.py",
@@ -2684,7 +2684,7 @@
     {
       "path": "backend/app/schema_validation/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/schema_validation/models.py",
@@ -2698,8 +2698,8 @@
     },
     {
       "path": "backend/app/schemas/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/schemas/analytics.py",
@@ -2708,8 +2708,8 @@
     },
     {
       "path": "backend/app/schemas/approvals.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/schemas/assist.py",
@@ -2718,8 +2718,8 @@
     },
     {
       "path": "backend/app/schemas/authorization.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/schemas/browser.py",
@@ -2733,18 +2733,18 @@
     },
     {
       "path": "backend/app/schemas/execution_gateway.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/schemas/execution_planning.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/schemas/governance.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "backend/app/schemas/history.py",
@@ -2809,7 +2809,7 @@
     {
       "path": "backend/app/semantic_execution_kernel/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/semantic_execution_kernel/browser_context_registry.py",
@@ -2893,8 +2893,8 @@
     },
     {
       "path": "backend/app/semantic_page/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/semantic_page/builder.py",
@@ -2929,7 +2929,7 @@
     {
       "path": "backend/app/services/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/services/ai_service.py",
@@ -2973,8 +2973,8 @@
     },
     {
       "path": "backend/app/signup_policy/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/signup_policy/policy.py",
@@ -2999,7 +2999,7 @@
     {
       "path": "backend/app/tabs/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/tabs/analytics.py",
@@ -3059,7 +3059,7 @@
     {
       "path": "backend/app/trust/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/trust/action_analyzer.py",
@@ -3114,7 +3114,7 @@
     {
       "path": "backend/app/unified/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/unified/analytics.py",
@@ -3198,8 +3198,8 @@
     },
     {
       "path": "backend/app/validation/__init__.py",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "shadow",
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/validation/benchmark_catalog.py",
@@ -3268,8 +3268,8 @@
     },
     {
       "path": "backend/app/validators/base_validator.py",
-      "status": "dead",
-      "evidence": "no static reachability from configured product or registered-route roots"
+      "status": "test-only",
+      "evidence": "referenced by repository tests but not statically reachable from product roots"
     },
     {
       "path": "backend/app/validators/gmail_validators.py",
@@ -3294,7 +3294,7 @@
     {
       "path": "backend/app/verification/__init__.py",
       "status": "live",
-      "evidence": "statically reachable from a configured product entry root"
+      "evidence": "package initializer inherits live status from descendant modules"
     },
     {
       "path": "backend/app/verification/engine.py",
@@ -3339,7 +3339,7 @@
     {
       "path": "backend/app/website_intelligence/__init__.py",
       "status": "shadow",
-      "evidence": "reachable from a registered API route not used by the core extension flow"
+      "evidence": "package initializer inherits shadow status from descendant modules"
     },
     {
       "path": "backend/app/website_intelligence/analyzer.py",
@@ -3423,8 +3423,8 @@
     },
     {
       "path": "extension/src/capabilities/health.ts",
-      "status": "test-only",
-      "evidence": "referenced by repository tests but not statically reachable from product roots"
+      "status": "dead",
+      "evidence": "no static reachability from configured product or registered-route roots"
     },
     {
       "path": "extension/src/capabilities/manifest.ts",

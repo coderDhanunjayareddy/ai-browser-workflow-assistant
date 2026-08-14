@@ -336,6 +336,75 @@
       }) || null;
     }
 
+    function normalizeSafeHttpUrl(raw) {
+      if (!raw) return null;
+      try {
+        var url = new URL(raw, window.location.href);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+        return url.toString();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function sameUrlIgnoringHash(left, right) {
+      try {
+        var a = new URL(left);
+        var b = new URL(right);
+        a.hash = '';
+        b.hash = '';
+        return a.toString() === b.toString();
+      } catch (e) {
+        return left === right;
+      }
+    }
+
+    function isDisabledElement(candidate) {
+      var ariaDisabled = (candidate.getAttribute('aria-disabled') || '').toLowerCase() === 'true';
+      var disabledClass = /\b(disabled|inactive|unavailable)\b/i.test(candidate.className || '');
+      var nativeDisabled = candidate instanceof HTMLButtonElement || candidate instanceof HTMLInputElement
+        ? candidate.disabled
+        : false;
+      return ariaDisabled || disabledClass || nativeDisabled;
+    }
+
+    function candidateLabel(candidate) {
+      return [
+        candidate.getAttribute('aria-label') || '',
+        candidate.getAttribute('title') || '',
+        candidate.textContent || '',
+      ].join(' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function findNextPageControl() {
+      var directSelectors = [
+        'a[rel="next"]', 'area[rel="next"]', 'a.next', '.next a',
+        'a[aria-label*="next" i]', 'button[aria-label*="next" i]',
+        '[role="link"][aria-label*="next" i]', '[role="button"][aria-label*="next" i]',
+        'a[title*="next" i]', 'button[title*="next" i]',
+        '[data-testid*="next" i]', '[class*="next" i]',
+      ];
+      var direct = Array.prototype.slice.call(document.querySelectorAll(directSelectors.join(', ')))
+        .filter(isVisibleElement)
+        .filter(function (candidate) { return !isDisabledElement(candidate); });
+      if (direct.length > 0) return direct[0];
+      var controls = Array.prototype.slice.call(document.querySelectorAll('a, button, [role="link"], [role="button"]'))
+        .filter(isVisibleElement)
+        .filter(function (candidate) { return !isDisabledElement(candidate); });
+      return controls.find(function (candidate) {
+        var label = candidateLabel(candidate).toLowerCase();
+        return /^(next|next page|load more|show more|more|>|\u203a|\u00bb)$/.test(label) ||
+          /\b(next|next page|load more|show more)\b/.test(label);
+      }) || null;
+    }
+
+    function hrefForControl(candidate) {
+      var link = candidate instanceof HTMLAnchorElement || candidate instanceof HTMLAreaElement
+        ? candidate
+        : candidate.closest('a') || candidate.querySelector('a[href]');
+      return normalizeSafeHttpUrl(link && link.getAttribute('href'));
+    }
+
     return (async function () {
       var targetEl = null;
       if (selector) targetEl = await waitForElement(selector);
@@ -433,6 +502,30 @@
             if (!value) return { success: false, message: 'No URL provided.', action_id: action_id };
             window.location.href = value;
             return { success: true, message: 'Navigating to: ' + value, action_id: action_id };
+          }
+          case 'navigate_next_page': {
+            var requestedUrl = normalizeSafeHttpUrl(value);
+            if (requestedUrl && !sameUrlIgnoringHash(requestedUrl, window.location.href)) {
+              window.location.href = requestedUrl;
+              return { success: true, message: 'Navigating to next page: ' + requestedUrl, action_id: action_id, next_page_url: requestedUrl, pagination_mode: 'next_link', pagination_control_label: 'requested_url', pagination_used_fallback_click: false };
+            }
+            var headElement = document.querySelector('link[rel="next"]');
+            var headNext = normalizeSafeHttpUrl(headElement && headElement.href);
+            if (headNext && !sameUrlIgnoringHash(headNext, window.location.href)) {
+              window.location.href = headNext;
+              return { success: true, message: 'Navigating to next page: ' + headNext, action_id: action_id, next_page_url: headNext, pagination_mode: 'next_link', pagination_control_label: 'link[rel=next]', pagination_used_fallback_click: false };
+            }
+            var control = findNextPageControl();
+            if (!control) return { success: false, message: 'No enabled next-page control found.', action_id: action_id };
+            var href = hrefForControl(control);
+            var controlLabel = candidateLabel(control) || control.tagName.toLowerCase();
+            if (href && !sameUrlIgnoringHash(href, window.location.href)) {
+              window.location.href = href;
+              return { success: true, message: 'Navigating to next page: ' + href, action_id: action_id, next_page_url: href, pagination_mode: 'next_link', pagination_control_label: controlLabel, pagination_used_fallback_click: false };
+            }
+            control.scrollIntoView({ block: 'center', inline: 'center' });
+            control.click();
+            return { success: true, message: 'Clicked next page control: ' + controlLabel, action_id: action_id, next_page_url: window.location.href, pagination_mode: 'next_link', pagination_control_label: controlLabel, pagination_used_fallback_click: true };
           }
           case 'wait': {
             var waitMs = Number(value == null ? 2000 : value);

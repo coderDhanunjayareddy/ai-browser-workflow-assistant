@@ -1,5 +1,10 @@
 # M0 — Real Website Benchmark: Complete Implementation Program
 
+> Historical design note: this document specifies the original 27-task M0 dataset. The
+> executable catalog now contains 38 tasks after the first-product-validation additions.
+> Phase 0 freezes the current denominator in `backend/benchmark/suites/phase0_baseline.yaml`;
+> use `docs/phase0/README.md` for the current runbook and exit gate.
+
 **Date:** 2026-06-29  
 **Status:** Design document. No code. Implementation program for another engineer.  
 **Sole objective:** Establish the first real-world task completion baseline so that every future engineering decision can be judged against a measured number, not a guess.  

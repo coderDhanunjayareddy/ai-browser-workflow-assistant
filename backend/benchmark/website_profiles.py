@@ -58,6 +58,13 @@ _PROFILES: dict[str, WebsiteProfile] = {p.site_id: p for p in [
                    anti_bot=True),
     WebsiteProfile("makemytrip_com", "https://www.makemytrip.com", captcha_probability="high",
                    anti_bot=True, rate_limit_delay_ms=3000),
+    WebsiteProfile("google_com", "https://www.google.com", captcha_probability="medium",
+                   anti_bot=True, rate_limit_delay_ms=2000),
+    WebsiteProfile("saas_signup", "https://www.google.com", captcha_probability="medium",
+                   anti_bot=True, known_blocks=["controlled test inbox required"]),
+    WebsiteProfile("file_upload_public", "https://www.google.com", captcha_probability="medium",
+                   anti_bot=True, known_blocks=["public upload target selected at runtime"]),
+    WebsiteProfile("test_form_public", "https://www.selenium.dev", captcha_probability="low"),
 
     # auth-gated real sites (session_state; auth files do not exist until recorded)
     WebsiteProfile("linkedin_com", "https://www.linkedin.com", auth_required=True,

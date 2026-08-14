@@ -138,7 +138,7 @@ benchmark/
   m0_runner.py        suite orchestrator + CLI + baseline
   m0_task_runner.py   the per-task observe->analyze->gate->execute->validate loop
   m0_executor.py      Driver + PlaywrightDriver (Mode A) + synthetic (Mode B) + capture
-  m0_scenarios.py     the 27 task definitions
+  m0_scenarios.py     the 38 task definitions
   m0_models.py        dataclasses + enums
   m0_metrics.py       aggregation, Wilson CI, cost, executor gap
   m0_report.py        JSON / Markdown / HTML

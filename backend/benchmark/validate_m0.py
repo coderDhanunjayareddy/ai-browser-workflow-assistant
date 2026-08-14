@@ -49,7 +49,7 @@ def _simple_task(**kw) -> M0TaskDefinition:
 def run() -> int:
     # ── 1. scenarios well-formed ────────────────────────────────────────────
     tasks = m0_scenarios.build_m0_scenarios()
-    check("27 scenarios defined", len(tasks) == 27, f"got {len(tasks)}")
+    check("38 scenarios defined", len(tasks) == 38, f"got {len(tasks)}")
     ids = [t.task_id for t in tasks]
     check("scenario ids unique", len(ids) == len(set(ids)))
     check("every scenario has success criteria", all(t.success_criteria for t in tasks))

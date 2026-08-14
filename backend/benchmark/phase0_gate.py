@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from benchmark.m0_runner import load_suite, select_tasks
+from benchmark.website_profiles import get_profile
 
 
 MIN_TASKS = 25
@@ -35,6 +36,8 @@ def build_manifest() -> dict[str, Any]:
             errors.append(f"{task.task_id} has no success criteria")
         if task.timeout_ms <= 0 or task.max_steps <= 0:
             errors.append(f"{task.task_id} has invalid execution bounds")
+        if get_profile(task.site_id) is None:
+            errors.append(f"{task.task_id} has no website profile for {task.site_id}")
 
     task_payload = [task.to_dict() for task in tasks]
     canonical = json.dumps(task_payload, sort_keys=True, separators=(",", ":"))
@@ -63,7 +66,7 @@ def audit_report(path: Path, manifest: dict[str, Any], expected_executor: str) -
     executor = meta.get("executor_mode") or report.get("executor_mode")
     if executor != expected_executor:
         errors.append(f"{path}: executor is {executor!r}, expected {expected_executor!r}")
-    results = report.get("tasks") or report.get("results") or []
+    results = report.get("task_results") or report.get("tasks") or report.get("results") or []
     result_ids = [str(item.get("task_id") or "") for item in results if isinstance(item, dict)]
     expected_ids = [item["task_id"] for item in manifest["tasks"]]
     missing = sorted(set(expected_ids) - set(result_ids))

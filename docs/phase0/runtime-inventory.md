@@ -8,24 +8,24 @@
 
 | Status | Files |
 |---|---:|
-| `live` | 359 |
+| `live` | 379 |
 | `shadow` | 238 |
-| `test-only` | 94 |
+| `test-only` | 48 |
 | `stub` | 7 |
-| `dead` | 12 |
+| `dead` | 38 |
 
 ## Modules
 
 | Module | Status | Evidence |
 |---|---|---|
-| `backend/app/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/adapters/amazon/adapter.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/adapters/base_adapter.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/adapters/base_adapter.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/adapters/gmail/adapter.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/adapters/makemytrip/adapter.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/adapters/whatsapp/adapter.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/api/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/api/routes/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/api/__init__.py` | `live` | package initializer inherits live status from descendant modules |
+| `backend/app/api/routes/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/api/routes/analyze.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/api/routes/approvals.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/assist.py` | `live` | statically reachable from a configured product entry root |
@@ -55,7 +55,7 @@
 | `backend/app/api/routes/validation.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/website_intelligence.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/workflow.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/approvals/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/approvals/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/approvals/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/approvals/generator.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/approvals/inspector.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -64,9 +64,9 @@
 | `backend/app/approvals/queue.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/approvals/registry.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/approvals/timeline.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/assist/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/assist/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/assist/ambient_assistant.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/authorization/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/authorization/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/authorization/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/authorization/engine.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/authorization/inspector.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -75,7 +75,7 @@
 | `backend/app/authorization/readiness.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/authorization/registry.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/authorization/timeline.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/benchmark/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/benchmark/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/benchmark/benchmark_catalog.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/benchmark/benchmark_controller.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/benchmark/benchmark_diagnostics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -90,7 +90,7 @@
 | `backend/app/benchmark/benchmark_service.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/benchmark/benchmark_trace.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/benchmark/benchmark_validator.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/browser/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/browser/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/browser/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/browser/inspector.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/browser/mission_refresh.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -101,7 +101,7 @@
 | `backend/app/browser/sync_service.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/browser/timeline.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/browser/trust_refresh.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/browser_intelligence/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/browser_intelligence/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/browser_intelligence/action_verification.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/browser_intelligence/adapters.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/browser_intelligence/cache.py` | `live` | statically reachable from a configured product entry root |
@@ -118,20 +118,20 @@
 | `backend/app/browser_intelligence/visual_grounding.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/browser_intelligence/waits.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/browser_url_policy.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/budget_engine/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/budget_engine/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/budget_engine/budget_enforcer.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/budget_engine/budget_manager.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/budget_engine/budget_models.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/capability_platform/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/capability_platform/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/capability_platform/browser_registry.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/capability_platform/constraints.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/capability_platform/discovery.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/capability_platform/health.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/capability_platform/constraints.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/capability_platform/discovery.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/capability_platform/health.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/capability_platform/manifest.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/capability_platform/metrics.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/capability_platform/permissions.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/capability_platform/metrics.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/capability_platform/permissions.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/capability_platform/registry.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/certification/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/certification/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/certification/failure_catalog.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/certification/fixtures.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/certification/models.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -140,7 +140,7 @@
 | `backend/app/certification/runner.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/certification/scenarios.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/certification/trace.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/cognitive_core/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/cognitive_core/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/cognitive_core/analytics.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/cognitive_core/conversation_manager.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/cognitive_core/entity_registry.py` | `live` | statically reachable from a configured product entry root |
@@ -152,7 +152,7 @@
 | `backend/app/cognitive_core/reference_resolver.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/cognitive_core/workflow_bridge.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/cognitive_core/workflow_context.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/cognitive_runtime/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/cognitive_runtime/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/cognitive_runtime/clarification.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/cognitive_runtime/comparison.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/cognitive_runtime/comparison_explanations.py` | `live` | statically reachable from a configured product entry root |
@@ -193,65 +193,65 @@
 | `backend/app/cognitive_runtime/transitions.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/cognitive_runtime/versioning.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/cognitive_runtime/waits.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/context/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/context/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/context/tab_context_engine.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/context_compression/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/context_compression/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/context_compression/compressor.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/context_compression/relevance_ranker.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/context_compression/state_summarizer.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/context_packet/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/context_packet/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/context_packet/adapter.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/context_packet/budget.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/context_packet/builder.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/context_packet/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/context_packet/projection.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/context_packet/telemetry.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/contracts/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/contracts/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/contracts/base.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/contracts/capabilities.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/contracts/evaluation.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/contracts/governance.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/contracts/grounding.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/contracts/evaluation.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/contracts/governance.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/contracts/grounding.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/contracts/ledger_events.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/contracts/mission_state.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/contracts/mission_state.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/contracts/registry.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/contracts/semantic_graph.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/contracts/semantic_graph.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/contracts/serialization.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/contracts/validation.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/contracts/validation.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/contracts/validator.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/contracts/versions.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/conversation/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/conversation/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/conversation/manager.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/conversation/store.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/core/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/core/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/core/config.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/core/database.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/core/schema_migrations.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/cost_controller/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/cost_controller/__init__.py` | `test-only` | package initializer inherits test-only status from descendant modules |
 | `backend/app/cost_controller/budgets.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/cost_controller/meter.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/cost_controller/policy.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/cost_controller/telemetry.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/decisions/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/cost_controller/telemetry.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/decisions/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/decisions/aggregator.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/feed.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/inspector.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/models.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/decisions/persistence.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/decisions/persistence.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/decisions/priority.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/registry.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/decisions/sources/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/decisions/sources/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/decisions/sources/browser.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/sources/mission.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/sources/research.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/sources/trust.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/timeline.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/diagnostics/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/diagnostics/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/diagnostics/console.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/diagnostics/trace_sink.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/domain_models.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/evaluation/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/evaluation/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/evaluation/engine.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/evaluation/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/evaluation/regression.py` | `live` | statically reachable from a configured product entry root |
@@ -260,7 +260,7 @@
 | `backend/app/evaluation/scoring.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/evaluation/signals.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/evaluation/telemetry.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/execution_continuity/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/execution_continuity/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/execution_continuity/action_history.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/execution_continuity/completion_detector.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/execution_continuity/engine.py` | `live` | statically reachable from a configured product entry root |
@@ -273,11 +273,11 @@
 | `backend/app/execution_continuity/tab_state.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/execution_continuity/telemetry.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/execution_continuity/workflow_state.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/execution_gateway/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/execution_gateway/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/execution_gateway/adapter.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_gateway/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_gateway/audit.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/execution_gateway/browser/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/execution_gateway/browser/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/execution_gateway/browser/adaptive_resolver.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_gateway/browser/auth_handoff.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_gateway/browser/capabilities.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -311,7 +311,7 @@
 | `backend/app/execution_gateway/runner.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_gateway/timeline.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_gateway/validation.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/execution_orchestrator/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/execution_orchestrator/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/execution_orchestrator/artifact_registry.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/execution_orchestrator/budgets.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/execution_orchestrator/completion_engine.py` | `live` | statically reachable from a configured product entry root |
@@ -324,7 +324,7 @@
 | `backend/app/execution_orchestrator/replay.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/execution_orchestrator/telemetry.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/execution_orchestrator/transition_engine.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/execution_planning/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/execution_planning/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/execution_planning/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_planning/inspector.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_planning/models.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -334,22 +334,22 @@
 | `backend/app/execution_planning/rollback.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_planning/timeline.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/execution_planning/validator.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/exploration/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/exploration/candidate_evaluator.py` | `dead` | no static reachability from configured product or registered-route roots |
-| `backend/app/exploration/candidate_generator.py` | `dead` | no static reachability from configured product or registered-route roots |
-| `backend/app/exploration/exploration_planner.py` | `dead` | no static reachability from configured product or registered-route roots |
-| `backend/app/extraction_v2/extractor_v2.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/exploration/__init__.py` | `test-only` | package initializer inherits test-only status from descendant modules |
+| `backend/app/exploration/candidate_evaluator.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/exploration/candidate_generator.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/exploration/exploration_planner.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/extraction_v2/extractor_v2.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/extraction_v2/grounded_registry.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/extraction_v2/semantic_models.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/failure_engine/classifier.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/failure_engine/remedy_db.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/feature_flags.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/file_engine/file_workflow.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/file_upload_broker/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/file_engine/file_workflow.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/file_upload_broker/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/file_upload_broker/policy.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/form_workflow/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/form_workflow/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/form_workflow/spec.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/governance/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/governance/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/governance/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/governance/eligibility.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/governance/generator.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -358,12 +358,12 @@
 | `backend/app/governance/persistence.py` | `stub` | explicit stub/no-op marker in source |
 | `backend/app/governance/registry.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/governance/timeline.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/grounding/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/grounding/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/grounding/cache.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/grounding/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/grounding/resolver.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/grounding/telemetry.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/intelligence/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/intelligence/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/intelligence/analytics.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/intelligence/approval_advisor.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/intelligence/bootstrap_generator.py` | `live` | statically reachable from a configured product entry root |
@@ -374,12 +374,12 @@
 | `backend/app/intelligence/plan_builder.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/intelligence/readiness_analyzer.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/intelligence/recommendation_engine.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/intent/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/intent/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/intent/router.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/intent_dispatcher/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/intent_dispatcher/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/intent_dispatcher/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/intent_dispatcher/registry.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/intent_providers/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/intent_providers/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/intent_providers/browser_executor.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/intent_providers/browser_intelligence_executor.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/intent_providers/common.py` | `live` | statically reachable from a configured product entry root |
@@ -387,13 +387,13 @@
 | `backend/app/intent_providers/knowledge_executor.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/intent_providers/runtime_executor.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/intent_providers/validation_executor.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/intent_runtime/__init__.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/intent_runtime/context.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/intent_runtime/dispatcher.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/intent_runtime/models.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/intent_runtime/queue.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/intent_runtime/registry.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/knowledge_extraction/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/intent_runtime/__init__.py` | `dead` | package initializer inherits dead status from descendant modules |
+| `backend/app/intent_runtime/context.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/intent_runtime/dispatcher.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/intent_runtime/models.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/intent_runtime/queue.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/intent_runtime/registry.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/knowledge_extraction/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/knowledge_extraction/collection_policy.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/knowledge_extraction/engine.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/knowledge_extraction/extraction_engine.py` | `live` | statically reachable from a configured product entry root |
@@ -410,10 +410,10 @@
 | `backend/app/locator_engine/locator_score.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/main.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/memory/learning_layer.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/mission/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/mission/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/mission/affinity.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/mission/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/mission/blueprint/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/mission/blueprint/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/mission/blueprint/expansion.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission/blueprint/migrations.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/mission/blueprint/models.py` | `live` | statically reachable from a configured product entry root |
@@ -422,7 +422,7 @@
 | `backend/app/mission/blueprint/service.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission/bootstrap.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/mission/context_registry.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/mission/intelligence/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/mission/intelligence/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/mission/intelligence/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/mission/intelligence/blocker_detector.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/mission/intelligence/blueprint_builder.py` | `live` | statically reachable from a configured product entry root |
@@ -442,30 +442,30 @@
 | `backend/app/mission/restoration.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/mission/store.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/mission/timeline.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/mission/v3/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/mission/v3/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/mission/v3/engine.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission/v3/fsm.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission/v3/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission/v3/replay.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission/v3/telemetry.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/mission_completion/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/mission_completion/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/mission_completion/criteria.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission_completion/engine.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission_completion/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission_completion/replay.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission_completion/telemetry.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/mission_result/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/mission_result/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/mission_result/api.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission_result/builder.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission_result/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission_result/persistence.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/mission_result/repository.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/mission_result/serializer.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/mission_result/serializer.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/mission_result/service.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/models/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/models/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/models/db.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/observability/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/observability/health.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/observability/__init__.py` | `live` | package initializer inherits live status from descendant modules |
+| `backend/app/observability/health.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/observability/metrics.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/observability/tracing.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/orchestrator/goal_convergence.py` | `live` | statically reachable from a configured product entry root |
@@ -475,7 +475,7 @@
 | `backend/app/orchestrator/strategy_generation.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/orchestrator/tab_manager.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/orchestrator/workflow_orchestrator.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/policy/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/policy/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/policy/constraints.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/policy/engine.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/policy/models.py` | `live` | statically reachable from a configured product entry root |
@@ -484,7 +484,7 @@
 | `backend/app/policy/rules.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/policy/scheduler.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/policy/telemetry.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/product/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/product/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/product/dependencies.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/product/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/product/repositories.py` | `live` | statically reachable from a configured product entry root |
@@ -495,12 +495,12 @@
 | `backend/app/recovery/recovery_orchestrator.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/replay/screenshot_store.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/replay/timeline_service.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/research/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/research/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/research/analytics.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/research/engine.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/research/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/research/planner.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/research/providers/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/research/providers/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/research/providers/ai_knowledge.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/research/providers/base.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/research/providers/duckduckgo.py` | `live` | statically reachable from a configured product entry root |
@@ -508,8 +508,8 @@
 | `backend/app/research/session_manager.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/research/synthesizer.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/research/workflow_bridge.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/run_ledger/__init__.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/run_ledger/migrations.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/run_ledger/__init__.py` | `live` | package initializer inherits live status from descendant modules |
+| `backend/app/run_ledger/migrations.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/run_ledger/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/run_ledger/persistence.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/run_ledger/privacy.py` | `live` | statically reachable from a configured product entry root |
@@ -517,7 +517,7 @@
 | `backend/app/run_ledger/reader.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/run_ledger/replay.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/run_ledger/writer.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/runtime/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/runtime/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/runtime/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/runtime/cache.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/runtime/context.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -530,7 +530,7 @@
 | `backend/app/runtime/prefetch.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/runtime/registry.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/runtime/sync_service.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/runtime_state_manager/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/runtime_state_manager/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/runtime_state_manager/artifacts.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/runtime_state_manager/browser_action_reference.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/runtime_state_manager/checkpoints.py` | `live` | statically reachable from a configured product entry root |
@@ -547,23 +547,23 @@
 | `backend/app/runtime_state_manager/replay.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/runtime_state_manager/sync.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/runtime_state_manager/telemetry.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/scheduler/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/scheduler/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/scheduler/jobs.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/scheduler/policies.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/scheduler/policies.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/scheduler/queue.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/schema_validation/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/schema_validation/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/schema_validation/models.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/schema_validation/validator.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/schemas/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/schemas/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/schemas/analytics.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/schemas/approvals.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/schemas/approvals.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/schemas/assist.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/schemas/authorization.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/schemas/authorization.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/schemas/browser.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/schemas/decisions.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/schemas/execution_gateway.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/schemas/execution_planning.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/schemas/governance.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/schemas/execution_gateway.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/schemas/execution_planning.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/schemas/governance.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/schemas/history.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/schemas/intent.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/schemas/mission.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -576,7 +576,7 @@
 | `backend/app/schemas/trust.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/schemas/unified.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/schemas/workflow.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/semantic_execution_kernel/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/semantic_execution_kernel/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/semantic_execution_kernel/browser_context_registry.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/semantic_execution_kernel/eligibility.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/semantic_execution_kernel/engine.py` | `live` | statically reachable from a configured product entry root |
@@ -593,14 +593,14 @@
 | `backend/app/semantic_execution_kernel/replay.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/semantic_execution_kernel/semantic_action_registry.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/semantic_execution_kernel/state_sync.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/semantic_page/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/semantic_page/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/semantic_page/builder.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/semantic_page/cache.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/semantic_page/classifiers.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/semantic_page/graph.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/semantic_page/serializers.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/semantic_page/telemetry.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/services/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/services/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/services/ai_service.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/services/analytics_service.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/services/context_service.py` | `live` | statically reachable from a configured product entry root |
@@ -609,12 +609,12 @@
 | `backend/app/services/qa_service.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/services/summarization_service.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/services/workflow_service.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/signup_policy/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/signup_policy/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/signup_policy/policy.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/state_engine/persistence.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/state_engine/state_models.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/state_engine/state_transitions.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/tabs/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/tabs/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/tabs/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/tabs/context.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/tabs/intelligence.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -626,7 +626,7 @@
 | `backend/app/tabs/task_tab_map.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/task_graph/graph_executor.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/task_graph/graph_models.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/trust/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/trust/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/trust/action_analyzer.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/trust/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/trust/approval_advisor.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -637,7 +637,7 @@
 | `backend/app/trust/risk_classifier.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/trust/tab_analyzer.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/trust/workflow_analyzer.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
-| `backend/app/unified/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/unified/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/unified/analytics.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/unified/approval_center.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/unified/approval_persistence.py` | `live` | statically reachable from a configured product entry root |
@@ -654,7 +654,7 @@
 | `backend/app/unified/task_timeline.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/unified/timeline_persistence.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/unified/workflow_continuity.py` | `live` | statically reachable from a configured product entry root |
-| `backend/app/validation/__init__.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/validation/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/validation/benchmark_catalog.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/validation/benchmark_diagnostics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/validation/benchmark_metrics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -668,12 +668,12 @@
 | `backend/app/validation/validation_controller.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/validation/validation_service.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/validators/amazon_validators.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/validators/base_validator.py` | `dead` | no static reachability from configured product or registered-route roots |
+| `backend/app/validators/base_validator.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/validators/gmail_validators.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/validators/goal_verifier.py` | `dead` | no static reachability from configured product or registered-route roots |
 | `backend/app/validators/mmt_validators.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/validators/whatsapp_validators.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/verification/__init__.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/verification/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/verification/engine.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/verification/evidence.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/verification/models.py` | `live` | statically reachable from a configured product entry root |
@@ -682,7 +682,7 @@
 | `backend/app/verification/telemetry.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/vision/vision_policy.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/vision/vision_service.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
-| `backend/app/website_intelligence/__init__.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/website_intelligence/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/website_intelligence/analyzer.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/website_intelligence/dialog_intelligence.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/website_intelligence/dom_snapshot.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -699,7 +699,7 @@
 | `extension/src/background/service-worker.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/background/tab_control.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/background/target_tab.ts` | `live` | statically reachable from a configured product entry root |
-| `extension/src/capabilities/health.ts` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `extension/src/capabilities/health.ts` | `dead` | no static reachability from configured product or registered-route roots |
 | `extension/src/capabilities/manifest.ts` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `extension/src/content/action_verification.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/content/executor.ts` | `live` | statically reachable from a configured product entry root |

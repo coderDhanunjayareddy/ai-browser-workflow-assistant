@@ -141,16 +141,20 @@ def build_inventory() -> dict:
     live_backend = _reachable(live_backend_roots, backend_graph)
     shadow_backend = _reachable(shadow_backend_roots, backend_graph) - live_backend
 
+    backend_test_files = _source_files(REPO_ROOT / "backend" / "tests", {".py"})
+    backend_test_graph = dict(backend_graph)
+    backend_test_graph.update({path: _backend_dependencies(path) for path in backend_test_files})
+    test_backend = _reachable(backend_test_files, backend_test_graph) - live_backend - shadow_backend
+
     live_extension_roots = [
         EXTENSION_SRC / "background" / "service-worker.ts",
         EXTENSION_SRC / "sidepanel" / "index.tsx",
     ]
     live_extension = _reachable(live_extension_roots, extension_graph)
 
-    test_text = "\n".join(
+    extension_test_text = "\n".join(
         path.read_text(encoding="utf-8", errors="ignore")
-        for root in (REPO_ROOT / "backend" / "tests", REPO_ROOT / "extension" / "tests")
-        for path in root.rglob("*") if path.is_file()
+        for path in (REPO_ROOT / "extension" / "tests").rglob("*") if path.is_file()
     )
 
     entries: list[dict[str, str]] = []
@@ -162,11 +166,28 @@ def build_inventory() -> dict:
             status, evidence = "live", "statically reachable from a configured product entry root"
         elif path in shadow_backend:
             status, evidence = "shadow", "reachable from a registered API route not used by the core extension flow"
-        elif path.name in test_text or path.stem in test_text:
+        elif path in test_backend or (
+            path in extension_files
+            and path.name not in {"index.ts", "index.tsx"}
+            and path.name in extension_test_text
+        ):
             status, evidence = "test-only", "referenced by repository tests but not statically reachable from product roots"
         else:
             status, evidence = "dead", "no static reachability from configured product or registered-route roots"
         entries.append({"path": rel, "status": status, "evidence": evidence})
+
+    # Importing any module executes its package ``__init__`` files. Attribute package
+    # initializers from their descendants instead of mislabelling them as unreachable.
+    priority = {"live": 4, "shadow": 3, "test-only": 2, "stub": 1, "dead": 0}
+    for item in entries:
+        if not item["path"].endswith("/__init__.py") or item["status"] == "stub":
+            continue
+        package_prefix = item["path"][: -len("__init__.py")]
+        descendants = [candidate for candidate in entries if candidate is not item and candidate["path"].startswith(package_prefix)]
+        if descendants:
+            inherited = max(descendants, key=lambda candidate: priority[candidate["status"]])["status"]
+            item["status"] = inherited
+            item["evidence"] = f"package initializer inherits {inherited} status from descendant modules"
 
     entries.sort(key=lambda item: item["path"])
     counts = Counter(item["status"] for item in entries)
