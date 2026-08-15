@@ -40,6 +40,8 @@ import type {
   IntentNextResponse,
   IntentUpdateResponse,
   MissionResult,
+  PolicyExecutionContext,
+  PolicyProvenanceLabel,
 } from '../../types'
 
 const BACKEND_URL = 'http://localhost:8000'
@@ -82,6 +84,103 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
       },
     )
   })
+}
+
+interface LivePolicyDecision {
+  policy_decision: 'allow' | 'warn' | 'allow_with_confirmation' | 'block' | 'handoff_required' | 'defer'
+  allowed: boolean
+  approval_required: boolean
+  requires_handoff: boolean
+  decision_reason: string
+}
+
+interface ConfirmationReceiptResponse {
+  receipt_id: string
+}
+
+interface OriginGrantResponse {
+  grant_id: string
+}
+
+function promptInjectionLabels(context: PageContext): string[] {
+  const text = `${context.title}\n${context.visible_text}`.toLowerCase()
+  const labels: string[] = ['page_observation']
+  if (/ignore (all |any )?(previous|prior|system|developer) instructions/.test(text)) {
+    labels.push('prompt_injection_detected')
+  }
+  if (/(reveal|send|upload|exfiltrate).{0,60}(password|otp|token|cookie|api key|secret)/.test(text)) {
+    labels.push('secret_exfiltration')
+  }
+  if (/(bypass|disable|ignore).{0,40}(policy|approval|safety|confirmation)/.test(text)) {
+    labels.push('policy_bypass_request')
+  }
+  return labels
+}
+
+function policyProvenance(sessionId: string, action: SuggestedAction, context: PageContext): PolicyProvenanceLabel[] {
+  return [
+    { source_type: 'user', source_id: `session:${sessionId}`, trust: 'trusted', labels: ['direct_user_task'] },
+    { source_type: 'planner', source_id: `action:${action.action_id}`, trust: 'untrusted', labels: ['model_proposed'] },
+    { source_type: 'page', source_id: `page:${context.tab_id ?? 'unknown'}`, trust: 'untrusted', labels: promptInjectionLabels(context) },
+  ]
+}
+
+async function policyJson<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetchWithTimeout(`${BACKEND_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }, POST_ACTION_TIMEOUT_MS)
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({})) as { detail?: unknown }
+    throw new Error(formatErrorDetail(payload.detail, `Policy request failed (${response.status})`))
+  }
+  return await response.json() as T
+}
+
+async function preparePolicyExecution(
+  sessionId: string,
+  action: SuggestedAction,
+  context: PageContext,
+  source: ExecutionMode,
+): Promise<PolicyExecutionContext> {
+  const provenance = policyProvenance(sessionId, action, context)
+  const request = { session_id: sessionId, origin: context.url, action, provenance }
+  const decision = await policyJson<LivePolicyDecision>('/policy/evaluate', request)
+
+  if (decision.policy_decision === 'block' || decision.policy_decision === 'handoff_required' || decision.policy_decision === 'defer') {
+    throw new Error(`Policy stopped this action: ${decision.decision_reason}`)
+  }
+  if (source === 'auto' && decision.policy_decision !== 'allow') {
+    throw new Error('Policy requires explicit user approval before this action can execute.')
+  }
+
+  let confirmationReceiptId: string | null = null
+  let originGrantId: string | null = null
+  if (decision.policy_decision === 'allow_with_confirmation') {
+    const receipt = await policyJson<ConfirmationReceiptResponse>('/policy/confirm', {
+      request,
+      ttl_seconds: 120,
+      confirmation_source: 'human_sidepanel',
+    })
+    confirmationReceiptId = receipt.receipt_id
+  } else if (decision.policy_decision === 'warn') {
+    const grant = await policyJson<OriginGrantResponse>('/policy/origin-grants', {
+      session_id: sessionId,
+      origin: context.url,
+      action_types: [action.action_type],
+      ttl_seconds: 900,
+      grant_source: 'human_sidepanel',
+    })
+    originGrantId = grant.grant_id
+  }
+
+  return {
+    session_id: sessionId,
+    provenance,
+    origin_grant_id: originGrantId,
+    confirmation_receipt_id: confirmationReceiptId,
+  }
 }
 
 function formatErrorDetail(detail: unknown, fallback: string): string {
@@ -1468,7 +1567,7 @@ export function useWorkflow() {
 
   // ── Approve ─────────────────────────────────────────────────────────────────
 
-  const approveAction = useCallback(async () => {
+  const approveAction = useCallback(async (approvalSource: ExecutionMode = 'manual') => {
     const {
       pendingActions,
       sessionId,
@@ -1498,11 +1597,13 @@ export function useWorkflow() {
       if (typeof pageContext?.tab_id !== 'number') {
         throw new Error('Browser action is not grounded to an observed tab. Refresh the page context and retry.')
       }
+      const policyContext = await preparePolicyExecution(sessionId, action, pageContext, approvalSource)
       const res = await withTimeout(
         sendToBackground<{ result?: ExecutionResult; error?: string }>({
           type: 'EXECUTE_ACTION',
           action,
           tab_id: pageContext.tab_id,
+          policy_context: policyContext,
         }),
         ACTION_EXECUTION_TIMEOUT_MS,
         `${action.action_type} execution`,

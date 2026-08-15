@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from app.intent_dispatcher.models import IntentDispatchDirective, IntentQueueResult
 
@@ -22,6 +22,9 @@ class SuggestedAction(BaseModel):
     reasoning: str
     confidence: float
     safety_level: Literal['safe', 'caution', 'danger']
+    # Sources that influenced this proposal. The browser-side enforcement gate
+    # independently validates these labels before any privileged operation.
+    provenance: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ReportOutcome(BaseModel):

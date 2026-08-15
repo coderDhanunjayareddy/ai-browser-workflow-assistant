@@ -33,6 +33,12 @@ import {
 } from './tab_control'
 import { isGroundedBrowserTarget } from './target_tab'
 import {
+  validateServiceWorkerMessage,
+  type ExecutableAction,
+  type PolicyExecutionContext,
+} from './service_worker_message_validation'
+import { enforceLivePolicy } from './live_policy_client'
+import {
   activateTab,
   createMultiTabWorkspace,
   registerTab,
@@ -42,15 +48,7 @@ import {
   type MultiTabWorkspace,
 } from '../workspace/multiTabWorkspace'
 
-type ExecutableAction = {
-  action_id: string
-  action_type: string
-  target_selector: string | null
-  value: string | null
-  description?: string
-  reasoning?: string
-  safety_level?: string
-}
+const POLICY_BACKEND_URL = 'http://localhost:8000'
 
 type TabControlMetadata = {
   opened_tab_id?: number | null
@@ -134,28 +132,38 @@ chrome.tabs.onRemoved.addListener((tabId) => {
  * async/await cleanly while returning `true` from the listener to keep
  * the message channel open.
  */
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === 'EXTRACT_CONTEXT') {
-    handleExtractContext(sendResponse, typeof message.tab_id === 'number' ? message.tab_id : undefined)
+chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
+  const validationError = validateServiceWorkerMessage(message, {
+    id: sender.id,
+    url: sender.url,
+    hasTab: Boolean(sender.tab),
+  }, chrome.runtime.id)
+  if (validationError) {
+    sendResponse({ error: validationError })
+    return false
+  }
+  const validMessage = message as Record<string, any>
+  if (validMessage.type === 'EXTRACT_CONTEXT') {
+    handleExtractContext(sendResponse, typeof validMessage.tab_id === 'number' ? validMessage.tab_id : undefined)
     return true
   }
-  if (message.type === 'EXECUTE_ACTION') {
-    handleExecuteAction(message.action, message.tab_id, sendResponse)
+  if (validMessage.type === 'EXECUTE_ACTION') {
+    handleExecuteAction(validMessage.action, validMessage.tab_id, validMessage.policy_context, sendResponse)
     return true
   }
-  if (message.type === 'START_VOICE_CAPTURE') {
-    handleStartVoiceCapture(message.language ?? '', sendResponse)
+  if (validMessage.type === 'START_VOICE_CAPTURE') {
+    handleStartVoiceCapture(validMessage.language ?? '', sendResponse)
     return true
   }
-  if (message.type === 'WAIT_FOR_TAB_LOAD') {
+  if (validMessage.type === 'WAIT_FOR_TAB_LOAD') {
     handleWaitForTabLoad(sendResponse)
     return true
   }
-  if (message.type === 'WAIT_FOR_DOM_SETTLE') {
+  if (validMessage.type === 'WAIT_FOR_DOM_SETTLE') {
     handleWaitForDomSettle(sendResponse)
     return true
   }
-  if (message.type === 'GET_TAB_WORKSPACE') {
+  if (validMessage.type === 'GET_TAB_WORKSPACE') {
     handleGetTabWorkspace(sendResponse)
     return true
   }
@@ -480,6 +488,7 @@ function clickOnceAndReuseTab(action: {
 async function handleExecuteAction(
   action: ExecutableAction,
   observedTabId: number,
+  policyContext: PolicyExecutionContext,
   sendResponse: (response: unknown) => void,
 ) {
   try {
@@ -495,6 +504,24 @@ async function handleExecuteAction(
     }
     const startedAt = performance.now()
     const beforeState = await captureActionVerificationState(tab.id, action, tab)
+    const policyTab = await chrome.tabs.get(tab.id).catch(() => undefined)
+    if (!policyTab?.url || policyTab.url !== tabUrl) {
+      sendResponse({ error: 'Browser action rejected: the observed page changed before policy evaluation.' })
+      return
+    }
+    const policyDecision = await enforceLivePolicy(POLICY_BACKEND_URL, action, policyTab.url, policyContext)
+    if (!policyDecision.allowed) {
+      sendResponse({
+        error: `Browser action rejected by policy: ${policyDecision.decision_reason}`,
+        policy_decision: policyDecision,
+      })
+      return
+    }
+    const executionTab = await chrome.tabs.get(tab.id).catch(() => undefined)
+    if (!executionTab?.url || executionTab.url !== policyTab.url) {
+      sendResponse({ error: 'Browser action rejected: the page changed after policy evaluation.' })
+      return
+    }
 
     // Intercept navigate action and handle directly from background
     if (action.action_type === 'navigate') {

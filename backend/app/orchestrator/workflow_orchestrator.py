@@ -49,6 +49,83 @@ _governance_engine = GovernanceDecisionEngine()
 _evaluation_engine = EvaluationEngine()
 _browser_intelligence_artifacts: dict[str, Any] = {}
 
+_PROMPT_INJECTION_STOP_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"\bignore\s+(?:all\s+)?(?:previous|prior|system|developer)\s+instructions?\b", "instruction_override"),
+    (r"\b(?:reveal|send|upload|exfiltrate|copy)\b.{0,80}\b(?:password|otp|token|cookie|api[ -]?key|secret|credential)s?\b", "secret_exfiltration"),
+    (r"\b(?:bypass|disable|ignore|evade)\b.{0,60}\b(?:policy|approval|safety|confirmation|guardrail)s?\b", "policy_bypass_request"),
+)
+
+_PROMPT_INJECTION_ESCALATE_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"\b(?:assistant|agent|model|ai)\s+(?:must|should|needs?\s+to)\b", "untrusted_instruction"),
+    (r"\b(?:system|developer)\s+(?:message|instruction|prompt)\b", "external_instruction"),
+)
+
+
+def _prompt_injection_labels(page_context: Any) -> tuple[str | None, list[str]]:
+    """Classify instruction-like text from the untrusted page, never the user task."""
+    blocks: list[str] = []
+    for block in list(getattr(page_context, "content_blocks", []) or [])[:100]:
+        if hasattr(block, "model_dump"):
+            blocks.append(json.dumps(block.model_dump(mode="json"), ensure_ascii=False))
+        else:
+            blocks.append(str(block))
+    page_text = "\n".join(
+        [
+            str(getattr(page_context, "title", "") or ""),
+            str(getattr(page_context, "visible_text", "") or ""),
+            str(getattr(page_context, "selected_text", "") or ""),
+            *blocks,
+        ]
+    )[:100_000]
+
+    stop_labels = {
+        label
+        for pattern, label in _PROMPT_INJECTION_STOP_PATTERNS
+        if re.search(pattern, page_text, flags=re.IGNORECASE | re.DOTALL)
+    }
+    if stop_labels:
+        return "stop", sorted({"prompt_injection_detected", *stop_labels})
+
+    escalate_labels = {
+        label
+        for pattern, label in _PROMPT_INJECTION_ESCALATE_PATTERNS
+        if re.search(pattern, page_text, flags=re.IGNORECASE | re.DOTALL)
+    }
+    if escalate_labels:
+        return "escalate", sorted(escalate_labels)
+    return None, []
+
+
+def _prompt_injection_stop_response(*, session_id: str, page_context: Any) -> AnalyzeResponse | None:
+    disposition, labels = _prompt_injection_labels(page_context)
+    if disposition is None:
+        return None
+    is_stop = disposition == "stop"
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis=(
+            "Stopped before planning because the page contains instruction-like content "
+            "that conflicts with the assistant safety boundary."
+            if is_stop
+            else "Paused before planning because the page contains untrusted instructions that need human review."
+        ),
+        outcome_kind="ask",
+        suggested_actions=[],
+        clarification_question=(
+            "Suspicious instructions were detected in this page. No browser action was prepared. "
+            "Please review the page and provide a new trusted instruction if you want to continue."
+        ),
+        policy_provenance=[
+            {
+                "source_type": "page",
+                "source_id": str(getattr(page_context, "url", "") or "page"),
+                "trust": "untrusted",
+                "labels": labels,
+                "disposition": disposition,
+            }
+        ],
+    )
+
 
 class WorkflowOrchestrator:
     """Domain-neutral coordination for one browser-assistant session."""
@@ -650,6 +727,19 @@ class WorkflowOrchestrator:
                 "interactive_elements": len(page_context.interactive_elements),
             },
         )
+        injection_response = _prompt_injection_stop_response(
+            session_id=self.session_id,
+            page_context=page_context,
+        )
+        if injection_response is not None:
+            self._record_v3_event(
+                "policy.prompt_injection_stopped",
+                {
+                    "page_url": str(getattr(page_context, "url", "") or ""),
+                    "labels": injection_response.policy_provenance[0]["labels"],
+                },
+            )
+            return injection_response
         self._build_semantic_graph_shadow(page_context)
         browser_intelligence_artifact = self._build_browser_intelligence_shadow(page_context)
 

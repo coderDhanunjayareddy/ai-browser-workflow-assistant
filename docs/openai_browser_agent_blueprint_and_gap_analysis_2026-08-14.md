@@ -310,6 +310,8 @@ Exit gate: trustworthy baseline metrics and no ambiguous production claims.
 
 ### Phase 1 — Unified live safety gate (2–3 weeks)
 
+Implementation status (2026-08-15): **complete for the current live extension execution path**. See [Phase 1 status and exit-gate evidence](phase1/status.md).
+
 1. Put every action through one policy engine immediately before execution.
 2. Implement origin grants, narrow confirmation receipts, expiry, and audit logging.
 3. Add prompt-injection stop/escalate behavior and provenance labels.

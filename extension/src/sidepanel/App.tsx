@@ -741,7 +741,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
     if (state.phase !== 'awaiting_execution') return
     if (state.pendingActions.length === 0) return
     if (!shouldAutoExecuteAction(state.pendingActions[0], 'auto')) return
-    const timer = setTimeout(() => approveAction(), 800)
+    const timer = setTimeout(() => approveAction('auto'), 800)
     return () => clearTimeout(timer)
   }, [autoMode, state.phase, state.pendingActions, approveAction])
 
@@ -954,7 +954,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
               action={pendingActions[0]}
               stepNumber={completedActions.length + 1}
               autoMode={autoMode}
-              onApprove={approveAction}
+              onApprove={() => approveAction('manual')}
               onReject={() => { rejectAction(); setAutoMode(false) }}
             />
           )}

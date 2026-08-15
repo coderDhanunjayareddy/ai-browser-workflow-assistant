@@ -609,3 +609,47 @@ class MissionTaskRecord(Base):
     attached_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     mission = relationship("MissionRecord", back_populates="task_refs")
+
+
+# ── Phase 1 live policy enforcement ─────────────────────────────────────────
+
+class PolicyOriginGrantRecord(Base):
+    __tablename__ = "policy_origin_grants"
+
+    grant_id = Column(String, primary_key=True)
+    session_id = Column(String, nullable=False, index=True)
+    origin = Column(Text, nullable=False, index=True)
+    action_types = Column(JSON, default=list, nullable=False)
+    issued_by = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class PolicyConfirmationReceiptRecord(Base):
+    __tablename__ = "policy_confirmation_receipts"
+
+    receipt_id = Column(String, primary_key=True)
+    session_id = Column(String, nullable=False, index=True)
+    action_id = Column(String, nullable=False, index=True)
+    action_digest = Column(String, nullable=False, index=True)
+    origin = Column(Text, nullable=False)
+    issued_by = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    consumed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class PolicyAuditRecord(Base):
+    __tablename__ = "policy_audit_events"
+
+    event_id = Column(String, primary_key=True)
+    event_type = Column(String, nullable=False, index=True)
+    session_id = Column(String, nullable=False, index=True)
+    action_id = Column(String, nullable=True, index=True)
+    origin = Column(Text, nullable=True)
+    decision_id = Column(String, nullable=True, index=True)
+    policy_decision = Column(String, nullable=True)
+    reason = Column(Text, nullable=False)
+    metadata_json = Column(JSON, default=dict, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, index=True)
