@@ -51,9 +51,14 @@ def _targets(task: str) -> dict[str, int]:
     text = task.lower()
     targets: dict[str, int] = {}
     count = _first_count(text) or 1
-    if any(term in text for term in ("top", "first", "results", "sources", "pages", "entries", "jobs", "companies")):
+    if any(term in text for term in (
+        "top", "first", "results", "sources", "pages", "entries", "jobs", "companies",
+        "products", "tools", "websites",
+    )):
         targets["collected_items"] = count
-        targets["opened_pages"] = count if any(term in text for term in ("open", "read each", "each page")) else 1
+        targets["opened_pages"] = count if any(term in text for term in (
+            "open", "read each", "each page", "for each", "each one", "different tools",
+        )) else 1
     if any(term in text for term in ("extract", "capture", "collect")):
         targets["extracted_records"] = count
     if "upload" in text:
@@ -68,7 +73,8 @@ def _first_count(text: str) -> int | None:
         r"\b(?:top|first|at least)\s+(\d+)\b",
         r"\bcollect\s+(\d+)\b",
         r"\bchoose\s+(\d+)\b",
-        r"\b(\d+)\s+(?:entries|jobs|companies|sources|results|pages|tools)\b",
+        r"\b(?:pick|choose|open|compare)\s+(\d+)(?:\s+[\w-]+){0,5}\s+(?:products|tools|websites|sources|pages)\b",
+        r"\b(\d+)(?:\s+[\w-]+){0,5}\s+(?:entries|jobs|companies|sources|results|pages|products|tools|websites)\b",
     )
     for pattern in patterns:
         match = re.search(pattern, text)

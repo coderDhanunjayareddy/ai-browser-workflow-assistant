@@ -71,6 +71,8 @@ class TaskRunner:
         analysis_texts: list[str] = []
         last_sig: Optional[str] = None
         same_streak = 0
+        last_unverified_report_sig: Optional[str] = None
+        unverified_report_streak = 0
         recoveries_used = 0
         convergence = GoalConvergenceEngine()
         emitted_strategy_contexts: set[str] = set()
@@ -167,6 +169,26 @@ class TaskRunner:
                     "execution_result": "claim unverified — success criteria not yet satisfied",
                     "page_url": page_context.get("url", ""), "page_title": page_context.get("title", ""),
                 })
+                report_sig = hashlib.sha1(json.dumps({
+                    "answer": ar.report.answer if ar.report else None,
+                    "claim": ar.report.claim if ar.report else None,
+                    "semantic": self._semantic_signature(page_context),
+                    "criteria": self._criteria_signature(recheck),
+                }, sort_keys=True).encode("utf-8")).hexdigest()
+                if report_sig == last_unverified_report_sig:
+                    unverified_report_streak += 1
+                else:
+                    unverified_report_streak = 0
+                last_unverified_report_sig = report_sig
+                if unverified_report_streak >= 2:
+                    return self._finalize_status(
+                        task,
+                        result,
+                        t_start,
+                        TaskStatus.stuck,
+                        failure=FailureCategory.planning,
+                        detail="same unverified report repeated without new evidence",
+                    )
                 if decision.should_replan:
                     step.error_detail = decision.reason
                     recovery_context = self._append_convergence_replan(
@@ -199,6 +221,23 @@ class TaskRunner:
                 recheck = evaluate_success(task.success_criteria,
                                            self._ctx(page_context, analysis_texts, len(result.steps)))
                 step.action_type = step.action_type or (outcome_kind if outcome_kind != "act" else None)
+                if ar.backend_progress:
+                    step.action_type = ar.backend_action_type or "backend_intent"
+                    step.executed = True
+                    step.execution_success = True
+                    step.validation_passed = True
+                    step.validation_detail = ar.backend_progress_detail
+                    result.steps.append(step)
+                    prior_steps.append({
+                        "action_type": step.action_type,
+                        "description": ar.analysis or ar.backend_progress_detail,
+                        "target_selector": "",
+                        "value": None,
+                        "execution_result": f"success: {ar.backend_progress_detail}",
+                        "page_url": page_context.get("url", ""),
+                        "page_title": page_context.get("title", ""),
+                    })
+                    continue
                 result.steps.append(step)
                 if all_passed(recheck):
                     result.criteria_results = recheck

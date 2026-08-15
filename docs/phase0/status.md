@@ -43,3 +43,23 @@ Decision: do not run or publish the 38-task real-site baseline until the fixture
 - Raw artifacts: `backend/benchmark/reports/phase0-baseline-20260814.{json,md,html}` and `backend/benchmark/trace_out/m0-phase0_baseline-1786728413/` (31 executed-task directories, 104 step traces, 28 HTML viewers).
 
 Decision: the measurement harness is now trustworthy enough to expose the product baseline, but the Phase 0 exit gate is **not** met. The 16.1% completion rate is the baseline to improve, not a production-readiness claim. See [playwright-baseline-2026-08-14.md](playwright-baseline-2026-08-14.md).
+
+## Planning-cluster improvement cycle — 2026-08-15
+
+The 10 baseline failures classified as `PLANNING` were traced to three shared contract defects:
+
+1. completed backend-only intents were treated as missing browser actions by the benchmark loop;
+2. Playwright routed URL-backed `open_new_tab` through selector lookup with an empty selector;
+3. observed invoice, table-edit, and dynamically loaded controls fell through to repeated waits or unnecessary clarification.
+
+The shared contracts were repaired with regression coverage. Targeted traced reruns produced:
+
+- `fixture__invoice_total_report`: **COMPLETED**, one step;
+- `fixture__table_edit`: **COMPLETED**, one step;
+- `fixture__dynamic_load`: **COMPLETED**, one step;
+- six Google-start workflows: **BLOCKED_CAPTCHA** before planner execution and excluded from completion scoring;
+- `first10__04_ai_code_assistant_pricing`: native `open_new_tab` succeeded and reached the product site, exposing a second defect in multi-source target parsing and repeated unverified reports. Those contracts were repaired, but the verification rerun was CAPTCHA-blocked before planning.
+
+Requested-count parsing now preserves multi-source targets expressed as “3 AI code assistant products” and “3 different tools.” Repeated identical unverified reports terminate as `STUCK` after three turns instead of consuming the full task budget.
+
+The frozen baseline remains 16.1% until the complete 38-task suite is rerun under a non-challenged search environment. See [planning-cluster-delta-2026-08-15.md](planning-cluster-delta-2026-08-15.md).

@@ -69,6 +69,9 @@ class AnalyzeResult:
     replan:                 Optional[ReplanOutcomeDTO] = None
     prompt_tokens:          int = 0
     completion_tokens:      int = 0
+    backend_progress:       bool = False
+    backend_action_type:    Optional[str] = None
+    backend_progress_detail: str = ""
 
     @property
     def first_action(self) -> Optional[SuggestedActionDTO]:
@@ -131,6 +134,25 @@ def parse_analyze_response(body: dict[str, Any]) -> AnalyzeResult:
     replan_raw = body.get("replan")
     replan = (ReplanOutcomeDTO(reason=replan_raw.get("reason", ""))
               if isinstance(replan_raw, dict) else None)
+    intent_execution = body.get("intent_execution") or {}
+    intent_dispatch = body.get("intent_dispatch") or {}
+    execution_status = str(intent_execution.get("status") or "").lower()
+    browser_action = intent_execution.get("browser_action")
+    backend_progress = bool(
+        not actions
+        and execution_status in {"succeeded", "mission_completed"}
+        and not browser_action
+    )
+    backend_action_type = str(
+        intent_dispatch.get("intent")
+        or intent_execution.get("intent")
+        or "backend_intent"
+    ) if backend_progress else None
+    backend_progress_detail = str(
+        intent_execution.get("reason")
+        or intent_dispatch.get("reason")
+        or "backend intent completed without a browser action"
+    ) if backend_progress else ""
 
     return AnalyzeResult(
         analysis=body.get("analysis", "") or "",
@@ -141,6 +163,9 @@ def parse_analyze_response(body: dict[str, Any]) -> AnalyzeResult:
         replan=replan,
         prompt_tokens=int(usage.get("prompt_tokens", 0) or 0),
         completion_tokens=int(usage.get("completion_tokens", 0) or 0),
+        backend_progress=backend_progress,
+        backend_action_type=backend_action_type,
+        backend_progress_detail=backend_progress_detail,
     )
 
 

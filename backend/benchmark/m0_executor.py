@@ -215,6 +215,14 @@ class PlaywrightDriver(Driver):
                     return ExecResult(False, "navigate: no url")
                 self._page.goto(value, wait_until="domcontentloaded", timeout=45_000)
                 return ExecResult(True, f"navigated {value}", locator_strategy=None, locator_attempts=0)
+            if atype == "open_new_tab":
+                if not str(value or "").startswith(("http://", "https://")):
+                    return ExecResult(False, "open_new_tab: no valid http(s) url")
+                new_page = self._context.new_page()
+                response = new_page.goto(value, wait_until="domcontentloaded", timeout=45_000)
+                self._page = new_page
+                self._last_status = response.status if response is not None else None
+                return ExecResult(True, f"opened new tab {value}", locator_strategy=None, locator_attempts=0)
             if atype == "wait":
                 self._page.wait_for_timeout(float(value or 2000))
                 return ExecResult(True, "waited", locator_attempts=0)

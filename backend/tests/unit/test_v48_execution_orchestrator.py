@@ -201,6 +201,25 @@ def test_research_open_phase_keeps_direct_navigation_forbidden(monkeypatch):
     assert "navigate" in open_phase.forbidden_actions
 
 
+def test_multi_entity_product_and_tool_tasks_preserve_requested_open_count(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    tasks = (
+        "Open the official websites of 3 AI code assistant products from search results. For each product capture pricing.",
+        "Pick 3 different tools and for each one find the official documentation page.",
+    )
+
+    for index, task in enumerate(tasks):
+        snapshot = ExecutionOrchestrator().build_snapshot(
+            session_id=f"multi-entity-target-{index}",
+            task=task,
+            page_context=_page("https://www.google.com/search?q=tools"),
+            prior_steps=[],
+        )
+
+        assert snapshot is not None
+        assert snapshot.progress_ledger.target_counts["opened_pages"] == 3
+
+
 def test_prepositioned_fixture_pages_advance_to_interaction_phase(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     cases = (

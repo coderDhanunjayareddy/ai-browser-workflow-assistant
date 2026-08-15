@@ -116,6 +116,9 @@ class FakeAnalyzeClient:
                 clarification_question=spec.get("clarification_question"),
                 report=spec.get("report"),
                 replan=spec.get("replan"),
+                backend_progress=bool(spec.get("backend_progress", False)),
+                backend_action_type=spec.get("backend_action_type"),
+                backend_progress_detail=spec.get("backend_progress_detail", ""),
                 prompt_tokens=1000, completion_tokens=120,
             )
         atype, selector, value = spec

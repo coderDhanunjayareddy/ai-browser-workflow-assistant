@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from app.orchestrator.workflow_orchestrator import _deterministic_observed_control_response
+from app.orchestrator.workflow_orchestrator import (
+    _deterministic_observed_control_response,
+    _deterministic_observed_report_response,
+)
 from app.schemas.request import InteractiveElement, PageContext, PriorStep
 
 
@@ -94,3 +97,50 @@ def test_pagination_and_modal_actions_use_observed_selectors() -> None:
     )
     assert modal is not None
     assert (modal.suggested_actions[0].action_type, modal.suggested_actions[0].target_selector) == ("click", "#open")
+
+
+def test_table_edit_and_dynamic_ready_use_observed_controls() -> None:
+    table = _deterministic_observed_control_response(
+        session_id="table",
+        task="Edit the first row in the customer table and confirm the row is updated",
+        page_context=_page(
+            "http://127.0.0.1:5051/crud",
+            [
+                InteractiveElement(type="button", selector='[data-testid="edit-1"]', text="Edit", visible=True, role="button"),
+                InteractiveElement(type="button", selector='[data-testid="edit-2"]', text="Edit", visible=True, role="button"),
+            ],
+        ),
+        prior_steps=[],
+    )
+    assert table is not None
+    assert table.suggested_actions[0].target_selector == '[data-testid="edit-1"]'
+
+    dynamic = _deterministic_observed_control_response(
+        session_id="dynamic",
+        task='Wait for the "Ready" button to appear and click it',
+        page_context=_page(
+            "http://127.0.0.1:5051/dynamic",
+            [InteractiveElement(type="button", selector="#ready", text="Ready", visible=True, role="button")],
+        ),
+        prior_steps=[],
+    )
+    assert dynamic is not None
+    assert dynamic.suggested_actions[0].target_selector == "#ready"
+
+
+def test_invoice_total_is_reported_from_visible_evidence() -> None:
+    page = _page("http://127.0.0.1:5051/invoice", [])
+    page = page.model_copy(update={
+        "visible_text": "Invoice INV-2026-0711 Billing Summary Subtotal INR 12,400.00 Tax INR 2,232.00 Total Due INR 14,632.00",
+    })
+
+    report = _deterministic_observed_report_response(
+        session_id="invoice",
+        task="Tell me the invoice total.",
+        page_context=page,
+    )
+
+    assert report is not None
+    assert report.outcome_kind == "report"
+    assert report.report is not None
+    assert report.report.answer == "INR 14,632.00"

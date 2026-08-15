@@ -84,6 +84,33 @@ def test_navigation_only_completes_without_action():
     assert r.steps_taken == 0
 
 
+def test_backend_only_progress_continues_to_next_planner_turn():
+    d = FakeDriver([
+        page("http://x/search", text="search results"),
+        page("http://x/source", text="requested evidence"),
+    ])
+    c = FakeAnalyzeClient([
+        {
+            "outcome_kind": "act",
+            "backend_progress": True,
+            "backend_action_type": "collect_search_results",
+            "backend_progress_detail": "collected 5 grounded results",
+        },
+        ("open_new_tab", "", "http://x/source"),
+    ])
+    t = task(
+        max_steps=3,
+        success_criteria=[M0Criterion(K.dom_text_present, target="requested evidence")],
+    )
+
+    r = runner(d, c).run(t)
+
+    assert r.status == TaskStatus.completed
+    assert r.steps_taken == 2
+    assert r.steps[0].action_type == "collect_search_results"
+    assert r.steps[0].execution_success is True
+
+
 def test_grounding_failure_classified():
     d = FakeDriver([page("http://x/a", text="nothing")],
                    responder=lambda a, i: ExecResult(False, "not found", locator_strategy=None,
@@ -248,6 +275,25 @@ def test_report_outcome_does_not_self_certify_when_criteria_still_fail():
     r = runner(d, c).run(t)
     assert r.status != TaskStatus.completed
     assert r.steps[0].action_type == "report"
+
+
+def test_repeated_identical_unverified_report_stops_as_stuck():
+    d = FakeDriver([page("http://x/product", text="one incomplete source")])
+    repeated = {
+        "outcome_kind": "report",
+        "report": ReportOutcomeDTO(answer="same incomplete answer", claim="same incomplete claim"),
+    }
+    c = FakeAnalyzeClient([repeated, repeated, repeated, repeated])
+    t = task(
+        max_steps=10,
+        success_criteria=[M0Criterion(K.extracted_value_present, target="missing evidence")],
+    )
+
+    r = runner(d, c).run(t)
+
+    assert r.status == TaskStatus.stuck
+    assert r.steps_taken == 3
+    assert r.failure_detail == "same unverified report repeated without new evidence"
 
 
 def test_repeated_unsupported_reports_trigger_replan_breadcrumb():
