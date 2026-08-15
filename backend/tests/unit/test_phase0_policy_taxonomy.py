@@ -43,6 +43,15 @@ def test_file_upload_is_sensitive_transmission():
     assert "sensitive_data_transmission" in _ids("Upload the provided resume")
 
 
+def test_third_party_connector_access_requires_confirmation():
+    matches = match_critical_actions("Connect account and use connector to read private calendar data")
+    assert any(rule.rule_id == "external_tool_or_connector_access" for rule in matches)
+    assert any(
+        rule.rule_id == "external_tool_or_connector_access" and rule.disposition is PolicyDisposition.confirm
+        for rule in matches
+    )
+
+
 def test_plain_read_has_no_critical_match():
     assert match_critical_actions("Read the visible public pricing table") == ()
 

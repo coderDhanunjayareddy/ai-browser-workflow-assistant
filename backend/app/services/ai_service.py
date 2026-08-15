@@ -794,6 +794,25 @@ def _canonicalize_planner_action_item(item: dict[str, Any]) -> dict[str, Any]:
         )
         return repaired
 
+    search_command = re.match(
+        r"^search(?:\s+for)?(?:\s+(.+?))?\s*$",
+        action_text,
+        flags=re.IGNORECASE,
+    )
+    if search_command:
+        repaired = dict(item)
+        repaired["action_type"] = "fill"
+        requested_query = str(search_command.group(1) or "").strip()
+        if requested_query and not repaired.get("value"):
+            repaired["value"] = requested_query
+        repaired["target_selector"] = repaired.get("target_selector") or ""
+        repaired["description"] = repaired.get("description") or "Fill the grounded search field."
+        repaired["reasoning"] = repaired.get("reasoning") or (
+            "Recovered a search-shaped planner command into the canonical fill action schema; "
+            "the normal grounding layer remains responsible for resolving the visible field."
+        )
+        return repaired
+
     click_command = re.match(r"^click\s+(?:on\s+)?(?:the\s+)?(.+?)\s*$", action_text, flags=re.IGNORECASE)
     if click_command:
         repaired = dict(item)

@@ -238,6 +238,11 @@ def test_prepositioned_fixture_pages_advance_to_interaction_phase(monkeypatch):
             "http://127.0.0.1:5051/modal",
             "click",
         ),
+        (
+            'Search for "fastapi" repositories on GitHub and confirm repositories appear in results',
+            "https://github.com/search?type=repositories",
+            "fill",
+        ),
     )
 
     for index, (task, url, expected_action) in enumerate(cases):
@@ -253,6 +258,33 @@ def test_prepositioned_fixture_pages_advance_to_interaction_phase(monkeypatch):
         assert snapshot.artifacts.opened_pages == [url]
         assert snapshot.active_phase.name == "VALIDATE"
         assert expected_action in snapshot.active_phase.allowed_actions
+
+
+def test_prepositioned_single_page_extraction_advances_to_read() -> None:
+    url = "https://github.com/torvalds/linux/pull/1"
+    snapshot = ExecutionOrchestrator().build_snapshot(
+        session_id="single-page-read",
+        task='Open pull request #1 in "torvalds/linux" and extract the author name and the first comment',
+        page_context=_page(url),
+        prior_steps=[],
+    )
+
+    assert snapshot is not None
+    assert snapshot.workflow_category == "interactive_browser_task"
+    assert snapshot.artifacts.opened_pages == [url]
+    assert snapshot.active_phase.name == "READ"
+
+
+def test_multi_source_search_remains_multi_page_research() -> None:
+    snapshot = ExecutionOrchestrator().build_snapshot(
+        session_id="multi-source-search",
+        task=TASK,
+        page_context=_page("https://www.google.com/search?q=browser+automation"),
+        prior_steps=[],
+    )
+
+    assert snapshot is not None
+    assert snapshot.workflow_category == "multi_page_research"
 
 
 def test_interactive_browser_task_stays_in_validate_for_browser_interaction(monkeypatch):

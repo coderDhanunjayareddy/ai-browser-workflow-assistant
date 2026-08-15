@@ -45,6 +45,8 @@ def test_blocked_and_skipped_excluded_from_completion():
 
 def test_blocked_categories_membership():
     assert FailureCategory.blocked_captcha in BLOCKED_CATEGORIES
+    assert FailureCategory.blocked_user_input in BLOCKED_CATEGORIES
+    assert FailureCategory.blocked_content_unavailable in BLOCKED_CATEGORIES
     assert FailureCategory.grounding not in BLOCKED_CATEGORIES
 
 

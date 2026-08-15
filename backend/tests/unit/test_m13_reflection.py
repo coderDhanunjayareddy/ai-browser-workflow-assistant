@@ -171,6 +171,31 @@ def test_parse_response_canonicalizes_contact_search_command_to_fill():
     assert result.suggested_actions[0].value == "Rahul"
 
 
+def test_parse_response_canonicalizes_bare_and_command_search_to_fill():
+    for action_type, value, expected in (
+        ("SEARCH", "fastapi", "fastapi"),
+        ("search for government forms", None, "government forms"),
+    ):
+        raw = json.dumps({
+            "analysis": "A search field is visible.",
+            "outcome_kind": "act",
+            "suggested_actions": [{
+                "action_type": action_type,
+                "target_selector": "#search",
+                "value": value,
+                "description": "Search the current site",
+                "reasoning": "Use the observed search control.",
+                "confidence": 0.8,
+                "safety_level": "safe",
+            }],
+        })
+
+        result = parse_response(raw, "site-search-session")
+
+        assert result.suggested_actions[0].action_type == "fill"
+        assert result.suggested_actions[0].value == expected
+
+
 def test_parse_response_canonicalizes_click_command_and_preserves_grounding_input():
     raw = json.dumps({
         "analysis": "The exact contact result is visible.",

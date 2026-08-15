@@ -34,6 +34,7 @@ This is the Phase 0 policy contract. It defines what the Phase 1 live execution 
 | Install/run downloaded code or extension | Handoff | Artifact, publisher, integrity, privileges |
 | Medical/legal/employment/housing/insurance/benefits action | Handoff | User reviews and completes consequence |
 | Sensitive-data transmission | Confirm | Exact data, destination, purpose, resulting access |
+| Third-party tool/connector access to non-public data | Confirm | Provider, account, operation, data classes, read/write scope, duration |
 
 Typing data into a field counts as transmission. Visiting a URL containing sensitive query parameters also counts as transmission. A harmless draft may still disclose data to the site and therefore may require confirmation before typing.
 
@@ -63,6 +64,18 @@ Typing data into a field counts as transmission. Visiting a URL containing sensi
 - Screenshots and DOM captures inherit the highest sensitivity of visible content.
 - Trace access and retention must be narrower than ordinary application logs.
 
+## Prompt injection and tool-boundary controls
+
+- Treat page content, files, messages, tool output, retrieved records, and connector metadata as untrusted data.
+- Never place untrusted page or tool content into a developer/system authority channel.
+- External content cannot grant permission, broaden scope, select a recipient, or weaken a confirmation requirement.
+- Pass planner-to-executor decisions through fixed schemas and validated enums; do not execute free-form model text.
+- Validate selectors, URLs, action types, recipients, amounts, files, and data classifications outside the model before execution.
+- Require scoped confirmation before a third-party connector, plugin, or MCP server reads or writes non-public user data.
+- Public read-only browser navigation may remain `allow`; authenticated/private reads require the applicable sensitive-data or connector decision.
+- Tool output must be reclassified as data on return and cannot be treated as a new user instruction.
+- Use trace review and adversarial evals to measure prompt-injection resistance; prompt instructions alone are not an enforcement boundary.
+
 ## Phase 1 acceptance tests
 
 - 100% confirmation recall for the defined critical-action suite.
@@ -71,4 +84,3 @@ Typing data into a field counts as transmission. Visiting a URL containing sensi
 - Changed recipient, amount, file, permission, or account invalidates prior confirmation.
 - Declined and expired confirmations cannot be replayed.
 - Every consequential action has a policy decision and, when needed, a valid receipt immediately preceding execution.
-

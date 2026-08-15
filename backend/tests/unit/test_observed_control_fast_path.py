@@ -128,6 +128,205 @@ def test_table_edit_and_dynamic_ready_use_observed_controls() -> None:
     assert dynamic.suggested_actions[0].target_selector == "#ready"
 
 
+def test_upload_uses_observed_file_input_and_explicit_filename() -> None:
+    response = _deterministic_observed_control_response(
+        session_id="upload",
+        task='Upload the test file "benchmark_test.txt" using the file input',
+        page_context=_page(
+            "http://127.0.0.1:5051/upload",
+            [InteractiveElement(type="input", input_type="file", selector="#file", text="", visible=True)],
+        ),
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == ("fill", "#file")
+    assert response.suggested_actions[0].value == "benchmark_test.txt"
+
+
+def test_site_search_fills_observed_field_then_uses_canonical_results_url() -> None:
+    task = 'Search for "fastapi" repositories on GitHub and confirm repositories appear in results'
+    page = _page(
+        "https://github.com/search?type=repositories",
+        [
+            InteractiveElement(
+                type="input",
+                selector='input[aria-label="Search GitHub"]',
+                text="",
+                visible=True,
+                role="textbox",
+                aria_label="Search GitHub",
+            )
+        ],
+    )
+
+    fill = _deterministic_observed_control_response(session_id="search", task=task, page_context=page, prior_steps=[])
+    assert fill is not None
+    assert (fill.suggested_actions[0].action_type, fill.suggested_actions[0].value) == ("fill", "fastapi")
+
+    submit = _deterministic_observed_control_response(
+        session_id="search",
+        task=task,
+        page_context=page,
+        prior_steps=[
+            PriorStep(
+                action_type="fill",
+                description="site search",
+                target_selector='input[aria-label="Search GitHub"]',
+                value="fastapi",
+                execution_result="success",
+            )
+        ],
+    )
+    assert submit is not None
+    assert (submit.suggested_actions[0].action_type, submit.suggested_actions[0].target_selector, submit.suggested_actions[0].value) == (
+        "navigate",
+        "window",
+        "https://github.com/search?type=repositories&q=fastapi",
+    )
+
+
+def test_wizard_controls_follow_visible_step_and_explicit_values() -> None:
+    task = 'Complete the onboarding wizard: enter full name "Test User" in step 1, then enter role "Engineer" in step 2, then click Finish'
+    step_one = _page(
+        "http://127.0.0.1:5051/multistep",
+        [
+            InteractiveElement(type="input", selector="#fullname", text="", visible=True, role="textbox", accessibility_name="Full name"),
+            InteractiveElement(type="button", selector="#next1", text="Next", visible=True, role="button"),
+        ],
+    )
+    fill_name = _deterministic_observed_control_response(session_id="wizard", task=task, page_context=step_one, prior_steps=[])
+    assert fill_name is not None
+    assert (fill_name.suggested_actions[0].action_type, fill_name.suggested_actions[0].target_selector, fill_name.suggested_actions[0].value) == ("fill", "#fullname", "Test User")
+
+    click_next = _deterministic_observed_control_response(
+        session_id="wizard",
+        task=task,
+        page_context=step_one,
+        prior_steps=[PriorStep(action_type="fill", description="full name", target_selector="#fullname", value="Test User", execution_result="success")],
+    )
+    assert click_next is not None
+    assert (click_next.suggested_actions[0].action_type, click_next.suggested_actions[0].target_selector) == ("click", "#next1")
+
+    step_two = _page(
+        "http://127.0.0.1:5051/multistep",
+        [
+            InteractiveElement(type="input", selector="#role", text="", visible=True, role="textbox", accessibility_name="Role"),
+            InteractiveElement(type="button", selector="#finish", text="Finish", visible=True, role="button"),
+        ],
+    )
+    fill_role = _deterministic_observed_control_response(session_id="wizard", task=task, page_context=step_two, prior_steps=[])
+    assert fill_role is not None
+    assert (fill_role.suggested_actions[0].action_type, fill_role.suggested_actions[0].target_selector, fill_role.suggested_actions[0].value) == ("fill", "#role", "Engineer")
+
+
+def test_load_more_and_quoted_accordion_controls_are_grounded() -> None:
+    load_more = _deterministic_observed_control_response(
+        session_id="scroll",
+        task="Scroll the feed to load more posts until at least 6 posts are visible",
+        page_context=_page(
+            "http://127.0.0.1:5051/scroll",
+            [InteractiveElement(type="button", selector="#more", text="Load more", visible=True, role="button")],
+        ),
+        prior_steps=[],
+    )
+    assert load_more is not None
+    assert (load_more.suggested_actions[0].action_type, load_more.suggested_actions[0].target_selector) == ("click", "#more")
+
+    accordion = _deterministic_observed_control_response(
+        session_id="accordion",
+        task='Expand the second FAQ question ("How much?") and confirm its answer is visible',
+        page_context=_page(
+            "http://127.0.0.1:5051/accordion",
+            [
+                InteractiveElement(
+                    type="summary",
+                    selector="#q2 > summary",
+                    text="How much?",
+                    visible=True,
+                    accessibility_name="How much?",
+                )
+            ],
+        ),
+        prior_steps=[],
+    )
+    assert accordion is not None
+    assert (accordion.suggested_actions[0].action_type, accordion.suggested_actions[0].target_selector) == ("click", "#q2 > summary")
+
+
+def test_registration_with_missing_credentials_asks_instead_of_fabricating_values() -> None:
+    response = _deterministic_observed_control_response(
+        session_id="register",
+        task=(
+            "Complete the registration form: enter name into email/password fields, "
+            'select country "India", accept terms, then submit'
+        ),
+        page_context=_page(
+            "http://127.0.0.1:5051/register",
+            [
+                InteractiveElement(type="input", input_type="email", selector="#email", text="", visible=True, accessibility_name="Email"),
+                InteractiveElement(type="input", input_type="password", selector="#pw", text="", visible=True, accessibility_name="Password"),
+                InteractiveElement(type="button", selector="#reg-btn", text="Register", visible=True, role="button"),
+            ],
+        ),
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "ask"
+    assert response.suggested_actions == []
+    assert response.clarification_question is not None
+    assert "email address and password" in response.clarification_question
+
+
+def test_public_selenium_test_form_uses_non_sensitive_fake_data_then_submits() -> None:
+    task = (
+        "Fill the form with clearly fake test data, check validation errors, and submit only if it is "
+        "a genuine test or sandbox form."
+    )
+    page = _page(
+        "https://www.selenium.dev/selenium/web/web-form.html",
+        [
+            InteractiveElement(type="input", input_type="text", selector="#my-text-id", text="", visible=True),
+            InteractiveElement(type="textarea", selector="textarea", text="", visible=True),
+            InteractiveElement(type="select", selector="select", text="One Two Three", visible=True, role="combobox"),
+            InteractiveElement(type="button", selector="button", text="Submit", visible=True, role="button"),
+        ],
+    )
+
+    first = _deterministic_observed_control_response(session_id="form", task=task, page_context=page, prior_steps=[])
+    assert first is not None
+    assert (first.suggested_actions[0].action_type, first.suggested_actions[0].target_selector) == ("fill", "#my-text-id")
+
+    steps = [PriorStep(action_type="fill", description="fake name", target_selector="#my-text-id", value="", execution_result="success")]
+    second = _deterministic_observed_control_response(session_id="form", task=task, page_context=page, prior_steps=steps)
+    assert second is not None
+    assert (second.suggested_actions[0].action_type, second.suggested_actions[0].target_selector) == ("fill", "textarea")
+
+    steps.append(PriorStep(action_type="fill", description="fake note", target_selector="textarea", value="", execution_result="success"))
+    third = _deterministic_observed_control_response(session_id="form", task=task, page_context=page, prior_steps=steps)
+    assert third is not None
+    assert (third.suggested_actions[0].action_type, third.suggested_actions[0].target_selector, third.suggested_actions[0].value) == ("select_option", "select", "One")
+
+    steps.append(PriorStep(action_type="select_option", description="choice", target_selector="select", value="One", execution_result="success"))
+    fourth = _deterministic_observed_control_response(session_id="form", task=task, page_context=page, prior_steps=steps)
+    assert fourth is not None
+    assert (fourth.suggested_actions[0].action_type, fourth.suggested_actions[0].target_selector) == ("click", "button")
+
+
+def test_public_selenium_test_form_reports_only_from_confirmation_page() -> None:
+    task = "Fill with test data, check validation errors, submit, and report whether submission succeeded."
+    page = _page("https://www.selenium.dev/selenium/web/submitted-form.html", [])
+    page = page.model_copy(update={"visible_text": "Form submitted Received!"})
+
+    report = _deterministic_observed_report_response(session_id="form", task=task, page_context=page)
+
+    assert report is not None
+    assert report.outcome_kind == "report"
+    assert report.report is not None
+    assert "Submission succeeded" in report.report.answer
+
+
 def test_invoice_total_is_reported_from_visible_evidence() -> None:
     page = _page("http://127.0.0.1:5051/invoice", [])
     page = page.model_copy(update={

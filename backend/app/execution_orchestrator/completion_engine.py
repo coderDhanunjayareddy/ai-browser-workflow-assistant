@@ -153,7 +153,7 @@ def _read_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any
 
 
 def _is_current_page_interaction(text: str) -> bool:
-    return any(
+    return _is_simple_search_interaction(text) or any(
         term in text
         for term in (
             "log in",
@@ -180,7 +180,7 @@ def _requires_extraction(task: str) -> bool:
 
 def _validate_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any]) -> bool:
     text = task.lower()
-    if _is_interactive_task(text):
+    if _is_interactive_task(text) or _is_simple_search_interaction(text):
         return _target_state_reached(prior_steps)
     if "upload" in text:
         return bool(artifacts.uploaded_files)
@@ -189,6 +189,24 @@ def _validate_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list
     if "form" in text:
         return bool(artifacts.forms)
     return bool(artifacts.extracted_records or artifacts.opened_pages)
+
+
+def _is_simple_search_interaction(text: str) -> bool:
+    if "search for" not in text:
+        return False
+    return not any(
+        term in text
+        for term in (
+            "compare",
+            "comparison",
+            "multiple sources",
+            "each page",
+            "each source",
+            "top 5",
+            "top five",
+            "first page of results",
+        )
+    )
 
 
 def _is_interactive_task(text: str) -> bool:

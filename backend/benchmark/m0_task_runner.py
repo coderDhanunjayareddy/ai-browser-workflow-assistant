@@ -96,6 +96,25 @@ class TaskRunner:
             self._save_dom(task, result, step.index, page_context)
             step.url_after = self.driver.current_url()
 
+            page_text = " ".join(
+                str(page_context.get(key) or "")
+                for key in ("title", "visible_text")
+            ).lower()
+            navigation_status = self.driver.last_navigation_status()
+            if (
+                navigation_status in {404, 410}
+                or "page not found" in page_text
+                or "content is no longer available" in page_text
+            ):
+                result.steps.append(step)
+                return self._finalize_blocked(
+                    task,
+                    result,
+                    t_start,
+                    FailureCategory.blocked_content_unavailable,
+                    f"target content unavailable (http_status={navigation_status})",
+                )
+
             ctx = self._ctx(page_context, analysis_texts, len(result.steps))
 
             # failure-criteria gate (site error / rate-limit / auth redirect)
@@ -243,6 +262,15 @@ class TaskRunner:
                     result.criteria_results = recheck
                     return self._finalize_status(task, result, t_start, TaskStatus.completed)
                 step.failure_category = FailureCategory.planning.value
+                if outcome_kind == "ask" and ar.clarification_question:
+                    step.failure_category = FailureCategory.blocked_user_input.value
+                    return self._finalize_with_category(
+                        task,
+                        result,
+                        t_start,
+                        FailureCategory.blocked_user_input,
+                        f"user input required; clarification={ar.clarification_question!r}",
+                    )
                 return self._finalize_with_category(
                     task, result, t_start, FailureCategory.planning,
                     "no action suggested" + (f"; clarification={ar.clarification_question!r}"

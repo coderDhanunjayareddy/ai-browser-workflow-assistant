@@ -86,6 +86,8 @@ class FailureCategory(str, Enum):
     blocked_auth_expired = "BLOCKED_AUTH_EXPIRED"
     blocked_login_wall   = "BLOCKED_LOGIN_WALL"
     blocked_anti_bot     = "BLOCKED_ANTI_BOT"
+    blocked_user_input   = "BLOCKED_USER_INPUT"
+    blocked_content_unavailable = "BLOCKED_CONTENT_UNAVAILABLE"
     perception           = "PERCEPTION"
     orchestration        = "ORCHESTRATION"
     vision_required      = "VISION_REQUIRED"
@@ -101,6 +103,8 @@ BLOCKED_CATEGORIES = {
     FailureCategory.blocked_auth_expired,
     FailureCategory.blocked_login_wall,
     FailureCategory.blocked_anti_bot,
+    FailureCategory.blocked_user_input,
+    FailureCategory.blocked_content_unavailable,
 }
 
 

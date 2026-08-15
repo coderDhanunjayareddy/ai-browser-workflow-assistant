@@ -1,19 +1,19 @@
 # Phase 0 Status
 
 **Started:** 2026-08-14  
-**State:** In progress
+**State:** Complete — Phase 0 exit gate passed
 
 | Deliverable | Status | Evidence |
 |---|---|---|
 | Subsystem freeze | Implemented | `docs/phase0/README.md` |
-| Complete runtime map | Implemented, pending review | Generated JSON and Markdown inventories |
+| Complete runtime map | Implemented and current | Generated JSON and Markdown inventories; `--check` passes |
 | Frozen 25–50 task suite | Implemented | 38 explicit tasks in `phase0_baseline.yaml` |
 | Dataset audit and fingerprint | Implemented | 38 tasks; SHA-256 `d60e41501d74e4acf502423e112c34119edfaa88e0718685e9895b39f3a5aa51` |
-| Raw Playwright baseline | Published | Run `m0-phase0_baseline-1786728413`; JSON/Markdown/HTML report plus 104 step traces |
-| Raw synthetic baseline | Pending environment run | Requires healthy backend, configured model, browser/network |
-| Critical-action policy | Implemented, pending product/security review | `phase0_taxonomy.py` and policy document |
-| Sensitive-data policy | Implemented, pending product/security review | `phase0_taxonomy.py` and policy document |
-| Exit gate | Not met | Playwright completion is 16.1%; synthetic baseline and policy/review sign-off remain |
+| Raw Playwright baseline | Published | Current run `m0-phase0_baseline-1786780435`; 16/22 counted complete (72.7%) |
+| Raw synthetic baseline | Published | Run `m0-phase0_baseline-1786779876`; 14/22 counted complete (63.6%) |
+| Critical-action policy | Approved for Phase 1 implementation | Taxonomy, policy contract, tests, and `policy-review-2026-08-15.md` |
+| Sensitive-data policy | Approved for Phase 1 implementation | Taxonomy, policy contract, tests, and `policy-review-2026-08-15.md` |
+| Exit gate | Passed | Technical measurement and project governance gates complete; Phase 1 enforcement conditions recorded |
 
 Internal capability maturity metadata is not accepted as production evidence. The Phase 0 gate uses only executed task outcomes and raw traces.
 
@@ -63,3 +63,20 @@ The shared contracts were repaired with regression coverage. Targeted traced rer
 Requested-count parsing now preserves multi-source targets expressed as “3 AI code assistant products” and “3 different tools.” Repeated identical unverified reports terminate as `STUCK` after three turns instead of consuming the full task budget.
 
 The frozen baseline remains 16.1% until the complete 38-task suite is rerun under a non-challenged search environment. See [planning-cluster-delta-2026-08-15.md](planning-cluster-delta-2026-08-15.md).
+
+## Paired current baseline — 2026-08-15
+
+The complete frozen suite was rerun in both executor modes on the same code and environment:
+
+- Playwright: **16/22 counted completed (72.7%)**, 9 blocked, 7 skipped, 4 errors, 1 timeout, 1 stuck; 50 raw step traces.
+- Synthetic: **14/22 counted completed (63.6%)**, 9 blocked, 7 skipped, 3 errors, 2 failed, 2 timeouts, 1 stuck; 78 raw step traces.
+- Dataset: 38 tasks, unchanged SHA-256 `d60e41501d74e4acf502423e112c34119edfaa88e0718685e9895b39f3a5aa51`.
+- Structural joint-report gate: passed with zero errors.
+- Changed/benchmark/policy regression set: 243 passed.
+- Full repository suite: 4,406 passed and 25 failed; residual failures remain explicitly recorded and are not claimed as passing.
+
+The completion percentage is a measured product result, not itself a Phase 0 pass threshold. Phase 0's objective is a trustworthy, reproducible baseline with unambiguous claims. The technical and project-governance gates are now met. The policy review authorizes Phase 1 implementation subject to its mandatory enforcement conditions; it is not a legal/compliance certification or public-deployment approval.
+
+See [paired-baseline-2026-08-15.md](paired-baseline-2026-08-15.md) for the executor comparison, per-task residuals, hashes, and artifact paths.
+
+See [policy-review-2026-08-15.md](policy-review-2026-08-15.md) for the review evidence, approval scope, mandatory Phase 1 conditions, and residual risk.

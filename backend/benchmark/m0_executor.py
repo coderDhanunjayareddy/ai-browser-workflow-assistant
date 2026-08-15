@@ -152,7 +152,26 @@ class PlaywrightDriver(Driver):
 
     # -- observation ------------------------------------------------------------
     def navigate(self, url: str) -> None:
-        resp = self._page.goto(url, wait_until="domcontentloaded", timeout=45_000)
+        resp = None
+        for attempt in range(2):
+            try:
+                resp = self._page.goto(url, wait_until="domcontentloaded", timeout=45_000)
+                break
+            except Exception as exc:
+                retryable = any(
+                    marker in str(exc)
+                    for marker in (
+                        "ERR_HTTP2_PROTOCOL_ERROR",
+                        "ERR_NETWORK_CHANGED",
+                        "ERR_CONNECTION_RESET",
+                    )
+                )
+                if attempt >= 1 or not retryable:
+                    raise
+                try:
+                    self._page.wait_for_timeout(500)
+                except Exception:
+                    pass
         self._last_status = resp.status if resp is not None else None
         self._recovery_history.reset()  # a new page is a new situation
 

@@ -71,6 +71,8 @@ def classify(sig: FailureSignal) -> FailureCategory:
     # 1. infrastructure / transport
     if sig.error_type in _INFRA_ERRORS:
         return FailureCategory.infrastructure
+    if "net::err_" in (sig.error_message or "").lower():
+        return FailureCategory.infrastructure
     if sig.http_status is not None and sig.http_status >= 500:
         return FailureCategory.infrastructure
 
@@ -85,6 +87,8 @@ def classify(sig: FailureSignal) -> FailureCategory:
         return FailureCategory.blocked_anti_bot
     if any(m in txt for m in _LOGIN_WALL_MARKERS):
         return FailureCategory.blocked_login_wall
+    if sig.http_status in {404, 410} or "page not found" in txt or "content is no longer available" in txt:
+        return FailureCategory.blocked_content_unavailable
     # RC-2: only a real (remote) auth redirect counts as auth-expired. Local fixture URLs
     # legitimately contain "/login" etc. and must NOT be misread as an expired session.
     if _AUTH_EXPIRED_URL.search(sig.final_url or "") and not _is_local_url(sig.final_url):

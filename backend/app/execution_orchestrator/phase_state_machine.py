@@ -49,7 +49,7 @@ def workflow_category(task: str) -> str:
         return "job_search"
     if any(term in text for term in ("upload", "file accepted", "share link")):
         return "file_upload"
-    if any(term in text for term in ("fill the form", "validation errors", "submit only", "form")):
+    if any(term in text for term in ("fill the form", "validation errors", "submit only", "form", "wizard", "onboarding")):
         return "form_filling"
     if any(term in text for term in ("signup", "sign up", "free trial", "welcome page", "dashboard loads")):
         return "saas_signup"
@@ -61,6 +61,18 @@ def workflow_category(task: str) -> str:
 
 
 def _is_interactive_browser_task(text: str) -> bool:
+    multi_source_terms = (
+        "compare",
+        "comparison",
+        "multiple sources",
+        "each page",
+        "each source",
+        "top 5",
+        "top five",
+        "first page of results",
+    )
+    if any(term in text for term in multi_source_terms):
+        return False
     action_terms = (
         "send",
         "message",
@@ -79,8 +91,11 @@ def _is_interactive_browser_task(text: str) -> bool:
         "sign in",
         "modal",
         "fill",
+        "search",
+        "pull request",
+        "comment",
     )
-    browser_goal_terms = ("open", "go to", "navigate", "use", "login", "sign in")
+    browser_goal_terms = ("open", "go to", "navigate", "use", "login", "sign in", "search")
     return any(term in text for term in action_terms) and any(term in text for term in browser_goal_terms)
 
 

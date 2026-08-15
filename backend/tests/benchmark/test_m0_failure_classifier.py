@@ -7,10 +7,13 @@ from benchmark.m0_models import FailureCategory as FC
 
 @pytest.mark.parametrize("sig,expected", [
     (FailureSignal(error_type="TimeoutError"), FC.infrastructure),
+    (FailureSignal(error_type="Error", error_message="Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR"), FC.infrastructure),
     (FailureSignal(http_status=500), FC.infrastructure),
     (FailureSignal(page_text="complete the CAPTCHA please"), FC.blocked_captcha),
     (FailureSignal(http_status=429), FC.blocked_rate_limit),
     (FailureSignal(http_status=403), FC.blocked_anti_bot),
+    (FailureSignal(http_status=404), FC.blocked_content_unavailable),
+    (FailureSignal(page_text="Page not found"), FC.blocked_content_unavailable),
     (FailureSignal(page_text="unusual traffic from your network"), FC.blocked_anti_bot),
     (FailureSignal(page_text="Log in to continue"), FC.blocked_login_wall),
     (FailureSignal(final_url="https://accounts.google.com/x"), FC.blocked_auth_expired),

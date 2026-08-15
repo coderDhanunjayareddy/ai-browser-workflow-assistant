@@ -124,6 +124,14 @@ CRITICAL_ACTION_RULES = (
         "Exact data, recipient, purpose, and resulting access.",
         "Typing or uploading data is disclosure even before a final submit button is pressed.",
     ),
+    CriticalActionRule(
+        "external_tool_or_connector_access",
+        "Allow a third-party tool, connector, MCP server, or plugin to read or modify non-public user data.",
+        PolicyDisposition.confirm,
+        ("connect account", "use connector", "use mcp", "authorize plugin", "third-party tool", "grant connector access"),
+        "Exact provider, account, requested operation, data classes, read/write scope, and duration.",
+        "External tools create a separate trust boundary and may receive more user data than the immediate output reveals.",
+    ),
 )
 
 
@@ -167,4 +175,3 @@ def export_policy_contract() -> dict:
             for rule in SENSITIVE_DATA_RULES
         ],
     }
-

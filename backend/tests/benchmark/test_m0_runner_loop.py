@@ -131,6 +131,38 @@ def test_captcha_blocks():
     assert not r.counts_toward_completion
 
 
+def test_clarification_request_is_blocked_user_input_not_planning_failure():
+    d = FakeDriver([page("http://x/register", text="email password form")])
+    c = FakeAnalyzeClient([
+        {
+            "outcome_kind": "ask",
+            "clarification_question": "What email address and password should I enter?",
+        }
+    ])
+    t = task(success_criteria=[M0Criterion(K.dom_text_present, target="Account created")])
+
+    r = runner(d, c).run(t)
+
+    assert r.status == TaskStatus.blocked
+    assert r.failure_category == FailureCategory.blocked_user_input.value
+    assert not r.counts_toward_completion
+
+
+def test_dead_external_target_is_blocked_before_planning() -> None:
+    d = FakeDriver(
+        [page("https://example.test/missing", text="Page not found", title="Page not found")],
+        nav_status=404,
+    )
+    c = FakeAnalyzeClient([("navigate", "", "https://search.example")])
+
+    r = runner(d, c).run(task())
+
+    assert r.status == TaskStatus.blocked
+    assert r.failure_category == FailureCategory.blocked_content_unavailable.value
+    assert r.ai_calls == 0
+    assert not r.counts_toward_completion
+
+
 def test_failure_criterion_trips():
     d = FakeDriver([page("http://x/login", text="please log in")])
     t = task(failure_criteria=[M0FailureCriterion(FK.dom_error_present, target="log in")],
