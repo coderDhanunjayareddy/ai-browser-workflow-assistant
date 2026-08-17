@@ -1,18 +1,16 @@
 {
   "manifest_version": 3,
   "name": "AI Browser Assistant",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "AI-powered browser workflow copilot — suggests and executes actions with your approval.",
   "permissions": [
     "activeTab",
+    "debugger",
     "downloads",
     "sidePanel",
     "storage",
     "scripting",
     "tabs"
-  ],
-  "optional_permissions": [
-    "debugger"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",

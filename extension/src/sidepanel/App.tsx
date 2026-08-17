@@ -707,7 +707,7 @@ const LANGUAGES = [
   { code: 'uk-UA', label: '🇺🇦 Ukrainian' },
 ]
 
-function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, stopWorkflow, reset, continueWithInput }: WorkflowProps) {
+function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, stopWorkflow, resumeWorkflow, reset, continueWithInput }: WorkflowProps) {
   const [autoMode, setAutoMode] = useState(false)
   const [advancedControl, setAdvancedControl] = useState(false)
   const [advancedControlError, setAdvancedControlError] = useState('')
@@ -768,11 +768,8 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
   }
 
   useEffect(() => {
-    void Promise.all([
-      chrome.storage.local.get('advanced_control_enabled'),
-      chrome.permissions.contains({ permissions: ['debugger'] }),
-    ]).then(([stored, permitted]) => {
-      setAdvancedControl(stored.advanced_control_enabled === true && permitted)
+    void chrome.storage.local.get('advanced_control_enabled').then((stored) => {
+      setAdvancedControl(stored.advanced_control_enabled === true)
     }).catch(() => setAdvancedControl(false))
   }, [])
 
@@ -781,13 +778,12 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
     try {
       if (advancedControl) {
         await chrome.storage.local.set({ advanced_control_enabled: false })
-        await chrome.permissions.remove({ permissions: ['debugger'] })
         setAdvancedControl(false)
         return
       }
-      const granted = await chrome.permissions.request({ permissions: ['debugger'] })
-      if (!granted) {
-        setAdvancedControlError('Advanced control permission was not granted.')
+      const declared = chrome.runtime.getManifest().permissions?.includes('debugger') === true
+      if (!declared) {
+        setAdvancedControlError('Advanced control is missing from the loaded extension. Reload version 0.2.1 or newer from extension/dist.')
         return
       }
       await chrome.storage.local.set({ advanced_control_enabled: true })
@@ -865,7 +861,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
           <span style={{ ...s.autoText, ...(autoMode ? s.autoTextOn : {}) }}>🤖 Auto</span>
         </label>
 
-        <label style={s.autoLabel} title="Optional CDP control: requested only when enabled and used only after DOM execution fails">
+        <label style={s.autoLabel} title="CDP control: attaches only when enabled and only after DOM execution fails">
           <div style={{ ...s.toggleTrack, ...(advancedControl ? s.toggleOn : {}) }}
             onClick={() => void toggleAdvancedControl()}>
             <div style={{ ...s.toggleThumb, ...(advancedControl ? s.toggleThumbOn : {}) }} />
@@ -894,6 +890,9 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
 
       {/* Workflow error */}
       {error && <p style={s.error}>{error}</p>}
+      {isFailed && task.trim() && (
+        <button onClick={() => void resumeWorkflow()} style={s.primaryBtn}>Resume safely</button>
+      )}
 
       {/* ── Results area ── */}
       {showResults && (

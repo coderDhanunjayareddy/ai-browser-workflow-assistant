@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { sendToBackground } from '../../utils/messaging'
 import {
   createTaskWorkspace,
@@ -25,6 +25,20 @@ import {
   PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET,
   type PlannerContextSection,
 } from '../contextBudgetManager'
+import {
+  checkpointDurableLedger,
+  clearDurableLedger,
+  completionEvidenceValid,
+  createDurableLedger,
+  isLowRiskReversibleAction,
+  loadDurableLedger,
+  MAX_REVERSIBLE_ATTEMPTS,
+  normalizeLedgerAfterRestart,
+  reserveDurableExecution,
+  completeDurableExecution,
+  saveDurableLedger,
+  type DurableWorkflowLedger,
+} from '../durableWorkflowLedger'
 export { buildBudgetedPlannerContext, PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET } from '../contextBudgetManager'
 import type {
   PageContext,
@@ -271,6 +285,7 @@ const CRITICAL_ACTION_PATTERNS = [
   /\bsend\b.*\b(email|message)\b/,
   /\bsubmit\b.*\b(government|legal|tax|passport|visa|official)\b/,
   /\bpassword\b/,
+  /\b(one[- ]?time (?:password|code)|otp|verification code|api key|access token|secret)\b/,
   /\blogin\b.*\bchange\b/,
   /\bsecurity\b/,
   /\baccount\b.*\b(change|close|delete|security)\b/,
@@ -282,6 +297,7 @@ export function actionRequiresExplicitApproval(action: SuggestedAction | null | 
 
   const searchableText = [
     action.action_type,
+    action.target_selector,
     action.description,
     action.reasoning,
     action.value ?? '',
@@ -296,7 +312,7 @@ export function shouldAutoExecuteAction(
 ): boolean {
   if (!action || mode !== 'auto') return false
   if (actionRequiresExplicitApproval(action)) return false
-  return action.safety_level === 'safe'
+  return isLowRiskReversibleAction(action)
 }
 
 interface AnalyzeRoutingOptions {
@@ -1074,7 +1090,7 @@ export function routeAnalyzeOutcome(
     // Verified   → complete the workflow now.
     // Unverified → continue with the existing 'reported' phase so the loop
     //              proceeds exactly as it did before SGV existed.
-    if (result.sgv_verified) {
+    if (completionEvidenceValid({ sgvVerified: result.sgv_verified })) {
       return {
         phase: 'completed',
         analysisText: buildReportAnalysis(result),
@@ -1330,6 +1346,35 @@ export function useWorkflow() {
   // Keep a ref-style snapshot of the latest page context for logging.
   // We don't need it in render, so it doesn't live in state.
   const [pageContext, setPageContext] = useState<PageContext | null>(null)
+  const durableLedgerRef = useRef<DurableWorkflowLedger | null>(null)
+  const durableLedgerLoadedRef = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void loadDurableLedger().then(async (stored) => {
+      if (cancelled) return
+      if (stored) {
+        const restored = normalizeLedgerAfterRestart(stored)
+        durableLedgerRef.current = restored
+        setState(restored.workflow)
+        await saveDurableLedger(restored)
+      }
+      durableLedgerLoadedRef.current = true
+    }).catch((error) => {
+      console.error('Durable workflow restore failed', error)
+      durableLedgerLoadedRef.current = true
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!durableLedgerLoadedRef.current) return
+    const ledger = checkpointDurableLedger(durableLedgerRef.current, state)
+    durableLedgerRef.current = ledger
+    void saveDurableLedger(ledger).catch((error) => {
+      console.error('Durable workflow checkpoint failed', error)
+    })
+  }, [state])
 
   const setTask = useCallback((task: string) => {
     setState((s) => ({ ...s, task, error: null }))
@@ -1580,6 +1625,29 @@ export function useWorkflow() {
       goalConvergence: false,
     }))
 
+    const initialLedgerState: WorkflowState = {
+      ...state,
+      task,
+      phase: 'observing',
+      error: null,
+      analysisText: '',
+      pendingActions: [],
+      activeAction: null,
+      completedActions: [],
+      validationPriorSteps: [],
+      workspace,
+      tabWorkspace: null,
+      missionSnapshot,
+      userInputs: [],
+      clarificationQuestion: null,
+      contractOutcome: null,
+      report: null,
+      replan: null,
+      goalConvergence: false,
+    }
+    durableLedgerRef.current = createDurableLedger(initialLedgerState)
+    await saveDurableLedger(durableLedgerRef.current)
+
     await runWorkflowLoop({
       sessionId,
       task,
@@ -1624,25 +1692,59 @@ export function useWorkflow() {
 
     // Execute on live page
     let result: ExecutionResult
+    let durableExecutionKey: string | null = null
+    let executionLedger = durableLedgerRef.current ?? createDurableLedger(state)
     try {
       if (typeof pageContext?.tab_id !== 'number') {
         throw new Error('Browser action is not grounded to an observed tab. Refresh the page context and retry.')
       }
-      const policyContext = await preparePolicyExecution(sessionId, action, pageContext, approvalSource)
-      const res = await withTimeout(
-        sendToBackground<{ result?: ExecutionResult; error?: string }>({
-          type: 'EXECUTE_ACTION',
+
+      while (true) {
+        const reservation = reserveDurableExecution(
+          executionLedger,
           action,
-          tab_id: pageContext.tab_id,
-          policy_context: policyContext,
-        }),
-        ACTION_EXECUTION_TIMEOUT_MS,
-        `${action.action_type} execution`,
-      )
-      result = res.result ?? {
-        success: false,
-        message: res.error ?? 'Execution returned no result.',
-        action_id: action.action_id,
+          pageContext.tab_id,
+          approvalSource,
+        )
+        if (!reservation.accepted) {
+          if (reservation.reason === 'already_succeeded' && reservation.record.result) {
+            result = reservation.record.result
+            break
+          }
+          throw new Error(
+            reservation.reason === 'uncertain_prior_dispatch'
+              ? 'This action may already have been dispatched before a restart, so it was not repeated. Resume from a fresh page observation.'
+              : 'The bounded retry limit was reached for this action.',
+          )
+        }
+
+        executionLedger = reservation.ledger
+        durableExecutionKey = reservation.record.key
+        durableLedgerRef.current = executionLedger
+        await saveDurableLedger(executionLedger)
+
+        const policyContext = await preparePolicyExecution(sessionId, action, pageContext, approvalSource)
+        const res = await withTimeout(
+          sendToBackground<{ result?: ExecutionResult; error?: string }>({
+            type: 'EXECUTE_ACTION',
+            action,
+            tab_id: pageContext.tab_id,
+            policy_context: policyContext,
+          }),
+          ACTION_EXECUTION_TIMEOUT_MS,
+          `${action.action_type} execution`,
+        )
+        result = res.result ?? {
+          success: false,
+          message: res.error ?? 'Execution returned no result.',
+          action_id: action.action_id,
+        }
+        if (result.success) break
+
+        executionLedger = completeDurableExecution(executionLedger, reservation.record.key, result)
+        durableLedgerRef.current = executionLedger
+        await saveDurableLedger(executionLedger)
+        if (!reservation.record.retryable || reservation.record.attempts >= MAX_REVERSIBLE_ATTEMPTS) break
       }
     } catch (err) {
       result = { success: false, message: errMsg(err), action_id: action.action_id }
@@ -1802,6 +1904,12 @@ export function useWorkflow() {
       return
     }
 
+    if (durableExecutionKey) {
+      executionLedger = completeDurableExecution(executionLedger, durableExecutionKey, result)
+      durableLedgerRef.current = executionLedger
+      await saveDurableLedger(executionLedger)
+    }
+
     if (nextIntent) {
       const nextAction = actionFromIntent(nextIntent)
       setState((s) => ({
@@ -1823,7 +1931,7 @@ export function useWorkflow() {
       console.error(err)
       return null
     })
-    if (missionResult) {
+    if (missionResult && completionEvidenceValid({ missionResultAvailable: true })) {
       setState((s) => ({
         ...s,
         phase: 'completed',
@@ -1859,16 +1967,6 @@ export function useWorkflow() {
     if (!trimmed) return
 
     const { sessionId, task, completedActions, validationPriorSteps, workspace, tabWorkspace, userInputs } = state
-    if (/^(done|complete|completed|finished)$/i.test(trimmed)) {
-      setState((s) => ({
-        ...s,
-        phase: 'completed',
-        clarificationQuestion: null,
-        error: null,
-      }))
-      return
-    }
-
     const currentQuestion = state.clarificationQuestion || 'Missing information'
     const nextInputs = [
       ...userInputs,
@@ -1911,6 +2009,21 @@ export function useWorkflow() {
     setState((s) => ({ ...s, ...cancelWorkflowPatch() }))
   }, [])
 
+  const resumeWorkflow = useCallback(async () => {
+    const { sessionId, task, completedActions, validationPriorSteps, workspace, tabWorkspace, userInputs } = state
+    if (!task.trim()) return
+    await runWorkflowLoop({
+      sessionId,
+      task,
+      completedActions,
+      validationPriorSteps,
+      workspace,
+      tabWorkspace,
+      userInputs,
+      refresh: true,
+    })
+  }, [state, runWorkflowLoop])
+
   // ── Reset ───────────────────────────────────────────────────────────────────
 
   const reset = useCallback(() => {
@@ -1936,7 +2049,9 @@ export function useWorkflow() {
       phase: 'idle',
       error: null,
     }))
+    durableLedgerRef.current = null
+    void clearDurableLedger().catch((error) => console.error('Durable workflow reset failed', error))
   }, [])
 
-  return { state, setTask, analyze, approveAction, rejectAction, stopWorkflow, reset, continueWithInput }
+  return { state, setTask, analyze, approveAction, rejectAction, stopWorkflow, resumeWorkflow, reset, continueWithInput }
 }

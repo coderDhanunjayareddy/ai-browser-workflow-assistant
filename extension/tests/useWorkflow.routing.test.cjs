@@ -211,11 +211,12 @@ function route(result) {
   })
 }
 
-test('auto mode executes safe browser actions only', () => {
-  assert.equal(shouldAutoExecuteAction(action({ action_type: 'click' }), 'auto'), true)
-  assert.equal(shouldAutoExecuteAction(action({ action_type: 'click' }), 'manual'), false)
-  assert.equal(shouldAutoExecuteAction(action({ safety_level: 'caution' }), 'auto'), false)
-  assert.equal(shouldAutoExecuteAction(action({ safety_level: 'danger' }), 'auto'), false)
+test('auto mode executes only safe reversible browser actions', () => {
+  assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill' }), 'auto'), true)
+  assert.equal(shouldAutoExecuteAction(action({ action_type: 'click' }), 'auto'), false)
+  assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill' }), 'manual'), false)
+  assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill', safety_level: 'caution' }), 'auto'), false)
+  assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill', safety_level: 'danger' }), 'auto'), false)
 })
 
 test('auto mode pauses for critical action classes even when marked safe', () => {

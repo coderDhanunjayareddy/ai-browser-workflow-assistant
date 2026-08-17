@@ -82,6 +82,23 @@ export function centerFromBoxModel(model: any, pageX = 0, pageY = 0): { x: numbe
   }
 }
 
+export function visionHitCompatible(
+  hit: { tag?: string; role?: string; name?: string; selectorMatched?: boolean } | null,
+  action: ExecutableAction,
+): boolean {
+  if (!hit) return false
+  if (hit.selectorMatched) return true
+  const visualActions = new Set(['visual_region', 'canvas_action', 'svg_action', 'chart_action', 'map_action'])
+  if (visualActions.has(action.action_type)) {
+    return ['canvas', 'svg'].includes(String(hit.tag || '').toLowerCase()) ||
+      ['img', 'application', 'graphics-document', 'graphics-symbol'].includes(String(hit.role || '').toLowerCase())
+  }
+  const expected = `${action.grounding?.accessibility_name || ''} ${action.description || ''}`.toLowerCase()
+  const observed = String(hit.name || '').toLowerCase()
+  const tokens = observed.split(/[^a-z0-9]+/).filter((token) => token.length >= 3)
+  return tokens.some((token) => expected.includes(token))
+}
+
 function debuggee(tabId: number): chrome.debugger.Debuggee {
   return { tabId }
 }
@@ -222,7 +239,26 @@ export class CdpController {
 
     const box = action.grounding?.bounding_box
     if (box && [box.x, box.y, box.width, box.height].every(Number.isFinite) && box.width > 0 && box.height > 0) {
-      return { x: box.x + box.width / 2, y: box.y + box.height / 2, source: 'vision' }
+      const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+      const metrics = await send(target, 'Page.getLayoutMetrics').catch(() => ({} as ProtocolResult))
+      const viewport = metrics.cssVisualViewport || metrics.visualViewport || metrics.cssLayoutViewport || metrics.layoutViewport || {}
+      const width = Number(viewport.clientWidth || 0)
+      const height = Number(viewport.clientHeight || 0)
+      if (width > 0 && height > 0 && (point.x < 0 || point.y < 0 || point.x > width || point.y > height)) return null
+      const hitResult = await send(target, 'Runtime.evaluate', {
+        expression: `(() => {
+          const el = document.elementFromPoint(${JSON.stringify(point.x)}, ${JSON.stringify(point.y)});
+          if (!el) return null;
+          let selectorMatched = false;
+          try { selectorMatched = Boolean(${JSON.stringify(action.target_selector)} && (el.matches(${JSON.stringify(action.target_selector)}) || el.closest(${JSON.stringify(action.target_selector)}))); } catch {}
+          return {
+            tag: el.tagName.toLowerCase(), role: el.getAttribute('role') || '', selectorMatched,
+            name: el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || ''
+          };
+        })()`,
+        returnByValue: true,
+      }).catch(() => ({} as ProtocolResult))
+      if (visionHitCompatible(hitResult?.result?.value || null, action)) return { ...point, source: 'vision' }
     }
     return null
   }

@@ -32,6 +32,7 @@ const {
   chooseAccessibilityBackendNode,
   countFrames,
   shouldAttemptCdpFallback,
+  visionHitCompatible,
 } = require(path.join(outDir, 'cdp_control.js'))
 
 function action(overrides = {}) {
@@ -97,6 +98,14 @@ test('box model center is converted from page to viewport coordinates', () => {
     centerFromBoxModel({ content: [100, 200, 140, 200, 140, 240, 100, 240] }, 10, 20),
     { x: 110, y: 200 },
   )
+})
+
+test('vision coordinates require a current compatible hit target', () => {
+  assert.equal(visionHitCompatible({ tag: 'button', name: 'Open details', selectorMatched: false }, action()), true)
+  assert.equal(visionHitCompatible({ tag: 'button', name: 'Delete account', selectorMatched: false }, action()), false)
+  assert.equal(visionHitCompatible({ tag: 'div', name: '', selectorMatched: true }, action()), true)
+  assert.equal(visionHitCompatible({ tag: 'canvas', name: '', selectorMatched: false }, action({ action_type: 'canvas_action' })), true)
+  assert.equal(visionHitCompatible(null, action()), false)
 })
 
 test('controller attaches, inventories, dispatches trusted input, and always detaches', async () => {

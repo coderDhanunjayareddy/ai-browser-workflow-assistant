@@ -8,18 +8,18 @@ Date: 2026-08-17
 The existing DOM executor remains the fast path. When it returns a verified effect, CDP is never attached. If it fails or produces `no_effect`, the extension may use the CDP fallback only when all of these conditions hold:
 
 1. the user explicitly enabled **Advanced** in the side panel;
-2. Chrome granted the optional `debugger` permission;
+2. the loaded extension manifest has Chrome's required `debugger` capability;
 3. the action passed the Phase 1 policy gate;
 4. the action is marked safe and is not consequential or duplicate-sensitive;
 5. the action is one of the supported CDP input classes.
 
 Consequential actions such as submit, send, purchase, payment, delete, publish, transfer, booking, and confirmation are never automatically retried through CDP.
 
-## Optional permission and lifecycle
+## Permission and lifecycle
 
-- `debugger` is declared in `optional_permissions`, not required permissions.
-- Chrome requests it only from the user-operated **Advanced** toggle.
-- Disabling Advanced removes both the stored preference and Chrome permission.
+- [Chrome explicitly forbids `debugger` in `optional_permissions`](https://developer.chrome.com/docs/extensions/reference/api/permissions#implement), so it is declared in required `permissions` and Chrome presents its warning when the extension is installed or reloaded.
+- The user-operated **Advanced** toggle controls runtime use. The extension never attaches through CDP while it is off.
+- Disabling Advanced clears the stored runtime preference; required manifest permissions cannot be removed through `chrome.permissions.remove()`.
 - Each fallback attaches to only the bound tab, enables the required CDP domains, and detaches in `finally` after success or failure.
 - The controller inventories targets and the nested frame tree and listens for bounded navigation/target lifecycle signals during execution.
 
@@ -69,9 +69,9 @@ This satisfies the stated controlled-suite exit gate. It does not claim that eve
 
 ## Verification evidence
 
-- Extension tests: **149 passed**
+- Extension tests: **151 passed**
 - Backend benchmark/policy/governance tests: **188 passed**
-- CDP-specific lifecycle and grounding tests: **6 passed** (included in extension total)
+- Phase 2 CDP and manifest-permission tests: **8 passed** (included in extension total)
 - TypeScript: `tsc --noEmit` passed
 - Production extension: `vite build` passed
 - Controlled trusted-input benchmark: **4/4 hybrid effects verified**
@@ -88,4 +88,4 @@ cd backend && .venv-codex/Scripts/python.exe -m benchmark.phase2_control_benchma
 
 ## Activation
 
-After rebuilding, reload the unpacked extension. Open the Workflow panel and switch **Advanced** on. Chrome will show the optional debugger permission request. Leaving Advanced off preserves the old DOM-only behavior.
+Remove or reload the old unpacked extension, then load `extension/dist` and verify version **0.2.1** on `chrome://extensions`. Chrome will show the debugger warning during load/reload. Open the Workflow panel and switch **Advanced** on. Leaving Advanced off preserves the old DOM-only behavior and never attaches CDP.

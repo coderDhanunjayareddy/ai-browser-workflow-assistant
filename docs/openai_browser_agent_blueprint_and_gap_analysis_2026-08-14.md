@@ -323,7 +323,7 @@ Exit gate: no consequential action can bypass policy; critical confirmation reca
 
 Implementation status (2026-08-17): **complete for the current extension path and controlled exit suite**. See [Phase 2 status and benchmark evidence](phase2/status.md).
 
-1. Add `debugger` as an optional permission, requested only when advanced control is enabled.
+1. Add `debugger` as a manifest permission and gate its runtime use behind Advanced Control. Chrome explicitly does not allow `debugger` in `optional_permissions`.
 2. Implement attach/detach lifecycle, target/frame inventory, Input actions, screenshots, and navigation signals.
 3. Combine DOM/a11y locators with CDP input and vision fallback.
 4. Preserve the existing DOM executor as a fast path and compare both in A/B traces.
@@ -331,6 +331,8 @@ Implementation status (2026-08-17): **complete for the current extension path an
 Exit gate: materially lower no-effect rate across controlled inputs, iframes, popups, and complex widgets.
 
 ### Phase 3 — Durable autonomous loop (3–4 weeks)
+
+Implementation status (2026-08-17): **complete for the live extension workflow path and controlled restart suite**. See [Phase 3 status and exit-gate evidence](phase3/status.md).
 
 1. Consolidate task, mission, approval, and execution state into one durable ledger.
 2. Add checkpoint/resume, idempotency, bounded automatic retries, and explicit completion validators.
