@@ -105,6 +105,8 @@ test('rejects malformed action fields and tab bindings', () => {
   assert.match(validateServiceWorkerMessage(executeMessage({ tab_id: -1 }), sender, runtimeId), /invalid tab binding/)
   assert.match(validateServiceWorkerMessage(executeMessage({ action: action({ action_id: '' }) }), sender, runtimeId), /invalid action contract/)
   assert.match(validateServiceWorkerMessage(executeMessage({ action: action({ safety_level: 'trusted' }) }), sender, runtimeId), /invalid action contract/)
+  assert.match(validateServiceWorkerMessage(executeMessage({ action: action({ grounding: { source: 'vision_region', bounding_box: { x: 1, y: 2, width: -1, height: 20 } } }) }), sender, runtimeId), /invalid action contract/)
+  assert.equal(validateServiceWorkerMessage(executeMessage({ action: action({ grounding: { source: 'dom_snapshot', bounding_box: { x: 1, y: 2, width: 10, height: 20 } } }) }), sender, runtimeId), null)
 })
 
 test('validates every non-execution message family and rejects unknown types', () => {

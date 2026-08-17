@@ -6,6 +6,14 @@ export type ExecutableAction = {
   description?: string
   reasoning?: string
   safety_level?: string
+  grounding?: {
+    source: 'dom_snapshot' | 'accessibility_snapshot' | 'vision_region'
+    selector_id?: string | null
+    frame_id?: string | null
+    accessibility_name?: string | null
+    role?: string | null
+    bounding_box?: { x: number; y: number; width: number; height: number } | null
+  }
 }
 
 export type PolicyProvenanceLabel = {
@@ -72,6 +80,7 @@ export function validateExecutableAction(value: unknown): value is ExecutableAct
   if (value.description !== undefined && !isBoundedString(value.description, 5000)) return false
   if (value.reasoning !== undefined && !isBoundedString(value.reasoning, 5000)) return false
   if (value.safety_level !== undefined && !['safe', 'caution', 'danger'].includes(String(value.safety_level))) return false
+  if (value.grounding !== undefined && !validateGrounding(value.grounding)) return false
   if (['navigate', 'open_new_tab'].includes(String(value.action_type))) {
     if (typeof value.value !== 'string') return false
     try {
@@ -80,6 +89,23 @@ export function validateExecutableAction(value: unknown): value is ExecutableAct
     } catch {
       return false
     }
+  }
+  return true
+}
+
+function validateGrounding(value: unknown): boolean {
+  if (!isRecord(value) || !['dom_snapshot', 'accessibility_snapshot', 'vision_region'].includes(String(value.source))) return false
+  if (value.selector_id !== undefined && !isBoundedString(value.selector_id, 300, true)) return false
+  if (value.frame_id !== undefined && !isBoundedString(value.frame_id, 300, true)) return false
+  if (value.accessibility_name !== undefined && !isBoundedString(value.accessibility_name, 500, true)) return false
+  if (value.role !== undefined && !isBoundedString(value.role, 100, true)) return false
+  if (value.bounding_box !== undefined && value.bounding_box !== null) {
+    if (!isRecord(value.bounding_box)) return false
+    const box = value.bounding_box
+    const coordinates = ['x', 'y', 'width', 'height'].map((key) => box[key])
+    if (!coordinates.every((item) => typeof item === 'number' && Number.isFinite(item))) return false
+    if (Number(value.bounding_box.width) <= 0 || Number(value.bounding_box.height) <= 0) return false
+    if (coordinates.some((item) => Math.abs(Number(item)) > 1_000_000)) return false
   }
   return true
 }

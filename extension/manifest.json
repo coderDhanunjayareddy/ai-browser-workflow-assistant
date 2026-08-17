@@ -11,6 +11,9 @@
     "scripting",
     "tabs"
   ],
+  "optional_permissions": [
+    "debugger"
+  ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
     "type": "module"

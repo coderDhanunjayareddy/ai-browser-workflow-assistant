@@ -125,6 +125,26 @@ function policyProvenance(sessionId: string, action: SuggestedAction, context: P
   ]
 }
 
+function bindObservationGrounding(action: SuggestedAction, context: PageContext): SuggestedAction {
+  const observed = context.interactive_elements.find((element) =>
+    element.selector === action.target_selector ||
+    (element.selector_id && element.selector_id === action.target_selector) ||
+    (element.element_id && element.element_id === action.target_selector)
+  )
+  if (!observed) return action
+  const visualAction = new Set(['visual_region', 'canvas_action', 'svg_action', 'chart_action', 'map_action']).has(action.action_type)
+  return {
+    ...action,
+    grounding: {
+      source: visualAction ? 'vision_region' : 'dom_snapshot',
+      selector_id: observed.selector_id ?? observed.element_id ?? null,
+      accessibility_name: observed.accessibility_name ?? observed.aria_label ?? observed.text ?? null,
+      role: observed.role ?? observed.type ?? null,
+      bounding_box: observed.bounding_box ?? null,
+    },
+  }
+}
+
 async function policyJson<T>(path: string, body: unknown): Promise<T> {
   const response = await fetchWithTimeout(`${BACKEND_URL}${path}`, {
     method: 'POST',
@@ -700,6 +720,16 @@ function buildBrowserEvidence(
   if (typeof result.closed_tab_id === 'number') evidence.closed_tab_id = result.closed_tab_id
   if (typeof result.tab_switch_verified === 'boolean') evidence.tab_switch_verified = result.tab_switch_verified
   if (typeof result.execution_duration_ms === 'number') evidence.execution_duration_ms = result.execution_duration_ms
+  if (result.execution_adapter) evidence.execution_adapter = result.execution_adapter
+  if (result.cdp_grounding_source !== undefined) evidence.cdp_grounding_source = result.cdp_grounding_source
+  if (typeof result.cdp_frame_count === 'number') evidence.cdp_frame_count = result.cdp_frame_count
+  if (typeof result.cdp_target_count === 'number') evidence.cdp_target_count = result.cdp_target_count
+  if (result.cdp_screenshot_hash !== undefined) evidence.cdp_screenshot_hash = result.cdp_screenshot_hash
+  for (const [key, value] of Object.entries(result.adapter_trace || {}).slice(0, 30)) {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null) {
+      evidence[`adapter_${key}`] = value
+    }
+  }
 
   for (const key of [
     'form_field_name',
@@ -1579,8 +1609,9 @@ export function useWorkflow() {
       tabWorkspace,
       userInputs,
     } = state
-    const action = pendingActions[0]
-    if (!action) return
+    const pendingAction = pendingActions[0]
+    if (!pendingAction) return
+    const action = pageContext ? bindObservationGrounding(pendingAction, pageContext) : pendingAction
 
     setState((s) => ({
       ...s,

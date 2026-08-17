@@ -1,0 +1,44 @@
+{
+  "schema_version": "phase2.control_benchmark.v1",
+  "generated_at": "2026-08-17T07:39:30.037185+00:00",
+  "surface_count": 4,
+  "synthetic_no_effect_count": 4,
+  "hybrid_no_effect_count": 0,
+  "synthetic_no_effect_rate": 1.0,
+  "hybrid_no_effect_rate": 0.0,
+  "relative_no_effect_reduction": 1.0,
+  "results": [
+    {
+      "surface": "controlled_input",
+      "synthetic_effect": false,
+      "cdp_attempted": true,
+      "hybrid_effect": true,
+      "grounding": "dom",
+      "screenshot_hash": null
+    },
+    {
+      "surface": "iframe",
+      "synthetic_effect": false,
+      "cdp_attempted": true,
+      "hybrid_effect": true,
+      "grounding": "dom_recursive_frame",
+      "screenshot_hash": null
+    },
+    {
+      "surface": "popup",
+      "synthetic_effect": false,
+      "cdp_attempted": true,
+      "hybrid_effect": true,
+      "grounding": "accessibility",
+      "screenshot_hash": null
+    },
+    {
+      "surface": "complex_widget",
+      "synthetic_effect": false,
+      "cdp_attempted": true,
+      "hybrid_effect": true,
+      "grounding": "vision_region",
+      "screenshot_hash": "0c2671cf611dfb607fa5f931f6d8fe4b9388a53ce1233aaa1be34ae22b3d7608"
+    }
+  ]
+}

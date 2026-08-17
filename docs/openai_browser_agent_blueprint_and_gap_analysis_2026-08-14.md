@@ -321,6 +321,8 @@ Exit gate: no consequential action can bypass policy; critical confirmation reca
 
 ### Phase 2 — CDP control and hybrid grounding (3–5 weeks)
 
+Implementation status (2026-08-17): **complete for the current extension path and controlled exit suite**. See [Phase 2 status and benchmark evidence](phase2/status.md).
+
 1. Add `debugger` as an optional permission, requested only when advanced control is enabled.
 2. Implement attach/detach lifecycle, target/frame inventory, Input actions, screenshots, and navigation signals.
 3. Combine DOM/a11y locators with CDP input and vision fallback.

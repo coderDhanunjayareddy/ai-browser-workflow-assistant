@@ -69,6 +69,7 @@ def action_digest(action: SuggestedAction) -> str:
         "target_selector": action.target_selector,
         "value": action.value,
         "description": action.description,
+        "grounding": action.grounding,
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

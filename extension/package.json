@@ -7,6 +7,7 @@
     "build": "vite build",
     "test:workflow": "node --test tests/useWorkflow.routing.test.cjs",
     "test:security": "node --test tests/serviceWorkerMessageValidation.test.cjs",
+    "test:cdp": "node --test tests/cdpControl.test.cjs",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

@@ -38,6 +38,7 @@ import {
   type PolicyExecutionContext,
 } from './service_worker_message_validation'
 import { enforceLivePolicy } from './live_policy_client'
+import { advancedControlEnabled, CdpController, shouldAttemptCdpFallback } from './cdp_control'
 import {
   activateTab,
   createMultiTabWorkspace,
@@ -59,6 +60,7 @@ type TabControlMetadata = {
 }
 
 let tabWorkspace: MultiTabWorkspace = createMultiTabWorkspace()
+const cdpController = new CdpController()
 
 async function getTargetTab(): Promise<chrome.tabs.Tab | undefined> {
   try {
@@ -546,8 +548,12 @@ async function handleExecuteAction(
 
     const result = await executeBrowserActionOnce(tab.id, action)
     if (!result) { sendResponse({ error: 'Executor returned empty result.' }); return }
-    const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, result, startedAt)
-    const finalResult = await recoverSelectorOnceIfEligible(tab.id, action, verifiedResult)
+    const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, {
+      ...result,
+      execution_adapter: 'dom',
+    }, startedAt)
+    const domResult = await recoverSelectorOnceIfEligible(tab.id, action, verifiedResult)
+    const finalResult = await executeCdpFallbackIfEligible(tab.id, action, domResult)
     sendResponse({ result: finalResult })
   } catch (err) {
     const msg = String(err)
@@ -557,6 +563,78 @@ async function handleExecuteAction(
       sendResponse({ error: `Execution failed: ${msg}` })
     }
   }
+}
+
+async function executeCdpFallbackIfEligible(
+  tabId: number,
+  action: ExecutableAction,
+  domResult: VerifiedExecutionResult,
+): Promise<VerifiedExecutionResult> {
+  const enabled = await advancedControlEnabled().catch(() => false)
+  if (!enabled || !shouldAttemptCdpFallback(action, domResult)) {
+    const completed = {
+      ...domResult,
+      execution_adapter: domResult.execution_adapter ?? 'dom',
+      adapter_trace: {
+        ...(domResult.adapter_trace || {}),
+        dom_verified: domResult.verification?.verified ?? false,
+        dom_reason: domResult.verification?.reason ?? null,
+        cdp_enabled: enabled,
+        cdp_attempted: false,
+      },
+    } as VerifiedExecutionResult
+    await persistAdapterTrace(action, completed)
+    return completed
+  }
+
+  const fallbackAction: ExecutableAction = domResult.recovery_selector
+    ? { ...action, target_selector: domResult.recovery_selector }
+    : action
+  const cdpStartedAt = performance.now()
+  const cdpBeforeState = await captureActionVerificationState(tabId, fallbackAction)
+  const cdpExecution = await cdpController.execute(tabId, fallbackAction)
+  const cdpVerified = await createVerifiedExecutionResult(tabId, fallbackAction, cdpBeforeState, cdpExecution, cdpStartedAt)
+  const completed = {
+    ...cdpVerified,
+    recovery_attempted: domResult.recovery_attempted,
+    recovery_selector: domResult.recovery_selector,
+    recovery_source: domResult.recovery_source,
+    recovery_verified: domResult.recovery_verified,
+    recovery_reason: domResult.recovery_reason,
+    adapter_trace: {
+      ...(cdpExecution.adapter_trace || {}),
+      dom_success: domResult.success,
+      dom_verified: domResult.verification?.verified ?? false,
+      dom_reason: domResult.verification?.reason ?? null,
+      dom_duration_ms: domResult.execution_duration_ms ?? null,
+      cdp_enabled: true,
+      cdp_attempted: true,
+      cdp_success: cdpExecution.success,
+      cdp_verified: cdpVerified.verification?.verified ?? false,
+      cdp_reason: cdpVerified.verification?.reason ?? null,
+    },
+  } as VerifiedExecutionResult
+  await persistAdapterTrace(action, completed)
+  return completed.verification?.verified ? completed : {
+    ...completed,
+    success: false,
+    message: `${domResult.message} CDP fallback did not produce a verified effect: ${completed.message}`,
+  }
+}
+
+async function persistAdapterTrace(action: ExecutableAction, result: VerifiedExecutionResult): Promise<void> {
+  const stored: Record<string, any> = await chrome.storage.local.get('phase2_adapter_traces').catch(() => ({}))
+  const existing = Array.isArray(stored.phase2_adapter_traces) ? stored.phase2_adapter_traces : []
+  const trace = {
+    timestamp: new Date().toISOString(),
+    action_id: action.action_id,
+    action_type: action.action_type,
+    execution_adapter: result.execution_adapter ?? 'dom',
+    verified: result.verification?.verified ?? false,
+    reason: result.verification?.reason ?? null,
+    ...(result.adapter_trace || {}),
+  }
+  await chrome.storage.local.set({ phase2_adapter_traces: [...existing.slice(-199), trace] }).catch(() => undefined)
 }
 
 async function handleGetTabWorkspace(sendResponse: (response: unknown) => void) {

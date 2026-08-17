@@ -34,6 +34,12 @@ export interface BasicExecutionResult {
   wave3_validated?: boolean
   wave4_capability?: string
   wave4_validated?: boolean
+  execution_adapter?: 'dom' | 'cdp'
+  adapter_trace?: Record<string, string | number | boolean | null>
+  cdp_grounding_source?: string | null
+  cdp_frame_count?: number
+  cdp_target_count?: number
+  cdp_screenshot_hash?: string | null
 }
 
 export interface ActionVerificationTargetState {
@@ -309,6 +315,7 @@ export function verifyActionEffect(
     wave3_validated: executionResult.wave3_validated ?? null,
     wave4_capability: executionResult.wave4_capability ?? null,
     wave4_validated: executionResult.wave4_validated ?? null,
+    cdp_navigation_signal_count: Number(executionResult.adapter_trace?.cdp_navigation_signal_count || 0),
   }
 
   if (!executionResult.success) {
@@ -331,7 +338,8 @@ export function verifyActionEffect(
         signals.target_checked_changed ||
         signals.target_expanded_changed ||
         signals.visible_text_length_changed ||
-        signals.interactive_count_changed,
+        signals.interactive_count_changed ||
+        Number(signals.cdp_navigation_signal_count || 0) > 0,
       )
       break
 

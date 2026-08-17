@@ -75,6 +75,24 @@ def test_confirmation_receipt_is_narrow_one_time_and_action_bound(engine: LivePo
     assert engine.enforce(changed).allowed is False
 
 
+def test_confirmation_receipt_is_bound_to_observation_geometry(engine: LivePolicyEngine):
+    original_action = action(action_id="coordinate-1", description="Place order", safety_level="caution")
+    original_action["grounding"] = {
+        "source": "vision_region",
+        "bounding_box": {"x": 10, "y": 20, "width": 100, "height": 40},
+    }
+    original = request(original_action)
+    receipt = engine.issue_confirmation(original)
+
+    moved_action = dict(original_action)
+    moved_action["grounding"] = {
+        "source": "vision_region",
+        "bounding_box": {"x": 500, "y": 20, "width": 100, "height": 40},
+    }
+    moved = request(moved_action).model_copy(update={"confirmation_receipt_id": receipt.receipt_id})
+    assert engine.enforce(moved).allowed is False
+
+
 def test_expired_confirmation_receipt_is_rejected(engine: LivePolicyEngine):
     pay = request(action(action_id="pay-expired", description="Place order", safety_level="caution"))
     receipt = engine.issue_confirmation(pay)

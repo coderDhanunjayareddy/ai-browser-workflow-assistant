@@ -25,6 +25,9 @@ class SuggestedAction(BaseModel):
     # Sources that influenced this proposal. The browser-side enforcement gate
     # independently validates these labels before any privileged operation.
     provenance: list[dict[str, Any]] = Field(default_factory=list)
+    # Observation-time geometry for the final screenshot/coordinate fallback.
+    # The policy digest binds this data to the approved action.
+    grounding: dict[str, Any] = Field(default_factory=dict)
 
 
 class ReportOutcome(BaseModel):

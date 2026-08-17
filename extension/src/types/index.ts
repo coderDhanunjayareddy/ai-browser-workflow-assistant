@@ -59,6 +59,16 @@ export interface SuggestedAction {
   reasoning: string
   confidence: number
   safety_level: SafetyLevel
+  grounding?: ActionGrounding
+}
+
+export interface ActionGrounding {
+  source: 'dom_snapshot' | 'accessibility_snapshot' | 'vision_region'
+  selector_id?: string | null
+  frame_id?: string | null
+  accessibility_name?: string | null
+  role?: string | null
+  bounding_box?: { x: number; y: number; width: number; height: number } | null
 }
 
 export interface PolicyProvenanceLabel {
@@ -332,6 +342,12 @@ export interface ExecutionResult {
   semantic_mismatch_reason?: string | null
   semantic_mismatch_observed_result?: string | null
   semantic_mismatch_assessment?: string | null
+  execution_adapter?: 'dom' | 'cdp'
+  adapter_trace?: Record<string, string | number | boolean | null>
+  cdp_grounding_source?: string | null
+  cdp_frame_count?: number
+  cdp_target_count?: number
+  cdp_screenshot_hash?: string | null
 }
 
 export interface EventHistory {
