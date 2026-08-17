@@ -9,7 +9,7 @@ from __future__ import annotations
 from app.capability_platform.browser_registry import certification_report
 from app.feature_flags import v4_flag_snapshot
 
-# The 11 supported action sub-types (mapped onto the 9 adapter methods).
+# The 12 supported action sub-types (mapped onto the 9 adapter methods).
 SUPPORTED_ACTIONS: tuple[str, ...] = (
     "NAVIGATE", "NAVIGATE_NEXT_PAGE", "CLICK", "TYPE", "WAIT",
     "EXTRACT_TEXT", "EXTRACT_HTML",

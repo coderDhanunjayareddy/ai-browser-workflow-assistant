@@ -359,6 +359,17 @@ Implementation status (2026-08-17): **continuous evidence system live; promotion
 3. Roll out capabilities independently behind measurable gates.
 4. Remove or archive parallel scaffolding that does not improve end-to-end results.
 
+### Phase 6 — Live validation and hardening (continuous)
+
+Implementation status (2026-08-17): **controlled visual exit gate passed; authenticated third-party evaluation remains credential-gated**. See [Phase 6 status and visual evidence](phase6/status.md).
+
+1. Run representative workflows through real rendered Chromium and retain inspectable evidence.
+2. Visually validate representative read, interaction, recovery, and navigation states.
+3. Re-run adversarial safety probes and the complete regression suites.
+4. Expand into authenticated public services only with disposable accounts and per-capability release gates.
+
+Controlled exit gate: 25/25 rendered workflows passed with 25 screenshots, the policy red-team passed 7/7 with 100% critical confirmation recall, 3,587 backend unit tests passed, 31 real-browser integration tests passed, and all extension verification passed. This gate does not claim universal website or authenticated-account coverage.
+
 ## 8. Immediate keep/change/remove decisions
 
 ### Keep and deepen

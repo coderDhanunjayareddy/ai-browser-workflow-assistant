@@ -241,6 +241,14 @@ def _dragdrop(b):
     ]
 
 
+def _invoice_read(b):
+    return [
+        _nav(1, b, "/invoice"),
+        make_step(2, ActionType.extract, TargetType.region, "invoice total",
+                  parameters={"testid": "invoice-total", "mode": "text"}),
+    ]
+
+
 def build_scenarios() -> list[CertificationScenario]:
     S, C, K = ScenarioCategory, SuccessCriterion, CriterionKind
     return [
@@ -414,4 +422,11 @@ def build_scenarios() -> list[CertificationScenario]:
             [_crit(K.state_completed), _crit(K.semantic_present, "card detected", target="card")],
             known_limitations=["Analysis-only: no synthetic drag gesture is performed (no browser autonomy)."],
             build_steps=_dragdrop),
+        CertificationScenario(
+            "cert-invoice-read", "Invoice total extraction", "invoice-app",
+            "Read the invoice total without starting payment", S.navigation, "/invoice",
+            "Invoice total extracted as INR 14,632.00",
+            [_crit(K.state_completed),
+             _crit(K.content_contains, "invoice total extracted", step_index=1, target="INR 14,632.00")],
+            build_steps=_invoice_read),
     ]

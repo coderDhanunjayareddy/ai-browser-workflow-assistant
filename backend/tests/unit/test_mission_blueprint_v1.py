@@ -43,8 +43,11 @@ def _node(node_id: str, objective: str = "Read source") -> BlueprintNode:
     )
 
 
-def test_mission_blueprint_flag_defaults_to_off():
+def test_mission_blueprint_flag_defaults_to_off(monkeypatch):
     assert settings.__class__.model_fields["mission_blueprint_v1"].default == "off"
+    # Local developer .env files may intentionally activate the feature. Pin the
+    # runtime value so this test measures the declared default, not operator config.
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "off")
     assert get_flag_state("MISSION_BLUEPRINT_V1") == FeatureFlagState.OFF
 
 

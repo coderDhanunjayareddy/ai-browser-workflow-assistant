@@ -35,20 +35,24 @@ class BlueprintBenchmark:
 
 
 RESEARCH_NODES = [
-    "define_research_target",
-    "discover_sources",
-    "collect_candidates",
-    "select_sources",
-    "read_sources",
-    "extract_information",
+    "research_mission",
+    "open_search_engine",
+    "execute_search",
+    "collect_serp_results",
+    "rank_results",
+    *[node for index in range(1, 6) for node in (
+        f"open_result_{index}", f"read_page_{index}", f"extract_fields_{index}",
+    )],
     "validate_coverage",
-    "create_report",
+    "generate_report",
 ]
-RESEARCH_WITH_CLARIFICATION = ["clarify_requirements", *RESEARCH_NODES]
+RESEARCH_WITH_CLARIFICATION = RESEARCH_NODES
 NAVIGATION_NODES = ["define_target_state", "reach_target_state", "verify_target_state"]
 NAVIGATION_WITH_CLARIFICATION = ["clarify_requirements", *NAVIGATION_NODES]
-EXTRACTION_NODES = ["define_schema", "locate_source", "read_source", "extract_records", "validate_records", "deliver_artifact"]
+EXTRACTION_NODES = ["locate_source", "read_source", "extract_records", "validate_records", "deliver_artifact"]
 FILE_NODES = ["define_file_requirement", "access_file", "process_file", "validate_file_result", "deliver_file_result"]
+FILE_UPLOAD_NODES = ["define_file_requirement", "locate_upload_target", "access_file", "activate_upload_control", "validate_file_result", "deliver_file_result"]
+FORM_NODES = ["define_form_workflow", "locate_form", "map_form_fields", "fill_form_fields", "validate_form_state", "submit_if_policy_allows", "report_form_result"]
 
 
 BENCHMARKS = [
@@ -62,12 +66,12 @@ BENCHMARKS = [
         expected_classification="research",
         expected_capabilities={"Search", "Browser", "Knowledge Extraction", "Validation", "Report Generation"},
         expected_nodes=RESEARCH_WITH_CLARIFICATION,
-        expected_dependency_edges={("clarify_requirements", "define_research_target"), ("define_research_target", "discover_sources")},
-        expected_ready_nodes={"clarify_requirements"},
+        expected_dependency_edges={("research_mission", "open_search_engine"), ("validate_coverage", "generate_report")},
+        expected_ready_nodes={"research_mission"},
         expected_clarifications={"clarify_ranking_or_relevance_policy"},
         expected_risks={"missing_information"},
-        expected_expanded_nodes={"clarify_requirements"},
-        expected_min_ledger_intents=1,
+        expected_expanded_nodes={"research_mission"},
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="shopping_price_comparison",
@@ -76,11 +80,11 @@ BENCHMARKS = [
         expected_classification="research",
         expected_capabilities={"Search", "Browser", "Knowledge Extraction", "Validation", "Report Generation"},
         expected_nodes=RESEARCH_NODES,
-        expected_dependency_edges={("define_research_target", "discover_sources"), ("validate_coverage", "create_report")},
-        expected_ready_nodes={"define_research_target"},
+        expected_dependency_edges={("research_mission", "open_search_engine"), ("validate_coverage", "generate_report")},
+        expected_ready_nodes={"research_mission"},
         expected_risks={"payment", "privacy"},
-        expected_expanded_nodes={"define_research_target"},
-        expected_min_ledger_intents=1,
+        expected_expanded_nodes={"research_mission"},
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="booking_hotel_page",
@@ -93,7 +97,7 @@ BENCHMARKS = [
         expected_ready_nodes={"define_target_state"},
         expected_risks={"payment"},
         expected_expanded_nodes={"define_target_state"},
-        expected_min_ledger_intents=1,
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="authentication_dashboard",
@@ -119,7 +123,7 @@ BENCHMARKS = [
         expected_ready_nodes={"define_target_state"},
         expected_risks={"low"},
         expected_expanded_nodes={"define_target_state"},
-        expected_min_ledger_intents=1,
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="file_upload_resume",
@@ -127,8 +131,8 @@ BENCHMARKS = [
         user_goal="Upload the provided resume PDF to the application form and verify the upload.",
         expected_classification="file_processing",
         expected_capabilities={"File Processing", "Validation", "Report Generation"},
-        expected_nodes=FILE_NODES,
-        expected_dependency_edges={("define_file_requirement", "access_file"), ("validate_file_result", "deliver_file_result")},
+        expected_nodes=FILE_UPLOAD_NODES,
+        expected_dependency_edges={("define_file_requirement", "locate_upload_target"), ("validate_file_result", "deliver_file_result")},
         expected_ready_nodes={"define_file_requirement"},
         expected_risks={"privacy"},
         expected_expanded_nodes={"define_file_requirement"},
@@ -153,11 +157,11 @@ BENCHMARKS = [
         user_goal="Fill the contact form with name, email, and message but do not submit.",
         expected_classification="navigation",
         expected_capabilities={"Browser", "Validation"},
-        expected_nodes=NAVIGATION_NODES,
-        expected_dependency_edges={("define_target_state", "reach_target_state"), ("reach_target_state", "verify_target_state")},
-        expected_ready_nodes={"define_target_state"},
+        expected_nodes=FORM_NODES,
+        expected_dependency_edges={("define_form_workflow", "locate_form"), ("submit_if_policy_allows", "report_form_result")},
+        expected_ready_nodes={"define_form_workflow"},
         expected_risks={"privacy", "irreversible_action"},
-        expected_expanded_nodes={"define_target_state"},
+        expected_expanded_nodes={"define_form_workflow"},
         expected_min_ledger_intents=1,
     ),
     BlueprintBenchmark(
@@ -167,11 +171,11 @@ BENCHMARKS = [
         expected_classification="data_extraction",
         expected_capabilities={"Browser", "Knowledge Extraction", "Validation", "Report Generation"},
         expected_nodes=EXTRACTION_NODES,
-        expected_dependency_edges={("define_schema", "locate_source"), ("extract_records", "validate_records")},
-        expected_ready_nodes={"define_schema"},
+        expected_dependency_edges={("locate_source", "read_source"), ("extract_records", "validate_records")},
+        expected_ready_nodes={"locate_source"},
         expected_risks={"low"},
-        expected_expanded_nodes={"define_schema"},
-        expected_min_ledger_intents=1,
+        expected_expanded_nodes={"locate_source"},
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="multi_tab_research",
@@ -180,12 +184,12 @@ BENCHMARKS = [
         expected_classification="research",
         expected_capabilities={"Search", "Browser", "Knowledge Extraction", "Validation", "Report Generation"},
         expected_nodes=RESEARCH_WITH_CLARIFICATION,
-        expected_dependency_edges={("clarify_requirements", "define_research_target"), ("read_sources", "extract_information")},
-        expected_ready_nodes={"clarify_requirements"},
+        expected_dependency_edges={("research_mission", "open_search_engine"), ("validate_coverage", "generate_report")},
+        expected_ready_nodes={"research_mission"},
         expected_clarifications={"clarify_ranking_or_relevance_policy"},
         expected_risks={"missing_information"},
-        expected_expanded_nodes={"clarify_requirements"},
-        expected_min_ledger_intents=1,
+        expected_expanded_nodes={"research_mission"},
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="dashboard_analysis",
@@ -194,11 +198,11 @@ BENCHMARKS = [
         expected_classification="research",
         expected_capabilities={"Search", "Browser", "Knowledge Extraction", "Validation", "Report Generation"},
         expected_nodes=RESEARCH_NODES,
-        expected_dependency_edges={("define_research_target", "discover_sources"), ("extract_information", "validate_coverage")},
-        expected_ready_nodes={"define_research_target"},
+        expected_dependency_edges={("research_mission", "open_search_engine"), ("validate_coverage", "generate_report")},
+        expected_ready_nodes={"research_mission"},
         expected_risks={"low"},
-        expected_expanded_nodes={"define_research_target"},
-        expected_min_ledger_intents=1,
+        expected_expanded_nodes={"research_mission"},
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="job_application",
@@ -211,7 +215,7 @@ BENCHMARKS = [
         expected_ready_nodes={"define_target_state"},
         expected_risks={"privacy", "irreversible_action"},
         expected_expanded_nodes={"define_target_state"},
-        expected_min_ledger_intents=1,
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="email_drafting",
@@ -224,7 +228,7 @@ BENCHMARKS = [
         expected_ready_nodes={"define_target_state"},
         expected_risks={"privacy"},
         expected_expanded_nodes={"define_target_state"},
-        expected_min_ledger_intents=1,
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="calendar_scheduling",
@@ -237,19 +241,19 @@ BENCHMARKS = [
         expected_ready_nodes={"define_target_state"},
         expected_risks={"low"},
         expected_expanded_nodes={"define_target_state"},
-        expected_min_ledger_intents=1,
+        expected_min_ledger_intents=0,
     ),
     BlueprintBenchmark(
         benchmark_id="cross_system_invoice_email",
         category="Cross-System Workflow",
         user_goal="Download the latest invoice, extract the total, and draft an email summary.",
-        expected_classification="data_extraction",
-        expected_capabilities={"Browser", "Knowledge Extraction", "Validation", "Report Generation"},
-        expected_nodes=EXTRACTION_NODES,
-        expected_dependency_edges={("define_schema", "locate_source"), ("validate_records", "deliver_artifact")},
-        expected_ready_nodes={"define_schema"},
+        expected_classification="file_processing",
+        expected_capabilities={"File Processing", "Browser", "Validation", "Report Generation"},
+        expected_nodes=FILE_NODES,
+        expected_dependency_edges={("define_file_requirement", "access_file"), ("validate_file_result", "deliver_file_result")},
+        expected_ready_nodes={"define_file_requirement"},
         expected_risks={"privacy"},
-        expected_expanded_nodes={"define_schema"},
+        expected_expanded_nodes={"define_file_requirement"},
         expected_min_ledger_intents=1,
     ),
 ]

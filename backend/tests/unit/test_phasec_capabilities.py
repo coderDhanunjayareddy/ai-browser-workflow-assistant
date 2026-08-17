@@ -5,10 +5,10 @@ from app.execution_gateway.browser import capabilities as caps
 
 class TestCapabilities:
     def test_supported_actions_count(self):
-        assert len(caps.SUPPORTED_ACTIONS) == 11
+        assert len(caps.SUPPORTED_ACTIONS) == 12
 
     @pytest.mark.parametrize("action", [
-        "NAVIGATE", "CLICK", "TYPE", "WAIT", "EXTRACT_TEXT", "EXTRACT_HTML",
+        "NAVIGATE", "NAVIGATE_NEXT_PAGE", "CLICK", "TYPE", "WAIT", "EXTRACT_TEXT", "EXTRACT_HTML",
         "UPLOAD", "DOWNLOAD", "VALIDATE_URL", "VALIDATE_TEXT", "VALIDATE_EXISTS",
     ])
     def test_action_supported(self, action):
