@@ -11,3 +11,8 @@ test('debugger is a required permission because Chrome forbids it as optional', 
   assert.ok(manifest.permissions.includes('debugger'))
   assert.ok(!manifest.optional_permissions?.includes('debugger'))
 })
+
+test('native messaging remains disabled until a separately reviewed capability requires it', () => {
+  assert.ok(!manifest.permissions.includes('nativeMessaging'))
+  assert.ok(!manifest.optional_permissions?.includes('nativeMessaging'))
+})

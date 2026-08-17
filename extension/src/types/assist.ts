@@ -187,6 +187,15 @@ export interface AssistResponse {
   intelligence?: IntelligenceLayer | null           // V4.0 Intelligence Layer
   task_id?: string | null                           // V4.5 Unified Task Graph
   task_state?: string | null                        // V4.5 Unified Task Graph
+  tool_route_trace?: ToolRouteTrace | null          // Phase 4 risk-first routing
+}
+
+export interface ToolRouteTrace {
+  trace_id: string
+  selected_route: 'context_answer' | 'structured_search' | 'connector_api' | 'isolated_browser' | 'user_session_browser' | 'native_messaging_handoff'
+  selected_risk_score: number
+  explanation: string
+  requires_user_handoff: boolean
 }
 
 export type AssistPhase = 'idle' | 'loading' | 'complete' | 'error'
@@ -207,6 +216,7 @@ export interface ChatMessage {
   intelligence?: IntelligenceLayer    // V4.0
   taskId?: string                     // V4.5
   taskState?: string                  // V4.5
+  toolRouteTrace?: ToolRouteTrace     // Phase 4
   timestamp: number
 }
 

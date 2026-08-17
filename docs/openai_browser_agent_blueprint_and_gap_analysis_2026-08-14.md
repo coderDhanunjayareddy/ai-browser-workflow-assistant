@@ -342,6 +342,8 @@ Exit gate: long workflows resume after extension/service restart without duplica
 
 ### Phase 4 — Tool routing and isolation (4–6 weeks)
 
+Implementation status (2026-08-17): **complete for the live assist/backend path and controlled isolation suite**. See [Phase 4 status and exit-gate evidence](phase4/status.md).
+
 1. Add structured web/search and connector/API routes for tasks that do not need GUI control.
 2. Add an isolated managed-browser mode for untrusted research and logged-out exploration.
 3. Consider native messaging only for capabilities that cannot safely live in the extension/backend boundary.

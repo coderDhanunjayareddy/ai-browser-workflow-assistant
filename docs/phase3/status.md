@@ -53,7 +53,7 @@ cd extension && npm run type-check
 cd extension && npm run build
 ```
 
-Current verification result: **157 extension tests passed**, TypeScript passed, and the production build passed.
+Current verification result: **157 extension tests passed**, **188 backend policy/governance tests passed**, TypeScript passed, and the production build passed.
 
 ## Live restart check
 

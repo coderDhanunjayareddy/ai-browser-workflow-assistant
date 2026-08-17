@@ -123,6 +123,7 @@ function makeAssistantMessage(response: AssistResponse, sourceQuery: string = ''
     intelligence: (response.intelligence ?? undefined) as IntelligenceLayer | undefined,
     taskId: response.task_id ?? undefined,
     taskState: response.task_state ?? undefined,
+    toolRouteTrace: response.tool_route_trace ?? undefined,
     timestamp: Date.now(),
   }
 }

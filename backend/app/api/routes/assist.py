@@ -6,6 +6,7 @@ from app.schemas.assist import AssistRequest, AssistResponse
 from app.assist.ambient_assistant import run
 from app.services.ai_service import AIProviderError, TransientAIError, is_transient_error
 from app.budget_engine import BudgetExceededError
+from app.tool_routing.router import infer_request, route_task
 
 router = APIRouter()
 
@@ -13,7 +14,13 @@ router = APIRouter()
 @router.post("/assist", response_model=AssistResponse, status_code=200)
 def assist(request: AssistRequest, db: Session = Depends(get_db)) -> AssistResponse:
     try:
-        return run(request, db=db)
+        route_trace = route_task(infer_request(
+            request.message,
+            current_page_available=bool(request.read_view.url or request.read_view.visible_text),
+        ))
+        response = run(request, db=db)
+        response.tool_route_trace = route_trace.model_dump(mode="json")
+        return response
     except BudgetExceededError as exc:
         raise HTTPException(
             status_code=409,

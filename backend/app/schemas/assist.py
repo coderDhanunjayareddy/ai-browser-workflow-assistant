@@ -189,3 +189,4 @@ class AssistResponse(BaseModel):
     intelligence: Optional[IntelligenceLayerSchema] = None    # V4.0 Intelligence Layer
     task_id: Optional[str] = None                             # V4.5 Unified Task Graph
     task_state: Optional[str] = None                          # V4.5 Unified Task Graph
+    tool_route_trace: Optional[dict[str, Any]] = None         # Phase 4 risk-first route explanation

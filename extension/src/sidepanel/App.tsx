@@ -1277,6 +1277,7 @@ function ChatMessageView({ message, onFollowup, onHandoff, isLoading }: ChatMess
     return (
       <div style={s.assistInfo}>
         <p style={s.assistInfoText}>{message.content as string}</p>
+        <RouteTraceNote trace={message.toolRouteTrace} />
         {message.handoff?.available && message.sourceQuery && (
           <button
             style={{ ...s.handoffBtn, ...(isLoading ? s.chipDisabled : {}) }}
@@ -1301,6 +1302,7 @@ function ChatMessageView({ message, onFollowup, onHandoff, isLoading }: ChatMess
     return (
       <div style={s.answerCard}>
         <p style={s.answerText}>{message.content as string}</p>
+        <RouteTraceNote trace={message.toolRouteTrace} />
         {message.meta && (
           <p style={s.msgMeta}>{message.meta.latency_ms}ms · {message.meta.context_chars} chars</p>
         )}
@@ -1320,6 +1322,7 @@ function ChatMessageView({ message, onFollowup, onHandoff, isLoading }: ChatMess
         sourceQuery={message.sourceQuery}
         isLoading={isLoading}
         intelligence={message.intelligence}
+        toolRouteTrace={message.toolRouteTrace}
       />
     )
   }
@@ -1328,6 +1331,7 @@ function ChatMessageView({ message, onFollowup, onHandoff, isLoading }: ChatMess
     const summary = message.content as StructuredSummary
     return (
       <div style={s.summaryBox}>
+        <RouteTraceNote trace={message.toolRouteTrace} />
         <div style={s.summarySection}>
           <p style={s.summaryLabel}>TL;DR</p>
           <p style={s.summaryTldr}>{summary.tldr}</p>
@@ -1394,6 +1398,16 @@ function ChatMessageView({ message, onFollowup, onHandoff, isLoading }: ChatMess
   }
 
   return null
+}
+
+function RouteTraceNote({ trace }: { trace?: ChatMessage['toolRouteTrace'] }) {
+  if (!trace) return null
+  return (
+    <details style={s.routeTrace}>
+      <summary style={s.routeTraceSummary}>Route: {trace.selected_route.replace(/_/g, ' ')} · risk {trace.selected_risk_score}</summary>
+      <p style={s.routeTraceText}>{trace.explanation}</p>
+    </details>
+  )
 }
 
 // ── Intelligence View (V4.0) ─────────────────────────────────────────────────
@@ -1503,6 +1517,7 @@ interface ResearchReportViewProps {
   sourceQuery?: string
   isLoading: boolean
   intelligence?: IntelligenceLayer
+  toolRouteTrace?: ChatMessage['toolRouteTrace']
 }
 
 const SOURCE_TYPE_LABELS: Record<string, string> = {
@@ -1511,12 +1526,13 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
   ai_knowledge: 'AI',
 }
 
-function ResearchReportView({ report, meta, suggestedFollowups, onFollowup, onHandoff, handoff, sourceQuery, isLoading, intelligence }: ResearchReportViewProps) {
+function ResearchReportView({ report, meta, suggestedFollowups, onFollowup, onHandoff, handoff, sourceQuery, isLoading, intelligence, toolRouteTrace }: ResearchReportViewProps) {
   const [showSources, setShowSources] = useState(false)
   const confidencePct = Math.round(report.confidence_score * 100)
 
   return (
     <div style={s.researchCard}>
+      <RouteTraceNote trace={toolRouteTrace} />
       {/* Header */}
       <div style={s.researchHeader}>
         <span style={s.researchTag}>Research</span>
@@ -1925,6 +1941,9 @@ const s: Record<string, React.CSSProperties> = {
   userBubbleText: { fontSize: '12px', color: '#fff', margin: 0, lineHeight: 1.5, wordBreak: 'break-word' as const },
   answerCard: { background: '#fff', border: '1px solid #e0e0e0', borderRadius: '6px', padding: '10px 12px' },
   msgMeta: { fontSize: '10px', color: '#aaa', margin: '6px 0 0' },
+  routeTrace: { margin: '6px 10px', padding: '5px 7px', background: '#f8fafc', border: '1px solid #dbe4ef', borderRadius: '4px' },
+  routeTraceSummary: { fontSize: '10px', color: '#475569', cursor: 'pointer', textTransform: 'capitalize' as const },
+  routeTraceText: { fontSize: '10px', lineHeight: 1.45, color: '#64748b', margin: '5px 0 0' },
   assistError: { background: '#fdf0ee', border: '1px solid #f5c6c1', borderRadius: '6px', padding: '10px 12px' },
   assistErrorText: { fontSize: '12px', color: '#c0392b', margin: 0, lineHeight: 1.5 },
   typingIndicator: { fontSize: '12px', color: '#888', fontStyle: 'italic', margin: '2px 0 0', padding: '0 4px' },
