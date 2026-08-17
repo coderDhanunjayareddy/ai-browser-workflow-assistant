@@ -10,8 +10,8 @@
   },
   "counts": {
     "dead": 38,
-    "live": 379,
-    "shadow": 238,
+    "live": 388,
+    "shadow": 247,
     "stub": 7,
     "test-only": 48
   },
@@ -152,9 +152,19 @@
       "evidence": "reachable from a registered API route not used by the core extension flow"
     },
     {
+      "path": "backend/app/api/routes/policy.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
       "path": "backend/app/api/routes/product.py",
       "status": "live",
       "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/api/routes/production_evidence.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
     },
     {
       "path": "backend/app/api/routes/research.py",
@@ -173,6 +183,11 @@
     },
     {
       "path": "backend/app/api/routes/tabs.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/api/routes/tool_routing.py",
       "status": "shadow",
       "evidence": "reachable from a registered API route not used by the core extension flow"
     },
@@ -1197,6 +1212,16 @@
       "evidence": "statically reachable from a configured product entry root"
     },
     {
+      "path": "backend/app/evaluation/production.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/red_team.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
       "path": "backend/app/evaluation/regression.py",
       "status": "live",
       "evidence": "statically reachable from a configured product entry root"
@@ -1205,6 +1230,11 @@
       "path": "backend/app/evaluation/replay.py",
       "status": "live",
       "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/evaluation/scaffold_retirement.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
     },
     {
       "path": "backend/app/evaluation/scorecards.py",
@@ -2317,6 +2347,16 @@
       "evidence": "statically reachable from a configured product entry root"
     },
     {
+      "path": "backend/app/policy/live_engine.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/policy/live_store.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
       "path": "backend/app/policy/models.py",
       "status": "live",
       "evidence": "statically reachable from a configured product entry root"
@@ -3057,6 +3097,36 @@
       "evidence": "referenced by repository tests but not statically reachable from product roots"
     },
     {
+      "path": "backend/app/tool_routing/__init__.py",
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
+    },
+    {
+      "path": "backend/app/tool_routing/connectors.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tool_routing/isolated_browser.py",
+      "status": "shadow",
+      "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/tool_routing/models.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/tool_routing/router.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "backend/app/tool_routing/trace_store.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
       "path": "backend/app/trust/__init__.py",
       "status": "shadow",
       "evidence": "package initializer inherits shadow status from descendant modules"
@@ -3402,12 +3472,27 @@
       "evidence": "reachable from a registered API route not used by the core extension flow"
     },
     {
+      "path": "extension/src/background/cdp_control.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
       "path": "extension/src/background/file_transfer_metadata.ts",
       "status": "live",
       "evidence": "statically reachable from a configured product entry root"
     },
     {
+      "path": "extension/src/background/live_policy_client.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
       "path": "extension/src/background/service-worker.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/background/service_worker_message_validation.ts",
       "status": "live",
       "evidence": "statically reachable from a configured product entry root"
     },
@@ -3498,6 +3583,11 @@
     },
     {
       "path": "extension/src/sidepanel/contextBudgetManager.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/sidepanel/durableWorkflowLedger.ts",
       "status": "live",
       "evidence": "statically reachable from a configured product entry root"
     },

@@ -8,8 +8,8 @@
 
 | Status | Files |
 |---|---:|
-| `live` | 379 |
-| `shadow` | 238 |
+| `live` | 388 |
+| `shadow` | 247 |
 | `test-only` | 48 |
 | `stub` | 7 |
 | `dead` | 38 |
@@ -45,11 +45,14 @@
 | `backend/app/api/routes/mission_blueprint.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/mission_intelligence.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/plans.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/api/routes/policy.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/product.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/api/routes/production_evidence.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/research.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/runtime.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/system.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/tabs.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/api/routes/tool_routing.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/trust.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/unified.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/api/routes/validation.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -254,8 +257,11 @@
 | `backend/app/evaluation/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/evaluation/engine.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/evaluation/models.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/evaluation/production.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/evaluation/red_team.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/evaluation/regression.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/evaluation/replay.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/evaluation/scaffold_retirement.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/evaluation/scorecards.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/evaluation/scoring.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/evaluation/signals.py` | `live` | statically reachable from a configured product entry root |
@@ -478,6 +484,8 @@
 | `backend/app/policy/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/policy/constraints.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/policy/engine.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/policy/live_engine.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/policy/live_store.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/policy/models.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/policy/phase0_taxonomy.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/policy/replay.py` | `live` | statically reachable from a configured product entry root |
@@ -626,6 +634,12 @@
 | `backend/app/tabs/task_tab_map.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/task_graph/graph_executor.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
 | `backend/app/task_graph/graph_models.py` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `backend/app/tool_routing/__init__.py` | `live` | package initializer inherits live status from descendant modules |
+| `backend/app/tool_routing/connectors.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/tool_routing/isolated_browser.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/tool_routing/models.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/tool_routing/router.py` | `live` | statically reachable from a configured product entry root |
+| `backend/app/tool_routing/trace_store.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/trust/__init__.py` | `shadow` | package initializer inherits shadow status from descendant modules |
 | `backend/app/trust/action_analyzer.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/trust/analytics.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
@@ -695,8 +709,11 @@
 | `backend/app/website_intelligence/navigation_intelligence.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/website_intelligence/semantic_analyzer.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/website_intelligence/table_intelligence.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `extension/src/background/cdp_control.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/background/file_transfer_metadata.ts` | `live` | statically reachable from a configured product entry root |
+| `extension/src/background/live_policy_client.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/background/service-worker.ts` | `live` | statically reachable from a configured product entry root |
+| `extension/src/background/service_worker_message_validation.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/background/tab_control.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/background/target_tab.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/capabilities/health.ts` | `dead` | no static reachability from configured product or registered-route roots |
@@ -715,6 +732,7 @@
 | `extension/src/content/widget_adapters.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/sidepanel/App.tsx` | `live` | statically reachable from a configured product entry root |
 | `extension/src/sidepanel/contextBudgetManager.ts` | `live` | statically reachable from a configured product entry root |
+| `extension/src/sidepanel/durableWorkflowLedger.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/sidepanel/hooks/useAssist.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/sidepanel/hooks/useHistory.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/sidepanel/hooks/useProduct.ts` | `live` | statically reachable from a configured product entry root |

@@ -70,6 +70,7 @@ backend/benchmark/.benchmark_secrets
 backend/benchmark/assets/
 backend/benchmark/trace_out/
 backend/.trace_sink/
+backend/data/production_evidence.json
 
 # Temporary documents / scratch files
 But.docx

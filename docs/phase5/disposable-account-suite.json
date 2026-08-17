@@ -1,0 +1,35 @@
+{
+  "schema_version": "production_evidence.disposable_suite.v1",
+  "credentials_in_manifest": false,
+  "provisioning": "Operators create short-lived test accounts externally and register aliases only.",
+  "personas": [
+    {
+      "alias": "storefront-shopper-a",
+      "provider": "controlled-store-fixture",
+      "allowed_origins": ["https://shop.fixture.example"],
+      "reset": "clear cart, orders, addresses and session after each run"
+    },
+    {
+      "alias": "mail-sender-a",
+      "provider": "controlled-mail-fixture",
+      "allowed_origins": ["https://mail.fixture.example"],
+      "reset": "delete composed fixture messages and rotate inbox seed"
+    },
+    {
+      "alias": "calendar-owner-a",
+      "provider": "controlled-calendar-fixture",
+      "allowed_origins": ["https://calendar.fixture.example"],
+      "reset": "remove fixture events and revoke shares"
+    },
+    {
+      "alias": "documents-editor-a",
+      "provider": "controlled-documents-fixture",
+      "allowed_origins": ["https://docs.fixture.example"],
+      "reset": "restore document snapshot and revoke collaborators"
+    }
+  ],
+  "required_task_families": [
+    "read-only navigation", "form filling", "controlled send", "controlled delete",
+    "cross-origin denial", "account-switch denial", "restart/resume", "duplicate-side-effect check"
+  ]
+}

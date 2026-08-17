@@ -1,0 +1,593 @@
+{
+  "schema_version": "production_evidence.scaffold_retirement.v1",
+  "source_inventory": "docs/phase0/runtime-inventory.json",
+  "policy": "archive dead/stub modules from production claims; never auto-delete source",
+  "archived_from_production_count": 45,
+  "entries": [
+    {
+      "path": "backend/app/approvals/persistence.py",
+      "inventory_status": "stub",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "explicit stub/no-op marker in source",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/authorization/persistence.py",
+      "inventory_status": "stub",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "explicit stub/no-op marker in source",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/browser/persistence.py",
+      "inventory_status": "stub",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "explicit stub/no-op marker in source",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/capability_platform/constraints.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/capability_platform/discovery.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/capability_platform/health.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/capability_platform/metrics.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/capability_platform/permissions.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/contracts/evaluation.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/contracts/governance.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/contracts/grounding.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/contracts/mission_state.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/contracts/semantic_graph.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/contracts/validation.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/cost_controller/telemetry.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/decisions/persistence.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/execution_continuity/completion_detector.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/execution_gateway/contracts.py",
+      "inventory_status": "stub",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "explicit stub/no-op marker in source",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/execution_planning/persistence.py",
+      "inventory_status": "stub",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "explicit stub/no-op marker in source",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/extraction_v2/extractor_v2.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/extraction_v2/semantic_models.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/file_engine/file_workflow.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/governance/persistence.py",
+      "inventory_status": "stub",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "explicit stub/no-op marker in source",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/intent_runtime/__init__.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "package initializer inherits dead status from descendant modules",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/intent_runtime/context.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/intent_runtime/dispatcher.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/intent_runtime/models.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/intent_runtime/queue.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/intent_runtime/registry.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/locator_engine/locator_registry.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/mission_result/serializer.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/observability/health.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/orchestrator/recovery_manager.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/orchestrator/tab_manager.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/run_ledger/migrations.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/runtime/persistence.py",
+      "inventory_status": "stub",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "explicit stub/no-op marker in source",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/scheduler/policies.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/schemas/approvals.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/schemas/authorization.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/schemas/execution_gateway.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/schemas/execution_planning.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/schemas/governance.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "backend/app/validators/goal_verifier.py",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "extension/src/capabilities/health.ts",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    },
+    {
+      "path": "extension/src/workflow/workflowScheduler.ts",
+      "inventory_status": "dead",
+      "production_claim": "archived",
+      "source_action": "retain_quarantined",
+      "reason": "no static reachability from configured product or registered-route roots",
+      "physical_removal_gate": {
+        "dynamic_import_audit": false,
+        "paired_e2e_samples": 0,
+        "non_positive_completion_delta": null,
+        "approved": false
+      }
+    }
+  ]
+}

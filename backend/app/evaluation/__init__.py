@@ -10,6 +10,7 @@ from app.evaluation.models import (
 )
 from app.evaluation.regression import RegressionResult, compare_evaluations
 from app.evaluation.replay import replay_evaluation, replay_evaluation_object
+from app.evaluation.production import ProductionEvidenceStore
 
 __all__ = [
     "EvaluationArtifacts",
@@ -24,5 +25,5 @@ __all__ = [
     "compare_evaluations",
     "replay_evaluation",
     "replay_evaluation_object",
+    "ProductionEvidenceStore",
 ]
-

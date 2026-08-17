@@ -352,6 +352,8 @@ Exit gate: router chooses the lowest-risk adequate tool and can explain that cho
 
 ### Phase 5 — Production evidence (continuous)
 
+Implementation status (2026-08-17): **continuous evidence system live; promotion remains evidence-gated**. See [Phase 5 status, operator flow, and current boundaries](phase5/status.md).
+
 1. Expand disposable-account live evaluations.
 2. Red-team prompt injection, cross-origin leakage, account confusion, and confirmation bypass.
 3. Roll out capabilities independently behind measurable gates.
