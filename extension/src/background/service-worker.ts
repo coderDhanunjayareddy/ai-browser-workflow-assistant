@@ -1,4 +1,5 @@
 import { extractPageContext, mergeInteractiveElementLists } from '../content/extractor'
+import { BACKEND_URL } from '../config'
 import { executeAction } from '../content/executor'
 import { extractPageContextV2 } from '../content/extractor_v2'
 import { executeActionV2 } from '../content/executor_v2'
@@ -49,7 +50,7 @@ import {
   type MultiTabWorkspace,
 } from '../workspace/multiTabWorkspace'
 
-const POLICY_BACKEND_URL = 'http://localhost:8000'
+const POLICY_BACKEND_URL = BACKEND_URL
 
 type TabControlMetadata = {
   opened_tab_id?: number | null

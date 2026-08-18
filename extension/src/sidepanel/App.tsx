@@ -4,6 +4,7 @@ import { useHistory } from './hooks/useHistory'
 import { useSpeechInput } from './hooks/useSpeechInput'
 import { useAssist } from './hooks/useAssist'
 import { useProduct, type ProductOrg, type ProductWorkspace, type ProductWorkflow } from './hooks/useProduct'
+import { BACKEND_URL } from '../config'
 import type { CompletedAction, SuggestedAction, SessionHistory, EventHistory } from '../types'
 import type { StructuredSummary, ChatMessage, ResearchReport, IntelligenceLayer, WorkflowRecommendation, ApprovalLevel } from '../types/assist'
 
@@ -1205,7 +1206,7 @@ function AnalyticsPanel({ sessionId }: { sessionId: string }) {
   const [error, setError] = useState<string | null>(null)
   const refresh = useCallback(() => {
     setError(null)
-    fetch(`http://localhost:8000/workflow/${sessionId}/analytics`)
+    fetch(`${BACKEND_URL}/workflow/${sessionId}/analytics`)
       .then(async response => {
         if (!response.ok) throw new Error(response.status === 404 ? 'Run a workflow to create analytics.' : `HTTP ${response.status}`)
         return response.json()

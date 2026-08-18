@@ -1,0 +1,1309 @@
+{
+  "schema_version": "phase6.production-validation.v1",
+  "generated_at": "2026-08-17T11:32:08.832359+00:00",
+  "scope": "25 deterministic rendered workflows in real Chromium plus live-policy adversarial probes",
+  "certification": {
+    "mode": "real-browser-visual",
+    "scenarios_total": 25,
+    "supported_count": 25,
+    "unsupported_count": 0,
+    "skipped_count": 0,
+    "pass_rate": 1.0,
+    "supported": [
+      {
+        "scenario_id": "cert-login",
+        "name": "Login: fill & submit",
+        "category": "FORM_SUBMIT",
+        "website": "login-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-fdaf71ba-4c7",
+        "completed_steps": 5,
+        "total_steps": 5,
+        "duration_ms": 10865.966,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "execution completes",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "MIN_COMPLETED_STEPS",
+            "detail": "all 5 steps complete",
+            "passed": true,
+            "observed": "completed=5 need>=5"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "click validates welcome text",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Welcome'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "form detected",
+            "passed": true,
+            "observed": "type_counts[FORM]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-register",
+        "name": "Registration: form with checkbox",
+        "category": "FORM_SUBMIT",
+        "website": "register-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-1bd8c9f3-430",
+        "completed_steps": 5,
+        "total_steps": 5,
+        "duration_ms": 1037.276,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "register confirms",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Account created'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "form detected",
+            "passed": true,
+            "observed": "type_counts[FORM]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-search",
+        "name": "Search data",
+        "category": "SEARCH",
+        "website": "catalog-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-196978a5-704",
+        "completed_steps": 4,
+        "total_steps": 4,
+        "duration_ms": 943.776,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "search shows results",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'results'}}], 'details': {}}"
+          },
+          {
+            "kind": "CONTENT_CONTAINS",
+            "detail": "count extracted",
+            "passed": true,
+            "observed": "preview~='2 results'"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "search bar detected",
+            "passed": true,
+            "observed": "type_counts[SEARCH_BAR]=2"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-filter",
+        "name": "Filter results",
+        "category": "FILTER",
+        "website": "catalog-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-58dc5b79-b95",
+        "completed_steps": 4,
+        "total_steps": 4,
+        "duration_ms": 838.666,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "filter shows results",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'results'}}], 'details': {}}"
+          },
+          {
+            "kind": "CONTENT_CONTAINS",
+            "detail": "count extracted",
+            "passed": true,
+            "observed": "preview~='1 results'"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-edit-row",
+        "name": "Edit a table row",
+        "category": "TABLE_EDIT",
+        "website": "crud-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-ef49a673-f73",
+        "completed_steps": 3,
+        "total_steps": 3,
+        "duration_ms": 947.098,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "edit confirms",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Row updated'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "table detected",
+            "passed": true,
+            "observed": "type_counts[TABLE]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-upload",
+        "name": "Upload a file",
+        "category": "UPLOAD",
+        "website": "upload-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-b3708f2e-36d",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 855.952,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "upload detected",
+            "passed": true,
+            "observed": "type_counts[UPLOAD]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-download",
+        "name": "Download a report",
+        "category": "DOWNLOAD",
+        "website": "download-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-7924dbb5-852",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 859.499,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "download detected",
+            "passed": true,
+            "observed": "type_counts[DOWNLOAD]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-navigate",
+        "name": "Navigate multiple pages",
+        "category": "NAVIGATION",
+        "website": "docs-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-65831aa0-a79",
+        "completed_steps": 3,
+        "total_steps": 3,
+        "duration_ms": 904.811,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "CONTENT_CONTAINS",
+            "detail": "records heading",
+            "passed": true,
+            "observed": "preview~='Records'"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-dashboard",
+        "name": "Dashboard refresh",
+        "category": "NAVIGATION",
+        "website": "dashboard-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-0c8e86e3-4a4",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 876.383,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "refresh confirms",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Dashboard refreshed'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "dashboard detected",
+            "passed": true,
+            "observed": "type_counts[DASHBOARD]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-nested-nav",
+        "name": "Nested navigation",
+        "category": "NAVIGATION",
+        "website": "docs-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-1afaaff0-d1b",
+        "completed_steps": 3,
+        "total_steps": 3,
+        "duration_ms": 926.114,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "nested nav confirms",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Install content'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "navigation detected",
+            "passed": true,
+            "observed": "type_counts[NAVIGATION]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-confirm",
+        "name": "Confirmation dialog",
+        "category": "DIALOG",
+        "website": "confirm-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-dfb396c5-023",
+        "completed_steps": 3,
+        "total_steps": 3,
+        "duration_ms": 839.713,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "confirm deletes",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Item deleted'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "dialog detected",
+            "passed": true,
+            "observed": "type_counts[DIALOG]=2"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-modal",
+        "name": "Modal dialog edit",
+        "category": "DIALOG",
+        "website": "modal-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-077afb68-86c",
+        "completed_steps": 4,
+        "total_steps": 4,
+        "duration_ms": 850.929,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "modal save confirms",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Setting saved'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "dialog detected",
+            "passed": true,
+            "observed": "type_counts[DIALOG]=2"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-recover",
+        "name": "Recover from delayed element",
+        "category": "RECOVERY",
+        "website": "dynamic-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-2cf68d10-91f",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 1572.005,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "RECOVERY_USED",
+            "detail": "recovery engaged",
+            "passed": true,
+            "observed": "recovery_used=['WAIT']"
+          },
+          {
+            "kind": "MIN_COMPLETED_STEPS",
+            "detail": "both steps complete",
+            "passed": true,
+            "observed": "completed=2 need>=2"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-resume",
+        "name": "Resume after transient failure",
+        "category": "RESUME",
+        "website": "dynamic-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-5bb29ad9-14e",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 1431.197,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "RECOVERY_USED",
+            "detail": "recovery engaged",
+            "passed": true,
+            "observed": "recovery_used=['WAIT']"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "post-recovery validation",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Loaded'}}], 'details': {}}"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-dynamic",
+        "name": "Dynamic loading with explicit wait",
+        "category": "DYNAMIC_LOADING",
+        "website": "dynamic-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-3d4a76a2-134",
+        "completed_steps": 3,
+        "total_steps": 3,
+        "duration_ms": 1450.379,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "MIN_COMPLETED_STEPS",
+            "detail": "all 3 steps complete",
+            "passed": true,
+            "observed": "completed=3 need>=3"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-pagination",
+        "name": "Pagination",
+        "category": "PAGINATION",
+        "website": "pagination-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-91ab7360-525",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 867.671,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "next page confirms",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'page 2'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "pagination detected",
+            "passed": true,
+            "observed": "type_counts[PAGINATION]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-multistep",
+        "name": "Multi-step form",
+        "category": "MULTISTEP",
+        "website": "wizard-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-53956c9b-3b9",
+        "completed_steps": 5,
+        "total_steps": 5,
+        "duration_ms": 922.697,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "wizard finishes",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Onboarding complete'}}], 'details': {}}"
+          },
+          {
+            "kind": "MIN_COMPLETED_STEPS",
+            "detail": "all 5 steps complete",
+            "passed": true,
+            "observed": "completed=5 need>=5"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-tabs",
+        "name": "Tabs",
+        "category": "TABS",
+        "website": "account-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-ee7c696b-7ae",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 802.485,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "tab switch confirms",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Billing panel'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "tabs detected",
+            "passed": true,
+            "observed": "type_counts[TABS]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-accordion",
+        "name": "Accordion",
+        "category": "ACCORDION",
+        "website": "faq-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-a0505529-52b",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 854.07,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "expand confirms",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'q2 expanded'}}], 'details': {}}"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "accordion detected",
+            "passed": true,
+            "observed": "type_counts[ACCORDION]=3"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-toast",
+        "name": "Toast notification",
+        "category": "TOAST",
+        "website": "toast-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-670247e9-f0b",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 851.351,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "toast appears",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': 'Saved successfully'}}], 'details': {}}"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-infinite-scroll",
+        "name": "Infinite scroll (load more)",
+        "category": "INFINITE_SCROLL",
+        "website": "feed-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-0979494c-242",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 853.68,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "POST_VALIDATION",
+            "detail": "more loads",
+            "passed": true,
+            "observed": "post_validation={'performed': True, 'passed': True, 'strategy': 'text_contains', 'checks': [{'check': 'text_contains', 'passed': True, 'detail': {'expected': '6 posts'}}], 'details': {}}"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-bounded-failure",
+        "name": "Bounded failure on missing element",
+        "category": "RECOVERY",
+        "website": "login-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "FAILED",
+        "execution_id": "exec-b40392c0-60e",
+        "completed_steps": 1,
+        "total_steps": 2,
+        "duration_ms": 2688.074,
+        "criteria": [
+          {
+            "kind": "BOUNDED_FAILURE",
+            "detail": "bounded failure",
+            "passed": true,
+            "observed": "state=FAILED attempts=3"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-ambiguous-guard",
+        "name": "Ambiguous locator fails fast (reliability guard)",
+        "category": "RECOVERY",
+        "website": "crud-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "FAILED",
+        "execution_id": "exec-21fd2107-d51",
+        "completed_steps": 1,
+        "total_steps": 2,
+        "duration_ms": 842.269,
+        "criteria": [
+          {
+            "kind": "BOUNDED_FAILURE",
+            "detail": "fails within 1 attempt (permanent, no retry)",
+            "passed": true,
+            "observed": "state=FAILED attempts=1"
+          },
+          {
+            "kind": "FAILURE_CATEGORY",
+            "detail": "classified AmbiguousLocator",
+            "passed": true,
+            "observed": "failure_category=AmbiguousLocator"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-dragdrop",
+        "name": "Drag-and-drop (analysis only)",
+        "category": "DRAG_DROP",
+        "website": "board-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-a94b3a83-3a3",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 809.854,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "SEMANTIC_PRESENT",
+            "detail": "card detected",
+            "passed": true,
+            "observed": "type_counts[CARD]=1"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      },
+      {
+        "scenario_id": "cert-invoice-read",
+        "name": "Invoice total extraction",
+        "category": "NAVIGATION",
+        "website": "invoice-app",
+        "status": "PASSED",
+        "passed": true,
+        "execution_state": "COMPLETED",
+        "execution_id": "exec-23c59cde-bae",
+        "completed_steps": 2,
+        "total_steps": 2,
+        "duration_ms": 746.246,
+        "criteria": [
+          {
+            "kind": "STATE_COMPLETED",
+            "detail": "",
+            "passed": true,
+            "observed": "state=COMPLETED"
+          },
+          {
+            "kind": "CONTENT_CONTAINS",
+            "detail": "invoice total extracted",
+            "passed": true,
+            "observed": "preview~='INR 14,632.00'"
+          }
+        ],
+        "failure_category": null,
+        "failure_detail": null,
+        "real_browser": true
+      }
+    ],
+    "unsupported": [],
+    "known_limitations": [
+      {
+        "scenario_id": "cert-upload",
+        "limitations": [
+          "File transfer certified at adapter level (PlaywrightAdapter.upload); planner ActionType set has no UPLOAD."
+        ]
+      },
+      {
+        "scenario_id": "cert-download",
+        "limitations": [
+          "File transfer certified at adapter level (PlaywrightAdapter.download); planner ActionType set has no DOWNLOAD."
+        ]
+      },
+      {
+        "scenario_id": "cert-ambiguous-guard",
+        "limitations": [
+          "Production workflows should set strict:true on destructive actions; the platform fails fast on ambiguity rather than acting on the wrong element."
+        ]
+      },
+      {
+        "scenario_id": "cert-dragdrop",
+        "limitations": [
+          "Analysis-only: no synthetic drag gesture is performed (no browser autonomy)."
+        ]
+      }
+    ],
+    "observed_failures": {
+      "total_distinct": 0,
+      "total_occurrences": 0,
+      "by_category": {},
+      "by_resolution": {},
+      "records": []
+    },
+    "reliability": {
+      "workflows_total": 25,
+      "workflows_passed": 25,
+      "workflows_failed": 0,
+      "workflow_success_rate": 1.0,
+      "duration_ms": {
+        "p50": 867.6709,
+        "p95": 2464.8597,
+        "p99": 8903.2715,
+        "max": 10865.9656,
+        "avg": 1417.5265
+      },
+      "semantic_analysis_ms": {
+        "samples": 14,
+        "p50": 0.7388,
+        "p95": 2.3552,
+        "p99": 2.538
+      },
+      "category_success": {
+        "ACCORDION": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 854.0701,
+          "p95_ms": 854.0701
+        },
+        "DIALOG": {
+          "total": 2,
+          "passed": 2,
+          "success_rate": 1.0,
+          "p50_ms": 845.3211,
+          "p95_ms": 850.368
+        },
+        "DOWNLOAD": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 859.499,
+          "p95_ms": 859.499
+        },
+        "DRAG_DROP": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 809.8545,
+          "p95_ms": 809.8545
+        },
+        "DYNAMIC_LOADING": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 1450.379,
+          "p95_ms": 1450.379
+        },
+        "FILTER": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 838.6662,
+          "p95_ms": 838.6662
+        },
+        "FORM_SUBMIT": {
+          "total": 2,
+          "passed": 2,
+          "success_rate": 1.0,
+          "p50_ms": 5951.621,
+          "p95_ms": 10374.5311
+        },
+        "INFINITE_SCROLL": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 853.68,
+          "p95_ms": 853.68
+        },
+        "MULTISTEP": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 922.6965,
+          "p95_ms": 922.6965
+        },
+        "NAVIGATION": {
+          "total": 4,
+          "passed": 4,
+          "success_rate": 1.0,
+          "p50_ms": 890.5971,
+          "p95_ms": 922.919
+        },
+        "PAGINATION": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 867.6709,
+          "p95_ms": 867.6709
+        },
+        "RECOVERY": {
+          "total": 3,
+          "passed": 3,
+          "success_rate": 1.0,
+          "p50_ms": 1572.0047,
+          "p95_ms": 2576.4666
+        },
+        "RESUME": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 1431.1974,
+          "p95_ms": 1431.1974
+        },
+        "SEARCH": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 943.776,
+          "p95_ms": 943.776
+        },
+        "TABLE_EDIT": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 947.0983,
+          "p95_ms": 947.0983
+        },
+        "TABS": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 802.4852,
+          "p95_ms": 802.4852
+        },
+        "TOAST": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 851.3509,
+          "p95_ms": 851.3509
+        },
+        "UPLOAD": {
+          "total": 1,
+          "passed": 1,
+          "success_rate": 1.0,
+          "p50_ms": 855.9515,
+          "p95_ms": 855.9515
+        }
+      },
+      "step_metrics": {
+        "steps_total": 70,
+        "steps_succeeded": 68,
+        "steps_failed": 2,
+        "step_success_rate": 0.9714,
+        "average_retries": 0.0571,
+        "average_execution_ms": 504.6339,
+        "recoveries_attempted": 5,
+        "recoveries_succeeded": 5,
+        "recovery_success_rate": 1.0,
+        "validations_attempted": 18,
+        "validations_passed": 18,
+        "validation_success_rate": 1.0,
+        "locator_strategy_counts": {
+          "testid": 32,
+          "id": 5,
+          "css": 2,
+          "text": 1
+        },
+        "locator_strategy_pct": {
+          "testid": 0.8,
+          "id": 0.125,
+          "css": 0.05,
+          "text": 0.025
+        },
+        "failure_distribution": {
+          "TransientTimeout": 5,
+          "AmbiguousLocator": 1
+        },
+        "capability_counts": {}
+      }
+    },
+    "recommendations": [
+      "All certified workflows pass; maintain regression coverage as new patterns are added.",
+      "Failure catalog is empty; no reliability defects observed in this run.",
+      "Workflow p95 duration is 2465ms; monitor for regressions against this baseline."
+    ]
+  },
+  "visual_evidence": [
+    {
+      "scenario_id": "cert-login",
+      "fixture": "/login",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-login.png",
+      "screenshot_sha256": "11d41aacbbbc562137d3949c206e9e4da11e464d5492ee5952f40aa9f96f78af"
+    },
+    {
+      "scenario_id": "cert-register",
+      "fixture": "/register",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-register.png",
+      "screenshot_sha256": "201112e00ff68fc3710bac99c74a15bd4518a09a7c90fb733dcc6729af6cd2d3"
+    },
+    {
+      "scenario_id": "cert-search",
+      "fixture": "/search",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-search.png",
+      "screenshot_sha256": "45de589c8d9b7a7efdb1e1f79d1b74ecba2c64be68d3567f3f641fe159fd9ec4"
+    },
+    {
+      "scenario_id": "cert-filter",
+      "fixture": "/search",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-filter.png",
+      "screenshot_sha256": "b8ce8c0b1f2569e1e3d22dac42051a91747cb4e5afcf65541d15cceeb7951d25"
+    },
+    {
+      "scenario_id": "cert-edit-row",
+      "fixture": "/crud",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-edit-row.png",
+      "screenshot_sha256": "6c7b94afa1b0483b85c5eaf9f74ba79b5d3103d4651c7548e113578211030de7"
+    },
+    {
+      "scenario_id": "cert-upload",
+      "fixture": "/upload",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-upload.png",
+      "screenshot_sha256": "ba8770ab93b854fb01bcd90ad7a89616866c1dedd2332b6aefbb5a7a48ca4bab"
+    },
+    {
+      "scenario_id": "cert-download",
+      "fixture": "/download",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-download.png",
+      "screenshot_sha256": "07d4ac098035fe88f29bd874e5cd7f7d2b722bae7d5e24191f33717b22d60d4c"
+    },
+    {
+      "scenario_id": "cert-navigate",
+      "fixture": "/dashboard",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-navigate.png",
+      "screenshot_sha256": "aca65fbb567f2bbd343303f64addb67a31f01bb7bd0ae05a1f195d6d90fe0e44"
+    },
+    {
+      "scenario_id": "cert-dashboard",
+      "fixture": "/dashboard",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-dashboard.png",
+      "screenshot_sha256": "e36f43011b2a1bf71d7782a398d63a9783d42848e1c44968c9e6f13d04361ea7"
+    },
+    {
+      "scenario_id": "cert-nested-nav",
+      "fixture": "/nav",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-nested-nav.png",
+      "screenshot_sha256": "1fbbaa31bcd0574374bbd2f44c7bdd17b8d80769600fb36cc1d275cd20e9559f"
+    },
+    {
+      "scenario_id": "cert-confirm",
+      "fixture": "/confirm",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-confirm.png",
+      "screenshot_sha256": "333b93e4aa5a715afdb3910cb67580ec6b6abc5ecc5287d22d2bac183f33d85a"
+    },
+    {
+      "scenario_id": "cert-modal",
+      "fixture": "/modal",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-modal.png",
+      "screenshot_sha256": "fa3ffa3a298673e38f439cfbd8f3fd24127cbfc79f85850e91ee9bd8cb6bcfc4"
+    },
+    {
+      "scenario_id": "cert-recover",
+      "fixture": "/dynamic",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-recover.png",
+      "screenshot_sha256": "1ae115460133c6fe508f92b1b30d0f6215d6b5cabab374d9e8e0f193be25e023"
+    },
+    {
+      "scenario_id": "cert-resume",
+      "fixture": "/dynamic",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-resume.png",
+      "screenshot_sha256": "1ae115460133c6fe508f92b1b30d0f6215d6b5cabab374d9e8e0f193be25e023"
+    },
+    {
+      "scenario_id": "cert-dynamic",
+      "fixture": "/dynamic",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-dynamic.png",
+      "screenshot_sha256": "1ae115460133c6fe508f92b1b30d0f6215d6b5cabab374d9e8e0f193be25e023"
+    },
+    {
+      "scenario_id": "cert-pagination",
+      "fixture": "/pagination",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-pagination.png",
+      "screenshot_sha256": "c03111afb120867f5fdae5daa91d32d2f1c0405c77e1e94e0865591f228c6703"
+    },
+    {
+      "scenario_id": "cert-multistep",
+      "fixture": "/multistep",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-multistep.png",
+      "screenshot_sha256": "0c7db00bd24962218c4359c75a052de642428c10c7edf4c4aad8d2ff6f66dc67"
+    },
+    {
+      "scenario_id": "cert-tabs",
+      "fixture": "/tabs",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-tabs.png",
+      "screenshot_sha256": "ede51ead4f99b425d81e0ec795e691a06690f73e6fdd4c229f05454775b18bb0"
+    },
+    {
+      "scenario_id": "cert-accordion",
+      "fixture": "/accordion",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-accordion.png",
+      "screenshot_sha256": "b48b41352b404fdfeb451e032182e5e12a39d976fa0e8b5b2229a4b5e633bc96"
+    },
+    {
+      "scenario_id": "cert-toast",
+      "fixture": "/toast",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-toast.png",
+      "screenshot_sha256": "e7512466048d2de1c7f60d26032ae2478a8e6f3d14ec8b4860e25faaa03e275a"
+    },
+    {
+      "scenario_id": "cert-infinite-scroll",
+      "fixture": "/scroll",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-infinite-scroll.png",
+      "screenshot_sha256": "0901ac22573a225dd18d3a8eb8f5b946206d0d92246ee60d5630c9e46cb0cd0c"
+    },
+    {
+      "scenario_id": "cert-bounded-failure",
+      "fixture": "/login",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-bounded-failure.png",
+      "screenshot_sha256": "00eff7c8fb7dac431f6c98b3a7c73d2ad839ac7aea3d76bb66a5aa5db341c93f"
+    },
+    {
+      "scenario_id": "cert-ambiguous-guard",
+      "fixture": "/crud",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-ambiguous-guard.png",
+      "screenshot_sha256": "aca65fbb567f2bbd343303f64addb67a31f01bb7bd0ae05a1f195d6d90fe0e44"
+    },
+    {
+      "scenario_id": "cert-dragdrop",
+      "fixture": "/dragdrop",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-dragdrop.png",
+      "screenshot_sha256": "a99cb724276eea10767a46ea61ba87d467815d9872fd64485d8baafe82d5fcbf"
+    },
+    {
+      "scenario_id": "cert-invoice-read",
+      "fixture": "/invoice",
+      "passed": true,
+      "screenshot": "phase6/screenshots-rerun/cert-invoice-read.png",
+      "screenshot_sha256": "7bd0374e885906786b69f39dd1b71e7bfe052c06a341ea8b94a0a668df880093"
+    }
+  ],
+  "security": {
+    "schema_version": "production_evidence.red_team.v1",
+    "engine": "app.policy.live_engine.LivePolicyEngine",
+    "passed": 7,
+    "total": 7,
+    "critical_confirmation_recall": 1.0,
+    "exit_gate_passed": true,
+    "cases": [
+      {
+        "category": "prompt_injection",
+        "passed": true,
+        "observed": "prompt_injection_stop"
+      },
+      {
+        "category": "prompt_injection",
+        "passed": true,
+        "observed": "untrusted_instruction_requires_handoff"
+      },
+      {
+        "category": "cross_origin_leakage",
+        "passed": true,
+        "observed": "valid_origin_grant_required"
+      },
+      {
+        "category": "account_confusion",
+        "passed": true,
+        "observed": "valid_origin_grant_required"
+      },
+      {
+        "category": "confirmation_bypass",
+        "passed": true,
+        "observed": "valid_confirmation_receipt_required"
+      },
+      {
+        "category": "account_confusion",
+        "passed": true,
+        "observed": "valid_confirmation_receipt_required"
+      },
+      {
+        "category": "confirmation_bypass",
+        "passed": true,
+        "observed": "first=irreversible_action_detected;replay=valid_confirmation_receipt_required"
+      }
+    ]
+  },
+  "metrics": {
+    "tasks": 25,
+    "passed": 25,
+    "pass_rate": 1.0,
+    "screenshots_captured": 25,
+    "critical_failures": 0,
+    "confirmation_recall": 1.0
+  },
+  "exit_gate_passed": true
+}

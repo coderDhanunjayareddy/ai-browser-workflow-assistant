@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
 import { sendToBackground } from '../../utils/messaging'
+import { BACKEND_URL } from '../../config'
 import type { PageContext } from '../../types'
 import type { AssistState, AssistResponse, ReadView, ChatMessage, ChatMessageType, IntelligenceLayer } from '../../types/assist'
 
-const BACKEND_URL = 'http://localhost:8000'
 const ASSIST_TIMEOUT_MS = 60_000
 
 function errMsg(err: unknown): string {

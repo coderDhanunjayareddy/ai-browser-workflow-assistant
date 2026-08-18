@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { sendToBackground } from '../../utils/messaging'
+import { BACKEND_URL } from '../../config'
 import {
   createTaskWorkspace,
   summarizeTaskWorkspace,
@@ -58,7 +59,6 @@ import type {
   PolicyProvenanceLabel,
 } from '../../types'
 
-const BACKEND_URL = 'http://localhost:8000'
 const ANALYZE_TIMEOUT_MS = 90_000
 const ACTION_EXECUTION_TIMEOUT_MS = 45_000
 const POST_ACTION_TIMEOUT_MS = 20_000
@@ -282,13 +282,16 @@ const CRITICAL_ACTION_PATTERNS = [
   /\bcheckout\b/,
   /\bdelete\b/,
   /\bremove\b/,
+  /\bshare\b/,
   /\bsend\b.*\b(email|message)\b/,
-  /\bsubmit\b.*\b(government|legal|tax|passport|visa|official)\b/,
+  /\bsubmit\b/,
   /\bpassword\b/,
   /\b(one[- ]?time (?:password|code)|otp|verification code|api key|access token|secret)\b/,
   /\blogin\b.*\bchange\b/,
   /\bsecurity\b/,
   /\baccount\b.*\b(change|close|delete|security)\b/,
+  /\baccount settings?\b/,
+  /\b(change|update|modify|enable|disable|turn on|turn off)\b.{0,40}\b(account|setting|preference|notification|profile)\b/,
 ]
 
 export function actionRequiresExplicitApproval(action: SuggestedAction | null | undefined): boolean {

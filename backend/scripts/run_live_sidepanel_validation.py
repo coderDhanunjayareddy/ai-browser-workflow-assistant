@@ -223,7 +223,7 @@ def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
                 const buttons = Array.from(document.querySelectorAll('button'));
                 const button = buttons.find((el) => {
                     const text = (el.textContent || '').toLowerCase();
-                    return text.includes('approve') && !el.hasAttribute('disabled');
+                    return (text.includes('approve') || text.includes('resume safely')) && !el.hasAttribute('disabled');
                 });
                 if (button instanceof HTMLElement) {
                     button.scrollIntoView({ block: 'center', inline: 'center' });
@@ -239,8 +239,11 @@ def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
         pass
     for locator in (
         sidepanel.get_by_role("button", name=re.compile(r"Approve", re.I)).first,
+        sidepanel.get_by_role("button", name=re.compile(r"Resume safely", re.I)).first,
         sidepanel.locator("button", has_text=re.compile(r"Approve", re.I)).first,
+        sidepanel.locator("button", has_text=re.compile(r"Resume safely", re.I)).first,
         sidepanel.get_by_text(re.compile(r"Approve", re.I)).first,
+        sidepanel.get_by_text(re.compile(r"Resume safely", re.I)).first,
     ):
         try:
             if locator.is_visible(timeout=500):
@@ -286,7 +289,15 @@ def _open_workflow_panel(sidepanel) -> None:
         raise RuntimeError(f"Workflow panel did not open. Visible side panel text: {text[:1000]}")
 
 
-def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int, file_path: str = "") -> TaskRun:
+def _run_task(
+    sidepanel,
+    target,
+    task_id: str,
+    prompt: str,
+    timeout_s: int,
+    file_path: str = "",
+    allow_confirmed_critical: bool = False,
+) -> TaskRun:
     started = time.time()
     safe_id = task_id.lower()
     target.bring_to_front()
@@ -323,6 +334,9 @@ def _run_task(sidepanel, target, task_id: str, prompt: str, timeout_s: int, file
         lowered = text.lower()
         _ensure_auto_mode(sidepanel)
         if _looks_like_critical_approval(lowered):
+            if allow_confirmed_critical and _approve_pending_action(sidepanel, timeout_ms=1200):
+                time.sleep(0.7)
+                continue
             terminal_status = "needs_approval"
             break
         if _approve_pending_action(sidepanel, timeout_ms=1200):
@@ -445,6 +459,16 @@ def main() -> int:
     parser.add_argument("--prompt", type=str, default="")
     parser.add_argument("--profile-dir", type=str, default="")
     parser.add_argument("--file-path", type=str, default="")
+    parser.add_argument(
+        "--allow-confirmed-critical",
+        action="store_true",
+        help="Consume visible side-panel approvals only after the operator has recorded explicit user confirmation.",
+    )
+    parser.add_argument(
+        "--pause-before-tasks",
+        action="store_true",
+        help="Keep the visible browser open for operator authentication, then wait for Enter before running tasks.",
+    )
     args = parser.parse_args()
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -473,10 +497,25 @@ def main() -> int:
         sidepanel.goto(f"chrome-extension://{extension_id}/src/sidepanel/index.html")
         _open_workflow_panel(sidepanel)
         sidepanel.screenshot(path=str(REPORT_DIR / "sidepanel_loaded.png"), full_page=True)
+        if args.pause_before_tasks:
+            target.bring_to_front()
+            print(
+                "[live-sidepanel] browser ready for operator authentication; press Enter to continue",
+                flush=True,
+            )
+            input()
 
         for task_id, prompt in selected_tasks:
             print(f"[live-sidepanel] starting {task_id}", flush=True)
-            result = _run_task(sidepanel, target, task_id, prompt, args.timeout_s, args.file_path)
+            result = _run_task(
+                sidepanel,
+                target,
+                task_id,
+                prompt,
+                args.timeout_s,
+                args.file_path,
+                args.allow_confirmed_critical,
+            )
             results.append(result)
             _write_report(extension_id, profile_dir, results)
             print(f"[live-sidepanel] {task_id} {result.status} {result.duration_s}s", flush=True)

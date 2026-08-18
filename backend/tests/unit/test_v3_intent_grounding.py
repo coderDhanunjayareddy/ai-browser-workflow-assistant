@@ -244,14 +244,19 @@ def test_grounding_telemetry_records_resolution_metrics():
         resolver=GroundingResolver(),
     )
 
-    before = len(default_metric_sink.snapshot())
     record_grounding_metrics(
         "run-telemetry",
         cache_result,
         hit_ratio=0.0,
         cache_size=1,
     )
-    recorded = default_metric_sink.snapshot()[before:]
+    # The shared sink is bounded. In a full-suite run it may already be at
+    # capacity, so recording replaces old points without increasing its length.
+    # Select by operation identity instead of relying on list growth.
+    recorded = [
+        point for point in default_metric_sink.snapshot()
+        if point.run_id == "run-telemetry"
+    ]
 
     assert {point.name for point in recorded} >= {
         "v3.grounding.latency_ms",

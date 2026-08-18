@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { BACKEND_URL } from '../../config'
 
-const BACKEND_URL = 'http://localhost:8000'
 const TOKEN_KEY = 'v5_product_token'
 
 export interface ProductUser {

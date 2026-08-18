@@ -2271,32 +2271,55 @@ def _deterministic_observed_control_response(
     value: str | None = None
     description = ""
 
+    def prior_step_succeeded(step: Any) -> bool:
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        result = str(data.get("execution_result") or "").strip().lower()
+        if any(term in result for term in ("failed", "failure", "no_effect", "no effect", "error:")):
+            return False
+        return result.startswith((
+            "success",
+            "filled field",
+            "clicked target",
+            "selected option",
+            "selected visible option",
+            "waited ",
+            "tab switch: verified",
+            "intent execution queue completed",
+        )) or "recommendation: treat the action as having produced the intended browser effect" in result
+
     completed_fills = {
         str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "")
         for step in prior_steps
         if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "fill"
-        and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("execution_result") or "").lower().startswith("success")
+        and prior_step_succeeded(step)
     }
     completed_shortcuts = {
         str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or "").lower()
         for step in prior_steps
         if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "keyboard_shortcut"
-        and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("execution_result") or "").lower().startswith("success")
+        and prior_step_succeeded(step)
     }
     completed_selects = {
         str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "")
         for step in prior_steps
         if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "select_option"
-        and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("execution_result") or "").lower().startswith("success")
+        and prior_step_succeeded(step)
     }
     completed_clicks = {
         str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "")
         for step in prior_steps
         if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "click"
-        and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("execution_result") or "").lower().startswith("success")
+        and prior_step_succeeded(step)
     }
 
     current_url = str(getattr(page_context, "url", "") or "")
+    is_whatsapp = "web.whatsapp.com" in current_url.lower()
+    whatsapp_recipient = _messaging_recipient_from_task(task) if is_whatsapp else None
+    whatsapp_message_control = _find_observed_control(
+        elements,
+        label_terms=("type a message",),
+        selector_terms=("type a message",),
+    ) if is_whatsapp else None
     is_public_browser_test_form = (
         "selenium.dev/selenium/web/web-form.html" in current_url.lower()
         and "test data" in task_text
@@ -2376,7 +2399,49 @@ def _deterministic_observed_control_response(
 
     if action_type:
         pass
-    elif "search for" in task_text:
+    elif is_whatsapp and whatsapp_recipient and whatsapp_message_control is None:
+        # Messaging contact pickers are not site-search forms. Prefer a currently
+        # visible exact recipient and otherwise fill the contact search field;
+        # blindly pressing Enter can open the wrong chat (or do nothing).
+        exact_contact = _find_observed_control(elements, exact_labels=(whatsapp_recipient,))
+        search_control = _find_observed_control(
+            elements,
+            label_terms=("search or start new chat", "search contacts", "search"),
+            selector_terms=("search",),
+        )
+        visible_text = str(getattr(page_context, "visible_text", "") or "")
+        search_was_filled = bool(
+            search_control is not None
+            and str(search_control.get("selector") or "") in completed_fills
+        )
+        search_state = dict(search_control.get("state") or {}) if search_control is not None else {}
+        search_has_exact_value = str(search_state.get("value") or "").strip().casefold() == whatsapp_recipient.casefold()
+        recipient_is_visible_result = bool(
+            search_has_exact_value
+            or (
+                search_was_filled
+                and re.search(
+                    rf"(?:^|\n)\s*{re.escape(whatsapp_recipient)}\s*(?:\n|$)",
+                    visible_text,
+                    flags=re.IGNORECASE,
+                )
+            )
+        )
+        if exact_contact is not None and str(exact_contact.get("selector") or "") not in completed_clicks:
+            selector = str(exact_contact.get("selector") or "")
+            action_type = "click"
+            description = f"Open the observed exact WhatsApp chat named {whatsapp_recipient}"
+        elif recipient_is_visible_result:
+            escaped_recipient = whatsapp_recipient.replace("\\", "\\\\").replace('"', '\\"')
+            selector = f'span[title="{escaped_recipient}"]'
+            action_type = "click"
+            description = f"Open the exact WhatsApp search result visibly named {whatsapp_recipient}"
+        elif search_control is not None and str(search_control.get("selector") or "") not in completed_fills:
+            selector = str(search_control.get("selector") or "")
+            action_type = "fill"
+            value = whatsapp_recipient
+            description = f"Search WhatsApp for the explicitly requested recipient {whatsapp_recipient}"
+    elif "search for" in task_text and not is_whatsapp:
         search_control = next(
             (
                 element
@@ -2414,7 +2479,7 @@ def _deterministic_observed_control_response(
                 action_type = "keyboard_shortcut"
                 value = "ENTER"
                 description = "Submit the explicitly requested site search after filling the observed search field"
-    elif "upload" in task_text and "file" in task_text:
+    elif any(term in task_text for term in ("upload", "attach")) and "file" in task_text:
         control = next(
             (
                 element
@@ -2432,6 +2497,17 @@ def _deterministic_observed_control_response(
             action_type = "fill"
             value = _quoted_task_value(task, "file")
             description = "Upload the explicitly requested file through the observed file input"
+        elif is_whatsapp:
+            attach_control = _find_observed_control(
+                elements,
+                exact_labels=("attach", "document", "file"),
+                label_terms=("attach", "document", "choose file", "select file"),
+                selector_terms=("attach",),
+            )
+            if attach_control is not None and str(attach_control.get("selector") or "") not in completed_clicks:
+                selector = str(attach_control.get("selector") or "")
+                action_type = "click"
+                description = "Activate the observed WhatsApp attachment control for the approved file"
     elif "wizard" in task_text or "onboarding" in task_text:
         fullname_control = _find_observed_control(elements, label_terms=("full name",), selector_terms=("fullname", "full-name"))
         role_control = _find_observed_control(elements, exact_labels=("role",), selector_terms=("#role", "role"))
@@ -2628,6 +2704,29 @@ def _first_quoted_task_value(task: str) -> str | None:
     return match.group(1).strip() if match and match.group(1).strip() else None
 
 
+def _messaging_recipient_from_task(task: str) -> str | None:
+    text = " ".join(str(task or "").split())
+    quoted = re.search(
+        r"\b(?:exact\s+)?(?:chat|contact|recipient)\s+named\s+[\"'\u201c]([^\"'\u201d]+)[\"'\u201d]",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if quoted and quoted.group(1).strip():
+        return quoted.group(1).strip()
+    patterns = (
+        r"\b(?:exact\s+)?(?:chat|contact|recipient)\s+named\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*,|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
+        r"\bsearch\s+for\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*,|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            recipient = match.group(1).strip(" \t\r\n\"'\u201c\u201d")
+            recipient = re.sub(r"^(?:the\s+)?exact\s+(?:chat|contact|recipient)\s+(?:named\s+)?", "", recipient, flags=re.IGNORECASE)
+            if recipient:
+                return recipient
+    return None
+
+
 def _canonical_site_search_url(current_url: str, query: str, task_text: str) -> str | None:
     if not query:
         return None
@@ -2821,6 +2920,19 @@ def _deterministic_read_phase_response(
 ) -> AnalyzeResponse | None:
     if orchestrator_snapshot is None:
         return None
+    current_url = str(getattr(page_context, "url", "") or "")
+    task_text = str(task or "").lower()
+    executable_interactive_request = bool(re.search(
+        r"\b(attach|upload|send|fill|submit|click|select|choose|type|enter|reply|post|share)\b"
+        r"|\b(open|start)\s+(?:the\s+)?(?:verified\s+|exact\s+)?(?:conversation|chat)\b"
+        r"|\bfind\s+(?:the\s+)?(?:exact\s+)?contact\s+named\b",
+        task_text,
+    ))
+    if "web.whatsapp.com" in current_url.lower() and executable_interactive_request:
+        # A messaging app URL is an interaction destination, not a knowledge
+        # source. READ/VALIDATE continuation must not focus the same tab and
+        # starve the next grounded contact/attachment action.
+        return None
     active_phase = str(getattr(orchestrator_snapshot.active_phase, "name", "") or "")
     if active_phase not in {"READ", "EXTRACT", "VALIDATE", "SYNTHESIZE", "REPORT"}:
         return None
@@ -2839,7 +2951,6 @@ def _deterministic_read_phase_response(
     if len(read_urls.intersection(opened_identities.keys())) >= required:
         return None
 
-    current_url = str(getattr(page_context, "url", "") or "")
     current_identity = _normalize_url_for_read(current_url)
     if current_identity and current_identity in opened_identities and current_identity not in read_urls:
         return _execute_read_page_intent(

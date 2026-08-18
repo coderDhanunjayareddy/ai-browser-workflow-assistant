@@ -186,6 +186,161 @@ def test_site_search_fills_observed_field_then_uses_canonical_results_url() -> N
     )
 
 
+def test_whatsapp_search_opens_visible_exact_chat_without_empty_enter() -> None:
+    task = 'Open WhatsApp. Search for the exact chat named "Teja Spc" (or click it if already visible). Open only that exact chat. Attach the approved local file "C:\\Downloads\\synthetic.png".'
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="div",
+                selector='div[aria-label="Search input textbox"]',
+                text="",
+                visible=True,
+                role="textbox",
+                aria_label="Search input textbox",
+            ),
+            InteractiveElement(type="span", selector='span[title="Teja Spc"]', text="Teja Spc", visible=True),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(session_id="wa", task=task, page_context=page, prior_steps=[])
+
+    assert response is not None
+    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
+        "click",
+        'span[title="Teja Spc"]',
+    )
+
+
+def test_whatsapp_unquoted_recipient_fills_contact_search_instead_of_enter() -> None:
+    task = "Open WhatsApp and search for the exact chat named Teja Spc, then attach the approved file."
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="div",
+                selector='div[aria-label="Search input textbox"]',
+                text="",
+                visible=True,
+                role="textbox",
+                aria_label="Search input textbox",
+            )
+        ],
+    )
+
+    response = _deterministic_observed_control_response(session_id="wa", task=task, page_context=page, prior_steps=[])
+
+    assert response is not None
+    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].value) == ("fill", "Teja Spc")
+
+
+def test_whatsapp_filtered_exact_visible_result_is_opened_when_virtualized_row_is_not_extracted() -> None:
+    task = 'Open WhatsApp and open the exact chat named "Teja Spc". Attach the approved file "synthetic.png".'
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="input",
+                selector="#chat-search",
+                text="",
+                visible=True,
+                role="textbox",
+                accessibility_name="Search",
+            )
+        ],
+    )
+    page.visible_text = "Chats\nTeja Spc\nHaha\nGroups in common"
+
+    response = _deterministic_observed_control_response(
+        session_id="wa",
+        task=task,
+        page_context=page,
+        prior_steps=[
+            PriorStep(
+                action_type="fill",
+                description="contact search",
+                target_selector="#chat-search",
+                value="Teja Spc",
+                execution_result=(
+                    "Filled field\n\n"
+                    "Recommendation: Treat the action as having produced the intended browser effect."
+                ),
+            )
+        ],
+    )
+
+    assert response is not None
+    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
+        "click",
+        'span[title="Teja Spc"]',
+    )
+
+
+def test_whatsapp_current_search_value_grounds_exact_virtualized_contact_click() -> None:
+    task = 'Open WhatsApp and open the exact chat named "Teja Spc". Attach the approved file "synthetic.png".'
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="input",
+                selector="#chat-search",
+                text="",
+                visible=True,
+                role="textbox",
+                accessibility_name="Search",
+                state={"value": "Teja Spc"},
+            )
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="wa",
+        task=task,
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
+        "click",
+        'span[title="Teja Spc"]',
+    )
+
+
+def test_whatsapp_open_chat_advances_to_observed_attachment_control() -> None:
+    task = "Open WhatsApp, search for the exact chat named Teja Spc, open that chat, attach the approved file, and send it."
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="div",
+                selector='div[aria-label="Search input textbox"]',
+                text="",
+                visible=True,
+                role="textbox",
+                aria_label="Search input textbox",
+            ),
+            InteractiveElement(
+                type="div",
+                selector='div[aria-label="Type a message"]',
+                text="",
+                visible=True,
+                role="textbox",
+                aria_label="Type a message",
+            ),
+            InteractiveElement(type="button", selector='button[aria-label="Attach"]', text="", visible=True, role="button", aria_label="Attach"),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(session_id="wa", task=task, page_context=page, prior_steps=[])
+
+    assert response is not None
+    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
+        "click",
+        'button[aria-label="Attach"]',
+    )
+
+
 def test_wizard_controls_follow_visible_step_and_explicit_values() -> None:
     task = 'Complete the onboarding wizard: enter full name "Test User" in step 1, then enter role "Engineer" in step 2, then click Finish'
     step_one = _page(

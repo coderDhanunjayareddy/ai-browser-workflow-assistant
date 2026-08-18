@@ -738,6 +738,28 @@ def test_read_phase_uses_prior_read_page_evidence_to_avoid_repeat_loop(db_sessio
     assert response is None
 
 
+def test_read_phase_does_not_hijack_executable_whatsapp_validation(db_session):
+    snapshot = SimpleNamespace(
+        active_phase=SimpleNamespace(name="VALIDATE"),
+        artifacts=SimpleNamespace(opened_pages=["https://web.whatsapp.com/"]),
+        progress_ledger=SimpleNamespace(target_counts={"opened_pages": 1}),
+    )
+
+    response = _deterministic_read_phase_response(
+        db=db_session,
+        session_id="interactive-whatsapp-read-guard",
+        task='Open the exact chat named "Teja Spc", attach the approved file, and send it once.',
+        page_context=whatsapp_page(),
+        prior_steps=[],
+        runtime_state_snapshot=None,
+        knowledge_snapshot=SimpleNamespace(read_artifacts=[]),
+        mission_completion_snapshot=None,
+        orchestrator_snapshot=snapshot,
+    )
+
+    assert response is None
+
+
 def test_complete_knowledge_report_is_promoted_without_planner():
     knowledge_snapshot = SimpleNamespace(
         report_artifact=SimpleNamespace(

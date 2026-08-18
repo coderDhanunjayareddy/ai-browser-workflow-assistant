@@ -212,9 +212,10 @@ function route(result) {
 }
 
 test('auto mode executes only safe reversible browser actions', () => {
-  assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill' }), 'auto'), true)
+  const benignFill = action({ action_type: 'fill', target_selector: '#query', description: 'Fill search query' })
+  assert.equal(shouldAutoExecuteAction(benignFill, 'auto'), true)
   assert.equal(shouldAutoExecuteAction(action({ action_type: 'click' }), 'auto'), false)
-  assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill' }), 'manual'), false)
+  assert.equal(shouldAutoExecuteAction(benignFill, 'manual'), false)
   assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill', safety_level: 'caution' }), 'auto'), false)
   assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill', safety_level: 'danger' }), 'auto'), false)
 })
@@ -230,11 +231,20 @@ test('auto mode pauses for critical action classes even when marked safe', () =>
     description: 'Continue to payment checkout',
     safety_level: 'safe',
   })
+  const share = action({ action_type: 'fill', description: 'Share this document with a collaborator', safety_level: 'safe' })
+  const submit = action({ action_type: 'fill', description: 'Submit the completed contact form', safety_level: 'safe' })
+  const accountSetting = action({ action_type: 'fill', description: 'Update account notification settings', safety_level: 'safe' })
 
   assert.equal(actionRequiresExplicitApproval(sendEmail), true)
   assert.equal(actionRequiresExplicitApproval(payment), true)
+  assert.equal(actionRequiresExplicitApproval(share), true)
+  assert.equal(actionRequiresExplicitApproval(submit), true)
+  assert.equal(actionRequiresExplicitApproval(accountSetting), true)
   assert.equal(shouldAutoExecuteAction(sendEmail, 'auto'), false)
   assert.equal(shouldAutoExecuteAction(payment, 'auto'), false)
+  assert.equal(shouldAutoExecuteAction(share, 'auto'), false)
+  assert.equal(shouldAutoExecuteAction(submit, 'auto'), false)
+  assert.equal(shouldAutoExecuteAction(accountSetting, 'auto'), false)
 })
 
 test('routes act outcomes through the existing action path', () => {

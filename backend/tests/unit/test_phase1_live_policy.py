@@ -190,6 +190,7 @@ def test_receipts_grants_and_audit_survive_engine_instances(sqlite_session_facto
         ("Place order and pay INR 4,999", "allow_with_confirmation"),
         ("Permanently delete this workspace", "allow_with_confirmation"),
         ("Grant access and change permission for Alice", "allow_with_confirmation"),
+        ("Update account notification settings", "allow_with_confirmation"),
         ("Change password for this account", "handoff_required"),
         ("Enter OTP security code", "handoff_required"),
         ("Install extension from the downloaded package", "handoff_required"),

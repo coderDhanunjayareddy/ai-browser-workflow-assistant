@@ -36,6 +36,10 @@ CONFIRM_TERMS = {
     "use connector",
     "use mcp",
     "authorize plugin",
+    "account settings",
+    "account preference",
+    "notification settings",
+    "profile settings",
 }
 HANDOFF_TERMS = {
     "password",

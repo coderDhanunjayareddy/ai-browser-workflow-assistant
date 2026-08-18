@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
+import { BACKEND_URL } from '../../config'
 import type { SessionHistory } from '../../types'
-
-const BACKEND_URL = 'http://localhost:8000'
 
 export function useHistory() {
   const [sessions, setSessions] = useState<SessionHistory[]>([])
