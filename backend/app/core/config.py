@@ -9,6 +9,14 @@ ENV_FILE = str(Path(__file__).resolve().parents[2] / ".env")
 class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5433/ai_browser_assist"
 
+    # Day-1 stabilization runtime identity. The guarded launcher supplies the
+    # same values to the extension build and backend process so stale/mismatched
+    # deployments are visible instead of silently sharing a health status.
+    app_version: str = "0.4.0"
+    build_commit: str = "dev"
+    build_id: str = "local-dev"
+    canonical_backend_url: str = "http://localhost:8000"
+
     # AI provider. Supported values: "gemini", "openrouter", "anthropic", "grok".
     ai_provider: str = "gemini"
 

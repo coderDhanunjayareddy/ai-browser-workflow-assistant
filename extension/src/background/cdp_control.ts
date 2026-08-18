@@ -1,6 +1,12 @@
 import type { ExecutableAction } from './service_worker_message_validation'
 
-type CdpPoint = { x: number; y: number; source: 'dom' | 'accessibility' | 'vision' }
+type CdpPoint = { x: number; y: number; source: 'stable_selector' | 'accessibility_name' | 'verified_screenshot' }
+type CdpGroundingResolution = {
+  point: CdpPoint | null
+  attempts: string[]
+  fallbackReason: string | null
+  screenshotHash: string | null
+}
 type ProtocolResult = Record<string, any>
 
 export type CdpInventory = {
@@ -23,7 +29,7 @@ export type CdpExecutionResult = {
 }
 
 const CDP_ACTIONS = new Set([
-  'click', 'fill', 'select_option', 'choose_date', 'hover', 'scroll',
+  'fill', 'select_option', 'choose_date', 'hover', 'scroll',
   'keyboard_shortcut', 'visual_region', 'canvas_action', 'svg_action',
 ])
 
@@ -71,6 +77,20 @@ export function chooseAccessibilityBackendNode(nodes: any[], action: ExecutableA
   return ranked.length > 0 ? Number(ranked[0].node.backendDOMNodeId) : null
 }
 
+export function chooseExactAccessibilityBackendNode(nodes: any[], action: ExecutableAction): number | null {
+  const expectedName = String(action.grounding?.accessibility_name || '').replace(/\s+/g, ' ').trim().toLowerCase()
+  if (!expectedName) return null
+  const expectedRole = String(action.grounding?.role || '').replace(/\s+/g, ' ').trim().toLowerCase()
+  const exact = nodes.filter((node) => {
+    if (!Number.isInteger(node?.backendDOMNodeId)) return false
+    const name = String(node?.name?.value || '').replace(/\s+/g, ' ').trim().toLowerCase()
+    const role = String(node?.role?.value || '').replace(/\s+/g, ' ').trim().toLowerCase()
+    return name === expectedName && (!expectedRole || role === expectedRole)
+  })
+  const ids = [...new Set(exact.map((node) => Number(node.backendDOMNodeId)))]
+  return ids.length === 1 ? ids[0] : null
+}
+
 export function centerFromBoxModel(model: any, pageX = 0, pageY = 0): { x: number; y: number } | null {
   const quad = model?.content || model?.border
   if (!Array.isArray(quad) || quad.length < 8 || !quad.every((item: unknown) => typeof item === 'number')) return null
@@ -88,6 +108,13 @@ export function visionHitCompatible(
 ): boolean {
   if (!hit) return false
   if (hit.selectorMatched) return true
+  if (action.action_type === 'click') {
+    const expectedName = String(action.grounding?.accessibility_name || '').replace(/\s+/g, ' ').trim().toLowerCase()
+    const observedName = String(hit.name || '').replace(/\s+/g, ' ').trim().toLowerCase()
+    const expectedRole = String(action.grounding?.role || '').trim().toLowerCase()
+    const observedRole = String(hit.role || '').trim().toLowerCase()
+    return Boolean(expectedName && observedName === expectedName && (!expectedRole || observedRole === expectedRole))
+  }
   const visualActions = new Set(['visual_region', 'canvas_action', 'svg_action', 'chart_action', 'map_action'])
   if (visualActions.has(action.action_type)) {
     return ['canvas', 'svg'].includes(String(hit.tag || '').toLowerCase()) ||
@@ -107,39 +134,45 @@ async function send(target: chrome.debugger.Debuggee, method: string, params: Re
   return await chrome.debugger.sendCommand(target, method, params) as ProtocolResult
 }
 
-function runtimeGroundingExpression(selector: string): string {
+function runtimeGroundingExpression(selector: string, exactName: string | null): string {
   return `(() => {
     const selector = ${JSON.stringify(selector)};
+    const exactName = ${JSON.stringify(exactName)};
     let visited = 0;
+    const normalize = (value) => String(value || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+    const label = (el) => normalize(el.getAttribute('aria-label') || el.getAttribute('title') || el.value || el.textContent || '');
     const visible = (el) => {
       const r = el.getBoundingClientRect();
       const s = getComputedStyle(el);
       return r.width > 0 && r.height > 0 && s.display !== 'none' && s.visibility !== 'hidden';
     };
     const walk = (root, offsetX, offsetY, depth) => {
-      if (!root || depth > 12 || visited > 8000) return null;
-      let direct = null;
-      try { direct = root.querySelector(selector); } catch { return null; }
-      if (direct && visible(direct)) {
+      if (!root || depth > 12 || visited > 8000) return { ok: false, reason: 'selector_search_limit' };
+      let matches = [];
+      try { matches = Array.from(root.querySelectorAll(selector)).filter(visible); } catch { return { ok: false, reason: 'selector_invalid' }; }
+      if (matches.length > 1) return { ok: false, reason: 'selector_ambiguous', matchCount: matches.length };
+      const direct = matches[0] || null;
+      if (direct && (!exactName || label(direct) === normalize(exactName))) {
         const r = direct.getBoundingClientRect();
-        return { x: offsetX + r.left + r.width / 2, y: offsetY + r.top + r.height / 2 };
+        return { ok: true, x: offsetX + r.left + r.width / 2, y: offsetY + r.top + r.height / 2, observedName: label(direct) };
       }
+      if (direct) return { ok: false, reason: 'selector_exact_name_mismatch', observedName: label(direct) };
       const elements = root.querySelectorAll ? Array.from(root.querySelectorAll('*')) : [];
       for (const el of elements) {
         visited += 1;
         if (el.shadowRoot) {
           const hit = walk(el.shadowRoot, offsetX, offsetY, depth + 1);
-          if (hit) return hit;
+          if (hit && (hit.ok || hit.reason !== 'selector_not_found')) return hit;
         }
         if (el.tagName === 'IFRAME') {
           try {
             const frameRect = el.getBoundingClientRect();
             const hit = walk(el.contentDocument, offsetX + frameRect.left, offsetY + frameRect.top, depth + 1);
-            if (hit) return hit;
+            if (hit && (hit.ok || hit.reason !== 'selector_not_found')) return hit;
           } catch {}
         }
       }
-      return null;
+      return { ok: false, reason: 'selector_not_found' };
     };
     return walk(document, 0, 0, 0);
   })()`
@@ -176,17 +209,13 @@ export class CdpController {
       ])
 
       const inventory = await this.inventory(target, navigationSignals)
-      const point = await this.resolvePoint(target, action)
-      if (!point) return this.result(action, false, 'CDP could not ground the requested target.', inventory, null, null, startedAt)
-
-      let screenshotHash: string | null = null
-      if (point.source === 'vision') {
-        const screenshot = await send(target, 'Page.captureScreenshot', { format: 'jpeg', quality: 55, fromSurface: true })
-        screenshotHash = typeof screenshot.data === 'string' ? await sha256Text(screenshot.data) : null
+      const grounding = await this.resolvePoint(target, action)
+      if (!grounding.point) {
+        return this.result(action, false, 'CDP could not ground the requested target without changing its identity.', inventory, null, grounding.screenshotHash, startedAt, grounding.attempts, grounding.fallbackReason)
       }
-      await this.dispatch(target, action, point)
+      await this.dispatch(target, action, grounding.point)
       await new Promise((resolve) => setTimeout(resolve, 180))
-      return this.result(action, true, `CDP ${action.action_type} dispatched via ${point.source} grounding.`, inventory, point.source, screenshotHash, startedAt)
+      return this.result(action, true, `CDP ${action.action_type} dispatched via ${grounding.point.source} grounding.`, inventory, grounding.point.source, grounding.screenshotHash, startedAt, grounding.attempts, grounding.fallbackReason)
     } catch (error) {
       return this.result(action, false, `CDP execution failed: ${String(error)}`, { targetCount: 0, frameCount: 0, frameIds: [], navigationSignals }, null, null, startedAt)
     } finally {
@@ -211,22 +240,32 @@ export class CdpController {
     }
   }
 
-  private async resolvePoint(target: chrome.debugger.Debuggee, action: ExecutableAction): Promise<CdpPoint | null> {
+  private async resolvePoint(target: chrome.debugger.Debuggee, action: ExecutableAction): Promise<CdpGroundingResolution> {
+    const attempts: string[] = []
     if (action.action_type === 'keyboard_shortcut' && !action.target_selector) {
-      return { x: 0, y: 0, source: 'dom' }
+      return { point: { x: 0, y: 0, source: 'stable_selector' }, attempts: ['keyboard_shortcut:no_target'], fallbackReason: null, screenshotHash: null }
     }
     if (action.target_selector) {
       const evaluated = await send(target, 'Runtime.evaluate', {
-        expression: runtimeGroundingExpression(action.target_selector),
+        expression: runtimeGroundingExpression(action.target_selector, action.grounding?.accessibility_name?.trim() || null),
         returnByValue: true,
         awaitPromise: false,
       }).catch(() => ({} as ProtocolResult))
       const value = evaluated?.result?.value
-      if (Number.isFinite(value?.x) && Number.isFinite(value?.y)) return { x: value.x, y: value.y, source: 'dom' }
+      if (value?.ok === true && Number.isFinite(value?.x) && Number.isFinite(value?.y)) {
+        attempts.push('stable_selector:selected_unique_exact')
+        return { point: { x: value.x, y: value.y, source: 'stable_selector' }, attempts, fallbackReason: null, screenshotHash: null }
+      }
+      attempts.push(`stable_selector:rejected:${String(value?.reason || 'unresolved')}`)
+    } else {
+      attempts.push('stable_selector:unavailable')
     }
 
-    const ax = await send(target, 'Accessibility.getFullAXTree').catch(() => ({ nodes: [] }))
-    const backendNodeId = chooseAccessibilityBackendNode(Array.isArray(ax.nodes) ? ax.nodes : [], action)
+    const frameId = action.grounding?.frame_id && action.grounding.frame_id !== 'top' ? action.grounding.frame_id : undefined
+    const ax = await send(target, 'Accessibility.getFullAXTree', frameId ? { frameId } : {}).catch(() => ({ nodes: [] }))
+    const backendNodeId = action.action_type === 'click'
+      ? chooseExactAccessibilityBackendNode(Array.isArray(ax.nodes) ? ax.nodes : [], action)
+      : chooseAccessibilityBackendNode(Array.isArray(ax.nodes) ? ax.nodes : [], action)
     if (backendNodeId !== null) {
       const [box, metrics] = await Promise.all([
         send(target, 'DOM.getBoxModel', { backendNodeId }).catch(() => ({} as ProtocolResult)),
@@ -234,17 +273,33 @@ export class CdpController {
       ])
       const viewport = metrics.visualViewport || metrics.layoutViewport || {}
       const center = centerFromBoxModel(box.model, Number(viewport.pageX || 0), Number(viewport.pageY || 0))
-      if (center) return { ...center, source: 'accessibility' }
+      if (center) {
+        attempts.push(action.action_type === 'click' ? 'accessibility_name:selected_unique_exact' : 'accessibility_name:selected_ranked')
+        return { point: { ...center, source: 'accessibility_name' }, attempts, fallbackReason: attempts[0], screenshotHash: null }
+      }
     }
+    attempts.push('accessibility_name:rejected:no_unique_exact_box')
 
     const box = action.grounding?.bounding_box
-    if (box && [box.x, box.y, box.width, box.height].every(Number.isFinite) && box.width > 0 && box.height > 0) {
+    const screenshotAllowed = action.grounding?.source === 'vision_region'
+      && action.grounding?.screenshot_verified === true
+      && Boolean(action.grounding?.screenshot_hash)
+    if (screenshotAllowed && box && [box.x, box.y, box.width, box.height].every(Number.isFinite) && box.width > 0 && box.height > 0) {
+      const screenshot = await send(target, 'Page.captureScreenshot', { format: 'jpeg', quality: 55, fromSurface: true }).catch(() => ({} as ProtocolResult))
+      const screenshotHash = typeof screenshot.data === 'string' ? await sha256Text(screenshot.data) : null
+      if (!screenshotHash || screenshotHash !== action.grounding?.screenshot_hash) {
+        attempts.push('verified_screenshot:rejected:hash_mismatch')
+        return { point: null, attempts, fallbackReason: attempts.slice(0, -1).join(';'), screenshotHash }
+      }
       const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
       const metrics = await send(target, 'Page.getLayoutMetrics').catch(() => ({} as ProtocolResult))
       const viewport = metrics.cssVisualViewport || metrics.visualViewport || metrics.cssLayoutViewport || metrics.layoutViewport || {}
       const width = Number(viewport.clientWidth || 0)
       const height = Number(viewport.clientHeight || 0)
-      if (width > 0 && height > 0 && (point.x < 0 || point.y < 0 || point.x > width || point.y > height)) return null
+      if (width > 0 && height > 0 && (point.x < 0 || point.y < 0 || point.x > width || point.y > height)) {
+        attempts.push('verified_screenshot:rejected:outside_viewport')
+        return { point: null, attempts, fallbackReason: attempts.slice(0, -1).join(';'), screenshotHash }
+      }
       const hitResult = await send(target, 'Runtime.evaluate', {
         expression: `(() => {
           const el = document.elementFromPoint(${JSON.stringify(point.x)}, ${JSON.stringify(point.y)});
@@ -258,9 +313,15 @@ export class CdpController {
         })()`,
         returnByValue: true,
       }).catch(() => ({} as ProtocolResult))
-      if (visionHitCompatible(hitResult?.result?.value || null, action)) return { ...point, source: 'vision' }
+      if (visionHitCompatible(hitResult?.result?.value || null, action)) {
+        attempts.push('verified_screenshot:selected:hash_and_hit_verified')
+        return { point: { ...point, source: 'verified_screenshot' }, attempts, fallbackReason: attempts.slice(0, -1).join(';'), screenshotHash }
+      }
+      attempts.push('verified_screenshot:rejected:hit_identity_mismatch')
+      return { point: null, attempts, fallbackReason: attempts.slice(0, -1).join(';'), screenshotHash }
     }
-    return null
+    attempts.push('verified_screenshot:unavailable_or_unverified')
+    return { point: null, attempts, fallbackReason: attempts.slice(0, -1).join(';'), screenshotHash: null }
   }
 
   private async dispatch(target: chrome.debugger.Debuggee, action: ExecutableAction, point: CdpPoint): Promise<void> {
@@ -309,6 +370,8 @@ export class CdpController {
     source: string | null,
     screenshotHash: string | null,
     startedAt: number,
+    groundingAttempts: string[] = [],
+    fallbackReason: string | null = null,
   ): CdpExecutionResult {
     return {
       success,
@@ -325,6 +388,8 @@ export class CdpController {
         cdp_target_count: inventory.targetCount,
         cdp_navigation_signal_count: inventory.navigationSignals.length,
         cdp_grounding_source: source,
+        cdp_grounding_attempts: groundingAttempts.join('|'),
+        cdp_fallback_reason: fallbackReason,
       },
     }
   }

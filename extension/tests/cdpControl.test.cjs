@@ -30,10 +30,11 @@ const {
   CdpController,
   centerFromBoxModel,
   chooseAccessibilityBackendNode,
+  chooseExactAccessibilityBackendNode,
   countFrames,
   shouldAttemptCdpFallback,
   visionHitCompatible,
-} = require(path.join(outDir, 'cdp_control.js'))
+} = require(path.join(outDir, 'background', 'cdp_control.js'))
 
 function action(overrides = {}) {
   return {
@@ -71,7 +72,8 @@ function installChromeMock(commandHandler) {
 test.after(() => fs.rmSync(outDir, { recursive: true, force: true }))
 
 test('fallback is limited to safe, non-consequential no-effect actions', () => {
-  assert.equal(shouldAttemptCdpFallback(action(), { success: true, verification: { reason: 'no_effect' } }), true)
+  assert.equal(shouldAttemptCdpFallback(action(), { success: true, verification: { reason: 'no_effect' } }), false)
+  assert.equal(shouldAttemptCdpFallback(action({ action_type: 'fill' }), { success: true, verification: { reason: 'no_effect' } }), true)
   assert.equal(shouldAttemptCdpFallback(action({ description: 'Submit payment' }), { success: true, verification: { reason: 'no_effect' } }), false)
   assert.equal(shouldAttemptCdpFallback(action({ safety_level: 'caution' }), { success: false }), false)
   assert.equal(shouldAttemptCdpFallback(action(), { success: true, verification: { reason: 'verified' } }), false)
@@ -93,6 +95,16 @@ test('accessibility grounding ranks role and accessible name', () => {
   assert.equal(selected, 20)
 })
 
+test('click accessibility fallback requires one exact name and role match', () => {
+  const nodes = [
+    { backendDOMNodeId: 10, role: { value: 'listitem' }, name: { value: 'Teja' } },
+    { backendDOMNodeId: 20, role: { value: 'listitem' }, name: { value: 'Teja Spc' } },
+  ]
+  const exactAction = action({ grounding: { source: 'dom_snapshot', accessibility_name: 'Teja Spc', role: 'listitem' } })
+  assert.equal(chooseExactAccessibilityBackendNode(nodes, exactAction), 20)
+  assert.equal(chooseExactAccessibilityBackendNode([...nodes, { ...nodes[1], backendDOMNodeId: 30 }], exactAction), null)
+})
+
 test('box model center is converted from page to viewport coordinates', () => {
   assert.deepEqual(
     centerFromBoxModel({ content: [100, 200, 140, 200, 140, 240, 100, 240] }, 10, 20),
@@ -101,8 +113,9 @@ test('box model center is converted from page to viewport coordinates', () => {
 })
 
 test('vision coordinates require a current compatible hit target', () => {
-  assert.equal(visionHitCompatible({ tag: 'button', name: 'Open details', selectorMatched: false }, action()), true)
-  assert.equal(visionHitCompatible({ tag: 'button', name: 'Delete account', selectorMatched: false }, action()), false)
+  const exact = action({ grounding: { source: 'vision_region', accessibility_name: 'Open details', role: 'button' } })
+  assert.equal(visionHitCompatible({ tag: 'button', role: 'button', name: 'Open details', selectorMatched: false }, exact), true)
+  assert.equal(visionHitCompatible({ tag: 'button', role: 'button', name: 'Delete account', selectorMatched: false }, exact), false)
   assert.equal(visionHitCompatible({ tag: 'div', name: '', selectorMatched: true }, action()), true)
   assert.equal(visionHitCompatible({ tag: 'canvas', name: '', selectorMatched: false }, action({ action_type: 'canvas_action' })), true)
   assert.equal(visionHitCompatible(null, action()), false)
@@ -112,12 +125,13 @@ test('controller attaches, inventories, dispatches trusted input, and always det
   const calls = installChromeMock((method) => {
     if (method === 'Target.getTargets') return { targetInfos: [{ targetId: 'page' }] }
     if (method === 'Page.getFrameTree') return { frameTree: { frame: { id: 'root' } } }
-    if (method === 'Runtime.evaluate') return { result: { value: { x: 50, y: 75 } } }
+    if (method === 'Runtime.evaluate') return { result: { value: { ok: true, x: 50, y: 75 } } }
     return {}
   })
   const result = await new CdpController().execute(7, action())
   assert.equal(result.success, true)
-  assert.equal(result.cdp_grounding_source, 'dom')
+  assert.equal(result.cdp_grounding_source, 'stable_selector')
+  assert.equal(result.adapter_trace.cdp_grounding_attempts, 'stable_selector:selected_unique_exact')
   assert.equal(result.cdp_frame_count, 1)
   assert.equal(calls[0][0], 'attach')
   assert.ok(calls.some((item) => item[0] === 'command' && item[1] === 'Input.dispatchMouseEvent' && item[2].type === 'mousePressed'))

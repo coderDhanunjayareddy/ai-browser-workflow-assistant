@@ -4,11 +4,74 @@ import { useHistory } from './hooks/useHistory'
 import { useSpeechInput } from './hooks/useSpeechInput'
 import { useAssist } from './hooks/useAssist'
 import { useProduct, type ProductOrg, type ProductWorkspace, type ProductWorkflow } from './hooks/useProduct'
-import { BACKEND_URL } from '../config'
+import { APP_VERSION, BACKEND_URL, BUILD_COMMIT, BUILD_ID } from '../config'
 import type { CompletedAction, SuggestedAction, SessionHistory, EventHistory } from '../types'
 import type { StructuredSummary, ChatMessage, ResearchReport, IntelligenceLayer, WorkflowRecommendation, ApprovalLevel } from '../types/assist'
 
 type Tab = 'product' | 'workflow' | 'history' | 'analytics' | 'assist'
+
+type RuntimeIdentity = {
+  app_version: string
+  build_commit: string
+  build_id: string
+  canonical_backend_url: string
+  process_id: number
+}
+
+type RuntimeHandshakeState =
+  | { kind: 'checking'; message: string }
+  | { kind: 'ok'; message: string }
+  | { kind: 'mismatch'; message: string }
+  | { kind: 'offline'; message: string }
+
+function RuntimeHandshake() {
+  const [state, setState] = useState<RuntimeHandshakeState>({ kind: 'checking', message: 'Runtime checking…' })
+
+  useEffect(() => {
+    let active = true
+    const check = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/health`, { signal: AbortSignal.timeout(5000) })
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        const payload = await response.json() as { status?: string; db?: string; runtime?: RuntimeIdentity }
+        const runtime = payload.runtime
+        if (!runtime) throw new Error('runtime identity missing')
+        const normalizedRuntimeUrl = runtime.canonical_backend_url.replace(/\/$/, '')
+        const matches = payload.status === 'ok' && payload.db === 'connected' &&
+          runtime.app_version === APP_VERSION && runtime.build_id === BUILD_ID &&
+          normalizedRuntimeUrl === BACKEND_URL
+        if (!active) return
+        if (matches) {
+          setState({
+            kind: 'ok',
+            message: `Runtime OK · v${APP_VERSION} · ${BUILD_COMMIT} · ${BUILD_ID} · pid ${runtime.process_id}`,
+          })
+        } else {
+          setState({
+            kind: 'mismatch',
+            message: `RUNTIME MISMATCH · ext v${APP_VERSION}/${BUILD_ID} · api v${runtime.app_version}/${runtime.build_id} · ${runtime.canonical_backend_url}`,
+          })
+        }
+      } catch (error) {
+        if (active) setState({ kind: 'offline', message: `BACKEND OFFLINE · ${BACKEND_URL} · ${String(error)}` })
+      }
+    }
+    void check()
+    const interval = window.setInterval(() => void check(), 30_000)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [])
+
+  const color = state.kind === 'ok' ? '#166534' : state.kind === 'checking' ? '#475569' : '#b91c1c'
+  const background = state.kind === 'ok' ? '#dcfce7' : state.kind === 'checking' ? '#f1f5f9' : '#fee2e2'
+  return (
+    <div data-testid="runtime-handshake" style={{ color, background, borderRadius: '6px', padding: '5px 8px', fontSize: '10px', marginBottom: '8px', overflowWrap: 'anywhere' }}>
+      {state.message}
+    </div>
+  )
+}
 
 // ── App shell ────────────────────────────────────────────────────────────────
 
@@ -26,6 +89,7 @@ export default function App() {
   return (
     <div style={s.container}>
       <h2 style={s.heading}>AI Browser Assistant</h2>
+      <RuntimeHandshake />
       <div style={s.tabBar}>
         <button style={{ ...s.tabBtn, ...(activeTab === 'product' ? s.tabActive : {}) }}
           onClick={() => switchTab('product')}>Product</button>

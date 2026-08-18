@@ -7,18 +7,37 @@ from app.policy.live_store import LivePolicyStore
 
 
 def payload(*, action_id: str = "act-1", description: str = "Click Continue") -> dict:
+    action = {
+        "action_id": action_id,
+        "action_type": "click",
+        "target_selector": "#continue",
+        "value": None,
+        "description": description,
+        "reasoning": "Do the requested step",
+        "confidence": 0.95,
+        "safety_level": "caution",
+    }
     return {
         "session_id": "api-session",
         "origin": "https://example.com/checkout",
-        "action": {
-            "action_id": action_id,
-            "action_type": "click",
-            "target_selector": "#continue",
-            "value": None,
-            "description": description,
-            "reasoning": "Do the requested step",
-            "confidence": 0.95,
-            "safety_level": "caution",
+        "action": action,
+        "execution_contract": {
+            "schema_version": "1.0",
+            "dispatch_id": f"dispatch:{action_id}",
+            "action": action,
+            "target_identity": {"selector": "#continue", "exact_name": "Continue"},
+            "grounding_policy": {
+                "ordered_sources": ["stable_selector", "accessibility_name", "verified_screenshot"],
+                "accessibility_requires_exact_name": True,
+                "screenshot_coordinates_verified": False,
+                "screenshot_hash": None,
+            },
+            "origin": {"origin": "https://example.com", "observed_url": "https://example.com/checkout"},
+            "browser_binding": {"tab_id": 1, "window_id": 1, "frame_id": "top"},
+            "resource_identity": {"url": "https://example.com/checkout", "title": "Checkout"},
+            "expected_effect": {"kind": "target_state_change", "description": "state changes"},
+            "safety_class": "caution",
+            "idempotency_key": f"api-session:1:{action_id}",
         },
         "provenance": [
             {"source_type": "user", "source_id": "task", "trust": "trusted", "labels": ["direct_user_task"]},

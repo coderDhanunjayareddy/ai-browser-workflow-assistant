@@ -29,8 +29,8 @@ const {
   validateExecutableAction,
   validatePolicyContext,
   validateServiceWorkerMessage,
-} = require(path.join(outDir, 'service_worker_message_validation.js'))
-const { enforceLivePolicy } = require(path.join(outDir, 'live_policy_client.js'))
+} = require(path.join(outDir, 'background', 'service_worker_message_validation.js'))
+const { enforceLivePolicy } = require(path.join(outDir, 'background', 'live_policy_client.js'))
 
 const runtimeId = 'extension-id'
 const sender = { id: runtimeId, url: `chrome-extension://${runtimeId}/src/sidepanel/index.html`, hasTab: false }
@@ -60,11 +60,40 @@ function policyContext(overrides = {}) {
   }
 }
 
+function contract(actionOverrides = {}, overrides = {}) {
+  const boundAction = action(actionOverrides)
+  return {
+    schema_version: '1.0',
+    dispatch_id: 'dispatch-1',
+    action: boundAction,
+    target_identity: {
+      kind: 'element',
+      selector: boundAction.target_selector,
+      selector_id: 'observed-continue',
+      exact_name: 'Continue',
+      role: 'button',
+      semantic_kind: 'control',
+    },
+    grounding_policy: {
+      ordered_sources: ['stable_selector', 'accessibility_name', 'verified_screenshot'],
+      accessibility_requires_exact_name: true,
+      screenshot_coordinates_verified: false,
+      screenshot_hash: null,
+    },
+    origin: { origin: 'https://example.com', observed_url: 'https://example.com/workflow' },
+    browser_binding: { tab_id: 1, window_id: 2, frame_id: 'top' },
+    resource_identity: { url: 'https://example.com/workflow', title: 'Workflow' },
+    expected_effect: { kind: 'target_state_change', description: 'Continue opens the next step' },
+    safety_class: boundAction.safety_level,
+    idempotency_key: 'mission:1:a-1',
+    ...overrides,
+  }
+}
+
 function executeMessage(overrides = {}) {
   return {
     type: 'EXECUTE_ACTION',
-    tab_id: 1,
-    action: action(),
+    contract: contract(),
     policy_context: policyContext(),
     ...overrides,
   }
@@ -102,11 +131,19 @@ test('rejects unsafe or malformed privileged URL arguments', () => {
 })
 
 test('rejects malformed action fields and tab bindings', () => {
-  assert.match(validateServiceWorkerMessage(executeMessage({ tab_id: -1 }), sender, runtimeId), /invalid tab binding/)
-  assert.match(validateServiceWorkerMessage(executeMessage({ action: action({ action_id: '' }) }), sender, runtimeId), /invalid action contract/)
-  assert.match(validateServiceWorkerMessage(executeMessage({ action: action({ safety_level: 'trusted' }) }), sender, runtimeId), /invalid action contract/)
-  assert.match(validateServiceWorkerMessage(executeMessage({ action: action({ grounding: { source: 'vision_region', bounding_box: { x: 1, y: 2, width: -1, height: 20 } } }) }), sender, runtimeId), /invalid action contract/)
-  assert.equal(validateServiceWorkerMessage(executeMessage({ action: action({ grounding: { source: 'dom_snapshot', bounding_box: { x: 1, y: 2, width: 10, height: 20 } } }) }), sender, runtimeId), null)
+  assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({}, { browser_binding: { tab_id: -1, window_id: 2, frame_id: 'top' } }) }), sender, runtimeId), /invalid canonical action contract/)
+  assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({ action_id: '' }) }), sender, runtimeId), /invalid canonical action contract/)
+  assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({ safety_level: 'trusted' }) }), sender, runtimeId), /invalid canonical action contract/)
+  assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({ grounding: { source: 'vision_region', bounding_box: { x: 1, y: 2, width: -1, height: 20 } } }) }), sender, runtimeId), /invalid canonical action contract/)
+  assert.equal(validateServiceWorkerMessage(executeMessage({ contract: contract({ grounding: { source: 'dom_snapshot', bounding_box: { x: 1, y: 2, width: 10, height: 20 } } }) }), sender, runtimeId), null)
+})
+
+test('canonical contract rejects target, origin, frame, safety, and resource identity drift', () => {
+  assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({}, { target_identity: { ...contract().target_identity, selector: '#other' } }) }), sender, runtimeId), /invalid canonical action contract/)
+  assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({}, { origin: { origin: 'https://evil.example', observed_url: 'https://example.com/workflow' } }) }), sender, runtimeId), /invalid canonical action contract/)
+  assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({ grounding: { source: 'dom_snapshot', frame_id: 'child' } }) }), sender, runtimeId), /invalid canonical action contract/)
+  assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({}, { safety_class: 'danger' }) }), sender, runtimeId), /invalid canonical action contract/)
+  assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({}, { resource_identity: { url: 'https://example.com/other', title: 'Other' } }) }), sender, runtimeId), /invalid canonical action contract/)
 })
 
 test('validates every non-execution message family and rejects unknown types', () => {
@@ -129,20 +166,20 @@ test('malformed value fuzz corpus fails closed without throwing', () => {
 })
 
 test('live policy client fails closed on transport, HTTP, and malformed responses', async () => {
-  const unavailable = await enforceLivePolicy('http://policy', action(), 'https://example.com', policyContext(), async () => {
+  const unavailable = await enforceLivePolicy('http://policy', contract(), 'https://example.com', policyContext(), async () => {
     throw new Error('offline')
   })
   assert.equal(unavailable.allowed, false)
   assert.equal(unavailable.decision_reason, 'policy_engine_unavailable')
 
-  const httpError = await enforceLivePolicy('http://policy', action(), 'https://example.com', policyContext(), async () => ({
+  const httpError = await enforceLivePolicy('http://policy', contract(), 'https://example.com', policyContext(), async () => ({
     ok: false,
     status: 503,
   }))
   assert.equal(httpError.allowed, false)
   assert.equal(httpError.decision_reason, 'policy_engine_http_503')
 
-  const malformed = await enforceLivePolicy('http://policy', action(), 'https://example.com', policyContext(), async () => ({
+  const malformed = await enforceLivePolicy('http://policy', contract(), 'https://example.com', policyContext(), async () => ({
     ok: true,
     status: 200,
     json: async () => ({ allowed: true }),
@@ -155,7 +192,7 @@ test('live policy client forwards the exact action and narrow authority', async 
   let request
   const decision = await enforceLivePolicy(
     'http://policy',
-    action({ action_id: 'pay-1', description: 'Place order' }),
+    contract({ action_id: 'pay-1', description: 'Place order' }),
     'https://shop.example/checkout',
     policyContext({ confirmation_receipt_id: 'receipt-1' }),
     async (url, init) => {
@@ -175,6 +212,8 @@ test('live policy client forwards the exact action and narrow authority', async 
   assert.equal(decision.allowed, true)
   assert.equal(request.url, 'http://policy/policy/enforce')
   assert.equal(request.body.action.action_id, 'pay-1')
+  assert.equal(request.body.execution_contract.action.action_id, 'pay-1')
+  assert.equal(request.body.execution_contract.idempotency_key, 'mission:1:a-1')
   assert.equal(request.body.origin, 'https://shop.example/checkout')
   assert.equal(request.body.confirmation_receipt_id, 'receipt-1')
 })

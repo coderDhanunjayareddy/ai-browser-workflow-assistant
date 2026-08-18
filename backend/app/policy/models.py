@@ -73,6 +73,7 @@ class LivePolicyRequest(BaseModel):
     session_id: str = Field(min_length=1, max_length=200)
     origin: str = Field(min_length=1, max_length=2048)
     action: dict[str, Any]
+    execution_contract: dict[str, Any]
     provenance: list[ProvenanceLabel] = Field(default_factory=list)
     origin_grant_id: str | None = None
     confirmation_receipt_id: str | None = None

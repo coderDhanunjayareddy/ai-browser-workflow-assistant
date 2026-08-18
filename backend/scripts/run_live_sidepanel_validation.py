@@ -125,6 +125,12 @@ def _initial_target_url(prompt: str) -> str:
     text = (prompt or "").lower()
     if "whatsapp" in text or "watsapp" in text:
         return "https://web.whatsapp.com/"
+    if "gmail" in text or "google mail" in text:
+        return "https://mail.google.com/mail/u/0/#inbox"
+    if "google drive" in text or re.search(r"\bdrive\b", text):
+        return "https://drive.google.com/drive/u/0/home"
+    if "google docs" in text or "google document" in text:
+        return "https://docs.google.com/document/u/0/"
     if "linkedin" in text:
         return "https://www.linkedin.com/jobs/"
     if any(term in text for term in ("google", "search", "first page of results", "search results")):
@@ -478,6 +484,12 @@ def main() -> int:
     parser.add_argument("--task-id", type=str, default="")
     parser.add_argument("--prompt", type=str, default="")
     parser.add_argument("--profile-dir", type=str, default="")
+    parser.add_argument(
+        "--browser-channel",
+        choices=("chromium", "chrome"),
+        default="chromium",
+        help="Browser binary used for the visible extension run. Chrome is a bounded fallback when Windows blocks bundled Chromium network access.",
+    )
     parser.add_argument("--file-path", type=str, default="")
     parser.add_argument(
         "--inspect-chat-name",
@@ -509,21 +521,61 @@ def main() -> int:
 
     results: list[TaskRun] = []
     with sync_playwright() as pw:
-        context = pw.chromium.launch_persistent_context(
-            str(profile_dir),
-            headless=False,
-            viewport={"width": 1440, "height": 950},
-            args=[
+        launch_options = {
+            "headless": False,
+            "viewport": {"width": 1440, "height": 950},
+            "args": [
                 f"--disable-extensions-except={EXTENSION_DIR}",
                 f"--load-extension={EXTENSION_DIR}",
+                # Chromium documents this test switch as disabling QUIC. The
+                # live validation profile observed ERR_QUIC_PROTOCOL_ERROR on
+                # WhatsApp, so force the normal HTTPS transport for repeatable
+                # validation without changing application behavior.
+                "--disable-quic",
             ],
-        )
+        }
+        if args.browser_channel == "chrome":
+            launch_options["channel"] = "chrome"
+        context = pw.chromium.launch_persistent_context(str(profile_dir), **launch_options)
         context.set_default_timeout(15_000)
         extension_id = _extension_id(context)
         selected_tasks = [(args.task_id or "CUSTOM", args.prompt)] if args.prompt else TASKS[: args.limit]
         target = context.new_page()
         first_prompt = "Open WhatsApp" if args.inspect_chat_name else (selected_tasks[0][1] if selected_tasks else "")
-        target.goto(_initial_target_url(first_prompt), wait_until="domcontentloaded")
+        initial_url = _initial_target_url(first_prompt)
+        try:
+            target.goto(initial_url, wait_until="domcontentloaded", timeout=45_000)
+        except Exception as exc:
+            task_id = args.task_id or "BOOTSTRAP"
+            safe_task_id = re.sub(r"[^a-z0-9]+", "-", task_id.lower()).strip("-") or "bootstrap"
+            target_screenshot = REPORT_DIR / f"{safe_task_id}-bootstrap-failed.png"
+            try:
+                target.screenshot(path=str(target_screenshot), full_page=True, timeout=15_000)
+            except Exception:
+                target_screenshot = Path("")
+            results.append(
+                TaskRun(
+                    task_id=task_id,
+                    status="failed",
+                    duration_s=0.0,
+                    phase="bootstrap_navigation",
+                    error=f"Initial navigation to {initial_url} failed: {exc}",
+                    evidence=(
+                        "The target page could not be opened, so the side-panel workflow was not started. "
+                        "No application action or external side effect was attempted."
+                    ),
+                    screenshot="",
+                    target_screenshot=str(target_screenshot),
+                    target_controls=[],
+                )
+            )
+            _write_report(extension_id, profile_dir, results)
+            print(f"[live-sidepanel] {task_id} failed during bootstrap navigation: {exc}", flush=True)
+            try:
+                context.close()
+            except Exception:
+                pass
+            return 1
         sidepanel = context.new_page()
         sidepanel.goto(f"chrome-extension://{extension_id}/src/sidepanel/index.html")
         _open_workflow_panel(sidepanel)

@@ -40,6 +40,12 @@ export interface BasicExecutionResult {
   cdp_frame_count?: number
   cdp_target_count?: number
   cdp_screenshot_hash?: string | null
+  dispatch_id?: string
+  dispatch_path?: string
+  contract_schema_version?: string
+  contract_idempotency_key?: string
+  contract_target_name?: string | null
+  contract_resource_url?: string
 }
 
 export interface ActionVerificationTargetState {

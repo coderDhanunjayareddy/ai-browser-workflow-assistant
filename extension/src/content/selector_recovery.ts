@@ -33,7 +33,9 @@ export interface SelectorRecoveryMetadata {
   recovery_reason?: string | null
 }
 
-const SUPPORTED_RECOVERY_ACTIONS = new Set(['click', 'fill', 'select_option'])
+// Click identity is immutable after approval. A verified no-effect click must
+// return to observation/replanning; selector recovery may not reinterpret it.
+const SUPPORTED_RECOVERY_ACTIONS = new Set(['fill', 'select_option'])
 const DESTRUCTIVE_TERMS = [
   'delete',
   'remove',

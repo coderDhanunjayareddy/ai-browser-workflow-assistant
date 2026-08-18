@@ -1,3 +1,5 @@
+import type { CanonicalActionContract } from '../types'
+
 export type ExecutableAction = {
   action_id: string
   action_type: string
@@ -12,6 +14,9 @@ export type ExecutableAction = {
     frame_id?: string | null
     accessibility_name?: string | null
     role?: string | null
+    semantic_kind?: string | null
+    screenshot_verified?: boolean
+    screenshot_hash?: string | null
     bounding_box?: { x: number; y: number; width: number; height: number } | null
   }
 }
@@ -99,6 +104,9 @@ function validateGrounding(value: unknown): boolean {
   if (value.frame_id !== undefined && !isBoundedString(value.frame_id, 300, true)) return false
   if (value.accessibility_name !== undefined && !isBoundedString(value.accessibility_name, 500, true)) return false
   if (value.role !== undefined && !isBoundedString(value.role, 100, true)) return false
+  if (value.semantic_kind !== undefined && !isBoundedString(value.semantic_kind, 200, true)) return false
+  if (value.screenshot_verified !== undefined && typeof value.screenshot_verified !== 'boolean') return false
+  if (value.screenshot_hash !== undefined && !isBoundedString(value.screenshot_hash, 128, true)) return false
   if (value.bounding_box !== undefined && value.bounding_box !== null) {
     if (!isRecord(value.bounding_box)) return false
     const box = value.bounding_box
@@ -106,6 +114,58 @@ function validateGrounding(value: unknown): boolean {
     if (!coordinates.every((item) => typeof item === 'number' && Number.isFinite(item))) return false
     if (Number(value.bounding_box.width) <= 0 || Number(value.bounding_box.height) <= 0) return false
     if (coordinates.some((item) => Math.abs(Number(item)) > 1_000_000)) return false
+  }
+  return true
+}
+
+export function validateCanonicalActionContract(value: unknown): value is CanonicalActionContract {
+  if (!isRecord(value) || value.schema_version !== '1.0') return false
+  if (!isBoundedString(value.dispatch_id, 400) || !String(value.dispatch_id).trim()) return false
+  if (!validateExecutableAction(value.action)) return false
+  if (!isRecord(value.target_identity) || !['element', 'url', 'tab', 'page'].includes(String(value.target_identity.kind))) return false
+  if (!isBoundedString(value.target_identity.selector, 4096, true)) return false
+  if (!isBoundedString(value.target_identity.selector_id, 300, true)) return false
+  if (!isBoundedString(value.target_identity.exact_name, 500, true)) return false
+  if (!isBoundedString(value.target_identity.role, 100, true)) return false
+  if (!isBoundedString(value.target_identity.semantic_kind, 200, true)) return false
+  if (value.target_identity.selector !== value.action.target_selector) return false
+  if (!isRecord(value.grounding_policy)) return false
+  if (!Array.isArray(value.grounding_policy.ordered_sources) || value.grounding_policy.ordered_sources.join('|') !== 'stable_selector|accessibility_name|verified_screenshot') return false
+  if (value.grounding_policy.accessibility_requires_exact_name !== true) return false
+  if (typeof value.grounding_policy.screenshot_coordinates_verified !== 'boolean') return false
+  if (!isBoundedString(value.grounding_policy.screenshot_hash, 128, true)) return false
+  if (value.grounding_policy.screenshot_coordinates_verified) {
+    if (!isRecord(value.action.grounding) || value.action.grounding.source !== 'vision_region') return false
+    if (value.action.grounding.screenshot_verified !== true || !String(value.grounding_policy.screenshot_hash || '').trim()) return false
+  }
+
+  if (!isRecord(value.origin) || !isBoundedString(value.origin.origin, 2048) || !isBoundedString(value.origin.observed_url, 8192)) return false
+  try {
+    const observed = new URL(String(value.origin.observed_url))
+    if (!['http:', 'https:'].includes(observed.protocol) || observed.origin !== value.origin.origin) return false
+  } catch {
+    return false
+  }
+
+  if (!isRecord(value.browser_binding)) return false
+  if (!Number.isInteger(value.browser_binding.tab_id) || Number(value.browser_binding.tab_id) < 0) return false
+  if (value.browser_binding.window_id !== null && (!Number.isInteger(value.browser_binding.window_id) || Number(value.browser_binding.window_id) < 0)) return false
+  if (!isBoundedString(value.browser_binding.frame_id, 300) || !String(value.browser_binding.frame_id).trim()) return false
+  const actionFrame = isRecord(value.action.grounding) && typeof value.action.grounding.frame_id === 'string'
+    ? value.action.grounding.frame_id.trim() || 'top'
+    : 'top'
+  if (value.browser_binding.frame_id !== actionFrame) return false
+
+  if (!isRecord(value.resource_identity) || !isBoundedString(value.resource_identity.url, 8192) || !isBoundedString(value.resource_identity.title, 2000)) return false
+  if (value.resource_identity.url !== value.origin.observed_url) return false
+  if (!isRecord(value.expected_effect)) return false
+  const effectKinds = new Set(['url_change', 'target_state_change', 'value_change', 'selection_change', 'viewport_change', 'tab_state_change', 'page_state_change', 'no_mutation'])
+  if (!effectKinds.has(String(value.expected_effect.kind)) || !isBoundedString(value.expected_effect.description, 5000)) return false
+  if (!['safe', 'caution', 'danger'].includes(String(value.safety_class)) || value.safety_class !== value.action.safety_level) return false
+  if (!isBoundedString(value.idempotency_key, 1000) || !String(value.idempotency_key).trim()) return false
+
+  if (value.action.action_type === 'click' && !String(value.target_identity.selector || '').trim()) {
+    return false
   }
   return true
 }
@@ -131,8 +191,7 @@ export function validateServiceWorkerMessage(
     return 'Service-worker messages are accepted only from this extension UI.'
   }
   if (message.type === 'EXECUTE_ACTION') {
-    if (!Number.isInteger(message.tab_id) || Number(message.tab_id) < 0) return 'Execution message has an invalid tab binding.'
-    if (!validateExecutableAction(message.action)) return 'Execution message has an invalid action contract.'
+    if (!validateCanonicalActionContract(message.contract)) return 'Execution message has an invalid canonical action contract.'
     if (!validatePolicyContext(message.policy_context)) return 'Execution message has an invalid policy context.'
   } else if (message.type === 'EXTRACT_CONTEXT') {
     if (message.tab_id !== undefined && (!Number.isInteger(message.tab_id) || Number(message.tab_id) < 0)) {

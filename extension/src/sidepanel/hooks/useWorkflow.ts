@@ -40,6 +40,7 @@ import {
   saveDurableLedger,
   type DurableWorkflowLedger,
 } from '../durableWorkflowLedger'
+import { buildCanonicalActionContract } from '../../execution/canonical_action_contract'
 export { buildBudgetedPlannerContext, PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET } from '../contextBudgetManager'
 import type {
   PageContext,
@@ -57,6 +58,7 @@ import type {
   MissionResult,
   PolicyExecutionContext,
   PolicyProvenanceLabel,
+  CanonicalActionContract,
 } from '../../types'
 
 const ANALYZE_TIMEOUT_MS = 90_000
@@ -154,6 +156,7 @@ function bindObservationGrounding(action: SuggestedAction, context: PageContext)
       selector_id: observed.selector_id ?? observed.element_id ?? null,
       accessibility_name: observed.accessibility_name ?? observed.aria_label ?? observed.text ?? null,
       role: observed.role ?? observed.type ?? null,
+      semantic_kind: observed.semantic_kind ?? null,
       bounding_box: observed.bounding_box ?? null,
     },
   }
@@ -177,9 +180,10 @@ async function preparePolicyExecution(
   action: SuggestedAction,
   context: PageContext,
   source: ExecutionMode,
+  contract: CanonicalActionContract,
 ): Promise<PolicyExecutionContext> {
   const provenance = policyProvenance(sessionId, action, context)
-  const request = { session_id: sessionId, origin: context.url, action, provenance }
+  const request = { session_id: sessionId, origin: context.url, action, execution_contract: contract, provenance }
   const decision = await policyJson<LivePolicyDecision>('/policy/evaluate', request)
 
   if (decision.policy_decision === 'block' || decision.policy_decision === 'handoff_required' || decision.policy_decision === 'defer') {
@@ -1726,12 +1730,12 @@ export function useWorkflow() {
         durableLedgerRef.current = executionLedger
         await saveDurableLedger(executionLedger)
 
-        const policyContext = await preparePolicyExecution(sessionId, action, pageContext, approvalSource)
+        const contract = buildCanonicalActionContract(action, pageContext, reservation.record.key)
+        const policyContext = await preparePolicyExecution(sessionId, action, pageContext, approvalSource, contract)
         const res = await withTimeout(
           sendToBackground<{ result?: ExecutionResult; error?: string }>({
             type: 'EXECUTE_ACTION',
-            action,
-            tab_id: pageContext.tab_id,
+            contract,
             policy_context: policyContext,
           }),
           ACTION_EXECUTION_TIMEOUT_MS,

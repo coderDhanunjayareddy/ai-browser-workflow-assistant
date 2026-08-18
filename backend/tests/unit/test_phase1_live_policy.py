@@ -32,10 +32,29 @@ def action(
 
 
 def request(payload: dict | None = None, **updates) -> LivePolicyRequest:
+    action_payload = payload or action()
     data = {
         "session_id": "session-1",
         "origin": "https://example.com/path?ignored=true",
-        "action": payload or action(),
+        "action": action_payload,
+        "execution_contract": {
+            "schema_version": "1.0",
+            "dispatch_id": f"dispatch:{action_payload['action_id']}",
+            "action": action_payload,
+            "target_identity": {"selector": action_payload["target_selector"], "exact_name": "Continue"},
+            "grounding_policy": {
+                "ordered_sources": ["stable_selector", "accessibility_name", "verified_screenshot"],
+                "accessibility_requires_exact_name": True,
+                "screenshot_coordinates_verified": False,
+                "screenshot_hash": None,
+            },
+            "origin": {"origin": "https://example.com", "observed_url": "https://example.com/path?ignored=true"},
+            "browser_binding": {"tab_id": 1, "window_id": 1, "frame_id": "top"},
+            "resource_identity": {"url": "https://example.com/path?ignored=true", "title": "Example"},
+            "expected_effect": {"kind": "target_state_change", "description": "state changes"},
+            "safety_class": action_payload["safety_level"],
+            "idempotency_key": f"session-1:1:{action_payload['action_id']}",
+        },
         "provenance": [
             ProvenanceLabel(source_type="user", source_id="task", trust="trusted", labels=["direct_user_request"]),
             ProvenanceLabel(source_type="planner", source_id="act-1", trust="untrusted", labels=["model_proposed"]),
@@ -43,6 +62,15 @@ def request(payload: dict | None = None, **updates) -> LivePolicyRequest:
     }
     data.update(updates)
     return LivePolicyRequest(**data)
+
+
+def test_execution_contract_identity_mismatch_is_blocked(engine: LivePolicyEngine):
+    bound = request()
+    mismatched = dict(bound.execution_contract)
+    mismatched["target_identity"] = {"selector": "#other", "exact_name": "Other"}
+    decision = engine.enforce(bound.model_copy(update={"execution_contract": mismatched}))
+    assert decision.allowed is False
+    assert decision.decision_reason == "execution_contract_target_mismatch"
 
 
 @pytest.fixture()

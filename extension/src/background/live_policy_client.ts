@@ -1,4 +1,5 @@
 import type { ExecutableAction, PolicyExecutionContext } from './service_worker_message_validation'
+import type { CanonicalActionContract } from '../types'
 
 export type LivePolicyDecision = {
   allowed: boolean
@@ -16,11 +17,12 @@ const denied = (reason: string, decisionId: string): LivePolicyDecision => ({
 
 export async function enforceLivePolicy(
   backendUrl: string,
-  action: ExecutableAction,
+  contract: CanonicalActionContract,
   tabUrl: string,
   context: PolicyExecutionContext,
   fetchImplementation: typeof fetch = fetch,
 ): Promise<LivePolicyDecision> {
+  const action: ExecutableAction = contract.action
   const response = await fetchImplementation(`${backendUrl}/policy/enforce`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -28,6 +30,7 @@ export async function enforceLivePolicy(
       session_id: context.session_id,
       origin: tabUrl,
       action,
+      execution_contract: contract,
       provenance: context.provenance,
       origin_grant_id: context.origin_grant_id ?? null,
       confirmation_receipt_id: context.confirmation_receipt_id ?? null,

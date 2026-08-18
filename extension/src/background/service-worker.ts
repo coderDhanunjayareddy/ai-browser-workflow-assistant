@@ -22,6 +22,10 @@ import { executeWave2CoreAction } from '../content/wave2_core'
 import { executeWave3VisualAction } from '../content/wave3_visual'
 import { executeWave4EnterpriseAction } from '../content/wave4_enterprise'
 import {
+  verifyExactOpenedTarget,
+  type ExactTargetVerificationResult,
+} from '../content/exact_target_verification'
+import {
   downloadMetadata,
   type FileTransferMetadata,
 } from './file_transfer_metadata'
@@ -38,6 +42,8 @@ import {
   type ExecutableAction,
   type PolicyExecutionContext,
 } from './service_worker_message_validation'
+import type { CanonicalActionContract } from '../types'
+import { attachCanonicalContractEvidence } from '../execution/canonical_action_contract'
 import { enforceLivePolicy } from './live_policy_client'
 import { advancedControlEnabled, CdpController, shouldAttemptCdpFallback } from './cdp_control'
 import {
@@ -151,7 +157,7 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
     return true
   }
   if (validMessage.type === 'EXECUTE_ACTION') {
-    handleExecuteAction(validMessage.action, validMessage.tab_id, validMessage.policy_context, sendResponse)
+    handleExecuteAction(validMessage.contract, validMessage.policy_context, sendResponse)
     return true
   }
   if (validMessage.type === 'START_VOICE_CAPTURE') {
@@ -404,102 +410,14 @@ async function extractContextWithRetry(tabId?: number) {
 
 // ── Action execution ──────────────────────────────────────────────────────────
 
-function clickOnceAndReuseTab(action: {
-  action_id: string
-  target_selector: string | null
-  description?: string
-}): { success: boolean; message: string; action_id: string } {
-  const selector = action.target_selector
-  if (!selector) return { success: false, message: 'No selector provided for click.', action_id: action.action_id }
-
-  let element: Element | null = null
-  try {
-    element = document.querySelector(selector)
-  } catch {
-    return { success: false, message: `Invalid click selector: ${selector}`, action_id: action.action_id }
-  }
-  if (!(element instanceof HTMLElement)) {
-    return { success: false, message: `Click target not found: ${selector}`, action_id: action.action_id }
-  }
-
-  const normalize = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase()
-  const labelOf = (candidate: Element) => normalize(
-    candidate.getAttribute('aria-label') ||
-    candidate.getAttribute('title') ||
-    (candidate instanceof HTMLInputElement ? candidate.value : '') ||
-    candidate.textContent ||
-    '',
-  )
-  const isVisible = (candidate: Element) => {
-    const box = candidate.getBoundingClientRect()
-    const style = window.getComputedStyle(candidate)
-    return box.width > 0 && box.height > 0 && style.visibility !== 'hidden' && style.display !== 'none'
-  }
-  const requestedText = normalize(action.description || '')
-  const namedCandidates = Array.from(document.querySelectorAll(
-    'button, a[href], [role="button"], input[type="submit"], input[type="button"]',
-  ))
-    .filter(isVisible)
-    .map((candidate) => ({ candidate, label: labelOf(candidate) }))
-    .filter(({ label }) => label.length >= 2 && requestedText.includes(label))
-    .sort((a, b) => b.label.length - a.label.length)
-
-  if (namedCandidates.length > 0) {
-    const requested = namedCandidates[0]
-    const targetLabel = labelOf(element)
-    // Keep an explicitly grounded target when its complete visible label is
-    // already present in the action request. A broader control label can also
-    // appear in the description (for example "WhatsApp" alongside the exact
-    // contact "Teja Spc") and must not replace the more specific selector.
-    const targetIsExplicitlyRequested = targetLabel.length >= 2 && requestedText.includes(targetLabel)
-    if (!targetIsExplicitlyRequested && targetLabel && !targetLabel.includes(requested.label) && !requested.label.includes(targetLabel)) {
-      element = requested.candidate as HTMLElement
-    }
-  } else {
-    const targetLabel = labelOf(element)
-    const isCompactLabeledControl = targetLabel.length >= 2 && targetLabel.length <= 60 && (
-      element.matches('button, input[type="submit"], input[type="button"], [role="button"]')
-    )
-    if (requestedText && isCompactLabeledControl && !requestedText.includes(targetLabel)) {
-      return {
-        success: false,
-        message: `Refused contradictory click: action requested "${action.description}", selector resolved to "${targetLabel}".`,
-        action_id: action.action_id,
-      }
-    }
-  }
-
-  const clickTarget = element as HTMLElement
-  const rect = clickTarget.getBoundingClientRect()
-  if (rect.width === 0 || rect.height === 0) {
-    return { success: false, message: `Click target is not visible: ${selector}`, action_id: action.action_id }
-  }
-
-  clickTarget.scrollIntoView({ block: 'center', inline: 'center' })
-  const link = clickTarget.closest('a')
-  if (link?.getAttribute('target') === '_blank') link.setAttribute('target', '_self')
-
-  const originalOpen = window.open
-  window.open = ((url?: string | URL) => {
-    if (url) window.location.assign(String(url))
-    return window
-  }) as typeof window.open
-  try {
-    clickTarget.click()
-  } finally {
-    window.setTimeout(() => { window.open = originalOpen }, 1000)
-  }
-
-  return { success: true, message: `Clicked once: ${labelOf(clickTarget) || selector}`, action_id: action.action_id }
-}
-
 async function handleExecuteAction(
-  action: ExecutableAction,
-  observedTabId: number,
+  contract: CanonicalActionContract,
   policyContext: PolicyExecutionContext,
   sendResponse: (response: unknown) => void,
 ) {
   try {
+    const action = contract.action
+    const observedTabId = contract.browser_binding.tab_id
     if (!Number.isInteger(observedTabId)) {
       sendResponse({ error: 'Browser action rejected: no observed tab binding was provided.' })
       return
@@ -510,6 +428,14 @@ async function handleExecuteAction(
       sendResponse({ error: 'Browser action rejected: the observed tab is unavailable or is not an http/https page.' })
       return
     }
+    if (
+      tabUrl !== contract.origin.observed_url ||
+      new URL(tabUrl).origin !== contract.origin.origin ||
+      (contract.browser_binding.window_id !== null && tab.windowId !== contract.browser_binding.window_id)
+    ) {
+      sendResponse({ error: 'Browser action rejected: canonical origin, URL, tab, or window identity changed before dispatch.' })
+      return
+    }
     const startedAt = performance.now()
     const beforeState = await captureActionVerificationState(tab.id, action, tab)
     const policyTab = await chrome.tabs.get(tab.id).catch(() => undefined)
@@ -517,7 +443,7 @@ async function handleExecuteAction(
       sendResponse({ error: 'Browser action rejected: the observed page changed before policy evaluation.' })
       return
     }
-    const policyDecision = await enforceLivePolicy(POLICY_BACKEND_URL, action, policyTab.url, policyContext)
+    const policyDecision = await enforceLivePolicy(POLICY_BACKEND_URL, contract, policyTab.url, policyContext)
     if (!policyDecision.allowed) {
       sendResponse({
         error: `Browser action rejected by policy: ${policyDecision.decision_reason}`,
@@ -548,7 +474,26 @@ async function handleExecuteAction(
         message: `Navigating to: ${url}`,
         action_id: action.action_id,
       }, startedAt)
-      sendResponse({ result: verifiedResult })
+      sendResponse({ result: attachCanonicalContractEvidence(verifiedResult, contract, 'service_worker>policy>chrome.tabs.update') })
+      return
+    }
+
+    if (action.action_type === 'click') {
+      if (contract.browser_binding.frame_id !== 'top') {
+        sendResponse({ error: 'Browser action rejected: exact child-frame dispatch is not yet supported by the canonical click executor.' })
+        return
+      }
+      const cdpExecution = await cdpController.execute(tab.id, action)
+      const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, cdpExecution, startedAt)
+      const exactPostcondition = await verifyExactPostconditionWithRetry(tab.id, contract)
+      const postconditionResult = applyExactPostcondition(verifiedResult, exactPostcondition)
+      const completed = attachCanonicalContractEvidence(
+        postconditionResult,
+        contract,
+        'service_worker>policy>canonical_cdp_click',
+      )
+      await persistAdapterTrace(action, completed)
+      sendResponse({ result: completed })
       return
     }
 
@@ -579,7 +524,7 @@ async function handleExecuteAction(
           },
         }
       : await executeCdpFallbackIfEligible(tab.id, action, domResult)
-    sendResponse({ result: finalResult })
+    sendResponse({ result: attachCanonicalContractEvidence(finalResult, contract, 'service_worker>policy>canonical_action_router') })
   } catch (err) {
     const msg = String(err)
     if (msg.includes('Cannot access') || msg.includes('not allowed')) {
@@ -587,6 +532,69 @@ async function handleExecuteAction(
     } else {
       sendResponse({ error: `Execution failed: ${msg}` })
     }
+  }
+}
+
+async function verifyExactPostconditionWithRetry(
+  tabId: number,
+  contract: CanonicalActionContract,
+): Promise<ExactTargetVerificationResult | null> {
+  const expectedName = contract.target_identity.exact_name?.trim()
+  if (!expectedName) return null
+  let latest: ExactTargetVerificationResult | null = null
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    if (attempt > 0) await sleep(300)
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: verifyExactOpenedTarget,
+      args: [{
+        expected_name: expectedName,
+        semantic_kind: contract.target_identity.semantic_kind,
+        observed_origin: contract.origin.origin,
+      }],
+    }).catch(() => null)
+    latest = result?.[0]?.result ?? null
+    if (latest?.verified || latest?.required === false) return latest
+  }
+  return latest
+}
+
+function applyExactPostcondition(
+  result: VerifiedExecutionResult,
+  exact: ExactTargetVerificationResult | null,
+): VerifiedExecutionResult {
+  if (!exact || exact.required === false) return result
+  const verification = result.verification
+  return {
+    ...result,
+    success: result.success && exact.verified,
+    message: exact.verified
+      ? `${result.message} Exact ${exact.target_kind} identity verified: ${exact.observed_name}.`
+      : `${result.message} Exact ${exact.target_kind} identity was not verified; expected "${exact.expected_name}" but observed "${exact.observed_name || 'none'}".`,
+    verification: verification ? {
+      ...verification,
+      verified: result.success && exact.verified,
+      reason: result.success && exact.verified ? 'verified' : (result.success ? 'no_effect' : 'execution_failed'),
+      signals: {
+        ...verification.signals,
+        exact_identity_required: true,
+        exact_identity_verified: exact.verified,
+        exact_target_kind: exact.target_kind,
+        exact_expected_name: exact.expected_name,
+        exact_observed_name: exact.observed_name,
+        exact_evidence_selector: exact.evidence_selector,
+        exact_verification_reason: exact.reason,
+      },
+    } : verification,
+    adapter_trace: {
+      ...(result.adapter_trace || {}),
+      exact_identity_required: true,
+      exact_identity_verified: exact.verified,
+      exact_target_kind: exact.target_kind,
+      exact_expected_name: exact.expected_name,
+      exact_observed_name: exact.observed_name,
+      exact_verification_reason: exact.reason,
+    },
   }
 }
 
@@ -740,14 +748,7 @@ async function executeBrowserActionOnce(
 
   const downloadWatch = shouldWatchDownload(action) ? watchNextDownload() : null
   if (action.action_type === 'click') {
-    const popupSafeResult = await chrome.scripting.executeScript({
-      target: { tabId },
-      world: 'MAIN',
-      func: clickOnceAndReuseTab,
-      args: [action],
-    })
-    const result = popupSafeResult[0]?.result
-    if (result?.success) return attachDownloadMetadata(result, await settleDownloadWatch(downloadWatch))
+    return { success: false, message: 'Click rejected outside the canonical CDP dispatch path.', action_id: action.action_id }
   }
 
   const v2OnlyActions = new Set(['select_option', 'choose_date', 'hover', 'keyboard_shortcut'])

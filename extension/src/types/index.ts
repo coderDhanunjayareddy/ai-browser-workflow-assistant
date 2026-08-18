@@ -68,7 +68,59 @@ export interface ActionGrounding {
   frame_id?: string | null
   accessibility_name?: string | null
   role?: string | null
+  semantic_kind?: string | null
+  screenshot_verified?: boolean
+  screenshot_hash?: string | null
   bounding_box?: { x: number; y: number; width: number; height: number } | null
+}
+
+export type ExpectedEffectKind =
+  | 'url_change'
+  | 'target_state_change'
+  | 'value_change'
+  | 'selection_change'
+  | 'viewport_change'
+  | 'tab_state_change'
+  | 'page_state_change'
+  | 'no_mutation'
+
+export interface CanonicalActionContract {
+  schema_version: '1.0'
+  dispatch_id: string
+  action: SuggestedAction
+  target_identity: {
+    kind: 'element' | 'url' | 'tab' | 'page'
+    selector: string | null
+    selector_id: string | null
+    exact_name: string | null
+    role: string | null
+    semantic_kind: string | null
+  }
+  grounding_policy: {
+    ordered_sources: ['stable_selector', 'accessibility_name', 'verified_screenshot']
+    accessibility_requires_exact_name: true
+    screenshot_coordinates_verified: boolean
+    screenshot_hash: string | null
+  }
+  origin: {
+    origin: string
+    observed_url: string
+  }
+  browser_binding: {
+    tab_id: number
+    window_id: number | null
+    frame_id: string
+  }
+  resource_identity: {
+    url: string
+    title: string
+  }
+  expected_effect: {
+    kind: ExpectedEffectKind
+    description: string
+  }
+  safety_class: SafetyLevel
+  idempotency_key: string
 }
 
 export interface PolicyProvenanceLabel {
@@ -348,6 +400,12 @@ export interface ExecutionResult {
   cdp_frame_count?: number
   cdp_target_count?: number
   cdp_screenshot_hash?: string | null
+  dispatch_id?: string
+  dispatch_path?: string
+  contract_schema_version?: string
+  contract_idempotency_key?: string
+  contract_target_name?: string | null
+  contract_resource_url?: string
 }
 
 export interface EventHistory {
@@ -376,6 +434,6 @@ export interface SessionHistory {
 export type ExtensionMessage =
   | { type: 'EXTRACT_CONTEXT'; tab_id?: number }
   | { type: 'CONTEXT_RESULT'; context: PageContext }
-  | { type: 'EXECUTE_ACTION'; action: SuggestedAction; tab_id: number; policy_context: PolicyExecutionContext }
+  | { type: 'EXECUTE_ACTION'; contract: CanonicalActionContract; policy_context: PolicyExecutionContext }
   | { type: 'GET_TAB_WORKSPACE' }
   | { type: 'EXECUTION_RESULT'; action_id: string; result: 'success' | 'failure' | 'element_not_found'; error: string | null }

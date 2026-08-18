@@ -4,14 +4,14 @@
   "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_1786552560498",
   "results": [
     {
-      "task_id": "BOOTSTRAP",
+      "task_id": "DAY1-DOCS-BASELINE",
       "status": "failed",
       "duration_s": 0.0,
       "phase": "bootstrap_navigation",
-      "error": "Initial navigation to https://web.whatsapp.com/ failed: Page.goto: net::ERR_NETWORK_ACCESS_DENIED at https://web.whatsapp.com/\nCall log:\n  - navigating to \"https://web.whatsapp.com/\", waiting until \"domcontentloaded\"\n",
+      "error": "Initial navigation to https://docs.google.com/document/u/0/ failed: Page.goto: net::ERR_NETWORK_ACCESS_DENIED at https://docs.google.com/document/u/0/\nCall log:\n  - navigating to \"https://docs.google.com/document/u/0/\", waiting until \"domcontentloaded\"\n",
       "evidence": "The target page could not be opened, so the side-panel workflow was not started. No application action or external side effect was attempted.",
       "screenshot": "",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\bootstrap-bootstrap-failed.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\day1-docs-baseline-bootstrap-failed.png",
       "target_controls": []
     }
   ]

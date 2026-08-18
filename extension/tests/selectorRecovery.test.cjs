@@ -49,7 +49,7 @@ const noEffect = {
   signals: {},
 }
 
-test('click recovers by aria-label', () => {
+test('click candidate ranking remains available for diagnostics only', () => {
   const choice = chooseRecoveryCandidate(action('click', 'Open search'), [
     candidate('#stale', 'same_selector', 'old target'),
     candidate('button[aria-label="Search"]', 'aria_label', 'Search'),
@@ -75,7 +75,7 @@ test('recovery fails when no relevant visible candidate exists', () => {
 })
 
 test('recovery is attempted only once', () => {
-  assert.equal(shouldAttemptSelectorRecovery(action('click', 'Open filters'), successResult, noEffect, false), true)
+  assert.equal(shouldAttemptSelectorRecovery(action('click', 'Open filters'), successResult, noEffect, false), false)
   assert.equal(shouldAttemptSelectorRecovery(action('click', 'Open filters'), successResult, noEffect, true), false)
 })
 
