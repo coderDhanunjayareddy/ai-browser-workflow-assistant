@@ -31,13 +31,32 @@ export function buildCanonicalActionContract(
   if (!Number.isInteger(context.tab_id) || Number(context.tab_id) < 0) {
     throw new Error('Cannot build action contract without an observed tab binding.')
   }
+  const navigationAction = action.action_type === 'navigate' || action.action_type === 'open_new_tab'
   let observedOrigin: string
+  let targetUrl: string | null = null
+  let resourceUrl = context.url
+  let resourceTitle = context.title
   try {
     const parsed = new URL(context.url)
-    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('unsupported protocol')
-    observedOrigin = parsed.origin
+    if (navigationAction) {
+      if (!['http:', 'https:', 'chrome:', 'about:'].includes(parsed.protocol)) throw new Error('unsupported source protocol')
+      if (!['http:', 'https:'].includes(parsed.protocol) && !['chrome://newtab/', 'about:blank'].includes(parsed.href)) {
+        throw new Error('unsupported privileged source')
+      }
+      const destination = new URL(String(action.value || ''))
+      if (!['http:', 'https:'].includes(destination.protocol)) throw new Error('unsupported destination protocol')
+      observedOrigin = destination.origin
+      targetUrl = destination.href
+      resourceUrl = destination.href
+      resourceTitle = ''
+    } else {
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('unsupported protocol')
+      observedOrigin = parsed.origin
+    }
   } catch {
-    throw new Error('Cannot build action contract for a non-http/https origin.')
+    throw new Error(navigationAction
+      ? 'Cannot build navigation contract without an explicit safe http/https destination or from this privileged source.'
+      : 'Cannot build action contract for a non-http/https origin.')
   }
   if (!idempotencyKey.trim()) throw new Error('Cannot build action contract without an idempotency key.')
 
@@ -68,6 +87,7 @@ export function buildCanonicalActionContract(
     origin: {
       origin: observedOrigin,
       observed_url: context.url,
+      target_url: targetUrl,
     },
     browser_binding: {
       tab_id: Number(context.tab_id),
@@ -75,8 +95,8 @@ export function buildCanonicalActionContract(
       frame_id: action.grounding?.frame_id?.trim() || 'top',
     },
     resource_identity: {
-      url: context.url,
-      title: context.title,
+      url: resourceUrl,
+      title: resourceTitle,
     },
     expected_effect: {
       kind: expectedEffectKind(action.action_type),

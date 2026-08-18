@@ -71,6 +71,7 @@ test('contract preserves exact recipient, selector, resource, tab, frame, safety
   assert.equal(contract.target_identity.selector_id, 'recipient:teja-spc')
   assert.equal(contract.target_identity.semantic_kind, 'recipient')
   assert.equal(contract.origin.origin, 'https://web.whatsapp.com')
+  assert.equal(contract.origin.target_url, null)
   assert.equal(contract.browser_binding.tab_id, 7)
   assert.equal(contract.browser_binding.frame_id, 'top')
   assert.equal(contract.resource_identity.url, context.url)
@@ -86,6 +87,19 @@ test('contract fails closed for an ungrounded click, invalid origin, or missing 
   )
   assert.throws(() => buildCanonicalActionContract(clickAction(), { ...context, url: 'chrome://settings' }, 'key'), /non-http\/https/)
   assert.throws(() => buildCanonicalActionContract(clickAction(), context, ''), /idempotency key/)
+})
+
+test('explicit navigation can bootstrap from New Tab but not another privileged page', () => {
+  const navigate = clickAction({
+    action_id: 'navigate-1', action_type: 'navigate', target_selector: '', grounding: undefined,
+    value: 'https://web.whatsapp.com/', description: 'Open WhatsApp',
+  })
+  const bootstrap = buildCanonicalActionContract(navigate, { ...context, url: 'chrome://newtab/', title: 'New Tab' }, 'nav-key')
+  assert.equal(bootstrap.origin.observed_url, 'chrome://newtab/')
+  assert.equal(bootstrap.origin.target_url, 'https://web.whatsapp.com/')
+  assert.equal(bootstrap.origin.origin, 'https://web.whatsapp.com')
+  assert.equal(bootstrap.resource_identity.url, 'https://web.whatsapp.com/')
+  assert.throws(() => buildCanonicalActionContract(navigate, { ...context, url: 'chrome://settings/' }, 'nav-key'), /privileged source/)
 })
 
 test('dispatch result exposes the one canonical path and immutable contract identity', () => {

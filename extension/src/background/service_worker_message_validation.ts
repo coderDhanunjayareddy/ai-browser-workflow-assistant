@@ -139,10 +139,18 @@ export function validateCanonicalActionContract(value: unknown): value is Canoni
     if (value.action.grounding.screenshot_verified !== true || !String(value.grounding_policy.screenshot_hash || '').trim()) return false
   }
 
-  if (!isRecord(value.origin) || !isBoundedString(value.origin.origin, 2048) || !isBoundedString(value.origin.observed_url, 8192)) return false
+  if (!isRecord(value.origin) || !isBoundedString(value.origin.origin, 2048) || !isBoundedString(value.origin.observed_url, 8192) || !isBoundedString(value.origin.target_url, 8192, true)) return false
+  const navigationAction = ['navigate', 'open_new_tab'].includes(String(value.action.action_type))
   try {
     const observed = new URL(String(value.origin.observed_url))
-    if (!['http:', 'https:'].includes(observed.protocol) || observed.origin !== value.origin.origin) return false
+    if (navigationAction) {
+      const target = new URL(String(value.origin.target_url || ''))
+      const actionTarget = new URL(String(value.action.value || ''))
+      if (!['http:', 'https:'].includes(target.protocol) || target.href !== actionTarget.href || target.origin !== value.origin.origin) return false
+      if (!['http:', 'https:'].includes(observed.protocol) && !['chrome://newtab/', 'about:blank'].includes(observed.href)) return false
+    } else if (!['http:', 'https:'].includes(observed.protocol) || observed.origin !== value.origin.origin || value.origin.target_url !== null) {
+      return false
+    }
   } catch {
     return false
   }
@@ -157,7 +165,7 @@ export function validateCanonicalActionContract(value: unknown): value is Canoni
   if (value.browser_binding.frame_id !== actionFrame) return false
 
   if (!isRecord(value.resource_identity) || !isBoundedString(value.resource_identity.url, 8192) || !isBoundedString(value.resource_identity.title, 2000)) return false
-  if (value.resource_identity.url !== value.origin.observed_url) return false
+  if (value.resource_identity.url !== (navigationAction ? value.origin.target_url : value.origin.observed_url)) return false
   if (!isRecord(value.expected_effect)) return false
   const effectKinds = new Set(['url_change', 'target_state_change', 'value_change', 'selection_change', 'viewport_change', 'tab_state_change', 'page_state_change', 'no_mutation'])
   if (!effectKinds.has(String(value.expected_effect.kind)) || !isBoundedString(value.expected_effect.description, 5000)) return false

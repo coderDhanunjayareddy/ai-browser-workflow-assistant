@@ -183,7 +183,8 @@ async function preparePolicyExecution(
   contract: CanonicalActionContract,
 ): Promise<PolicyExecutionContext> {
   const provenance = policyProvenance(sessionId, action, context)
-  const request = { session_id: sessionId, origin: context.url, action, execution_contract: contract, provenance }
+  const policyOrigin = contract.origin.target_url || context.url
+  const request = { session_id: sessionId, origin: policyOrigin, action, execution_contract: contract, provenance }
   const decision = await policyJson<LivePolicyDecision>('/policy/evaluate', request)
 
   if (decision.policy_decision === 'block' || decision.policy_decision === 'handoff_required' || decision.policy_decision === 'defer') {
@@ -205,7 +206,7 @@ async function preparePolicyExecution(
   } else if (decision.policy_decision === 'warn') {
     const grant = await policyJson<OriginGrantResponse>('/policy/origin-grants', {
       session_id: sessionId,
-      origin: context.url,
+      origin: policyOrigin,
       action_types: [action.action_type],
       ttl_seconds: 900,
       grant_source: 'human_sidepanel',
@@ -1604,15 +1605,20 @@ export function useWorkflow() {
   }, [])
 
   const analyze = useCallback(async (taskOverride?: string) => {
-    const { sessionId } = state
     // taskOverride lets voice input bypass the stale closure on state.task.
     const task = (taskOverride ?? state.task).trim()
     if (!task) return
+    // A submitted task is a new mission, not a continuation of a restored one.
+    // Reusing the previous session id lets the backend mission ledger return a
+    // stale intent from an unrelated task. Resume/continue paths intentionally
+    // retain their current session id; only Analyze rotates it.
+    const sessionId = createFreshWorkflowSessionId()
     const workspace = createTaskWorkspace(task)
     const missionSnapshot = createMissionSnapshot(task)
 
     setState((s) => ({
       ...s,
+      sessionId,
       task,           // Sync state.task if voice provided an override.
       phase: 'observing',
       error: null,
@@ -1634,6 +1640,7 @@ export function useWorkflow() {
 
     const initialLedgerState: WorkflowState = {
       ...state,
+      sessionId,
       task,
       phase: 'observing',
       error: null,
@@ -1665,7 +1672,7 @@ export function useWorkflow() {
       userInputs: [],
       refresh: false,
     })
-  }, [runWorkflowLoop, state.task, state.sessionId])
+  }, [runWorkflowLoop, state.task])
 
   // ── Re-analysis after a step ────────────────────────────────────────────────
 
@@ -2061,4 +2068,8 @@ export function useWorkflow() {
   }, [])
 
   return { state, setTask, analyze, approveAction, rejectAction, stopWorkflow, resumeWorkflow, reset, continueWithInput }
+}
+
+export function createFreshWorkflowSessionId(): string {
+  return crypto.randomUUID()
 }

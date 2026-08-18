@@ -105,6 +105,7 @@ export interface CanonicalActionContract {
   origin: {
     origin: string
     observed_url: string
+    target_url: string | null
   }
   browser_binding: {
     tab_id: number

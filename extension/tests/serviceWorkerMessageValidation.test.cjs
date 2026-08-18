@@ -80,7 +80,7 @@ function contract(actionOverrides = {}, overrides = {}) {
       screenshot_coordinates_verified: false,
       screenshot_hash: null,
     },
-    origin: { origin: 'https://example.com', observed_url: 'https://example.com/workflow' },
+    origin: { origin: 'https://example.com', observed_url: 'https://example.com/workflow', target_url: null },
     browser_binding: { tab_id: 1, window_id: 2, frame_id: 'top' },
     resource_identity: { url: 'https://example.com/workflow', title: 'Workflow' },
     expected_effect: { kind: 'target_state_change', description: 'Continue opens the next step' },

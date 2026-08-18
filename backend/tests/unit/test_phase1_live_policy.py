@@ -48,7 +48,7 @@ def request(payload: dict | None = None, **updates) -> LivePolicyRequest:
                 "screenshot_coordinates_verified": False,
                 "screenshot_hash": None,
             },
-            "origin": {"origin": "https://example.com", "observed_url": "https://example.com/path?ignored=true"},
+            "origin": {"origin": "https://example.com", "observed_url": "https://example.com/path?ignored=true", "target_url": None},
             "browser_binding": {"tab_id": 1, "window_id": 1, "frame_id": "top"},
             "resource_identity": {"url": "https://example.com/path?ignored=true", "title": "Example"},
             "expected_effect": {"kind": "target_state_change", "description": "state changes"},

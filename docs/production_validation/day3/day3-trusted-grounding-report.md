@@ -1,8 +1,11 @@
 # Day 3 Trusted-Grounding Report
 
 **Date:** 2026-08-18  
-**Engineering implementation:** Complete  
-**Day 3 live exit:** Not met; the required 20/20 application-side-panel runs are not claimed.
+**Trusted-grounding implementation:** Complete
+
+**Expanded Day 3 robustness implementation:** Open
+
+**Day 3 live exit:** Not met; the robustness gate and required 20/20 application-side-panel runs are not claimed.
 
 ## Delivered
 
@@ -13,6 +16,9 @@
 - Added bounded exact post-click verification for WhatsApp chat headers, Gmail thread subjects, Google Docs titles, and Google Drive item headings.
 - Extended the canonical contract and backend policy enforcement with the grounding policy.
 - Repaired two runtime-launch bottlenecks: an unbounded PowerShell health probe and a false wrapper-PID/server-PID mismatch. Direct health preflight now prevents duplicate startup when Windows listener enumeration is restricted.
+- Made explicit safe navigation the application-owned bootstrap path: a workflow may open an `http`/`https` destination from only Chrome New Tab or `about:blank`; other privileged origins remain blocked. The destination URL is preserved in the canonical contract and enforced by both extension and backend policy.
+- Prevented a new Analyze submission from inheriting a restored workflow session. New tasks now receive a fresh session/idempotency namespace; Resume alone retains the existing session.
+- Removed a development auto-reload parent/worker pair that was silently recreating a `local-dev` backend after the canonical worker stopped. The validation runtime is now one non-reloading process.
 
 The production invariant is documented in [trusted-grounding-and-postconditions.md](../../stabilization/trusted-grounding-and-postconditions.md).
 
@@ -20,9 +26,9 @@ The production invariant is documented in [trusted-grounding-and-postconditions.
 
 - Extension TypeScript type-check: passed.
 - Production extension build: passed.
-- Extension full suite: **168/168 passed**.
-- Backend policy/API/runtime-handshake suite: **26/26 passed**.
-- Canonical runtime: URL `http://localhost:8000`, server PID `26336`, build `stabilization-20260818T105438Z`, commit `751bca4`.
+- Extension full suite: **170/170 passed**.
+- Backend policy/API focused suite: **24/24 passed**.
+- Canonical runtime/extension handshake: URL `http://localhost:8000`, server PID `18268`, build `stabilization-20260818T113543Z`, commit `6c60c20`.
 
 ## Live WhatsApp findings
 
@@ -44,7 +50,16 @@ The built extension can be loaded by the isolated Playwright profile, but that b
 
 Therefore the live checks proved the website's target ambiguity, delayed readiness, exact row grounding, and exact header postcondition, but they did not prove 20 consecutive dispatches through the rebuilt application side panel. Controlled/unit results are intentionally not counted as live passes.
 
+Two operator-side submissions also exposed pre-dispatch defects without producing a browser mutation: the first reused a restored workflow session, and the second was correctly blocked because New Tab was treated as an unsupported origin. Both root causes are now fixed and regression-covered. The next qualifying run must begin on New Tab and demonstrate that the application opens WhatsApp before it grounds and opens the exact direct chat.
+
+## Expanded robustness checkpoint
+
+Product-intent review showed that an explicit URL in the WhatsApp validation prompt would mask a general navigation gap. Day 3 now requires natural-language destination resolution, compound-objective decomposition, capability/site compatibility checks, ambiguity clarification, bounded semantic recovery, and meaningful terminal responses before the 20/20 run.
+
+This checkpoint is informed by the documented ChatGPT/Codex browser behavior as a reference product: browser navigation and multi-step website interaction, web search, existing-Chrome operation through an extension, shared visible state, and user control. It does not assume or copy undocumented private implementation details.
+
+Acceptance cases are maintained in the main 15-day plan and include YouTube natural-language resolution, Gmail plus music as a compound task, an impossible Gmail-contained playback request, ambiguous RBVRRIT portal discovery, unverifiable destinations, and bounded failure handling.
+
 ## Day 4 entry condition
 
 Per the schedule-control rule, Day 4 must begin by attaching the rebuilt unpacked extension to an authenticated, network-enabled validation browser (or by the operator opening its side panel in connected Chrome) and completing the 20 consecutive non-sending application runs. Only then should attachment-preview work begin.
-

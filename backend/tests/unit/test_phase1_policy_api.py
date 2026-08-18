@@ -32,7 +32,7 @@ def payload(*, action_id: str = "act-1", description: str = "Click Continue") ->
                 "screenshot_coordinates_verified": False,
                 "screenshot_hash": None,
             },
-            "origin": {"origin": "https://example.com", "observed_url": "https://example.com/checkout"},
+            "origin": {"origin": "https://example.com", "observed_url": "https://example.com/checkout", "target_url": None},
             "browser_binding": {"tab_id": 1, "window_id": 1, "frame_id": "top"},
             "resource_identity": {"url": "https://example.com/checkout", "title": "Checkout"},
             "expected_effect": {"kind": "target_state_change", "description": "state changes"},

@@ -80,10 +80,25 @@
 - Ground by stable selector first, accessibility name second, screenshot coordinates only when explicitly verified.
 - Add post-click verification for chat/document/thread opening.
 - Record why each fallback was selected.
+- Add one centralized destination resolver. Explicit URLs may be used after validation; common application names resolve through a trusted registry; unknown natural-language entities are discovered through search, ranked with identity evidence, and never accepted merely because they are the first result.
+- Decompose compound instructions into durable objectives and match every objective to a required capability before choosing a website. Preserve completed objectives across tabs instead of restarting the whole task.
+- Ask a concise clarification when multiple institutions, portals, accounts, recipients, or destinations remain plausible. Never guess a login or account-bearing destination.
+- Add bounded recovery and loop detection for repeated no-effect actions, unchanged page state, transient load failures, and unsupported capability/site combinations.
+- Convert every terminal path into a user-facing outcome: verified complete, partially complete, clarification required, confirmation required, unsupported, externally blocked, or safely failed. Raw exceptions must remain diagnostic evidence, not the user-facing result.
+- Treat named reference products such as ChatGPT/Codex browser as research requirements. Verify current behavior from official documentation, record facts separately from inference, turn relevant behaviors into acceptance tests, and ask the product owner about material scope or safety differences before implementation.
 
-**Exit:** Exact WhatsApp test chat opens reliably in 20/20 non-sending runs.
+**Exit:** All Day 3 robustness scenarios below pass, then the exact WhatsApp test chat opens reliably in 20/20 non-sending runs started from New Tab using natural-language instructions without an explicit URL.
 
-**Implemented 2026-08-18; live exit still open:** Trusted grounding, exact application postconditions, fallback traces, regression coverage, and runtime-launch fixes are complete. The authenticated Chrome check identified and resolved target ambiguity, but the rebuilt side panel could not be driven in that browser because privileged extension pages are automation-blocked; the isolated extension browser remains network-blocked. Do not count Day 3 complete until 20/20 runs traverse the application dispatch path. See [Day 3 trusted-grounding report](production_validation/day3/day3-trusted-grounding-report.md).
+**Day 3 robustness scenarios:**
+
+1. `Play Telugu music on YouTube` resolves a safe YouTube destination without a supplied URL and continues through observe/act/verify.
+2. `Open Gmail and play Telugu music` becomes two objectives, preserves Gmail, and uses a music-capable destination for playback.
+3. `Play Telugu music inside Gmail` reports the capability mismatch and offers a clear alternative instead of searching or looping in Gmail.
+4. `Open RBVRRIT college portal` discovers evidence-backed candidates and asks which institution/portal when the identity is ambiguous; it never selects the first result blindly.
+5. An unknown or unverifiable destination ends with a meaningful explanation and no navigation side effect.
+6. Repeated no-effect, timeout, unsupported, authentication, and policy failures stop within their configured budgets and produce a meaningful partial/blocked result.
+
+**Grounding implementation complete 2026-08-18; expanded robustness and live exits open:** Trusted grounding, exact application postconditions, fallback traces, regression coverage, and runtime-launch fixes are complete. Natural-language destination discovery, compound-objective decomposition, capability matching, bounded semantic recovery, and graceful terminal responses were added to Day 3 after product-intent review; they must be implemented and pass the scenarios above before the 20/20 live gate. Do not count Day 3 complete until both gates pass through the application dispatch path. See [Day 3 trusted-grounding report](production_validation/day3/day3-trusted-grounding-report.md).
 
 ### Day 4 — File-selection and upload broker
 

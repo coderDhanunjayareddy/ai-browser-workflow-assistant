@@ -424,13 +424,17 @@ async function handleExecuteAction(
     }
     const tab = await chrome.tabs.get(observedTabId).catch(() => undefined)
     const tabUrl = tab?.url ?? ''
-    if (!tab?.id || !isGroundedBrowserTarget(tabUrl)) {
+    const bootstrapNavigation = ['navigate', 'open_new_tab'].includes(action.action_type)
+      && ['chrome://newtab/', 'about:blank'].includes(tabUrl)
+      && contract.origin.observed_url === tabUrl
+      && Boolean(contract.origin.target_url)
+    if (!tab?.id || (!isGroundedBrowserTarget(tabUrl) && !bootstrapNavigation)) {
       sendResponse({ error: 'Browser action rejected: the observed tab is unavailable or is not an http/https page.' })
       return
     }
     if (
       tabUrl !== contract.origin.observed_url ||
-      new URL(tabUrl).origin !== contract.origin.origin ||
+      (!bootstrapNavigation && action.action_type !== 'navigate' && new URL(tabUrl).origin !== contract.origin.origin) ||
       (contract.browser_binding.window_id !== null && tab.windowId !== contract.browser_binding.window_id)
     ) {
       sendResponse({ error: 'Browser action rejected: canonical origin, URL, tab, or window identity changed before dispatch.' })
@@ -443,7 +447,7 @@ async function handleExecuteAction(
       sendResponse({ error: 'Browser action rejected: the observed page changed before policy evaluation.' })
       return
     }
-    const policyDecision = await enforceLivePolicy(POLICY_BACKEND_URL, contract, policyTab.url, policyContext)
+    const policyDecision = await enforceLivePolicy(POLICY_BACKEND_URL, contract, contract.origin.target_url || policyTab.url, policyContext)
     if (!policyDecision.allowed) {
       sendResponse({
         error: `Browser action rejected by policy: ${policyDecision.decision_reason}`,

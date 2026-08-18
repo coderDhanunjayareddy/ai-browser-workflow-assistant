@@ -1,6 +1,7 @@
 param(
     [string]$BackendUrl = "http://localhost:8000",
-    [int]$Port = 8000
+    [int]$Port = 8000,
+    [switch]$RebuildExtension
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,6 +22,28 @@ function Get-CanonicalHealth {
     if ($LASTEXITCODE -ne 0 -or -not $body) { return $null }
     try { return ($body | ConvertFrom-Json) }
     catch { return $null }
+}
+
+function Build-CanonicalExtension {
+    param(
+        [string]$Url,
+        [string]$AppVersion,
+        [string]$Commit,
+        [string]$BuildId
+    )
+
+    $env:VITE_BACKEND_URL = $Url
+    $env:VITE_APP_VERSION = $AppVersion
+    $env:VITE_BUILD_COMMIT = $Commit
+    $env:VITE_BUILD_ID = $BuildId
+    Push-Location $extensionRoot
+    try {
+        & npm.cmd run build
+        if ($LASTEXITCODE -ne 0) { throw "Extension build failed with exit code $LASTEXITCODE" }
+    }
+    finally {
+        Pop-Location
+    }
 }
 
 if ($runtimeUri.Scheme -ne "http" -or $runtimeUri.Host -notin @("localhost", "127.0.0.1") -or $runtimeUri.Port -ne $Port) {
@@ -50,6 +73,13 @@ if (
     $serverProcess = Get-Process -Id $serverPid -ErrorAction SilentlyContinue
     if (-not $serverProcess -or $serverProcess.ProcessName -notmatch "python") {
         throw "Health endpoint reported an invalid canonical server process: $serverPid"
+    }
+    if ($RebuildExtension) {
+        Build-CanonicalExtension `
+            -Url $BackendUrl `
+            -AppVersion $existingHealth.runtime.app_version `
+            -Commit $existingHealth.runtime.build_commit `
+            -BuildId $existingHealth.runtime.build_id
     }
     New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
     [ordered]@{
@@ -102,19 +132,7 @@ if (-not $commit) { $commit = "dev" }
 $buildId = "stabilization-" + (Get-Date).ToUniversalTime().ToString("yyyyMMddTHHmmssZ")
 $appVersion = "0.4.0"
 
-$env:VITE_BACKEND_URL = $BackendUrl
-$env:VITE_APP_VERSION = $appVersion
-$env:VITE_BUILD_COMMIT = $commit
-$env:VITE_BUILD_ID = $buildId
-
-Push-Location $extensionRoot
-try {
-    & npm.cmd run build
-    if ($LASTEXITCODE -ne 0) { throw "Extension build failed with exit code $LASTEXITCODE" }
-}
-finally {
-    Pop-Location
-}
+Build-CanonicalExtension -Url $BackendUrl -AppVersion $appVersion -Commit $commit -BuildId $buildId
 
 $env:APP_VERSION = $appVersion
 $env:BUILD_COMMIT = $commit

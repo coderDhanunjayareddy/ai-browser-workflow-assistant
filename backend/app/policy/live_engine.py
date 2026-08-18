@@ -308,11 +308,22 @@ class LivePolicyEngine:
             return "execution_contract_browser_binding_invalid"
         observed_url = str(contract_origin.get("observed_url") or "")
         try:
-            if normalize_origin(observed_url) != origin or str(contract_origin.get("origin") or "") != origin:
+            if action.action_type in {"navigate", "open_new_tab"}:
+                target_url = str(contract_origin.get("target_url") or "")
+                parsed_source = urlparse(observed_url)
+                safe_bootstrap = observed_url in {"chrome://newtab/", "about:blank"}
+                if parsed_source.scheme not in {"http", "https"} and not safe_bootstrap:
+                    return "execution_contract_origin_mismatch"
+                if normalize_origin(target_url) != origin or str(contract_origin.get("origin") or "") != origin:
+                    return "execution_contract_origin_mismatch"
+                if str(action.value or "") != target_url and str(action.value or "").rstrip("/") != target_url.rstrip("/"):
+                    return "execution_contract_navigation_target_mismatch"
+            elif normalize_origin(observed_url) != origin or str(contract_origin.get("origin") or "") != origin:
                 return "execution_contract_origin_mismatch"
         except ValueError:
             return "execution_contract_origin_mismatch"
-        if resource.get("url") != observed_url:
+        expected_resource_url = contract_origin.get("target_url") if action.action_type in {"navigate", "open_new_tab"} else observed_url
+        if resource.get("url") != expected_resource_url:
             return "execution_contract_resource_mismatch"
         if action.action_type == "click" and not str(target.get("selector") or "").strip():
             return "execution_contract_click_target_missing"

@@ -47,6 +47,7 @@ const {
   buildRejectedReportPriorStep,
   cancelWorkflowPatch,
   createMissionSnapshot,
+  createFreshWorkflowSessionId,
   createMultiTabWorkspace,
   createTaskWorkspace,
   phaseContinuationActions,
@@ -79,6 +80,13 @@ test('browser control accepts only grounded http/https page tabs', () => {
   assert.equal(isGroundedBrowserTarget('chrome-extension://abc/sidepanel.html'), false)
   assert.equal(isGroundedBrowserTarget('chrome://extensions'), false)
   assert.equal(isGroundedBrowserTarget('about:blank'), false)
+})
+
+test('each newly submitted task receives a fresh mission session identity', () => {
+  const first = createFreshWorkflowSessionId()
+  const second = createFreshWorkflowSessionId()
+  assert.match(first, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  assert.notEqual(first, second)
 })
 
 test('navigation waits for DOM settle after the tab load completes', () => {
