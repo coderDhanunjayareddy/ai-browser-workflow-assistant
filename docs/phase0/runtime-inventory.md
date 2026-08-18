@@ -8,7 +8,7 @@
 
 | Status | Files |
 |---|---:|
-| `live` | 388 |
+| `live` | 393 |
 | `shadow` | 247 |
 | `test-only` | 48 |
 | `stub` | 7 |
@@ -250,6 +250,8 @@
 | `backend/app/decisions/sources/research.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/sources/trust.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
 | `backend/app/decisions/timeline.py` | `shadow` | reachable from a registered API route not used by the core extension flow |
+| `backend/app/destination_resolution/__init__.py` | `live` | package initializer inherits live status from descendant modules |
+| `backend/app/destination_resolution/resolver.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/diagnostics/__init__.py` | `live` | package initializer inherits live status from descendant modules |
 | `backend/app/diagnostics/console.py` | `live` | statically reachable from a configured product entry root |
 | `backend/app/diagnostics/trace_sink.py` | `live` | statically reachable from a configured product entry root |
@@ -718,7 +720,9 @@
 | `extension/src/background/target_tab.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/capabilities/health.ts` | `dead` | no static reachability from configured product or registered-route roots |
 | `extension/src/capabilities/manifest.ts` | `test-only` | referenced by repository tests but not statically reachable from product roots |
+| `extension/src/config.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/content/action_verification.ts` | `live` | statically reachable from a configured product entry root |
+| `extension/src/content/exact_target_verification.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/content/executor.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/content/executor_v2.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/content/extractor.ts` | `live` | statically reachable from a configured product entry root |
@@ -730,6 +734,7 @@
 | `extension/src/content/wave3_visual.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/content/wave4_enterprise.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/content/widget_adapters.ts` | `live` | statically reachable from a configured product entry root |
+| `extension/src/execution/canonical_action_contract.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/sidepanel/App.tsx` | `live` | statically reachable from a configured product entry root |
 | `extension/src/sidepanel/contextBudgetManager.ts` | `live` | statically reachable from a configured product entry root |
 | `extension/src/sidepanel/durableWorkflowLedger.ts` | `live` | statically reachable from a configured product entry root |

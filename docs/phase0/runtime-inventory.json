@@ -10,7 +10,7 @@
   },
   "counts": {
     "dead": 38,
-    "live": 388,
+    "live": 393,
     "shadow": 247,
     "stub": 7,
     "test-only": 48
@@ -1175,6 +1175,16 @@
       "path": "backend/app/decisions/timeline.py",
       "status": "shadow",
       "evidence": "reachable from a registered API route not used by the core extension flow"
+    },
+    {
+      "path": "backend/app/destination_resolution/__init__.py",
+      "status": "live",
+      "evidence": "package initializer inherits live status from descendant modules"
+    },
+    {
+      "path": "backend/app/destination_resolution/resolver.py",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
     },
     {
       "path": "backend/app/diagnostics/__init__.py",
@@ -3517,7 +3527,17 @@
       "evidence": "referenced by repository tests but not statically reachable from product roots"
     },
     {
+      "path": "extension/src/config.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
       "path": "extension/src/content/action_verification.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/content/exact_target_verification.ts",
       "status": "live",
       "evidence": "statically reachable from a configured product entry root"
     },
@@ -3573,6 +3593,11 @@
     },
     {
       "path": "extension/src/content/widget_adapters.ts",
+      "status": "live",
+      "evidence": "statically reachable from a configured product entry root"
+    },
+    {
+      "path": "extension/src/execution/canonical_action_contract.ts",
       "status": "live",
       "evidence": "statically reachable from a configured product entry root"
     },

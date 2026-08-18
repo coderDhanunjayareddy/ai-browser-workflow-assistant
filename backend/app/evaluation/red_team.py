@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlsplit
 
 from app.policy.live_engine import LivePolicyEngine
 from app.policy.live_store import LivePolicyStore
@@ -15,9 +16,43 @@ def _action(action_id: str, description: str = "Continue", *, safety: str = "saf
     }
 
 
+def _execution_contract(session: str, origin: str, action: dict[str, Any]) -> dict[str, Any]:
+    parsed = urlsplit(origin)
+    normalized_origin = f"{parsed.scheme}://{parsed.netloc}"
+    return {
+        "schema_version": "1.0",
+        "dispatch_id": f"red-team:{session}:{action['action_id']}",
+        "action": action,
+        "target_identity": {
+            "selector": action.get("target_selector"),
+            "exact_name": action.get("description"),
+        },
+        "grounding_policy": {
+            "ordered_sources": ["stable_selector", "accessibility_name", "verified_screenshot"],
+            "accessibility_requires_exact_name": True,
+            "screenshot_coordinates_verified": False,
+            "screenshot_hash": None,
+        },
+        "origin": {
+            "origin": normalized_origin,
+            "observed_url": origin,
+            "target_url": None,
+        },
+        "browser_binding": {"tab_id": 1, "window_id": 1, "frame_id": "top"},
+        "resource_identity": {"url": origin, "title": "Red-team fixture"},
+        "expected_effect": {
+            "kind": "target_state_change",
+            "description": "The bound fixture control changes state",
+        },
+        "safety_class": action.get("safety_level"),
+        "idempotency_key": f"red-team:{session}:{action['action_id']}",
+    }
+
+
 def _request(session: str, origin: str, action: dict[str, Any], **updates: Any) -> LivePolicyRequest:
     data: dict[str, Any] = {
         "session_id": session, "origin": origin, "action": action,
+        "execution_contract": _execution_contract(session, origin, action),
         "provenance": [ProvenanceLabel(source_type="user", source_id="red-team", trust="trusted")],
     }
     data.update(updates)

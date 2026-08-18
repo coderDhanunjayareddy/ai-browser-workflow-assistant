@@ -39,8 +39,23 @@ const REVERSIBLE_ACTIONS = new Set([
   'fill', 'hover', 'scroll', 'select_option', 'wait',
 ])
 
+const SAFE_AUTONOMOUS_NAVIGATION = new Set([
+  'navigate', 'open_new_tab', 'switch_tab', 'focus_existing_tab',
+])
+
 export function isLowRiskReversibleAction(action: SuggestedAction): boolean {
   return action.safety_level === 'safe' && REVERSIBLE_ACTIONS.has(action.action_type)
+}
+
+export function isSafeAutonomousNavigation(action: SuggestedAction): boolean {
+  if (action.safety_level !== 'safe' || !SAFE_AUTONOMOUS_NAVIGATION.has(action.action_type)) return false
+  if (action.action_type === 'switch_tab' || action.action_type === 'focus_existing_tab') return true
+  try {
+    const url = new URL(action.value || '')
+    return url.protocol === 'https:' || url.protocol === 'http:'
+  } catch {
+    return false
+  }
 }
 
 export function durableExecutionKey(action: SuggestedAction, tabId: number): string {

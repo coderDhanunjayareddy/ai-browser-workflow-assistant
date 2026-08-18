@@ -32,6 +32,7 @@ import {
   completionEvidenceValid,
   createDurableLedger,
   isLowRiskReversibleAction,
+  isSafeAutonomousNavigation,
   loadDurableLedger,
   MAX_REVERSIBLE_ATTEMPTS,
   normalizeLedgerAfterRestart,
@@ -242,6 +243,54 @@ function formatErrorDetail(detail: unknown, fallback: string): string {
   return String(detail)
 }
 
+export type WorkflowFailureCategory =
+  | 'network'
+  | 'timeout'
+  | 'permission'
+  | 'policy'
+  | 'no_effect'
+  | 'target_not_found'
+  | 'uncertain_dispatch'
+  | 'service'
+  | 'unexpected'
+
+export interface MeaningfulWorkflowFailure {
+  category: WorkflowFailureCategory
+  userMessage: string
+  retryable: boolean
+}
+
+export function meaningfulWorkflowFailure(
+  rawMessage: string,
+  stage: 'observation' | 'analysis' | 'execution',
+  actionDescription = '',
+): MeaningfulWorkflowFailure {
+  const text = String(rawMessage || '').trim().toLowerCase()
+  const subject = actionDescription.trim() ? ` “${actionDescription.trim()}”` : ''
+  if (/may already have been dispatched|uncertain_prior_dispatch|not repeated/.test(text)) {
+    return { category: 'uncertain_dispatch', userMessage: `I could not verify whether${subject || ' the browser action'} already happened, so I stopped without repeating it. Refresh the page and review its current state before continuing.`, retryable: false }
+  }
+  if (/policy|confirmation|approval|privileged url/.test(text)) {
+    return { category: 'policy', userMessage: `I paused${subject} because the safety policy or required confirmation did not allow it to continue. No additional action was taken.`, retryable: false }
+  }
+  if (/timed out|timeout/.test(text)) {
+    return { category: 'timeout', userMessage: `The ${stage} step${subject} did not finish within the safe time limit. I stopped the attempt instead of waiting or retrying indefinitely.`, retryable: true }
+  }
+  if (/failed to fetch|network|connection|err_|temporarily unavailable|503|502|504/.test(text)) {
+    return { category: stage === 'analysis' ? 'service' : 'network', userMessage: `I could not reach the required ${stage === 'analysis' ? 'planning service' : 'website or browser service'}. I stopped safely; check the connection and try again.`, retryable: true }
+  }
+  if (/permission|access denied|not allowed|restricted/.test(text)) {
+    return { category: 'permission', userMessage: `The browser blocked${subject || ' this step'} because the required permission or destination is unavailable. No further action was attempted.`, retryable: false }
+  }
+  if (/no[_ ]effect|unchanged|did not change|could not verify page progress/.test(text)) {
+    return { category: 'no_effect', userMessage: `The page did not show the expected result after${subject || ' the attempted action'}. I recorded the no-effect result and stopped repeating the same step.`, retryable: true }
+  }
+  if (/target.*not found|selector|not grounded|exact.*not.*found|could not find/.test(text)) {
+    return { category: 'target_not_found', userMessage: `I could not find one verified page control for${subject || ' the requested step'}. I did not click a substitute or guess a target.`, retryable: true }
+  }
+  return { category: 'unexpected', userMessage: `I could not complete${subject || ` the ${stage} step`}. I stopped safely, recorded the failure, and did not claim success.`, retryable: false }
+}
+
 // Phase describes what the workflow engine is currently doing.
 export type WorkflowPhase =
   | 'idle'         // Nothing started yet
@@ -320,7 +369,7 @@ export function shouldAutoExecuteAction(
 ): boolean {
   if (!action || mode !== 'auto') return false
   if (actionRequiresExplicitApproval(action)) return false
-  return isLowRiskReversibleAction(action)
+  return isLowRiskReversibleAction(action) || isSafeAutonomousNavigation(action)
 }
 
 interface AnalyzeRoutingOptions {
@@ -959,6 +1008,20 @@ function nextAllowedActions(actions: SuggestedAction[], completed: CompletedActi
   return allowed
 }
 
+export function shouldRequestSemanticRecovery(
+  action: SuggestedAction,
+  completed: CompletedAction[],
+): boolean {
+  if (action.safety_level !== 'safe' || actionRequiresExplicitApproval(action)) return false
+  const latestMessage = String(completed[completed.length - 1]?.result?.message || '').toLowerCase()
+  if (/policy|confirmation|approval|may already have been dispatched|uncertain|privileged/.test(latestMessage)) return false
+  const signature = actionSignature(action)
+  const failures = completed.filter(({ action: priorAction, result }) =>
+    !result.success && actionSignature(priorAction) === signature
+  )
+  return failures.length < 2
+}
+
 function repeatedClarificationQuestion(question: string | null | undefined, userInputs: string[]): string | null {
   if (!question) return null
   const repeatedQuestion = userInputs.some((input) =>
@@ -1437,24 +1500,33 @@ export function useWorkflow() {
         }
       }
       if (!bestContext) {
+        const friendly = meaningfulWorkflowFailure(
+          observationError || 'Failed to read page.',
+          'observation',
+        )
         setState((s) => ({
           ...s,
           phase: 'failed',
           pendingActions: [],
           activeAction: null,
-          error: `${refresh ? 'Refresh' : 'Observation'} failed: ${observationError || 'Failed to read page.'}`,
+          analysisText: friendly.userMessage,
+          error: friendly.userMessage,
         }))
         return
       }
       ctx = bestContext
       setPageContext(ctx)
     } catch (err) {
+      const rawError = errMsg(err)
+      console.error('[Workflow] Observation failed', rawError)
+      const friendly = meaningfulWorkflowFailure(rawError, 'observation')
       setState((s) => ({
         ...s,
         phase: 'failed',
         pendingActions: [],
         activeAction: null,
-        error: `${refresh ? 'Refresh' : 'Observation'} error: ${errMsg(err)}`,
+        analysisText: friendly.userMessage,
+        error: friendly.userMessage,
       }))
       return
     }
@@ -1594,12 +1666,16 @@ export function useWorkflow() {
         })
       }
     } catch (err) {
+      const rawError = errMsg(err)
+      console.error('[Workflow] Analysis failed', rawError)
+      const friendly = meaningfulWorkflowFailure(rawError, 'analysis')
       setState((s) => ({
         ...s,
         phase: 'failed',
         pendingActions: [],
         activeAction: null,
-        error: `Analysis failed: ${errMsg(err)}`,
+        analysisText: friendly.userMessage,
+        error: friendly.userMessage,
       }))
     }
   }, [])
@@ -1907,13 +1983,37 @@ export function useWorkflow() {
       result.success ? 'success' : result.message, !intentUpdate.updated)
 
     if (!result.success) {
+      const friendly = meaningfulWorkflowFailure(result.message || 'Intent execution failed.', 'execution', action.description)
+      if (shouldRequestSemanticRecovery(action, newCompleted)) {
+        setState((s) => ({
+          ...s,
+          phase: 'refreshing',
+          activeAction: null,
+          pendingActions: [],
+          completedActions: newCompleted,
+          analysisText: `${analysisText}\n\n${friendly.userMessage}`,
+          error: null,
+        }))
+        await runWorkflowLoop({
+          sessionId,
+          task,
+          refresh: true,
+          completedActions: newCompleted,
+          validationPriorSteps,
+          workspace,
+          tabWorkspace,
+          userInputs,
+        })
+        return
+      }
       setState((s) => ({
         ...s,
         phase: 'failed',
         activeAction: null,
         pendingActions: [],
         completedActions: newCompleted,
-        error: result.message || 'Intent execution failed.',
+        analysisText: `${analysisText}\n\n${friendly.userMessage}`,
+        error: friendly.userMessage,
       }))
       return
     }

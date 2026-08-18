@@ -48,6 +48,7 @@ const {
   cancelWorkflowPatch,
   createMissionSnapshot,
   createFreshWorkflowSessionId,
+  meaningfulWorkflowFailure,
   createMultiTabWorkspace,
   createTaskWorkspace,
   phaseContinuationActions,
@@ -66,6 +67,7 @@ const {
   validateObservableProgress,
   workflowLoopObservationPhase,
   shouldAutoExecuteAction,
+  shouldRequestSemanticRecovery,
 } = require(path.join(outDir, 'sidepanel/hooks/useWorkflow.js'))
 const { mergeInteractiveElementLists } = require(path.join(outDir, 'content/extractor.js'))
 const { isGroundedBrowserTarget } = require(path.join(outDir, 'background/target_tab.js'))
@@ -226,6 +228,49 @@ test('auto mode executes only safe reversible browser actions', () => {
   assert.equal(shouldAutoExecuteAction(benignFill, 'manual'), false)
   assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill', safety_level: 'caution' }), 'auto'), false)
   assert.equal(shouldAutoExecuteAction(action({ action_type: 'fill', safety_level: 'danger' }), 'auto'), false)
+  assert.equal(shouldAutoExecuteAction(action({
+    action_type: 'navigate',
+    target_selector: '',
+    value: 'https://www.youtube.com/',
+    description: 'Open verified YouTube destination',
+  }), 'auto'), true)
+  assert.equal(shouldAutoExecuteAction(action({
+    action_type: 'navigate',
+    target_selector: '',
+    value: 'chrome://settings',
+  }), 'auto'), false)
+})
+
+test('raw workflow failures become meaningful bounded user outcomes', () => {
+  const timeout = meaningfulWorkflowFailure('navigate execution timed out after 45000ms', 'execution', 'Open YouTube')
+  assert.equal(timeout.category, 'timeout')
+  assert.equal(timeout.retryable, true)
+  assert.match(timeout.userMessage, /safe time limit/i)
+  assert.doesNotMatch(timeout.userMessage, /45000/)
+
+  const uncertain = meaningfulWorkflowFailure('This action may already have been dispatched before a restart, so it was not repeated.', 'execution')
+  assert.equal(uncertain.category, 'uncertain_dispatch')
+  assert.equal(uncertain.retryable, false)
+  assert.match(uncertain.userMessage, /without repeating/i)
+
+  const target = meaningfulWorkflowFailure('Selector target not found', 'execution', 'Open exact chat')
+  assert.equal(target.category, 'target_not_found')
+  assert.match(target.userMessage, /did not click a substitute/i)
+})
+
+test('semantic recovery is bounded and never replans consequential or uncertain actions', () => {
+  const safe = action({ action_type: 'navigate', target_selector: '', value: 'https://www.youtube.com/', description: 'Open YouTube' })
+  const failedOnce = [completedAction({ action: safe, result: { success: false, message: 'navigation timeout', action_id: safe.action_id } })]
+  assert.equal(shouldRequestSemanticRecovery(safe, failedOnce), true)
+
+  const failedTwice = [...failedOnce, completedAction({ action: safe, result: { success: false, message: 'no_effect', action_id: safe.action_id } })]
+  assert.equal(shouldRequestSemanticRecovery(safe, failedTwice), false)
+
+  const send = action({ action_type: 'click', description: 'Send email message', safety_level: 'safe' })
+  assert.equal(shouldRequestSemanticRecovery(send, [completedAction({ action: send, result: { success: false, message: 'failed', action_id: send.action_id } })]), false)
+
+  const uncertain = action({ action_type: 'click', description: 'Open chat', safety_level: 'safe' })
+  assert.equal(shouldRequestSemanticRecovery(uncertain, [completedAction({ action: uncertain, result: { success: false, message: 'may already have been dispatched', action_id: uncertain.action_id } })]), false)
 })
 
 test('auto mode pauses for critical action classes even when marked safe', () => {

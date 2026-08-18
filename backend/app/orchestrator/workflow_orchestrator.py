@@ -740,6 +740,45 @@ class WorkflowOrchestrator:
                 },
             )
             return injection_response
+        from app.destination_resolution import resolve_destination
+
+        destination_response = resolve_destination(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=prior_steps,
+            user_context=supplemental_context,
+        )
+        if destination_response is not None:
+            self._route_legacy_browser_actions_through_mission_ledger(
+                result=destination_response,
+                task=task,
+                page_context=page_context,
+                prior_steps=prior_steps,
+                runtime_state_snapshot=None,
+                browser_intelligence_artifact=None,
+                knowledge_snapshot=None,
+                mission_completion_snapshot=None,
+                orchestrator_snapshot=None,
+                kernel_snapshot=None,
+            )
+            self._record_v3_event(
+                "destination_resolution.decided",
+                {
+                    "outcome_kind": destination_response.outcome_kind,
+                    "page_url": str(getattr(page_context, "url", "") or ""),
+                    "action_type": (
+                        destination_response.suggested_actions[0].action_type
+                        if destination_response.suggested_actions else None
+                    ),
+                    "target_url": (
+                        destination_response.suggested_actions[0].value
+                        if destination_response.suggested_actions else None
+                    ),
+                    "clarification_required": bool(destination_response.clarification_question),
+                },
+            )
+            return destination_response
         self._build_semantic_graph_shadow(page_context)
         browser_intelligence_artifact = self._build_browser_intelligence_shadow(page_context)
 

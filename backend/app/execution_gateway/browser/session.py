@@ -102,7 +102,8 @@ class BrowserSession:
             if page is None or any(page is p for p in self._popups):
                 return
             try:
-                opener = page.opener()
+                opener_value = getattr(page, "opener", None)
+                opener = opener_value() if callable(opener_value) else opener_value
             except Exception:
                 opener = None
             if opener is not None:          # real popup, NOT an explicit new_page()
@@ -111,10 +112,42 @@ class BrowserSession:
         except Exception:
             pass
 
+    def _reconcile_context_pages(self) -> None:
+        """Synchronize pages when the sync Playwright event loop has not been pumped.
+
+        Callers can inspect popup state without making another Playwright operation
+        after a click. Reading ``context.pages`` both pumps pending events and gives us
+        a bounded source of truth; ``_on_new_page`` still excludes explicit tabs whose
+        opener is absent.
+        """
+        try:
+            # Sync Playwright dispatches queued browser events while processing an API
+            # call. A zero-delay yield avoids timing sleeps and makes context.pages
+            # reflect a popup created by the preceding click.
+            current_page = self.page
+            if current_page is not None and not current_page.is_closed():
+                current_page.wait_for_timeout(0)
+            for page in list(self.context.pages):
+                known_tab = any(page is registered for registered in self._tabs.values())
+                known_popup = any(page is registered for registered in self._popups)
+                if known_tab or known_popup:
+                    continue
+                self._on_new_page(page)
+                if not any(page is registered for registered in self._popups):
+                    # Some Chromium/Playwright combinations omit opener metadata for
+                    # window.open(). An unregistered page in the owned context is still
+                    # a new-window side effect and must not be orphaned.
+                    self._popups.append(page)
+                    self.register_tab(page)
+        except Exception:
+            pass
+
     def latest_popup(self) -> Any:
+        self._reconcile_context_pages()
         return self._popups[-1] if self._popups else None
 
     def popup_count(self) -> int:
+        self._reconcile_context_pages()
         return len(self._popups)
 
     def follow_latest_popup(self) -> Any:
@@ -214,6 +247,7 @@ class BrowserSession:
                 pass
 
     def to_dict(self) -> dict[str, Any]:
+        self._reconcile_context_pages()
         url = None
         title = None
         try:

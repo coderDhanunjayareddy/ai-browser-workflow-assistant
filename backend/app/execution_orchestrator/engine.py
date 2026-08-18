@@ -347,17 +347,9 @@ def _open_phase_direct_navigation_response(
 
 
 def _known_app_entry_url(text: str) -> str:
-    lowered = str(text or "").lower()
-    known = (
-        (("whatsapp", "whats app"), "https://web.whatsapp.com/"),
-        (("gmail", "google mail"), "https://mail.google.com/"),
-        (("linkedin jobs",), "https://www.linkedin.com/jobs/"),
-        (("linkedin",), "https://www.linkedin.com/"),
-    )
-    for names, url in known:
-        if any(name in lowered for name in names):
-            return url
-    return ""
+    from app.destination_resolution import known_app_entry_url
+
+    return known_app_entry_url(text)
 
 
 def _collect_search_recovery_navigation_response(

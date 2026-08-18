@@ -882,18 +882,9 @@ def _navigation_target_url(text: str) -> str:
     explicit = _explicit_start_url(text)
     if explicit:
         return explicit
-    lowered = str(text or "").lower()
-    known_apps = {
-        "whatsapp web": "https://web.whatsapp.com/",
-        "whatsapp": "https://web.whatsapp.com/",
-        "gmail": "https://mail.google.com/",
-        "linkedin jobs": "https://www.linkedin.com/jobs/",
-        "linkedin": "https://www.linkedin.com/",
-    }
-    for name, url in known_apps.items():
-        if name in lowered:
-            return url
-    return ""
+    from app.destination_resolution import known_app_entry_url
+
+    return known_app_entry_url(text)
 
 
 def _preferences(text: str) -> list[str]:
