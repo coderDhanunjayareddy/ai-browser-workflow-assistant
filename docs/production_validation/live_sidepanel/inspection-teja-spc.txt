@@ -1,0 +1,212 @@
+{
+  "text": "New: Calling on web\nTalk live over audio or video, screen share and more with up to 32 people\n1\nUpdates in Status\nAll\nUnread\n1\nFavorites\nGroups\nChats\nTeja Spc\nYesterday\nHaha\nGroups in common\nHR@SPECTROPY 2025-26\n11:35 AM\nTeja Spc & Prem Spc are also in this group\nSpec_Coolies\n8/10/2026\nTeja Spc & Prem Spc are also in this group\nYour personal messages are end-to-end encrypted\nSee more chat history on the app\nGet WhatsApp for Windows\nTeja Spc\nclick here for contact info\nFriday\nClick here to get older messages from your phone.\n8/1/2026\nForwarded\n1:29 PM\n8/5/2026\nTeja I'm at Gandi\n9:44 AM\nSlow ga ra\n9:44 AM\nAvuna\n9:46 AM\nEroju Wednesday mama\n9:46 AM\nOkok\n9:47 AM\nMarchioya\n9:47 AM\nNenu intlo unna mamas\n9:48 AM\nBachupally ki vachi call chesatha\n9:48 AM\nHa done\n9:48 AM\n8/7/2026\nHii\n1:10 PM\nHello\n1:13 PM\nHi\n1:22 PM\nWednesday\nForwarded\n2:02 PM\nThursday\nHello mama\n8:08 AM\nGHS pt -2 paper anta ready ga undhi aa \n\nAnd \n\nGHS Pt -1 10th class anta\n8:09 AM\nGHS pt-2 - Ready mama\n\nBut GHS pt-1 10th antay maestro 10th kada?\nEdited8:14 AM\nFriday\nmama na pics send chy ra\n8:52 PM\n9:12 PM\n9:12 PM\n9:12 PM\n+8\nrepu holiday mama\n9:13 PM\nYou\nrepu holiday mama\nHaa just ippude chusa mama\n9:14 PM\nEnjoy the holiday\n9:14 PM\n9:22 PM\nYesterday\nYou \u00b7 Status\n...Own the vibe ...\n4:25 PM\ncargo chy ra antay status chusthunnav\n4:26 PM\nYou\ncargo chy ra antay status chusthunnav\nHaha\n4:26 PM\n\n\n\n\nType a message",
+  "images": [
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "https://static.whatsapp.net/rsrc.php/yS/r/T_xj3a3ApC9.webp"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "https://media-hyd1-2.cdn.whatsapp.net/v/t61.24694-24/677720879_1047716367682478_1998459955888615549_n.jpg?stp=dst-jpg_s9"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "https://media-hyd1-2.cdn.whatsapp.net/v/t61.24694-24/527877407_1832019971052735_966306122168639563_n.jpg?stp=dst-jpg_s96"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEABsbGxscGx4hIR4qLSgtKj04MzM4PV1CR0JHQl2NWGdYWGdYjX2Xe3N7l33gsJycs"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "blob:https://web.whatsapp.com/9206592a-149f-49e1-a42a-33a229a4540d"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEABsbGxscGx4hIR4qLSgtKj04MzM4PV1CR0JHQl2NWGdYWGdYjX2Xe3N7l33gsJycs"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "blob:https://web.whatsapp.com/a1644955-6b0e-4ef2-9cfc-7300f30b2245"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAQFBQkGCQkJCQkKCAkICgsLCgoLCwwKCwoLCgwMDAwNDQwMDAwMDw4PDAwNDw8PD"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "blob:https://web.whatsapp.com/13f1110c-2d29-45cb-8f8e-9e57b3a6825b"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAQFBQkGCQkJCQkKCAkICgsLCgoLCwwKCwoLCgwMDAwNDQwMDAwMDw4PDAwNDw8PD"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "blob:https://web.whatsapp.com/2d6d5692-970c-4d25-a2ca-55e6f5422f74"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAQFBQkGCQkJCQkKCAkICgsLCgoLCwwKCwoLCgwMDAwNDQwMDAwMDw4PDAwNDw8PD"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "blob:https://web.whatsapp.com/e20cef7c-d850-4af0-9510-b9987fee1f11"
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": ""
+    },
+    {
+      "alt": "",
+      "aria_label": "",
+      "src_prefix": "blob:https://web.whatsapp.com/ec6c4f35-5210-463f-a351-d59f9a52b343"
+    },
+    {
+      "alt": "\ud83e\udd73",
+      "aria_label": "",
+      "src_prefix": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+    },
+    {
+      "alt": "\ud83e\udd73",
+      "aria_label": "",
+      "src_prefix": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+    },
+    {
+      "alt": "Sticker with: :-)",
+      "aria_label": "",
+      "src_prefix": "blob:https://web.whatsapp.com/da69b2cb-26fe-4602-9774-7431f41341fd"
+    },
+    {
+      "alt": "\ud83d\ude0e",
+      "aria_label": "",
+      "src_prefix": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+    },
+    {
+      "alt": "\ud83d\ude0d",
+      "aria_label": "",
+      "src_prefix": "https://web.whatsapp.com/emoji/v1/16/0/2/single/w/160/01f60d.png"
+    }
+  ],
+  "exact_matches": [
+    {
+      "tag": "div",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "x14ug900 x78zum5 x1iyjqo2 x1jchvi3 xdod15v x6ikm8r x10wlt62 x1mzt3pk x1yc453h xo1l8bm",
+      "outer_html": "<div class=\"x14ug900 x78zum5 x1iyjqo2 x1jchvi3 xdod15v x6ikm8r x10wlt62 x1mzt3pk x1yc453h xo1l8bm\" data-testid=\"cell-frame-title\"><div class=\"x1c4vz4f xuce83p x1bft6iq x1i7k8ik xq9mrsl x6s0dn4 x78zum5\"><div class=\"xuxw1ft x6ikm8r x10wlt62 xlyipyv x78zum5\"><span dir=\"auto\" title=\"Teja Spc\" class=\"x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu x1jchvi3 xjb2p0i xo1l8bm x17mssa0 x1ic7a3i xnpuxes\" style=\"min-height: 0px;\"><span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Teja</span> <span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Spc</span></span></div></div></div>"
+    },
+    {
+      "tag": "div",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "x1c4vz4f xuce83p x1bft6iq x1i7k8ik xq9mrsl x6s0dn4 x78zum5",
+      "outer_html": "<div class=\"x1c4vz4f xuce83p x1bft6iq x1i7k8ik xq9mrsl x6s0dn4 x78zum5\"><div class=\"xuxw1ft x6ikm8r x10wlt62 xlyipyv x78zum5\"><span dir=\"auto\" title=\"Teja Spc\" class=\"x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu x1jchvi3 xjb2p0i xo1l8bm x17mssa0 x1ic7a3i xnpuxes\" style=\"min-height: 0px;\"><span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Teja</span> <span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Spc</span></span></div></div>"
+    },
+    {
+      "tag": "div",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "xuxw1ft x6ikm8r x10wlt62 xlyipyv x78zum5",
+      "outer_html": "<div class=\"xuxw1ft x6ikm8r x10wlt62 xlyipyv x78zum5\"><span dir=\"auto\" title=\"Teja Spc\" class=\"x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu x1jchvi3 xjb2p0i xo1l8bm x17mssa0 x1ic7a3i xnpuxes\" style=\"min-height: 0px;\"><span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Teja</span> <span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Spc</span></span></div>"
+    },
+    {
+      "tag": "span",
+      "role": "",
+      "title": "Teja Spc",
+      "aria_label": "",
+      "class_name": "x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu x1jchvi3 xjb2p0i xo1l8bm x17mssa0 x1ic7a3i xnpuxes",
+      "outer_html": "<span dir=\"auto\" title=\"Teja Spc\" class=\"x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu x1jchvi3 xjb2p0i xo1l8bm x17mssa0 x1ic7a3i xnpuxes\" style=\"min-height: 0px;\"><span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Teja</span> <span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Spc</span></span>"
+    },
+    {
+      "tag": "strong",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "xnpuxes",
+      "outer_html": "<strong class=\"xnpuxes\"><span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Teja Spc</span></strong>"
+    },
+    {
+      "tag": "span",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "x1r8hjv8 x117nqv4 xnpuxes",
+      "outer_html": "<span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Teja Spc</span>"
+    },
+    {
+      "tag": "strong",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "xnpuxes",
+      "outer_html": "<strong class=\"xnpuxes\"><span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Teja Spc</span></strong>"
+    },
+    {
+      "tag": "span",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "x1r8hjv8 x117nqv4 xnpuxes",
+      "outer_html": "<span data-testid=\"text-highlight\" class=\"x1r8hjv8 x117nqv4 xnpuxes\">Teja Spc</span>"
+    },
+    {
+      "tag": "div",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "x78zum5 x1cy8zhl x1y332i5 xggjnk3 x1yc453h",
+      "outer_html": "<div class=\"x78zum5 x1cy8zhl x1y332i5 xggjnk3 x1yc453h\"><div class=\"x78zum5 x1q0g3np x6ikm8r x10wlt62 x1jchvi3 x1fcty0u xdod15v x14ug900 x1yc453h xlyipyv xuxw1ft xh8yej3 x1c4vz4f x2lah0s xdl72j9\"><div class=\"x1c4vz4f xuce83p x1bft6iq x1i7k8ik xq9mrsl x6s0dn4 x78zum5\"><div class=\"xuxw1ft x6ikm8r x10wlt62 xlyipyv x78zum5\"><span data-testid=\"conversation-info-header-chat-title\" dir=\"auto\" class=\"x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu xnpuxes\" style=\"min-height: 0px;\">Teja Spc</span></div></div></div></div>"
+    },
+    {
+      "tag": "div",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "x78zum5 x1q0g3np x6ikm8r x10wlt62 x1jchvi3 x1fcty0u xdod15v x14ug900 x1yc453h xlyipyv xuxw1ft xh8yej3 x1c4vz4f x2lah0s xdl72j9",
+      "outer_html": "<div class=\"x78zum5 x1q0g3np x6ikm8r x10wlt62 x1jchvi3 x1fcty0u xdod15v x14ug900 x1yc453h xlyipyv xuxw1ft xh8yej3 x1c4vz4f x2lah0s xdl72j9\"><div class=\"x1c4vz4f xuce83p x1bft6iq x1i7k8ik xq9mrsl x6s0dn4 x78zum5\"><div class=\"xuxw1ft x6ikm8r x10wlt62 xlyipyv x78zum5\"><span data-testid=\"conversation-info-header-chat-title\" dir=\"auto\" class=\"x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu xnpuxes\" style=\"min-height: 0px;\">Teja Spc</span></div></div></div>"
+    },
+    {
+      "tag": "div",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "x1c4vz4f xuce83p x1bft6iq x1i7k8ik xq9mrsl x6s0dn4 x78zum5",
+      "outer_html": "<div class=\"x1c4vz4f xuce83p x1bft6iq x1i7k8ik xq9mrsl x6s0dn4 x78zum5\"><div class=\"xuxw1ft x6ikm8r x10wlt62 xlyipyv x78zum5\"><span data-testid=\"conversation-info-header-chat-title\" dir=\"auto\" class=\"x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu xnpuxes\" style=\"min-height: 0px;\">Teja Spc</span></div></div>"
+    },
+    {
+      "tag": "div",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "xuxw1ft x6ikm8r x10wlt62 xlyipyv x78zum5",
+      "outer_html": "<div class=\"xuxw1ft x6ikm8r x10wlt62 xlyipyv x78zum5\"><span data-testid=\"conversation-info-header-chat-title\" dir=\"auto\" class=\"x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu xnpuxes\" style=\"min-height: 0px;\">Teja Spc</span></div>"
+    },
+    {
+      "tag": "span",
+      "role": "",
+      "title": "",
+      "aria_label": "",
+      "class_name": "x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu xnpuxes",
+      "outer_html": "<span data-testid=\"conversation-info-header-chat-title\" dir=\"auto\" class=\"x1iyjqo2 x6ikm8r x10wlt62 x1n2onr6 xlyipyv xuxw1ft x1rg5ohu xnpuxes\" style=\"min-height: 0px;\">Teja Spc</span>"
+    }
+  ],
+  "adapter_traces": []
+}

@@ -447,7 +447,12 @@ function clickOnceAndReuseTab(action: {
   if (namedCandidates.length > 0) {
     const requested = namedCandidates[0]
     const targetLabel = labelOf(element)
-    if (targetLabel && !targetLabel.includes(requested.label) && !requested.label.includes(targetLabel)) {
+    // Keep an explicitly grounded target when its complete visible label is
+    // already present in the action request. A broader control label can also
+    // appear in the description (for example "WhatsApp" alongside the exact
+    // contact "Teja Spc") and must not replace the more specific selector.
+    const targetIsExplicitlyRequested = targetLabel.length >= 2 && requestedText.includes(targetLabel)
+    if (!targetIsExplicitlyRequested && targetLabel && !targetLabel.includes(requested.label) && !requested.label.includes(targetLabel)) {
       element = requested.candidate as HTMLElement
     }
   } else {
@@ -553,8 +558,27 @@ async function handleExecuteAction(
       ...result,
       execution_adapter: 'dom',
     }, startedAt)
+    // Preserve the original grounded selector for trusted input. Running broad
+    // selector recovery first can replace an exact target with a merely related
+    // control, after which CDP faithfully clicks the wrong element. Advanced
+    // control is already restricted to safe actions and verified no-effect
+    // outcomes, so give the exact target one trusted attempt before recovery.
+    const trustedOriginalResult = await executeCdpFallbackIfEligible(tab.id, action, verifiedResult)
+    if (trustedOriginalResult.verification?.verified) {
+      sendResponse({ result: trustedOriginalResult })
+      return
+    }
     const domResult = await recoverSelectorOnceIfEligible(tab.id, action, verifiedResult)
-    const finalResult = await executeCdpFallbackIfEligible(tab.id, action, domResult)
+    const cdpAlreadyAttempted = trustedOriginalResult.adapter_trace?.cdp_attempted === true
+    const finalResult = cdpAlreadyAttempted
+      ? {
+          ...domResult,
+          adapter_trace: {
+            ...(domResult.adapter_trace || {}),
+            ...(trustedOriginalResult.adapter_trace || {}),
+          },
+        }
+      : await executeCdpFallbackIfEligible(tab.id, action, domResult)
     sendResponse({ result: finalResult })
   } catch (err) {
     const msg = String(err)

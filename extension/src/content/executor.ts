@@ -261,6 +261,24 @@ export async function executeAction(action: {
           /\[(?:title|aria-label|placeholder|data-testid)=["']([^"']+)["']\]/
         )
         if (attrValueMatch) {
+          // A virtualized list can render the requested label as ordinary text while
+          // omitting the attribute the observed selector was based on. Prefer the
+          // complete label before keyword matching: using only the first word can
+          // hit an unrelated heading (for example the WhatsApp heading before the
+          // "Teja Spc" chat row).
+          const exactLabel = attrValueMatch[1].replace(/\s+/g, ' ').trim()
+          if (exactLabel) {
+            const exactTextCandidates = Array.from(document.querySelectorAll('body *'))
+              .filter((candidate): candidate is HTMLElement => candidate instanceof HTMLElement)
+              .filter(isVisibleElement)
+              .filter((candidate) => (candidate.textContent || '').replace(/\s+/g, ' ').trim() === exactLabel)
+              .sort((left, right) => left.children.length - right.children.length)
+            for (const candidate of exactTextCandidates) {
+              const result = tryClick(candidate, `exact visible text "${exactLabel}"`)
+              if (result) return result
+            }
+          }
+
           const keyword = attrValueMatch[1].split(/\s+/)[0] // first word
           const semanticSelectors = [
             `[contenteditable="true"][aria-label*="${keyword}" i]`,

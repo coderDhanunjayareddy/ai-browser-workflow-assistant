@@ -283,11 +283,11 @@ def test_whatsapp_current_search_value_grounds_exact_virtualized_contact_click()
         [
             InteractiveElement(
                 type="input",
-                selector="#chat-search",
+                selector="#_r_a_",
                 text="",
                 visible=True,
                 role="textbox",
-                accessibility_name="Search",
+                accessibility_name="",
                 state={"value": "Teja Spc"},
             )
         ],

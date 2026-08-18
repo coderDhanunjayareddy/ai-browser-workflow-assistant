@@ -216,6 +216,23 @@ def _ensure_auto_mode(sidepanel) -> None:
             continue
 
 
+def _ensure_advanced_control(sidepanel) -> None:
+    if "Advanced control enabled: DOM first, trusted CDP fallback" in _sidepanel_text(sidepanel):
+        return
+    toggle = sidepanel.locator('[title*="CDP control"]').locator("div").first
+    toggle.scroll_into_view_if_needed(timeout=3000)
+    toggle.click(timeout=3000)
+    deadline = time.time() + 3
+    while time.time() < deadline:
+        text = _sidepanel_text(sidepanel)
+        if "Advanced control enabled: DOM first, trusted CDP fallback" in text:
+            return
+        if "Advanced control unavailable" in text or "Advanced control is missing" in text:
+            raise RuntimeError(f"Could not enable trusted browser control: {text[:1000]}")
+        time.sleep(0.1)
+    raise RuntimeError("Trusted browser control toggle did not become enabled.")
+
+
 def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
     try:
         clicked = sidepanel.evaluate(
@@ -297,6 +314,7 @@ def _run_task(
     timeout_s: int,
     file_path: str = "",
     allow_confirmed_critical: bool = False,
+    enable_advanced_control: bool = False,
 ) -> TaskRun:
     started = time.time()
     safe_id = task_id.lower()
@@ -325,6 +343,8 @@ def _run_task(
     textarea = sidepanel.locator("textarea[placeholder*='Describe what you want']").first
     textarea.fill(prompt, timeout=10_000)
     _ensure_auto_mode(sidepanel)
+    if enable_advanced_control:
+        _ensure_advanced_control(sidepanel)
     sidepanel.get_by_role("button", name=re.compile("Analyze", re.I)).click(timeout=10_000)
 
     terminal_status = "timeout"
@@ -460,9 +480,20 @@ def main() -> int:
     parser.add_argument("--profile-dir", type=str, default="")
     parser.add_argument("--file-path", type=str, default="")
     parser.add_argument(
+        "--inspect-chat-name",
+        type=str,
+        default="",
+        help="Read-only recovery inspection: open an exact visible WhatsApp chat and capture evidence without running a workflow.",
+    )
+    parser.add_argument(
         "--allow-confirmed-critical",
         action="store_true",
         help="Consume visible side-panel approvals only after the operator has recorded explicit user confirmation.",
+    )
+    parser.add_argument(
+        "--enable-advanced-control",
+        action="store_true",
+        help="Visually enable the side panel's trusted CDP fallback before running the selected task.",
     )
     parser.add_argument(
         "--pause-before-tasks",
@@ -491,12 +522,70 @@ def main() -> int:
         extension_id = _extension_id(context)
         selected_tasks = [(args.task_id or "CUSTOM", args.prompt)] if args.prompt else TASKS[: args.limit]
         target = context.new_page()
-        first_prompt = selected_tasks[0][1] if selected_tasks else ""
+        first_prompt = "Open WhatsApp" if args.inspect_chat_name else (selected_tasks[0][1] if selected_tasks else "")
         target.goto(_initial_target_url(first_prompt), wait_until="domcontentloaded")
         sidepanel = context.new_page()
         sidepanel.goto(f"chrome-extension://{extension_id}/src/sidepanel/index.html")
         _open_workflow_panel(sidepanel)
         sidepanel.screenshot(path=str(REPORT_DIR / "sidepanel_loaded.png"), full_page=True)
+        if args.inspect_chat_name:
+            target.bring_to_front()
+            search = target.locator('input[role="textbox"], [contenteditable="true"][role="textbox"]').first
+            try:
+                search.wait_for(state="visible", timeout=30_000)
+            except PlaywrightTimeoutError:
+                unavailable_screenshot = REPORT_DIR / "inspection-whatsapp-unavailable.png"
+                unavailable_text = REPORT_DIR / "inspection-whatsapp-unavailable.txt"
+                target.screenshot(path=str(unavailable_screenshot), full_page=True, timeout=15_000)
+                unavailable_text.write_text(target.locator("body").inner_text(timeout=5_000), encoding="utf-8")
+                print(f"[live-sidepanel] WhatsApp chat search unavailable: {unavailable_screenshot}", flush=True)
+                context.close()
+                return 2
+            search.fill(args.inspect_chat_name, timeout=10_000)
+            target.wait_for_timeout(1200)
+            exact = target.locator('span[title]').filter(has_text=re.compile(rf"^{re.escape(args.inspect_chat_name)}$", re.I)).first
+            if not exact.is_visible(timeout=5_000):
+                exact = target.get_by_text(args.inspect_chat_name, exact=True).first
+            exact.click(timeout=10_000)
+            target.wait_for_timeout(1800)
+            safe_name = re.sub(r"[^a-z0-9]+", "-", args.inspect_chat_name.lower()).strip("-") or "chat"
+            inspection_screenshot = REPORT_DIR / f"inspection-{safe_name}.png"
+            inspection_text = REPORT_DIR / f"inspection-{safe_name}.txt"
+            target.screenshot(path=str(inspection_screenshot), full_page=True, timeout=15_000)
+            evidence = target.evaluate(
+                r"""(chatName) => ({
+                    text: (document.body.innerText || '').slice(-12000),
+                    images: Array.from(document.querySelectorAll('img')).slice(-80).map((img) => ({
+                        alt: img.getAttribute('alt') || '',
+                        aria_label: img.getAttribute('aria-label') || '',
+                        src_prefix: (img.getAttribute('src') || '').slice(0, 120),
+                    })),
+                    exact_matches: Array.from(document.querySelectorAll('body *'))
+                        .filter((el) => (el.textContent || '').replace(/\s+/g, ' ').trim() === chatName)
+                        .slice(0, 20)
+                        .map((el) => ({
+                            tag: el.tagName.toLowerCase(),
+                            role: el.getAttribute('role') || '',
+                            title: el.getAttribute('title') || '',
+                            aria_label: el.getAttribute('aria-label') || '',
+                            class_name: String(el.className || '').slice(0, 300),
+                            outer_html: el.outerHTML.slice(0, 1500),
+                        })),
+                })""",
+                args.inspect_chat_name,
+            )
+            evidence["adapter_traces"] = sidepanel.evaluate(
+                """async () => {
+                    const stored = await chrome.storage.local.get('phase2_adapter_traces');
+                    const traces = Array.isArray(stored.phase2_adapter_traces) ? stored.phase2_adapter_traces : [];
+                    return traces.slice(-20);
+                }"""
+            )
+            inspection_text.write_text(json.dumps(evidence, indent=2), encoding="utf-8")
+            print(f"[live-sidepanel] inspection screenshot: {inspection_screenshot}", flush=True)
+            print(f"[live-sidepanel] inspection evidence: {inspection_text}", flush=True)
+            context.close()
+            return 0
         if args.pause_before_tasks:
             target.bring_to_front()
             print(
@@ -515,6 +604,7 @@ def main() -> int:
                 args.timeout_s,
                 args.file_path,
                 args.allow_confirmed_critical,
+                args.enable_advanced_control,
             )
             results.append(result)
             _write_report(extension_id, profile_dir, results)

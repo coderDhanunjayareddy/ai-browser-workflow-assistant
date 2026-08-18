@@ -2409,6 +2409,16 @@ def _deterministic_observed_control_response(
             label_terms=("search or start new chat", "search contacts", "search"),
             selector_terms=("search",),
         )
+        if search_control is None:
+            search_control = next(
+                (
+                    element
+                    for element in elements
+                    if str(element.get("role") or "").lower() in {"textbox", "searchbox"}
+                    or str(element.get("type") or "").lower() in {"input", "textarea"}
+                ),
+                None,
+            )
         visible_text = str(getattr(page_context, "visible_text", "") or "")
         search_was_filled = bool(
             search_control is not None
