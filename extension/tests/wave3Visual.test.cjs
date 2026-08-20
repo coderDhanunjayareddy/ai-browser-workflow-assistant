@@ -65,3 +65,9 @@ test('Wave 3 executor returns null for unrelated actions', async () => {
   })
   assert.equal(result, null)
 })
+
+test('media play is not verified until playback time measurably advances', () => {
+  const source = fs.readFileSync(path.join(root, 'src/content/wave3_visual.ts'), 'utf8')
+  assert.match(source, /currentTime \|\| 0\) > beforeTime \+ 0\.05/)
+  assert.match(source, /playback time did not advance within the bounded verification window/)
+})

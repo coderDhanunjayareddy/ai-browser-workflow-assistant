@@ -144,16 +144,51 @@ export async function executeWave3VisualAction(action: Wave3Action): Promise<Wav
     return { success: detected && matched, message: detected ? 'PDF viewer detected.' : 'PDF viewer not detected.', action_id: action.action_id, wave3_capability: 'browser.pdf.viewer', wave3_validated: detected && matched, wave3_details: { embed_count: embeds.length, query_match: matched } }
   }
 
-  function mediaControl(): Wave3Result {
+  async function mediaControl(): Promise<Wave3Result> {
     const target = q(action.target_selector)
     if (!(target instanceof HTMLMediaElement)) return { success: false, message: 'Media element not found.', action_id: action.action_id, wave3_capability: 'browser.media.controls', wave3_validated: false }
     const operation = String(payload.operation ?? 'status')
-    if (operation === 'play') void target.play?.()
+    if (operation === 'play') {
+      const beforeTime = Number(target.currentTime || 0)
+      try {
+        await Promise.race([
+          target.play(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('playback_start_timeout')), 3_000)),
+        ])
+      } catch (error) {
+        return {
+          success: false,
+          message: `Media play was blocked or did not start: ${String(error)}`,
+          action_id: action.action_id,
+          wave3_capability: 'browser.media.controls',
+          wave3_validated: false,
+          wave3_details: { operation, paused: target.paused, current_time: Number(target.currentTime || 0), ready_state: target.readyState },
+        }
+      }
+      let advanced = false
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 250))
+        if (!target.paused && Number(target.currentTime || 0) > beforeTime + 0.05) {
+          advanced = true
+          break
+        }
+      }
+      if (!advanced) {
+        return {
+          success: false,
+          message: 'Media play was requested, but playback time did not advance within the bounded verification window.',
+          action_id: action.action_id,
+          wave3_capability: 'browser.media.controls',
+          wave3_validated: false,
+          wave3_details: { operation, paused: target.paused, current_time: Number(target.currentTime || 0), ready_state: target.readyState },
+        }
+      }
+    }
     if (operation === 'pause') target.pause()
     if (operation === 'seek') target.currentTime = Number(payload.current_time ?? payload.time ?? 0)
     if (operation === 'volume') target.volume = Math.max(0, Math.min(1, Number(payload.volume ?? 1)))
     if (operation === 'fullscreen') void target.requestFullscreen?.()
-    return { success: true, message: `Media ${operation} completed.`, action_id: action.action_id, wave3_capability: 'browser.media.controls', wave3_validated: true, wave3_details: { operation, paused: target.paused, current_time: Math.round(target.currentTime * 1000) / 1000, volume: target.volume } }
+    return { success: true, message: `Media ${operation} completed.`, action_id: action.action_id, wave3_capability: 'browser.media.controls', wave3_validated: true, wave3_details: { operation, paused: target.paused, current_time: Math.round(target.currentTime * 1000) / 1000, ready_state: target.readyState, volume: target.volume } }
   }
 
   function filePreview(): Wave3Result {
@@ -191,7 +226,7 @@ export async function executeWave3VisualAction(action: Wave3Action): Promise<Wav
   if (action.action_type === 'chart_action') return coordinateAction('browser.charts.graphs')
   if (action.action_type === 'map_action') return coordinateAction('browser.maps.interactive')
   if (action.action_type === 'pdf_viewer') return pdfViewer()
-  if (action.action_type === 'media_control') return mediaControl()
+  if (action.action_type === 'media_control') return await mediaControl()
   if (action.action_type === 'file_preview') return filePreview()
   if (action.action_type === 'visual_region') return visualRegion()
   return null
