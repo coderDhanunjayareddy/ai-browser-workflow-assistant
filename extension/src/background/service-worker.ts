@@ -1,5 +1,5 @@
 import { extractPageContext, mergeInteractiveElementLists } from '../content/extractor'
-import { BACKEND_URL } from '../config'
+import { APP_VERSION, BACKEND_URL, BUILD_COMMIT, BUILD_ID } from '../config'
 import { executeAction } from '../content/executor'
 import { extractPageContextV2 } from '../content/extractor_v2'
 import { executeActionV2 } from '../content/executor_v2'
@@ -175,6 +175,16 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
   if (validMessage.type === 'GET_TAB_WORKSPACE') {
     handleGetTabWorkspace(sendResponse)
     return true
+  }
+  if (validMessage.type === 'GET_RUNTIME_IDENTITY') {
+    sendResponse({
+      runtime: {
+        app_version: APP_VERSION,
+        build_commit: BUILD_COMMIT,
+        build_id: BUILD_ID,
+      },
+    })
+    return false
   }
 })
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.orchestrator.workflow_orchestrator import (
     _deterministic_observed_control_response,
     _deterministic_observed_report_response,
+    _messaging_recipient_from_task,
 )
 from app.schemas.request import InteractiveElement, PageContext, PriorStep
 
@@ -19,6 +20,148 @@ def _page(url: str, elements: list[InteractiveElement]) -> PageContext:
         visible_text="",
         images=[],
     )
+
+
+def test_whatsapp_recipient_stops_before_trailing_safety_sentence() -> None:
+    task = (
+        "Open WhatsApp and open the exact direct chat named Teja Spc. "
+        "Do not type a message, attach a file, or send anything."
+    )
+
+    assert _messaging_recipient_from_task(task) == "Teja Spc"
+
+
+def test_whatsapp_login_page_pauses_without_selecting_login_controls() -> None:
+    task = (
+        "Open WhatsApp and open the exact direct chat named Teja Spc. "
+        "Do not type a message, attach a file, or send anything."
+    )
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="input",
+                selector="#auto-logout-toggle",
+                text="Stay logged in on this browser",
+                visible=True,
+            ),
+        ],
+    )
+    page.visible_text = "Scan to log in Scan the QR code Stay logged in on this browser"
+
+    response = _deterministic_observed_control_response(
+        session_id="wa-auth",
+        task=task,
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "ask"
+    assert response.suggested_actions == []
+    assert "needs to be linked or signed in" in response.clarification_question
+
+
+def test_whatsapp_open_only_task_reports_after_exact_chat_is_observed() -> None:
+    task = (
+        "Open WhatsApp and open the exact direct chat named Teja Spc. "
+        "Do not type a message, attach a file, or send anything."
+    )
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="div",
+                selector='[data-testid="conversation-compose-box-input"]',
+                text="",
+                visible=True,
+                role="textbox",
+                accessibility_name="Type a message to Teja Spc",
+            ),
+            InteractiveElement(type="button", selector='button[aria-label="Attach"]', text="", visible=True),
+        ],
+    )
+
+    report = _deterministic_observed_report_response(session_id="wa-open", task=task, page_context=page)
+    control = _deterministic_observed_control_response(
+        session_id="wa-open",
+        task=task,
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert report is not None
+    assert report.outcome_kind == "report"
+    assert report.goal_convergence is True
+    assert report.report is not None
+    assert "Nothing was typed, attached, or sent" in report.report.answer
+    assert control is None
+
+
+def test_whatsapp_affirmative_attachment_task_does_not_finish_after_chat_open() -> None:
+    task = "Open WhatsApp and open the exact chat named Teja Spc, then attach the approved file."
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="div",
+                selector='[data-testid="conversation-compose-box-input"]',
+                text="",
+                visible=True,
+                role="textbox",
+                accessibility_name="Type a message to Teja Spc",
+            ),
+            InteractiveElement(
+                type="button",
+                selector='button[aria-label="Attach"]',
+                text="",
+                visible=True,
+                accessibility_name="Attach",
+            ),
+        ],
+    )
+
+    assert _deterministic_observed_report_response(session_id="wa-attach", task=task, page_context=page) is None
+    control = _deterministic_observed_control_response(
+        session_id="wa-attach",
+        task=task,
+        page_context=page,
+        prior_steps=[],
+    )
+    assert control is not None
+    assert control.suggested_actions[0].description == "Activate the observed WhatsApp attachment control for the approved file"
+
+
+def test_whatsapp_open_only_task_converges_from_trusted_exact_click_evidence() -> None:
+    task = (
+        "Open WhatsApp and open the exact direct chat named Teja Spc. "
+        "Do not type a message, attach a file, or send anything."
+    )
+    page = _page("https://web.whatsapp.com/", [])
+    click = PriorStep(
+        action_type="click",
+        description="Open the exact WhatsApp search result visibly named Teja Spc",
+        target_selector='[role="row"]:has(span[title="Teja Spc"])',
+        value=None,
+        execution_result="success",
+        browser_evidence={
+            "adapter_exact_identity_verified": True,
+            "adapter_exact_target_kind": "chat",
+            "adapter_exact_expected_name": "Teja Spc",
+            "adapter_exact_observed_name": "Teja Spc",
+        },
+    )
+
+    report = _deterministic_observed_report_response(
+        session_id="wa-evidence",
+        task=task,
+        page_context=page,
+        prior_steps=[click],
+    )
+
+    assert report is not None
+    assert report.outcome_kind == "report"
+    assert report.goal_convergence is True
 
 
 def test_login_controls_are_selected_in_fill_fill_submit_order() -> None:
@@ -208,7 +351,7 @@ def test_whatsapp_search_opens_visible_exact_chat_without_empty_enter() -> None:
     assert response is not None
     assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
         "click",
-        'span[title="Teja Spc"]',
+        '[role="row"]:has(span[title="Teja Spc"])',
     )
 
 
@@ -272,7 +415,7 @@ def test_whatsapp_filtered_exact_visible_result_is_opened_when_virtualized_row_i
     assert response is not None
     assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
         "click",
-        'span[title="Teja Spc"]',
+        '[role="row"]:has(span[title="Teja Spc"])',
     )
 
 
@@ -303,7 +446,7 @@ def test_whatsapp_current_search_value_grounds_exact_virtualized_contact_click()
     assert response is not None
     assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
         "click",
-        'span[title="Teja Spc"]',
+        '[role="row"]:has(span[title="Teja Spc"])',
     )
 
 

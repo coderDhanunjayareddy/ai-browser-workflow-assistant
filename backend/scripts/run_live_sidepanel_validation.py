@@ -312,6 +312,45 @@ def _open_workflow_panel(sidepanel) -> None:
         raise RuntimeError(f"Workflow panel did not open. Visible side panel text: {text[:1000]}")
 
 
+def _reload_extension_from_disk(context, extension_id: str) -> None:
+    """Force a persistent validation profile onto the current unpacked build.
+
+    Chromium may restore the previous MV3 worker for an unchanged manifest
+    version even while a newly opened extension page reads files from the
+    rebuilt dist directory.  Reloading through the extension API makes the
+    worker and side panel advance together before the runtime handshake.
+    """
+    bootstrap = context.new_page()
+    bootstrap.goto(f"chrome-extension://{extension_id}/src/sidepanel/index.html")
+    try:
+        bootstrap.evaluate("() => chrome.runtime.reload()")
+    except Exception:
+        # The page normally closes as part of a successful runtime reload.
+        pass
+    time.sleep(1.5)
+
+
+def _open_reloaded_sidepanel(context, extension_id: str):
+    last_error: Exception | None = None
+    for _attempt in range(20):
+        candidate = context.new_page()
+        try:
+            candidate.goto(
+                f"chrome-extension://{extension_id}/src/sidepanel/index.html",
+                wait_until="domcontentloaded",
+                timeout=5_000,
+            )
+            return candidate
+        except Exception as exc:
+            last_error = exc
+            try:
+                candidate.close()
+            except Exception:
+                pass
+            time.sleep(0.5)
+    raise RuntimeError(f"Reloaded extension did not become ready: {last_error}")
+
+
 def _run_task(
     sidepanel,
     target,
@@ -483,6 +522,12 @@ def main() -> int:
     parser.add_argument("--timeout-s", type=int, default=420)
     parser.add_argument("--task-id", type=str, default="")
     parser.add_argument("--prompt", type=str, default="")
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="Repeat a custom prompt in one authenticated browser process; each attempt receives a distinct evidence ID.",
+    )
     parser.add_argument("--profile-dir", type=str, default="")
     parser.add_argument(
         "--browser-channel",
@@ -512,7 +557,16 @@ def main() -> int:
         action="store_true",
         help="Keep the visible browser open for operator authentication, then wait for Enter before running tasks.",
     )
+    parser.add_argument(
+        "--reload-extension",
+        action="store_true",
+        help="Force an already-registered unpacked extension to reload before opening the side panel.",
+    )
     args = parser.parse_args()
+    if args.repeat < 1 or args.repeat > 100:
+        parser.error("--repeat must be between 1 and 100")
+    if args.repeat != 1 and not args.prompt:
+        parser.error("--repeat is supported only with --prompt")
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     profile_dir = Path(args.profile_dir).resolve() if args.profile_dir else REPORT_DIR / f"profile_{int(time.time() * 1000)}"
@@ -539,7 +593,15 @@ def main() -> int:
         context = pw.chromium.launch_persistent_context(str(profile_dir), **launch_options)
         context.set_default_timeout(15_000)
         extension_id = _extension_id(context)
-        selected_tasks = [(args.task_id or "CUSTOM", args.prompt)] if args.prompt else TASKS[: args.limit]
+        if args.prompt:
+            base_task_id = args.task_id or "CUSTOM"
+            selected_tasks = (
+                [(base_task_id, args.prompt)]
+                if args.repeat == 1
+                else [(f"{base_task_id}-{index:02d}", args.prompt) for index in range(1, args.repeat + 1)]
+            )
+        else:
+            selected_tasks = TASKS[: args.limit]
         target = context.new_page()
         first_prompt = "Open WhatsApp" if args.inspect_chat_name else (selected_tasks[0][1] if selected_tasks else "")
         initial_url = _initial_target_url(first_prompt)
@@ -576,8 +638,12 @@ def main() -> int:
             except Exception:
                 pass
             return 1
-        sidepanel = context.new_page()
-        sidepanel.goto(f"chrome-extension://{extension_id}/src/sidepanel/index.html")
+        if args.reload_extension:
+            _reload_extension_from_disk(context, extension_id)
+            sidepanel = _open_reloaded_sidepanel(context, extension_id)
+        else:
+            sidepanel = context.new_page()
+            sidepanel.goto(f"chrome-extension://{extension_id}/src/sidepanel/index.html")
         _open_workflow_panel(sidepanel)
         sidepanel.screenshot(path=str(REPORT_DIR / "sidepanel_loaded.png"), full_page=True)
         if args.inspect_chat_name:
@@ -661,7 +727,7 @@ def main() -> int:
             results.append(result)
             _write_report(extension_id, profile_dir, results)
             print(f"[live-sidepanel] {task_id} {result.status} {result.duration_s}s", flush=True)
-            if result.status == "failed":
+            if result.status != "completed":
                 break
 
         _write_report(extension_id, profile_dir, results)

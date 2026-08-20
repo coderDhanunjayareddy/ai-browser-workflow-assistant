@@ -91,7 +91,7 @@ test('contract fails closed for an ungrounded click, invalid origin, or missing 
 
 test('explicit navigation can bootstrap from New Tab but not another privileged page', () => {
   const navigate = clickAction({
-    action_id: 'navigate-1', action_type: 'navigate', target_selector: '', grounding: undefined,
+    action_id: 'navigate-1', action_type: 'navigate', target_selector: '', grounding: {},
     value: 'https://web.whatsapp.com/', description: 'Open WhatsApp',
   })
   const bootstrap = buildCanonicalActionContract(navigate, { ...context, url: 'chrome://newtab/', title: 'New Tab' }, 'nav-key')
@@ -99,6 +99,9 @@ test('explicit navigation can bootstrap from New Tab but not another privileged 
   assert.equal(bootstrap.origin.target_url, 'https://web.whatsapp.com/')
   assert.equal(bootstrap.origin.origin, 'https://web.whatsapp.com')
   assert.equal(bootstrap.resource_identity.url, 'https://web.whatsapp.com/')
+  assert.equal(bootstrap.action.target_selector, '')
+  assert.equal(bootstrap.target_identity.selector, '')
+  assert.equal(bootstrap.action.grounding, undefined)
   assert.throws(() => buildCanonicalActionContract(navigate, { ...context, url: 'chrome://settings/' }, 'nav-key'), /privileged source/)
 })
 

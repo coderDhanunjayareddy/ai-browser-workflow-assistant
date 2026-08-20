@@ -5,6 +5,7 @@ import { useSpeechInput } from './hooks/useSpeechInput'
 import { useAssist } from './hooks/useAssist'
 import { useProduct, type ProductOrg, type ProductWorkspace, type ProductWorkflow } from './hooks/useProduct'
 import { APP_VERSION, BACKEND_URL, BUILD_COMMIT, BUILD_ID } from '../config'
+import { sendToBackground } from '../utils/messaging'
 import type { CompletedAction, SuggestedAction, SessionHistory, EventHistory } from '../types'
 import type { StructuredSummary, ChatMessage, ResearchReport, IntelligenceLayer, WorkflowRecommendation, ApprovalLevel } from '../types/assist'
 
@@ -24,13 +25,21 @@ type RuntimeHandshakeState =
   | { kind: 'mismatch'; message: string }
   | { kind: 'offline'; message: string }
 
-function RuntimeHandshake() {
+function RuntimeHandshake({ onReady }: { onReady: (ready: boolean) => void }) {
   const [state, setState] = useState<RuntimeHandshakeState>({ kind: 'checking', message: 'Runtime checking…' })
 
   useEffect(() => {
     let active = true
     const check = async () => {
       try {
+        const workerPayload = await sendToBackground<{
+          runtime?: Omit<RuntimeIdentity, 'canonical_backend_url' | 'process_id'>
+          error?: string
+        }>({
+          type: 'GET_RUNTIME_IDENTITY',
+        })
+        const worker = workerPayload.runtime
+        if (!worker) throw new Error(workerPayload.error || 'executor runtime identity missing')
         const response = await fetch(`${BACKEND_URL}/health`, { signal: AbortSignal.timeout(5000) })
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
         const payload = await response.json() as { status?: string; db?: string; runtime?: RuntimeIdentity }
@@ -39,21 +48,27 @@ function RuntimeHandshake() {
         const normalizedRuntimeUrl = runtime.canonical_backend_url.replace(/\/$/, '')
         const matches = payload.status === 'ok' && payload.db === 'connected' &&
           runtime.app_version === APP_VERSION && runtime.build_id === BUILD_ID &&
+          worker.app_version === APP_VERSION && worker.build_commit === BUILD_COMMIT && worker.build_id === BUILD_ID &&
           normalizedRuntimeUrl === BACKEND_URL
         if (!active) return
         if (matches) {
+          onReady(true)
           setState({
             kind: 'ok',
-            message: `Runtime OK · v${APP_VERSION} · ${BUILD_COMMIT} · ${BUILD_ID} · pid ${runtime.process_id}`,
+            message: `Runtime OK · panel/worker/api · v${APP_VERSION} · ${BUILD_COMMIT} · ${BUILD_ID} · pid ${runtime.process_id}`,
           })
         } else {
+          onReady(false)
           setState({
             kind: 'mismatch',
-            message: `RUNTIME MISMATCH · ext v${APP_VERSION}/${BUILD_ID} · api v${runtime.app_version}/${runtime.build_id} · ${runtime.canonical_backend_url}`,
+            message: `RUNTIME MISMATCH · panel ${BUILD_ID} · worker ${worker.build_id} · api ${runtime.build_id} · ${runtime.canonical_backend_url}`,
           })
         }
       } catch (error) {
-        if (active) setState({ kind: 'offline', message: `BACKEND OFFLINE · ${BACKEND_URL} · ${String(error)}` })
+        if (active) {
+          onReady(false)
+          setState({ kind: 'offline', message: `RUNTIME UNAVAILABLE · ${BACKEND_URL} · ${String(error)}` })
+        }
       }
     }
     void check()
@@ -62,7 +77,7 @@ function RuntimeHandshake() {
       active = false
       window.clearInterval(interval)
     }
-  }, [])
+  }, [onReady])
 
   const color = state.kind === 'ok' ? '#166534' : state.kind === 'checking' ? '#475569' : '#b91c1c'
   const background = state.kind === 'ok' ? '#dcfce7' : state.kind === 'checking' ? '#f1f5f9' : '#fee2e2'
@@ -77,6 +92,8 @@ function RuntimeHandshake() {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('product')
+  const [runtimeReady, setRuntimeReady] = useState(false)
+  const handleRuntimeReady = useCallback((ready: boolean) => setRuntimeReady(ready), [])
   const workflow = useWorkflow()
   const history = useHistory()
   const product = useProduct()
@@ -89,7 +106,7 @@ export default function App() {
   return (
     <div style={s.container}>
       <h2 style={s.heading}>AI Browser Assistant</h2>
-      <RuntimeHandshake />
+      <RuntimeHandshake onReady={handleRuntimeReady} />
       <div style={s.tabBar}>
         <button style={{ ...s.tabBtn, ...(activeTab === 'product' ? s.tabActive : {}) }}
           onClick={() => switchTab('product')}>Product</button>
@@ -103,7 +120,9 @@ export default function App() {
           onClick={() => switchTab('assist')}>Assist</button>
       </div>
       {activeTab === 'product' && <ProductPanel product={product} />}
-      {activeTab === 'workflow' && <WorkflowPanel {...workflow} />}
+      {activeTab === 'workflow' && (runtimeReady
+        ? <WorkflowPanel {...workflow} />
+        : <div data-testid="runtime-blocked" style={{ color: '#b91c1c', padding: '12px' }}>Workflow blocked until panel, executor, and backend builds match.</div>)}
       {activeTab === 'history' && <HistoryPanel sessions={history.sessions} loading={history.loading}
         error={history.error} onRefresh={history.fetchHistory} />}
       {activeTab === 'analytics' && <AnalyticsPanel sessionId={workflow.state.sessionId} />}
@@ -975,7 +994,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
             </div>
           )}
 
-          {goalConvergence && (
+          {goalConvergence && phase !== 'completed' && (
             <div style={s.convergenceBox}>
               <p style={s.convergenceLabel}>Goal convergence</p>
               <p style={s.convergenceText}>Semantic progress has stalled.</p>

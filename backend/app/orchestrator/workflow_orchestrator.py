@@ -950,6 +950,7 @@ class WorkflowOrchestrator:
             session_id=self.session_id,
             task=task,
             page_context=page_context,
+            prior_steps=planner_prior_steps,
         )
         if observed_report is not None:
             self._record_v3_event(
@@ -2298,7 +2299,10 @@ def _deterministic_observed_control_response(
 ) -> AnalyzeResponse | None:
     from app.schemas.response import SuggestedAction
 
+    from app.task_language import affirmative_task_text
+
     task_text = str(task or "").lower()
+    affirmative_text = affirmative_task_text(task)
     elements = [
         element.model_dump() if hasattr(element, "model_dump") else dict(element)
         for element in list(getattr(page_context, "interactive_elements", []) or [])
@@ -2354,6 +2358,24 @@ def _deterministic_observed_control_response(
     current_url = str(getattr(page_context, "url", "") or "")
     is_whatsapp = "web.whatsapp.com" in current_url.lower()
     whatsapp_recipient = _messaging_recipient_from_task(task) if is_whatsapp else None
+    whatsapp_chat_row_selector = ""
+    if whatsapp_recipient:
+        escaped_recipient = whatsapp_recipient.replace("\\", "\\\\").replace('"', '\\"')
+        whatsapp_chat_row_selector = f'[role="row"]:has(span[title="{escaped_recipient}"])'
+    if is_whatsapp and whatsapp_recipient and _interactive_page_state(page_context)["login_required"]:
+        return AnalyzeResponse(
+            session_id=session_id,
+            analysis=(
+                "WhatsApp is open, but the observed page is the authentication screen rather than an authenticated chat list. "
+                "No page control was selected and the workflow was not retried."
+            ),
+            outcome_kind="ask",
+            clarification_question=(
+                "WhatsApp needs to be linked or signed in before I can open the exact chat. "
+                "Please complete WhatsApp's login in this browser, then resume the workflow."
+            ),
+            suggested_actions=[],
+        )
     whatsapp_message_control = _find_observed_control(
         elements,
         label_terms=("type a message",),
@@ -2477,12 +2499,11 @@ def _deterministic_observed_control_response(
             )
         )
         if exact_contact is not None and str(exact_contact.get("selector") or "") not in completed_clicks:
-            selector = str(exact_contact.get("selector") or "")
+            selector = whatsapp_chat_row_selector
             action_type = "click"
             description = f"Open the observed exact WhatsApp chat named {whatsapp_recipient}"
         elif recipient_is_visible_result:
-            escaped_recipient = whatsapp_recipient.replace("\\", "\\\\").replace('"', '\\"')
-            selector = f'span[title="{escaped_recipient}"]'
+            selector = whatsapp_chat_row_selector
             action_type = "click"
             description = f"Open the exact WhatsApp search result visibly named {whatsapp_recipient}"
         elif search_control is not None and str(search_control.get("selector") or "") not in completed_fills:
@@ -2528,7 +2549,7 @@ def _deterministic_observed_control_response(
                 action_type = "keyboard_shortcut"
                 value = "ENTER"
                 description = "Submit the explicitly requested site search after filling the observed search field"
-    elif any(term in task_text for term in ("upload", "attach")) and "file" in task_text:
+    elif any(term in affirmative_text for term in ("upload", "attach")) and "file" in affirmative_text:
         control = next(
             (
                 element
@@ -2670,10 +2691,71 @@ def _deterministic_observed_report_response(
     session_id: str,
     task: str,
     page_context: Any,
+    prior_steps: list[Any] | None = None,
 ) -> AnalyzeResponse | None:
     task_text = str(task or "").lower()
+    from app.task_language import affirmative_task_text
+
+    affirmative_text = affirmative_task_text(task)
     current_url = str(getattr(page_context, "url", "") or "").lower()
     visible_text = " ".join(str(getattr(page_context, "visible_text", "") or "").split())
+    if "web.whatsapp.com" in current_url:
+        recipient = _messaging_recipient_from_task(task)
+        downstream_mutation_requested = bool(re.search(
+            r"\b(attach|upload|send|type|write|reply|message)\b",
+            affirmative_text,
+        ))
+        verified_recipient = ""
+        for step in reversed(list(prior_steps or [])):
+            data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+            evidence = dict(data.get("browser_evidence") or {})
+            if (
+                evidence.get("adapter_exact_identity_verified") is True
+                and str(evidence.get("adapter_exact_target_kind") or "").casefold() == "chat"
+            ):
+                expected = str(evidence.get("adapter_exact_expected_name") or "").strip()
+                observed = str(evidence.get("adapter_exact_observed_name") or "").strip()
+                if expected and observed and expected.casefold() == observed.casefold():
+                    verified_recipient = observed
+                    break
+        elements = [
+            element.model_dump() if hasattr(element, "model_dump") else dict(element)
+            for element in list(getattr(page_context, "interactive_elements", []) or [])
+            if bool(getattr(element, "visible", True) if not isinstance(element, dict) else element.get("visible", True))
+        ]
+        composer_recipient = ""
+        for element in elements:
+            label = " ".join(
+                str(element.get(key) or "")
+                for key in ("aria_label", "accessibility_name", "placeholder")
+            ).strip()
+            match = re.search(r"\btype a message to\s+(.+?)\s*$", label, flags=re.IGNORECASE)
+            if match:
+                composer_recipient = match.group(1).strip()
+                break
+        observed_exact_recipient = verified_recipient or composer_recipient
+        if (
+            recipient
+            and observed_exact_recipient
+            and observed_exact_recipient.casefold() == recipient.casefold()
+            and not downstream_mutation_requested
+        ):
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    f'The trusted post-click evidence identifies the exact requested WhatsApp chat "{recipient}", '
+                    "and the task contains no affirmative request to type, attach, or send anything."
+                ),
+                outcome_kind="report",
+                report=ReportOutcome(
+                    answer=f'Opened and verified the exact WhatsApp chat "{recipient}". Nothing was typed, attached, or sent.',
+                    claim=f'The verified post-click identity is the exact recipient "{recipient}".',
+                ),
+                suggested_actions=[],
+                sgv_verified=True,
+                goal_convergence=True,
+                backend_authoritative_report=True,
+            )
     if (
         "selenium.dev/selenium/web/submitted-form.html" in current_url
         and "submit" in task_text
@@ -2763,8 +2845,8 @@ def _messaging_recipient_from_task(task: str) -> str | None:
     if quoted and quoted.group(1).strip():
         return quoted.group(1).strip()
     patterns = (
-        r"\b(?:exact\s+)?(?:chat|contact|recipient)\s+named\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*,|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
-        r"\bsearch\s+for\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*,|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
+        r"\b(?:exact\s+)?(?:chat|contact|recipient)\s+named\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*[,;!?]|\.\s+(?:do\s+not|don't|without|never|no)\b|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
+        r"\bsearch\s+for\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*[,;!?]|\.\s+(?:do\s+not|don't|without|never|no)\b|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
     )
     for pattern in patterns:
         match = re.search(pattern, text, flags=re.IGNORECASE)

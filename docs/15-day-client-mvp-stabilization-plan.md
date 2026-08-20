@@ -98,7 +98,7 @@
 5. An unknown or unverifiable destination ends with a meaningful explanation and no navigation side effect.
 6. Repeated no-effect, timeout, unsupported, authentication, and policy failures stop within their configured budgets and produce a meaningful partial/blocked result.
 
-**Grounding implementation complete 2026-08-18; expanded robustness and live exits open:** Trusted grounding, exact application postconditions, fallback traces, regression coverage, and runtime-launch fixes are complete. Natural-language destination discovery, compound-objective decomposition, capability matching, bounded semantic recovery, and graceful terminal responses were added to Day 3 after product-intent review; they must be implemented and pass the scenarios above before the 20/20 live gate. Do not count Day 3 complete until both gates pass through the application dispatch path. See [Day 3 trusted-grounding report](production_validation/day3/day3-trusted-grounding-report.md).
+**Completed 2026-08-20:** The natural-language New Tab workflow passed 20/20 consecutive authenticated application-side-panel runs. Every run performed exactly two verified actions (search, exact-chat click), observed the `Type a message to Teja Spc` composer, and stopped with zero typing, attachments, sends, duplicate effects, or retries. Full-run latency was 27.8–42.6 seconds (average 32.44 seconds; p95 37.4 seconds). See [Day 3 trusted-grounding report](production_validation/day3/day3-trusted-grounding-report.md) and the [20-run raw result](production_validation/live_sidepanel/live_sidepanel_first10_latest.json).
 
 ### Day 4 — File-selection and upload broker
 

@@ -61,6 +61,7 @@ import type {
   PolicyProvenanceLabel,
   CanonicalActionContract,
 } from '../../types'
+import { exactOpenOnlyCompletion } from '../../execution/exact_open_completion'
 
 const ANALYZE_TIMEOUT_MS = 90_000
 const ACTION_EXECUTION_TIMEOUT_MS = 45_000
@@ -2022,6 +2023,27 @@ export function useWorkflow() {
       executionLedger = completeDurableExecution(executionLedger, durableExecutionKey, result)
       durableLedgerRef.current = executionLedger
       await saveDurableLedger(executionLedger)
+    }
+
+    const exactOpenCompletion = exactOpenOnlyCompletion(task, action, result)
+    if (exactOpenCompletion) {
+      const label = exactOpenCompletion.targetKind === 'chat' ? 'WhatsApp chat' : exactOpenCompletion.targetKind
+      setState((s) => ({
+        ...s,
+        phase: 'completed',
+        activeAction: null,
+        pendingActions: [],
+        completedActions: newCompleted,
+        analysisText: `Verified the exact ${label} "${exactOpenCompletion.targetName}" and stopped because no further action was requested.`,
+        contractOutcome: 'report',
+        report: {
+          answer: `Opened and verified the exact ${label} "${exactOpenCompletion.targetName}". Nothing was typed, attached, or sent.`,
+          claim: `Trusted post-click verification observed the exact ${exactOpenCompletion.targetKind} identity "${exactOpenCompletion.targetName}".`,
+        },
+        goalConvergence: true,
+        error: null,
+      }))
+      return
     }
 
     if (nextIntent) {

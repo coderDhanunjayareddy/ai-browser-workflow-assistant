@@ -105,13 +105,53 @@ test('accepts a strictly bound internal execution message', () => {
   assert.equal(validateServiceWorkerMessage(executeMessage(), sender, runtimeId), null)
 })
 
+test('accepts a canonical New Tab navigation with no element grounding', () => {
+  const navigationAction = action({
+    action_id: 'navigate-whatsapp',
+    action_type: 'navigate',
+    target_selector: '',
+    value: 'https://web.whatsapp.com/',
+    description: 'Open WhatsApp',
+  })
+  const navigationContract = contract(navigationAction, {
+    action: navigationAction,
+    target_identity: {
+      kind: 'url', selector: '', selector_id: null, exact_name: null, role: null, semantic_kind: null,
+    },
+    origin: {
+      origin: 'https://web.whatsapp.com',
+      observed_url: 'chrome://newtab/',
+      target_url: 'https://web.whatsapp.com/',
+    },
+    resource_identity: { url: 'https://web.whatsapp.com/', title: '' },
+    expected_effect: { kind: 'url_change', description: 'Open WhatsApp' },
+  })
+  assert.equal(
+    validateServiceWorkerMessage(
+      { type: 'EXECUTE_ACTION', contract: navigationContract, policy_context: policyContext() },
+      sender,
+      runtimeId,
+    ),
+    null,
+  )
+})
+
 test('rejects privileged messages from content scripts or other extensions', () => {
-  assert.match(validateServiceWorkerMessage(executeMessage(), { ...sender, hasTab: true }, runtimeId), /only from this extension UI/)
-  assert.match(validateServiceWorkerMessage(executeMessage(), { ...sender, id: 'other-extension' }, runtimeId), /only from this extension UI/)
   assert.match(
-    validateServiceWorkerMessage({ type: 'GET_TAB_WORKSPACE' }, { ...sender, hasTab: true }, runtimeId),
+    validateServiceWorkerMessage(executeMessage(), { ...sender, url: 'https://web.whatsapp.com/', hasTab: true }, runtimeId),
     /only from this extension UI/,
   )
+  assert.match(validateServiceWorkerMessage(executeMessage(), { ...sender, id: 'other-extension' }, runtimeId), /only from this extension UI/)
+  assert.match(
+    validateServiceWorkerMessage({ type: 'GET_TAB_WORKSPACE' }, { ...sender, url: 'https://example.test/', hasTab: true }, runtimeId),
+    /only from this extension UI/,
+  )
+})
+
+test('accepts the same packaged extension UI when rendered in a validation tab', () => {
+  const extensionTabSender = { ...sender, hasTab: true }
+  assert.equal(validateServiceWorkerMessage(executeMessage(), extensionTabSender, runtimeId), null)
+  assert.equal(validateServiceWorkerMessage({ type: 'GET_RUNTIME_IDENTITY' }, extensionTabSender, runtimeId), null)
 })
 
 test('requires complete user, planner, and page provenance', () => {
@@ -154,6 +194,7 @@ test('validates every non-execution message family and rejects unknown types', (
   assert.equal(validateServiceWorkerMessage({ type: 'WAIT_FOR_TAB_LOAD' }, sender, runtimeId), null)
   assert.equal(validateServiceWorkerMessage({ type: 'WAIT_FOR_DOM_SETTLE' }, sender, runtimeId), null)
   assert.equal(validateServiceWorkerMessage({ type: 'GET_TAB_WORKSPACE' }, sender, runtimeId), null)
+  assert.equal(validateServiceWorkerMessage({ type: 'GET_RUNTIME_IDENTITY' }, sender, runtimeId), null)
   assert.match(validateServiceWorkerMessage({ type: 'RUN_SCRIPT' }, sender, runtimeId), /Unknown or malformed/)
 })
 

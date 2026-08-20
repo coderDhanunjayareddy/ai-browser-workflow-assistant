@@ -41,6 +41,18 @@ def failed_navigation(url: str) -> PriorStep:
     )
 
 
+def internally_rejected_navigation(url: str) -> PriorStep:
+    return PriorStep(
+        action_type="navigate",
+        description=f"Open {url}",
+        target_selector=None,
+        value=url,
+        execution_result="failure: Execution message has an invalid canonical action contract.",
+        page_url="chrome://newtab/",
+        page_title="New Tab",
+    )
+
+
 def test_natural_language_known_application_resolves_without_supplied_url():
     result = resolve_destination(
         session_id="s1",
@@ -197,6 +209,48 @@ def test_failed_navigation_is_not_repeated_and_becomes_meaningful_terminal_repor
     assert "stopped instead of repeating" in result.report.answer
 
 
+def test_internal_navigation_rejection_is_not_misattributed_to_network_or_search_evidence():
+    result = resolve_destination(
+        session_id="s9",
+        task="Open WhatsApp",
+        page_context=page(),
+        prior_steps=[internally_rejected_navigation("https://web.whatsapp.com/")],
+    )
+
+    assert result is not None
+    assert result.outcome_kind == "report"
+    assert result.suggested_actions == []
+    assert "internal execution validation" in result.report.answer
+    assert "network" in result.report.answer  # explicitly says it was not blamed
+    assert "No verified destination" not in result.report.claim
+    assert "Destination discovery" not in result.analysis
+
+
 def test_generic_page_control_is_not_misclassified_as_a_web_destination():
     assert decompose_destination_objectives("Open a synthetic folder") == []
     assert decompose_destination_objectives("Open the first result") == []
+
+
+def test_named_whatsapp_chat_is_left_to_page_planner_after_destination_resolution():
+    task = (
+        "Open WhatsApp and open the exact direct chat named Teja Spc. "
+        "Do not type a message, attach a file, or send anything."
+    )
+
+    initial = resolve_destination(session_id="s10", task=task, page_context=page())
+    assert initial is not None
+    assert initial.outcome_kind == "act"
+    assert initial.suggested_actions[0].value == "https://web.whatsapp.com/"
+
+    continued = resolve_destination(
+        session_id="s10",
+        task=task,
+        page_context=page("https://web.whatsapp.com/"),
+        prior_steps=[successful_navigation("https://web.whatsapp.com/")],
+    )
+    assert continued is None
+
+
+def test_named_chat_is_never_treated_as_an_unknown_website():
+    objectives = decompose_destination_objectives("Open the exact direct chat named Teja Spc")
+    assert objectives == []

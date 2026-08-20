@@ -1,11 +1,11 @@
 # Day 3 Trusted-Grounding Report
 
-**Date:** 2026-08-18  
+**Date:** 2026-08-20
 **Trusted-grounding implementation:** Complete
 
-**Expanded Day 3 robustness implementation:** Open
+**Expanded Day 3 robustness implementation:** Complete
 
-**Day 3 live exit:** Not met; the robustness gate and required 20/20 application-side-panel runs are not claimed.
+**Day 3 live exit:** Met; 20/20 consecutive authenticated application-side-panel runs passed.
 
 ## Delivered
 
@@ -19,6 +19,10 @@
 - Made explicit safe navigation the application-owned bootstrap path: a workflow may open an `http`/`https` destination from only Chrome New Tab or `about:blank`; other privileged origins remain blocked. The destination URL is preserved in the canonical contract and enforced by both extension and backend policy.
 - Prevented a new Analyze submission from inheriting a restored workflow session. New tasks now receive a fresh session/idempotency namespace; Resume alone retains the existing session.
 - Removed a development auto-reload parent/worker pair that was silently recreating a `local-dev` backend after the canonical worker stopped. The validation runtime is now one non-reloading process.
+- Added a centralized destination resolver for trusted known applications and evidence-first discovery for unknown named destinations. High-confidence verified public sites may open automatically; ambiguous, account-sensitive, and risky destinations pause.
+- Added capability-aware compound-objective routing. Completed objectives survive tab changes, and incompatible requests such as media playback inside Gmail produce a clarification instead of an internal search loop.
+- Added bounded semantic recovery and meaningful user-facing terminal outcomes. Consequential, uncertain, policy-blocked, and confirmation-bound actions never enter automatic recovery.
+- Repaired two validation defects exposed by the complete suite: the production red-team harness now supplies the mandatory immutable execution contract, and popup reconciliation no longer orphans `target=_blank` or `window.open()` pages.
 
 The production invariant is documented in [trusted-grounding-and-postconditions.md](../../stabilization/trusted-grounding-and-postconditions.md).
 
@@ -26,9 +30,25 @@ The production invariant is documented in [trusted-grounding-and-postconditions.
 
 - Extension TypeScript type-check: passed.
 - Production extension build: passed.
-- Extension full suite: **170/170 passed**.
-- Backend policy/API focused suite: **24/24 passed**.
-- Canonical runtime/extension handshake: URL `http://localhost:8000`, server PID `18268`, build `stabilization-20260818T113543Z`, commit `6c60c20`.
+- Extension full suite: **173/173 passed** after the Run 2 navigation-message regression was added.
+- Backend Day 3 focused/regression suite: **135/135 passed**.
+- Backend full suite: **4499/4499 passed**.
+- Real-Chromium popup gate: **4/4 passed**, then passed again inside the focused regression run.
+- Production-evidence/red-team gate: **8/8 passed**.
+- Final focused backend gate for grounding, destination resolution, blueprint intent, and convergence: **53/53 passed**.
+- Final focused extension gate for completion, canonical contract, runtime handshake, and message validation: **22/22 passed**; TypeScript type-check and production build passed.
+- Canonical runtime/extension handshake during certification: URL `http://localhost:8000`, server PID `16124`, build `stabilization-20260820T103544Z`, commit `b5bec81`.
+
+## Promoted live API robustness probes
+
+All probes were sent to the promoted canonical process through `POST /analyze`; no browser mutation was performed by these API-only checks.
+
+| Synthetic instruction / state | Live result |
+|---|---|
+| `Play Telugu music on YouTube` from New Tab | Safe `navigate` intent to `https://www.youtube.com/`; status `waiting_browser`. |
+| `Open Gmail and play Telugu music` after verified Gmail navigation | Safe `open_new_tab` intent to YouTube; completed Gmail objective preserved. |
+| `Play Telugu music inside Gmail` | `ask` outcome explaining Gmail lacks media playback and offering YouTube; zero actions. |
+| `Open RBVRRIT college Portal` from New Tab | Safe navigation to a Google evidence search; no portal URL guessed. |
 
 ## Live WhatsApp findings
 
@@ -44,22 +64,45 @@ The authenticated Chrome session loaded WhatsApp and exposed the exact direct ch
 
 Live side-effect totals: messages sent **0**; files attached **0**; duplicate effects **0**; recovered unsent drafts **1**.
 
-## Why the 20/20 gate is still open
+## Application-side-panel acceptance attempts
 
-The built extension can be loaded by the isolated Playwright profile, but that browser is blocked before WhatsApp navigation with `ERR_NETWORK_ACCESS_DENIED`. The authenticated Chrome session has working network access, but automation is correctly blocked from opening `chrome-extension://` side-panel pages. Bypassing that privileged-URL boundary was not attempted.
+| Run | Result | First failing step | Root cause / correction | Side effects |
+|---:|---|---|---|---|
+| 1 | Failed safely | New Tab to WhatsApp navigation was rejected before mutation. | Chrome and API were running a newly rebuilt `dev/local-dev` pair created by an ordinary extension build plus `backend/run.py`; that script still launched a reload parent/worker. The workflow event then identified `execution_contract_target_mismatch`: the contract converted the navigation action's empty selector from `""` to `null`. `backend/run.py` now forwards to the canonical launcher, the launcher refuses noncanonical runtimes, and selector identity is preserved byte-for-byte. The corrected contract passed both live policy stages on build `stabilization-20260819T070526Z`. | Messages 0; attachments 0; navigation 0; duplicates 0. |
+| 2 | Failed safely | The extension's internal execution-message validator rejected the navigation contract before policy or mutation. | Backend `SuggestedAction` serialization represents absent grounding as `{}`. The validator interpreted any present object as element grounding and required a `source`. The canonical builder now normalizes only an empty object to absent grounding; non-empty malformed grounding and screenshot claims remain fail-closed. The terminal report also incorrectly blamed network/sign-in and unverifiable search evidence; failure-class-aware reporting now identifies internal validation, policy, authentication, network, no-effect, and generic execution failures separately. Exact New Tab to WhatsApp contract/internal-message regressions and a promoted API replay pass on build `stabilization-20260819T072258Z`. | Messages 0; attachments 0; navigation 0; duplicates 0. |
+| 3 | Failed safely (automated side-panel) | With WhatsApp already open, the destination resolver treated `open the exact direct chat...` as an unknown website and proposed a Google search. | Page-local objects such as chats, contacts, threads, documents, files, and folders are now excluded from website discovery after their containing application is resolved. The exact prompt is regression-covered from both New Tab and an already-open WhatsApp page. | Messages 0; attachments 0; duplicate effects 0. |
+| Auth-boundary replay | Passed expected safety outcome (automated side-panel) | The isolated validation profile's WhatsApp authentication had expired. | The application now detects the QR/login screen before control selection, returns `needs_info` in 20.6 seconds, proposes zero actions, performs no retry, and explains that WhatsApp must be linked. Recipient parsing also stops at the trailing `Do not...` safety sentence, preserving exact identity `Teja Spc`. | Messages 0; attachments 0; duplicate effects 0. |
 
-Therefore the live checks proved the website's target ambiguity, delayed readiness, exact row grounding, and exact header postcondition, but they did not prove 20 consecutive dispatches through the rebuilt application side panel. Controlled/unit results are intentionally not counted as live passes.
+Runs 1 and 2 are not counted toward the required 20 consecutive passes. They are retained as failure evidence rather than erased from the record.
 
-Two operator-side submissions also exposed pre-dispatch defects without producing a browser mutation: the first reused a restored workflow session, and the second was correctly blocked because New Tab was treated as an unsupported origin. Both root causes are now fixed and regression-covered. The next qualifying run must begin on New Tab and demonstrate that the application opens WhatsApp before it grounds and opens the exact direct chat.
+## 20/20 authenticated application-side-panel certification
+
+The user authenticated the project-owned persistent validation profile by scanning WhatsApp's QR code. A fresh certification sequence then ran the natural-language instruction from New Tab 20 consecutive times through the real extension side panel:
+
+`Open WhatsApp and open the exact direct chat named Teja Spc. Do not type a message, attach a file, or send anything.`
+
+| Gate | Result |
+|---|---:|
+| Completed runs | 20/20 |
+| Runs with exactly two actions | 20/20 |
+| Runs observing `Type a message to Teja Spc` | 20/20 |
+| Screenshot pairs captured | 20/20 |
+| Attach/upload/send/file-chooser actions | 0 |
+| Duplicate external effects | 0 |
+| Minimum / average / p95 / maximum latency | 27.8 / 32.44 / 37.4 / 42.6 seconds |
+
+Each run used stable-selector grounding for the recipient row, trusted CDP input for the click, and the exact WhatsApp postcondition before completion. The final screenshot visually confirms the `Teja Spc` header and an empty `Type a message` composer. Raw aggregate evidence is in [live_sidepanel_first10_latest.json](../live_sidepanel/live_sidepanel_first10_latest.json); per-run side-panel and target screenshots are stored beside it as `day3-cert-01` through `day3-cert-20`.
+
+The failures retained before certification exposed four distinct root causes: a non-actionable title-span click, negative safety text misclassified as an upload objective, verified post-click evidence not reaching convergence, and optional diagnostics being stripped at a message boundary. The final design promotes the click to the unique containing chat row, normalizes negative clauses centrally across planning layers, and completes an open-only exact-target task at the side-panel controller immediately after the service worker's postcondition-gated success. No failed attempt is counted in the 20/20 result.
 
 ## Expanded robustness checkpoint
 
-Product-intent review showed that an explicit URL in the WhatsApp validation prompt would mask a general navigation gap. Day 3 now requires natural-language destination resolution, compound-objective decomposition, capability/site compatibility checks, ambiguity clarification, bounded semantic recovery, and meaningful terminal responses before the 20/20 run.
+Product-intent review showed that an explicit URL in the WhatsApp validation prompt would mask a general navigation gap. Day 3 therefore requires natural-language destination resolution, compound-objective decomposition, capability/site compatibility checks, ambiguity clarification, bounded semantic recovery, and meaningful terminal responses before the 20/20 run. That engineering and automated robustness checkpoint is now complete.
 
 This checkpoint is informed by the documented ChatGPT/Codex browser behavior as a reference product: browser navigation and multi-step website interaction, web search, existing-Chrome operation through an extension, shared visible state, and user control. It does not assume or copy undocumented private implementation details.
 
-Acceptance cases are maintained in the main 15-day plan and include YouTube natural-language resolution, Gmail plus music as a compound task, an impossible Gmail-contained playback request, ambiguous RBVRRIT portal discovery, unverifiable destinations, and bounded failure handling.
+Acceptance cases are maintained in the main 15-day plan and cover YouTube natural-language resolution, Gmail plus music as a compound task, an impossible Gmail-contained playback request, ambiguous RBVRRIT portal discovery, unverifiable destinations, and bounded failure handling. Automated tests and promoted live API probes passed; the actual-browser mutation gate remains separate.
 
 ## Day 4 entry condition
 
-Per the schedule-control rule, Day 4 must begin by attaching the rebuilt unpacked extension to an authenticated, network-enabled validation browser (or by the operator opening its side panel in connected Chrome) and completing the 20 consecutive non-sending application runs. Only then should attachment-preview work begin.
+Day 3's mandatory live gate is closed. Day 4 may begin with explicit synthetic-file selection, destination binding, attachment-preview verification, and the existing rule that nothing is sent without confirmation.

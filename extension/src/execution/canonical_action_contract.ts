@@ -1,4 +1,5 @@
 import type {
+  ActionGrounding,
   CanonicalActionContract,
   ExpectedEffectKind,
   PageContext,
@@ -60,29 +61,39 @@ export function buildCanonicalActionContract(
   }
   if (!idempotencyKey.trim()) throw new Error('Cannot build action contract without an idempotency key.')
 
-  const exactName = action.grounding?.accessibility_name?.trim() || null
-  const selector = action.target_selector?.trim() || null
-  if (action.action_type === 'click' && !selector) {
+  const rawGrounding = action.grounding as ActionGrounding | Record<string, never> | undefined
+  const grounding = rawGrounding && Object.keys(rawGrounding).length === 0
+    ? undefined
+    : action.grounding
+  const contractAction = grounding === action.grounding
+    ? action
+    : { ...action, grounding: undefined }
+  const exactName = grounding?.accessibility_name?.trim() || null
+  // Preserve the action's selector byte-for-byte in the immutable contract. Empty
+  // selectors are valid for URL/tab actions; converting "" to null makes the live
+  // policy gate correctly reject the contract as an identity mismatch.
+  const selector = action.target_selector ?? ''
+  if (action.action_type === 'click' && !selector.trim()) {
     throw new Error('Click contract requires an exact observed selector.')
   }
 
   return {
     schema_version: '1.0',
     dispatch_id: `${action.action_id}:${Date.now()}`,
-    action,
+    action: contractAction,
     target_identity: {
       kind: targetKind(action.action_type),
       selector,
-      selector_id: action.grounding?.selector_id?.trim() || null,
+      selector_id: grounding?.selector_id?.trim() || null,
       exact_name: exactName,
-      role: action.grounding?.role?.trim() || null,
-      semantic_kind: action.grounding?.semantic_kind?.trim() || null,
+      role: grounding?.role?.trim() || null,
+      semantic_kind: grounding?.semantic_kind?.trim() || null,
     },
     grounding_policy: {
       ordered_sources: ['stable_selector', 'accessibility_name', 'verified_screenshot'],
       accessibility_requires_exact_name: true,
-      screenshot_coordinates_verified: action.grounding?.source === 'vision_region' && action.grounding?.screenshot_verified === true,
-      screenshot_hash: action.grounding?.screenshot_hash?.trim() || null,
+      screenshot_coordinates_verified: grounding?.source === 'vision_region' && grounding?.screenshot_verified === true,
+      screenshot_hash: grounding?.screenshot_hash?.trim() || null,
     },
     origin: {
       origin: observedOrigin,
@@ -92,7 +103,7 @@ export function buildCanonicalActionContract(
     browser_binding: {
       tab_id: Number(context.tab_id),
       window_id: Number.isInteger(context.window_id) ? Number(context.window_id) : null,
-      frame_id: action.grounding?.frame_id?.trim() || 'top',
+      frame_id: grounding?.frame_id?.trim() || 'top',
     },
     resource_identity: {
       url: resourceUrl,

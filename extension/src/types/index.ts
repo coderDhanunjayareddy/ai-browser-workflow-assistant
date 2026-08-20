@@ -437,4 +437,5 @@ export type ExtensionMessage =
   | { type: 'CONTEXT_RESULT'; context: PageContext }
   | { type: 'EXECUTE_ACTION'; contract: CanonicalActionContract; policy_context: PolicyExecutionContext }
   | { type: 'GET_TAB_WORKSPACE' }
+  | { type: 'GET_RUNTIME_IDENTITY' }
   | { type: 'EXECUTION_RESULT'; action_id: string; result: 'success' | 'failure' | 'element_not_found'; error: string | null }

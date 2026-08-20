@@ -7,6 +7,7 @@ from typing import Any
 
 from app.file_upload_broker.policy import build_file_upload_broker_policy
 from app.form_workflow.spec import build_form_workflow_spec
+from app.task_language import affirmative_task_text
 from app.mission.blueprint.models import (
     BlueprintDependency,
     BlueprintDependencyKind,
@@ -202,7 +203,7 @@ def _understand(goal: str) -> MissionUnderstanding:
 
 
 def _classify(understanding: MissionUnderstanding) -> MissionType:
-    text = understanding.normalized_goal.lower()
+    text = affirmative_task_text(understanding.normalized_goal)
     if _is_file_processing_workflow(text):
         return MissionType.FILE_PROCESSING
     if _explicit_start_url(text) and _has(text, "extract", "scrape", "collect", "directory", "entries", "records"):
@@ -217,11 +218,12 @@ def _classify(understanding: MissionUnderstanding) -> MissionType:
 
 
 def _is_file_processing_workflow(text: str) -> bool:
+    text = affirmative_task_text(text)
     return _has(text, "upload", "download", "pdf", "csv", "spreadsheet") or re.search(r"\bfiles?\b", text) is not None
 
 
 def _is_upload_workflow(text: str) -> bool:
-    lowered = str(text or "").lower()
+    lowered = affirmative_task_text(text)
     if _has(lowered, "uploaded") and not _has(lowered, "upload a", "upload the", "upload file", "file upload", "allows file upload"):
         return False
     return bool(

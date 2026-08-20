@@ -5,6 +5,7 @@ from typing import Any
 
 from app.browser_url_policy import is_openable_browser_url
 from app.execution_orchestrator.models import ArtifactRegistry, ProgressLedger
+from app.task_language import affirmative_task_text
 
 
 def build_progress_ledger(
@@ -48,7 +49,7 @@ def build_progress_ledger(
 
 
 def _targets(task: str) -> dict[str, int]:
-    text = task.lower()
+    text = affirmative_task_text(task)
     targets: dict[str, int] = {}
     count = _first_count(text) or 1
     if any(term in text for term in (
@@ -61,7 +62,7 @@ def _targets(task: str) -> dict[str, int]:
         )) else 1
     if any(term in text for term in ("extract", "capture", "collect")):
         targets["extracted_records"] = count
-    if "upload" in text:
+    if "upload" in text or "attach" in text:
         targets["uploaded_files"] = 1
     if "download" in text:
         targets["downloads"] = 1
@@ -122,7 +123,7 @@ def _collected_result_count(result: str) -> int:
 
 
 def _read_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any]) -> bool:
-    if artifacts.opened_pages and _is_current_page_interaction(task.lower()):
+    if artifacts.opened_pages and _is_current_page_interaction(affirmative_task_text(task)):
         return True
     target = _targets(task).get("opened_pages", 1)
     read_steps = 0
@@ -175,11 +176,11 @@ def _is_current_page_interaction(text: str) -> bool:
 
 
 def _requires_extraction(task: str) -> bool:
-    return any(term in task.lower() for term in ("extract", "capture", "table", "summar", "pricing", "limitation", "location", "job"))
+    return any(term in affirmative_task_text(task) for term in ("extract", "capture", "table", "summar", "pricing", "limitation", "location", "job"))
 
 
 def _validate_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any]) -> bool:
-    text = task.lower()
+    text = affirmative_task_text(task)
     if _is_interactive_task(text) or _is_simple_search_interaction(text):
         return _target_state_reached(prior_steps)
     if "upload" in text:

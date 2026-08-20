@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.execution_orchestrator.models import PhaseName, PhaseState, ProgressLedger
+from app.task_language import affirmative_task_text
 
 
 DEFAULT_GRAPH: list[PhaseName] = ["DISCOVER", "COLLECT", "OPEN", "READ", "EXTRACT", "VALIDATE", "SYNTHESIZE", "REPORT", "COMPLETE"]
@@ -42,12 +43,12 @@ FORBIDDEN_ACTIONS: dict[PhaseName, list[str]] = {
 
 
 def workflow_category(task: str) -> str:
-    text = task.lower()
+    text = affirmative_task_text(task)
     if any(term in text for term in ("navigate to page", "page 2", "next page", "paged list", "pagination")):
         return "interactive_browser_task"
     if any(term in text for term in ("job", "career", "opening", "linkedin")):
         return "job_search"
-    if any(term in text for term in ("upload", "file accepted", "share link")):
+    if any(term in text for term in ("upload", "attach", "file accepted", "share link")):
         return "file_upload"
     if any(term in text for term in ("fill the form", "validation errors", "submit only", "form", "wizard", "onboarding")):
         return "form_filling"

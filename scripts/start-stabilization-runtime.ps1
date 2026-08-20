@@ -67,7 +67,10 @@ $existingHealth = Get-CanonicalHealth -Url $BackendUrl
 if (
     $existingHealth -and
     $existingHealth.status -eq "ok" -and
-    $existingHealth.runtime.canonical_backend_url.TrimEnd("/") -eq $BackendUrl.TrimEnd("/")
+    $existingHealth.runtime.canonical_backend_url.TrimEnd("/") -eq $BackendUrl.TrimEnd("/") -and
+    $existingHealth.runtime.app_version -eq "0.4.0" -and
+    $existingHealth.runtime.build_commit -ne "dev" -and
+    $existingHealth.runtime.build_id -like "stabilization-*"
 ) {
     $serverPid = [int]$existingHealth.runtime.process_id
     $serverProcess = Get-Process -Id $serverPid -ErrorAction SilentlyContinue
@@ -94,6 +97,9 @@ if (
     } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtimeDir "runtime-latest.json") -Encoding utf8
     Write-Output "Canonical runtime already active: $BackendUrl pid=$serverPid build=$($existingHealth.runtime.build_id)"
     exit 0
+}
+if ($existingHealth -and $existingHealth.status -eq "ok") {
+    throw "Refusing to reuse noncanonical runtime at ${BackendUrl}: commit=$($existingHealth.runtime.build_commit) build=$($existingHealth.runtime.build_id) pid=$($existingHealth.runtime.process_id). Stop that exact runtime before starting stabilization."
 }
 
 $canonicalListeners = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue)

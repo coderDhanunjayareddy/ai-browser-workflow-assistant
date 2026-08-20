@@ -43,7 +43,7 @@ export type MessageSenderDescriptor = {
 
 const MESSAGE_TYPES = new Set([
   'EXTRACT_CONTEXT', 'EXECUTE_ACTION', 'START_VOICE_CAPTURE', 'WAIT_FOR_TAB_LOAD',
-  'WAIT_FOR_DOM_SETTLE', 'GET_TAB_WORKSPACE',
+  'WAIT_FOR_DOM_SETTLE', 'GET_TAB_WORKSPACE', 'GET_RUNTIME_IDENTITY',
 ])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -57,7 +57,11 @@ function isBoundedString(value: unknown, max: number, allowNull = false): boolea
 function isInternalExtensionSender(sender: MessageSenderDescriptor, runtimeId: string): boolean {
   if (sender.id !== runtimeId) return false
   const ownOrigin = `chrome-extension://${runtimeId}/`
-  return typeof sender.url === 'string' && sender.url.startsWith(ownOrigin) && !sender.hasTab
+  // A packaged extension page has the same trusted origin whether Chrome
+  // renders it as a side panel, popup, or full tab (the latter is used by the
+  // production validation harness). Content scripts retain the website URL,
+  // so the origin check—not the presence of sender.tab—is the trust boundary.
+  return typeof sender.url === 'string' && sender.url.startsWith(ownOrigin)
 }
 
 export function validateProvenance(value: unknown): value is PolicyProvenanceLabel[] {

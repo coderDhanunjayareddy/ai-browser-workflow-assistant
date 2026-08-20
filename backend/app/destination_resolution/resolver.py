@@ -47,6 +47,7 @@ class DestinationDecision:
     url: str | None = None
     message: str = ""
     candidates: tuple[DestinationCandidate, ...] = field(default_factory=tuple)
+    report_category: str | None = None
 
 
 APP_DESTINATIONS: tuple[AppDestination, ...] = (
@@ -183,6 +184,18 @@ def _unknown_entity(text: str) -> str | None:
     if not entity:
         return None
     normalized = _normalize(entity)
+    # An "open" verb is also used for objects inside an application.  These
+    # targets belong to the page planner after the application destination has
+    # been resolved; treating a named chat/document/thread as a website sends
+    # the user into an unrelated web-search loop.
+    page_local_target = re.match(
+        r"^(?:(?:the|a|an)\s+)?(?:(?:exact|direct|first|matching|named)\s+)*"
+        r"(?:chat|contact|conversation|thread|message|email|document|file|folder|"
+        r"inbox|draft|menu|dialog|settings|tab|result)\b",
+        normalized,
+    )
+    if page_local_target:
+        return None
     generic_targets = {
         "one", "it", "this", "that", "first", "second", "result", "first result",
         "folder", "file", "document", "chat", "thread", "message", "menu", "dialog",
@@ -376,7 +389,7 @@ def _rank_candidates(objective: DestinationObjective, page_context: Any) -> list
     return sorted(best_by_url.values(), key=lambda item: (-item.score, item.domain, item.url))
 
 
-def _failed_prior_for_url(url: str, prior_steps: list[Any]) -> bool:
+def _failed_prior_for_url(url: str, prior_steps: list[Any]) -> str | None:
     expected = url.rstrip("/").lower()
     for step in prior_steps or []:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
@@ -384,8 +397,45 @@ def _failed_prior_for_url(url: str, prior_steps: list[Any]) -> bool:
             continue
         result = str(data.get("execution_result") or "").lower()
         if any(term in result for term in ("fail", "error", "no_effect", "no effect", "timeout")):
-            return True
-    return False
+            return result
+    return None
+
+
+def _navigation_failure_outcome(destination_name: str, failure: str) -> tuple[str, str]:
+    if any(term in failure for term in ("invalid canonical action contract", "contract_mismatch", "contract mismatch")):
+        return (
+            f"I could not open {destination_name} because internal execution validation rejected the navigation before browser mutation. "
+            "I stopped without retrying or blaming the website, network, or sign-in state.",
+            "navigation_internal",
+        )
+    if any(term in failure for term in ("policy", "confirmation", "approval")):
+        return (
+            f"I did not open {destination_name} because the safety policy or required confirmation blocked the navigation. "
+            "No navigation was dispatched and no automatic retry was attempted.",
+            "navigation_policy",
+        )
+    if any(term in failure for term in ("sign-in", "signin", "authentication", "not authenticated", "login required")):
+        return (
+            f"I could not open {destination_name} because authentication is required or unavailable. "
+            "I stopped instead of repeating the navigation.",
+            "navigation_auth",
+        )
+    if any(term in failure for term in ("timeout", "timed out", "network", "offline", "connection")):
+        return (
+            f"I could not open {destination_name} because the navigation timed out or network connectivity was unavailable. "
+            "I stopped instead of repeating the same navigation.",
+            "navigation_network",
+        )
+    if any(term in failure for term in ("no_effect", "no effect", "unchanged")):
+        return (
+            f"I could not verify that {destination_name} opened because the browser state did not change. "
+            "I stopped without repeating the action.",
+            "navigation_no_effect",
+        )
+    return (
+        f"I could not open {destination_name} after one bounded attempt. The recorded execution failed, so I stopped without repeating it.",
+        "navigation_failed",
+    )
 
 
 def _selected_candidate(candidates: list[DestinationCandidate], user_context: str) -> DestinationCandidate | None:
@@ -440,21 +490,24 @@ def _decision(task: str, page_context: Any, prior_steps: list[Any], user_context
             )
 
     if pending.explicit_url:
-        if _failed_prior_for_url(pending.explicit_url, prior_steps):
+        failure = _failed_prior_for_url(pending.explicit_url, prior_steps)
+        if failure:
+            message, category = _navigation_failure_outcome("the supplied destination", failure)
             return DestinationDecision(
                 "report", pending,
-                message=f"I could not open the supplied destination after a bounded safe attempt. No duplicate navigation was performed.",
+                message=message,
+                report_category=category,
             )
         return DestinationDecision("navigate", pending, pending.explicit_url, "Use the explicit safe URL supplied by the user.")
     if pending.app_id:
         app = _APP_BY_ID[pending.app_id]
-        if _failed_prior_for_url(app.entry_url, prior_steps):
+        failure = _failed_prior_for_url(app.entry_url, prior_steps)
+        if failure:
+            message, category = _navigation_failure_outcome(app.display_name, failure)
             return DestinationDecision(
                 "report", pending,
-                message=(
-                    f"I could not open {app.display_name} after a bounded safe attempt. "
-                    "I stopped instead of repeating the same navigation. Check the network or sign-in state and try again."
-                ),
+                message=message,
+                report_category=category,
             )
         return DestinationDecision(
             "navigate", pending, app.entry_url,
@@ -534,11 +587,23 @@ def resolve_destination(
             suggested_actions=[],
         )
     if decision.kind == "report":
+        navigation_report = bool(decision.report_category and decision.report_category.startswith("navigation_"))
         return AnalyzeResponse(
             session_id=session_id,
-            analysis="Destination discovery ended safely without selecting an unverifiable website.",
+            analysis=(
+                "Navigation ended safely after the recorded execution failure; the application did not repeat the action."
+                if navigation_report
+                else "Destination discovery ended safely without selecting an unverifiable website."
+            ),
             outcome_kind="report",
-            report=ReportOutcome(answer=decision.message, claim="No verified destination was available in observed search evidence."),
+            report=ReportOutcome(
+                answer=decision.message,
+                claim=(
+                    "The requested navigation was not dispatched or could not be verified, and no duplicate attempt was made."
+                    if navigation_report
+                    else "No verified destination was available in observed search evidence."
+                ),
+            ),
             suggested_actions=[],
             sgv_verified=True,
             goal_convergence=True,
