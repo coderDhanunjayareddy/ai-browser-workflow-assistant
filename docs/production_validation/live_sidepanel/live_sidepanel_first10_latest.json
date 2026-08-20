@@ -1,20 +1,100 @@
 {
   "mode": "extension_sidepanel_playwright",
-  "extension_id": "nmfkjjmffjbbolcmkdpkeligpclgjldd",
-  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_s4_20260820",
+  "extension_id": "mogneegaclkfmdjgjcjbcaifnlbefofn",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_s4_r2_20260820",
   "results": [
     {
       "task_id": "D3-S4",
-      "status": "timeout",
-      "duration_s": 105.9,
-      "phase": "Executing",
+      "status": "completed",
+      "duration_s": 55.8,
+      "phase": "unknown",
       "error": "",
-      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 e254718 \u00b7 stabilization-20260820T170248Z \u00b7 pid 28468\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nExecuting\u2026\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nDiscover an evidence-backed destination for RBVRRIT college Portal.\n\n\u26a1\nStep 1\nNAVIGATE\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: verified\nTime: 34.1s\nNavigating to: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 2\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 7.4s\nOpened tab: 1920213642\nTab switch: verified\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 3\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 8.7s\nOpened tab: 1920213643\nTab switch: verified\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 4\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 5.2s\nOpened tab: 1920213644\nTab switch: verified\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 5\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 5.9s\nOpened tab: 1920213645\nTab switch: verified\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 6\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 5.3s\nOpened tab: 1920213646\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u23f3\nExecuting Step 7: Search for the official destination of RBVRRIT college Portal",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 a748908 \u00b7 stabilization-20260820T173856Z \u00b7 pid 29508\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nDestination discovery ended safely without selecting an unverifiable website.\n\nReport answer: I could not verify an official destination for \"RBVRRIT college Portal\" from the available search results. No candidate website was opened. Please provide the city, full organization name, or another identifying detail.\n\nReport claim: No verified destination was available in observed search evidence.\n\n\u26a1\nStep 1\nNAVIGATE\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: verified\nTime: 10.3s\nNavigating to: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 2\nNAVIGATE\nSearch for the official destination of RBVRRIT college Portal\nRBVRRIT college Portal official portal - Search\nhttps://www.bing.com/search?q=RBVRRIT+college+Portal+official+portal\nVerification: verified\nTime: 10.3s\nNavigating to: https://www.bing.com/search?q=RBVRRIT+college+Portal+official+portal\n\u2713 Done \u2014 2 of 2 steps succeeded",
       "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4.png",
       "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-target.png",
       "target_controls": [
         {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "Enter your search here - Search suggestions will show as you type",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "paste image link to search",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
           "tag": "textarea",
+          "role": "textbox",
+          "aria_label": "",
+          "placeholder": "Ask a follow-up ",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Send",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "Paste image or URL",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
           "role": "",
           "aria_label": "",
           "placeholder": "",
@@ -52,73 +132,40 @@
         },
         {
           "index": 2,
-          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3DizeHaqiyHsSnseMPqr-IqQM&q=EhAkCUDwACoZQEmuOflS7_BvGKXvnNQGIjAp0yfKlamm6BCgFmOCmlUIpw-87zP4m16txV9ssLqXpRmhFzwV6E1StfHlXDbArLcyAVJaAUM",
-          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=izeHaqiyHsSnseMPqr-IqQM",
-          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:21:48Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=izeHaqiyHsSnseMPqr-IqQM\n",
+          "url": "https://www.bing.com/search?q=RBVRRIT+college+Portal+official+portal&rdr=1&rdrig=3C29868B327C4B2DA02D6A3425E985F9",
+          "title": "RBVRRIT college Portal official portal - Search",
+          "body_text": "Skip to content\nAccessibility Feedback\nRewards\nAllSearchImagesVideosMapsNews\nMore\nPrivacy\nTerms",
           "video": {
-            "exists": false
+            "index": 0,
+            "exists": true,
+            "visible": false,
+            "paused": true,
+            "ended": false,
+            "current_time": 0,
+            "duration": null,
+            "ready_state": 0,
+            "muted": false,
+            "width": 0,
+            "height": 0,
+            "advanced_by": 0.0
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-2.png"
-        },
-        {
-          "index": 3,
-          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3DvjeHaoTRBPfRwcsPzrjeuQk&q=EhAkCUDwACoZQEmuOflS7_BvGL7vnNQGIjDQfoLkLs1DQnwzRoDOV4Vj7Qxg1tEbW-1xbu5Dsu_C_f42ews6ehheaUa2oCvSRiAyAVJaAUM",
-          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=vjeHaoTRBPfRwcsPzrjeuQk",
-          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:09Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=vjeHaoTRBPfRwcsPzrjeuQk\n",
-          "video": {
-            "exists": false
-          },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-3.png"
-        },
-        {
-          "index": 4,
-          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3DxTeHat24MPOPseMP0bXwwQs&q=EhAkCUDwACoZQEmuOflS7_BvGMjvnNQGIjCU29coXVPES9Xzil26k760uTfuzSLXumbyChtvyrtULnc1u_bgh4IdOhOLh508aLQyAVJaAUM",
-          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=xTeHat24MPOPseMP0bXwwQs",
-          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:17Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=xTeHat24MPOPseMP0bXwwQs\n",
-          "video": {
-            "exists": false
-          },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-4.png"
-        },
-        {
-          "index": 5,
-          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3DzjeHapj0PMyZseMPjK-kqAw&q=EhAkCUDwACoZQEmuOflS7_BvGM_vnNQGIjCTq9ar0xPpCH5ZQjJeKVIh4kXltQN8910Tzr2gRMSKkXn2ZiuoPgi1sCbgk9N6UZ0yAVJaAUM",
-          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=zjeHapj0PMyZseMPjK-kqAw",
-          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:24Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=zjeHapj0PMyZseMPjK-kqAw\n",
-          "video": {
-            "exists": false
-          },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-5.png"
-        },
-        {
-          "index": 6,
-          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3D1TeHauCSHYPbseMPu9KbsQU&q=EhAkCUDwACoZQEmuOflS7_BvGNbvnNQGIjAkXx8GjpZ05AKMSojGEeVJHRmPejSvZuBSQq7Q76dIx90SRb16yvci3AMcwecPl8gyAVJaAUM",
-          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=1TeHauCSHYPbseMPu9KbsQU",
-          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:31Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=1TeHauCSHYPbseMPu9KbsQU\n",
-          "video": {
-            "exists": false
-          },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-6.png"
-        },
-        {
-          "index": 7,
-          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3D2zeHas_bHrGMnesPpJrNuQ4&q=EhAkCUDwACoZQEmuOflS7_BvGNzvnNQGIjBtIlJWGUGqSVgDPZI-EYsGP301H7Rx3QjOfk2tY8ym9sUnFubnvnBzX1kYrBvQwoIyAVJaAUM",
-          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=2zeHas_bHrGMnesPpJrNuQ4",
-          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:37Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=2zeHas_bHrGMnesPpJrNuQ4\n",
-          "video": {
-            "exists": false
-          },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-7.png"
-        },
-        {
-          "index": 8,
-          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3D4TeHarWyE8HsseMPsen5-Ag&q=EhAkCUDwACoZQEmuOflS7_BvGOLvnNQGIjDlrLqi7C5d-_tbyPEaBm_ybvdsCYuUhJ4GYNiTXwdtM8XNe_Z7YfzlYnZpJ00LpuEyAVJaAUM",
-          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=4TeHarWyE8HsseMPsen5-Ag",
-          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:43Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=4TeHarWyE8HsseMPsen5-Ag\n",
-          "video": {
-            "exists": false
-          },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-8.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-2.png",
+          "videos": [
+            {
+              "index": 0,
+              "exists": true,
+              "visible": false,
+              "paused": true,
+              "ended": false,
+              "current_time": 0,
+              "duration": null,
+              "ready_state": 0,
+              "muted": false,
+              "width": 0,
+              "height": 0,
+              "advanced_by": 0.0
+            }
+          ]
         }
       ]
     }

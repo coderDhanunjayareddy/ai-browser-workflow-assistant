@@ -315,6 +315,27 @@ def _is_search_page(url: str) -> bool:
     return host in _SEARCH_HOSTS and parsed.path.rstrip("/") in {"/search", "/search/"}
 
 
+def _blocked_search_provider(url: str) -> str | None:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    path = parsed.path.lower()
+    if host not in _SEARCH_HOSTS:
+        return None
+    if path.startswith("/sorry/") or "captcha" in path or path.startswith("/turing/"):
+        return "bing" if "bing.com" in host else "google"
+    return None
+
+
+def _search_provider_attempted(provider: str, prior_steps: list[Any]) -> bool:
+    expected_host = "bing.com" if provider == "bing" else "google.com"
+    for step in prior_steps:
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        value = _safe_http_url(str(data.get("value") or ""))
+        if value and (urlparse(value).hostname or "").lower().endswith(expected_host):
+            return True
+    return False
+
+
 def _unwrap_search_url(href: str) -> str | None:
     safe = _safe_http_url(href)
     if not safe:
@@ -538,6 +559,23 @@ def _decision(task: str, page_context: Any, prior_steps: list[Any], user_context
         )
     if not pending.entity_name:
         return DestinationDecision("none")
+
+    blocked_provider = _blocked_search_provider(current_url)
+    if blocked_provider:
+        if blocked_provider == "google" and not _search_provider_attempted("bing", prior_steps):
+            query = _query_for(pending)
+            return DestinationDecision(
+                "search", pending, f"https://www.bing.com/search?q={quote_plus(query)}",
+                "Google blocked the bounded discovery attempt; use one different trusted search provider without opening a candidate.",
+            )
+        return DestinationDecision(
+            "report", pending,
+            message=(
+                f'I could not verify an official destination for "{pending.entity_name}" because the bounded search providers '
+                "returned an anti-automation or CAPTCHA interstitial. No candidate website was opened and the search was not repeated."
+            ),
+            report_category="discovery_externally_blocked",
+        )
 
     if not _is_search_page(current_url):
         query = _query_for(pending)
@@ -873,7 +911,11 @@ def resolve_destination(
         )
     assert decision.url
     current_url = str(getattr(page_context, "url", "") or "")
-    preserve_existing = _has_prior_destination_attempt(prior_steps or []) and current_url.startswith(("http://", "https://"))
+    preserve_existing = (
+        _has_prior_destination_attempt(prior_steps or [])
+        and current_url.startswith(("http://", "https://"))
+        and _blocked_search_provider(current_url) is None
+    )
     action_type = "open_new_tab" if preserve_existing else "navigate"
     return AnalyzeResponse(
         session_id=session_id,

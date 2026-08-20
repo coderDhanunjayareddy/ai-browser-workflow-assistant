@@ -247,6 +247,36 @@ def test_unknown_named_destination_starts_evidence_search_instead_of_guessing_ur
     assert "RBVRRIT" in result.suggested_actions[0].description
 
 
+def test_blocked_google_discovery_uses_one_bing_fallback_in_same_tab():
+    result = resolve_destination(
+        session_id="s4-blocked-google",
+        task="Open RBVRRIT college Portal",
+        page_context=page("https://www.google.com/sorry/index?continue=search"),
+        prior_steps=[successful_navigation("https://www.google.com/search?q=RBVRRIT")],
+    )
+    assert result is not None
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "navigate"
+    assert result.suggested_actions[0].value.startswith("https://www.bing.com/search?q=")
+
+
+def test_blocked_bounded_search_providers_stop_without_another_navigation():
+    result = resolve_destination(
+        session_id="s4-blocked-both",
+        task="Open RBVRRIT college Portal",
+        page_context=page("https://www.bing.com/turing/captcha/challenge"),
+        prior_steps=[
+            successful_navigation("https://www.google.com/search?q=RBVRRIT"),
+            successful_navigation("https://www.bing.com/search?q=RBVRRIT"),
+        ],
+    )
+    assert result is not None
+    assert result.outcome_kind == "report"
+    assert result.suggested_actions == []
+    assert "No candidate website was opened" in result.report.answer
+    assert "not repeated" in result.report.answer
+
+
 def test_ambiguous_official_portal_candidates_require_clarification():
     result = resolve_destination(
         session_id="s5",
