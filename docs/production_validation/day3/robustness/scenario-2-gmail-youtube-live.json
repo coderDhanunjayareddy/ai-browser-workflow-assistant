@@ -1,0 +1,141 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "nmfkjjmffjbbolcmkdpkeligpclgjldd",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_s2_r6_20260820",
+  "results": [
+    {
+      "task_id": "D3-S2",
+      "status": "completed",
+      "duration_s": 120.3,
+      "phase": "completed",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 e254718 \u00b7 stabilization-20260820T170248Z \u00b7 pid 28468\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nMedia playback was executed through the verified HTML media control.\n\nReport answer: started playing \"Telugu music\" on YouTube.\n\nReport claim: The visible YouTube media element accepted the play operation.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open Gmail\nGmail: Secure, AI-Powered Email for Everyone | Google Wo\u2026\nhttps://workspace.google.com/intl/en-US/gmail/\nVerification: verified\nTime: 12.2s\nNavigating to: https://mail.google.com/\n\u26a1\nStep 2\nOPEN_NEW_TAB\nOpen the resolved destination for play Telugu music\nYouTube\nhttps://www.youtube.com/\nVerification: not_applicable\nTime: 17.2s\nOpened tab: 1152492909\nTab switch: verified\nOpened new tab: https://www.youtube.com/\n\u26a1\nStep 3\nFILL\nEnter media query \"Telugu music\" in the visible YouTube search field\nYouTube\nhttps://www.youtube.com/\nVerification: verified\nTime: 443ms\nWidget adapter filled autocomplete input without selectable suggestion.\n\u26a1\nStep 4\nKEYBOARD_SHORTCUT\nSubmit media search for \"Telugu music\"\nYouTube\nhttps://www.youtube.com/\nVerification: not_applicable\nTime: 462ms\nCDP keyboard_shortcut dispatched via accessibility_name grounding.\n\u26a1\nStep 5\nCLICK\nOpen the visible YouTube result \"Aaya Sher - Lyrical | The Paradise | Nani | Anirudh Ravichander | Srikanth Odela 4 minutes, 57 seconds\"\nAnand Telugu Movie || Nuvvena Full Song With Lyrics || R\u2026\nhttps://www.youtube.com/watch?v=vY8caUaAUUM&list=RDvY8caUaAUUM&start_rad\u2026\nVerification: verified\nTime: 457ms\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 6\nMEDIA_CONTROL\nStart playback on the visible YouTube media element\nAnand Telugu Movie || Nuvvena Full Song With Lyrics || R\u2026\nhttps://www.youtube.com/watch?v=vY8caUaAUUM&list=RDvY8caUaAUUM&start_rad\u2026\nVerification: verified\nTime: 385ms\nMedia play completed.\n\u2713 Done \u2014 6 of 6 steps succeeded",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-target.png",
+      "target_controls": [
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Open search",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "combobox",
+          "aria_label": "Search",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Close search",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Close",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Open Tooltip: This feature is available with Google AI Pro or Ultra plans.",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Expand all",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "https://workspace.google.com/intl/en-US/gmail/",
+          "title": "Gmail: Secure, AI-Powered Email for Everyone | Google Workspace",
+          "body_text": "Gmail\nSkip to main content\nFor work\nSign in\nCreate an account\nNew: Gmail is entering the Gemini era\nLearn more\nAI-powered email for everyone\n\nSecure, smart and easy-to-use email, used by billions, now enhanced with Gemini.\n\nCreate an account\nFor work\nGemini in Gmail\n\nWith Gemini in Gmail, you get a personal, proactive inbox assistant that helps you respond quickly in your own voice, get things done faster, and turn information into answers without the digging.\n\nWrite better emails with the help of AI\n\nGemini in Gmail saves you time drafting or polishing emails, and suggested replies help you reply in one click, in your voice.\n\nGet caught up on email threads fast\nAsk Gemini to search your\u00a0inbox\u00a0\nEmail that\u2019s secure, private, and puts you in control\nWe never use your Gmail content for any ads purposes\n\nGmail uses industry-leading encryption for all messages you receive and send. We never use your Gmail content to personalize ads.\n\nGmail keeps over a billion people safe every day\nThe most advanced phishing protections available\nBest-in-class controls over emails you send\nGet more done with Gmail\nStay connected and get organized\n\nStart a Chat, jump into a video call with Meet, or collaborate in a Doc, all right from Gmail.\n\nGet more done faster\nNever forget to reply\nGmail is better on the app\nExpress yourself with emojis\n\nEmoji reactions are a fast and fun way to reply to emails, only available with the Gmail app.\n\nFind your emails faster\nSwitch between accounts\nBring the best of Gmail to your device\n\nWorks with other tools\n\nGmail works great with desktop clients like Microsoft Outlook, Apple Mail and Mozilla Thunderbird, including contact and event sync.\n\nStay productive, even offline\n\nGmail offline lets you read, reply, delete, and search your Gmail messages when you\u2019re not connected to the internet.\n\nExperience Gmail on any device\n\nEnjoy the ease and simplicity of Gmail, wherever you are.\n\nGmail is now part of Google Workspace\n\nCollaborate faster, from any device, anytime, all in one place.\n\nGoogle Workspace is a set of productivity and collaboration tools that helps individuals, teams, and businesses stay on top of everything. It is a flexible, innovative solution for business or personal use that includes all of your favorite apps like Gmail, Calendar, Drive, Docs, Meet, and more.\n\nLearn more\nFind the answers you need\nExpand all\n\nGmail has always had strong security as a foundation. We work hard to protect you from spam, phishing, and malware, before they reach your inbox. Our AI-enhanced spam-filtering capabilities block nearly 10 million spam emails every minute.\n\nNeed more help?\n\nBrowse tips and step-by-step guides made for both new users and power users.\n\nHelp Center\nShow the world how it\u2019s done.\n\nGet started with a more powerful Gmail.\n\nCreate an account\nFor work\n\nFollow our Blog\n\nPrivacy\nTerms\nAbout Google\nGoogle Products\nHelp\nHelp\nEnglish\nBahasa Indonesia\n\u010ce\u0161tina\nDansk\nDeutsch\nDeutsch \u2013 Schweiz\nEnglish\nEnglish \u2013 Australia\nEnglish \u2013 Canada\nEnglish \u2013 India\nEnglish \u2013 Indonesia\nEnglish \u2013 Ireland\nEnglish \u2013 Malaysia\nEnglish \u2013 New Zealand\nEnglish \u2013 Philippines\nEnglish \u2013 Singapore\nEnglish \u2013 South Africa\nEnglish \u2013 United Kingdom\nEspa\u00f1ol\nEspa\u00f1ol (Latinoam\u00e9rica)\nEspa\u00f1ol (Latinoam\u00e9rica) \u2013 Argentina\nEspa\u00f1ol (Latinoam\u00e9rica) \u2013 Estados Unidos\nEspa\u00f1ol (Latinoam\u00e9rica) \u2013 M\u00e9xico\nFran\u00e7ais\nFran\u00e7ais \u2013 Canada\nFran\u00e7ais \u2013 Suisse\nItaliano\nMagyar\nNederlands\nNorsk\nPolski\nPortugu\u00eas (Brasil)\nPortugu\u00eas (Portugal)\nSuomi\nSvenska\nTi\u1ebfng Vi\u1ec7t\nT\u00fcrk\u00e7e\n\u0420\u0443\u0441\u0441\u043a\u0438\u0439\n\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430\n\u05e2\u05d1\u05e8\u05d9\u05ea\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u2013 \u0645\u0635\u0631\n\u0641\u0627\u0631\u0633\u06cc\n\u0e44\u0e17\u0e22\n\ud55c\uad6d\uc5b4\n\u4e2d\u6587 (\u9999\u6e2f)\n\u4e2d\u6587\uff08\u7b80\u4f53\u4e2d\u6587\uff09\n\u4e2d\u6587\uff08\u7e41\u9ad4\u4e2d\u6587\uff09\n\u65e5\u672c\u8a9e",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-page-2.png"
+        },
+        {
+          "index": 3,
+          "url": "https://www.youtube.com/watch?v=vY8caUaAUUM&list=RDvY8caUaAUUM&start_radio=1",
+          "title": "Anand Telugu Movie || Nuvvena Full Song With Lyrics || Raja,Kamalini Mukherjee - YouTube",
+          "body_text": "IN\nSkip navigation\nSign in\n0:02 / 5:12\nAnand Telugu Movie || Nuvvena Full Song With Lyrics || Raja,Kamalini Mukherjee\nAditya Music\n36.7M subscribers\nSubscribe\n50K\nShare\nDownload\nSave\n18M views  12 years ago  #adityamusic #latesttelugusongs #telugusongs2025\nWatch & Enjoy Nuvvena lyrical Song from Anand, Starring Raja, Kamalini Mukherjee.Music composed by K.M.Radhakrishnan, Directed by Shekar Kammula & Produced by Shekar Kammula under the Banner of Amoigos Creations.\n\u00a0\u2026\n...more\n\n2,089 Comments\nSort by\nAdd a comment...\n@nadaridram9942\n3 years ago (edited)\nOka 25 \u0c38\u0c02\u0c35\u0c24\u0c4d\u0c38\u0c30\u0c3e\u0c32 \u0c05\u0c2c\u0c4d\u0c2c\u0c3e\u0c2f\u0c3f... \u0c2a\u0c28\u0c3f \u0c1a\u0c47\u0c38\u0c3f \u0c05\u0c32\u0c3f\u0c38\u0c3f\u0c2a\u0c4b\u0c2f\u0c3f \u0c07\u0c02\u0c1f\u0c3f\u0c15\u0c3f \u0c35\u0c46\u0c33\u0c4d\u0c32\u0c47 \u0c26\u0c3e\u0c30\u0c3f\u0c32\u0c4b .. \u0c0e\u0c15\u0c4d\u0c15\u0c21\u0c4b \u0c2c\u0c38\u0c4d\u0c38\u0c41 \u0c32\u0c4b \u0c12\u0c15 \u0c15\u0c3f\u0c1f\u0c4d\u0c1f\u0c3f\u0c15\u0c3f \u0c2a\u0c15\u0c4d\u0c15\u0c28 \u0c15\u0c42\u0c30\u0c4d\u0c1a\u0c4a\u0c28\u0c3f\u0c08 \u0c2a\u0c3e\u0c1f \u0c35\u0c3f\u0c02\u0c1f\u0c41..\u0c08 \u0c15\u0c3e\u0c2e\u0c46\u0c02\u0c1f\u0c4d \u0c30\u0c3e\u0c38\u0c4d\u0c24\u0c41\u0c28\u0c4d\u0c28\u0c3e\u0c21\u0c41. Ee \u0c2e\u0c42\u0c2e\u0c46\u0c02\u0c1f\u0c4d \u0c32\u0c4b \u0c28\u0c3e\u0c15\u0c41 \u0c15\u0c28\u0c3f\u0c2a\u0c3f\u0c02\u0c1a\u0c47 \u0c1a\u0c46\u0c1f\u0c4d\u0c32\u0c41 \u0c1a\u0c40\u0c15\u0c1f\u0c3f \u0c26\u0c42\u0c30\u0c02\u0c17\u0c3e \u0c1a\u0c46\u0c30\u0c41\u0c35\u0c41 , \u0c28\u0c15\u0c4d\u0c37\u0c24\u0c4d\u0c30\u0c02\u0c32\u0c41, \u0c1a\u0c02\u0c26\u0c2e\u0c3e\u0c2e.\u0c07\u0c26\u0c4b oo memorable moment... Miru kotte prathi like naku malli ee moment gurthuchesthu unntundi \n6.9K\nReply\n182 replies\n@suryaboddeda4218\n6 years ago (edited)\n\u0c06\u0c28\u0c02\u0c26\u0c4d & \u0c17\u0c4b\u0c26\u0c3e\u0c35\u0c30\u0c3f \u0c2a\u0c3e\u0c1f\u0c32\u0c41 \u0c0e\u0c2a\u0c4d\u0c2a\u0c41\u0c21\u0c41 \u0c35\u0c3f\u0c28\u0c4d\u0c28 \u0c05\u0c26\u0c4a\u0c15 \u0c24\u0c46\u0c32\u0c3f\u0c2f\u0c28\u0c3f \u0c05\u0c28\u0c41\u0c2d\u0c42\u0c24\u0c3f\u0c28\u0c3f \u0c07\u0c38\u0c4d\u0c24\u0c3e\u0c2f\u0c3f.. \u0c07\u0c26\u0c3f \u0c2a\u0c42\u0c30\u0c4d\u0c24\u0c3f\u0c17\u0c3e \u0c36\u0c47\u0c16\u0c30\u0c4d \u0c16\u0c2e\u0c4d\u0c2e\u0c41\u0c32 \u0c17\u0c3e\u0c30\u0c3f \u0c2e\u0c47\u0c1c\u0c3f\u0c15\u0c4d \u0c05\u0c28\u0c3f \u0c28 \u0c05\u0c2d\u0c3f\u0c2a\u0c4d\u0c30\u0c3e\u0c2f\u0c02.\n3K\nReply\n135 replies\n@NkStudy_Smart\n7 years ago\n\u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\u0c28\u0c3e \u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\n\u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\u0c28\u0c3e\u0c15\u0c41 \u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\n\u0c38\u0c42\u0c30\u0c4d\u0c2f\u0c41\u0c21\u0c32\u0c4d\u0c32\u0c46 \u0c38\u0c42\u0c26\u0c3f \u0c17\u0c41\u0c1a\u0c4d\u0c1a\u0c47 \u0c38\u0c41\u0c2a\u0c4d\u0c30\u0c2d\u0c3e\u0c24\u0c2e\u0c47\u0c28\u0c3e\n\u0c2e\u0c3e\u0c1f\u0c32\u0c3e\u0c21\u0c47 \u0c1a\u0c42\u0c2a\u0c41\u0c32\u0c28\u0c4d\u0c28\u0c3f \u0c2e\u0c4c\u0c28\u0c30\u0c3e\u0c17\u0c2e\u0c47\u0c28\u0c3e\n\u0c1a\u0c47\u0c30\u0c41\u0c35\u0c48\u0c28 \u0c26\u0c42\u0c30\u0c2e\u0c48\u0c28 \u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e...\n\u0c1a\u0c47\u0c30\u0c41\u0c35\u0c48\u0c28 \u0c26\u0c42\u0c30\u0c2e\u0c48\u0c28 \u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e...\n\u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e..\u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e..\n\n\u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\u0c28\u0c3e \u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\n\u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\u0c28\u0c3e\u0c15\u0c41 \u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\n\n\u0c2e\u0c47\u0c18\u0c2e\u0c32\u0c4d\u0c32\u0c46 \u0c38\u0c3e\u0c17\u0c3f \u0c35\u0c1a\u0c4d\u0c1a\u0c3f \u0c26\u0c3e\u0c39\u0c2e\u0c47\u0c26\u0c4b \u0c2a\u0c46\u0c02\u0c1a\u0c41\u0c24\u0c3e\u0c35\u0c41\n\u0c28\u0c40\u0c30\u0c41 \u0c17\u0c41\u0c02\u0c21\u0c46\u0c32\u0c4b\u0c28 \u0c26\u0c3e\u0c1a\u0c3f \u0c2e\u0c46\u0c30\u0c3f\u0c38\u0c3f \u0c2e\u0c3e\u0c2f\u0c2e\u0c4c\u0c24\u0c3e\u0c35\u0c41\n\u0c15\u0c32\u0c32\u0c47\u0c28\u0c3e..\u0c15\u0c28\u0c4d\u0c28\u0c40\u0c30\u0c47\u0c28\u0c3e..\n\u0c06..\u0c24\u0c47\u0c28\u0c46\u0c1f\u0c40\u0c17 \u0c32\u0c3e\u0c17 \u0c15\u0c41\u0c1f\u0c4d\u0c1f\u0c3f \u0c24\u0c40\u0c2a\u0c3f \u0c2e\u0c02\u0c1f \u0c30\u0c47\u0c2a\u0c41\u0c24\u0c3e\u0c35\u0c41\n\u0c2a\u0c41\u0c35\u0c4d\u0c35\u0c41\u0c32\u0c3e\u0c02\u0c1f\u0c3f \u0c17\u0c41\u0c02\u0c21\u0c46\u0c32\u0c4b\u0c28 \u0c26\u0c3e\u0c30\u0c2e\u0c32\u0c4d\u0c32\u0c46 \u0c26\u0c3e\u0c17\u0c41\u0c24\u0c3e\u0c35\u0c41\n\u0c28\u0c47\u0c28\u0c47\u0c28\u0c3e..\u0c28\u0c40 \u0c30\u0c42\u0c2a\u0c47\u0c28\u0c3e..\n\n\u0c1a\u0c47\u0c30\u0c41\u0c35\u0c48\u0c28 \u0c26\u0c42\u0c30\u0c2e\u0c48\u0c28 \u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e...\n\u0c1a\u0c47\u0c30\u0c41\u0c35\u0c48\u0c28 \u0c26\u0c42\u0c30\u0c2e\u0c48\u0c28 \u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e...\n\u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e..\u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e..\n\u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\u0c28\u0c3e \u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\n\u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\u0c28\u0c3e\u0c15\u0c41 \u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\n\n\u0c06..\u0c15\u0c4b\u0c2f\u0c3f\u0c32\u0c32\u0c4d\u0c32\u0c47 \u0c35\u0c1a\u0c4d\u0c1a\u0c3f \u0c0f\u0c26\u0c4b\n\u0c15\u0c4a\u0c24\u0c4d\u0c24 \u0c2a\u0c3e\u0c1f \u0c28\u0c47\u0c30\u0c4d\u0c2a\u0c41\u0c24\u0c3e\u0c35\u0c41\n\u0c15\u0c4a\u0c2e\u0c4d\u0c2e\u0c17\u0c4a\u0c02\u0c24\u0c41\u0c32\u0c4b\u0c28 \u0c17\u0c41\u0c02\u0c21\u0c46\n\u0c15\u0c4a\u0c1f\u0c4d\u0c1f\u0c41\u0c15\u0c41\u0c02\u0c1f\u0c47 \u0c28\u0c35\u0c4d\u0c35\u0c41\u0c24\u0c3e\u0c35\u0c41\n\u0c0f \u0c30\u0c3e\u0c17\u0c02..\u0c07\u0c26\u0c3f \u0c0f \u0c24\u0c3e\u0c33\u0c02..\n\u0c06..\u0c2e\u0c38\u0c15 \u0c0e\u0c28\u0c4d\u0c28\u0c46\u0c32\u0c32\u0c4d\u0c32\u0c46 \u0c28\u0c40\u0c35\u0c41 \u0c07\u0c38\u0c41\u0c15 \u0c24\u0c3f\u0c28\u0c4d\u0c28\u0c46 \u0c1a\u0c47\u0c30\u0c41\u0c24\u0c3e\u0c35\u0c41\n\u0c17\u0c38\u0c17\u0c38\u0c3e\u0c32 \u0c15\u0c4c\u0c17\u0c3f\u0c32\u0c02\u0c24 \u0c17\u0c41\u0c38\u0c17\u0c41\u0c38\u0c32\u0c4d\u0c32\u0c46 \u0c2e\u0c3e\u0c30\u0c41\u0c24\u0c3e\u0c35\u0c41\n\u0c2a\u0c4d\u0c30\u0c47\u0c2e\u0c02\u0c1f\u0c47..\u0c28\u0c40 \u0c2a\u0c4d\u0c30\u0c47\u0c2e\u0c47\u0c28\u0c3e..\n\n\u0c1a\u0c47\u0c30\u0c41\u0c35\u0c48\u0c28 \u0c26\u0c42\u0c30\u0c2e\u0c48\u0c28 \u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e...\n\u0c1a\u0c47\u0c30\u0c41\u0c35\u0c48\u0c28 \u0c26\u0c42\u0c30\u0c2e\u0c48\u0c28 \u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e...\n\u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e..\u0c06\u0c28\u0c02\u0c26\u0c2e\u0c47\u0c28\u0c3e..\n\u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\u0c28\u0c3e \u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\n\u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\u0c28\u0c3e\u0c15\u0c41 \u0c28\u0c41\u0c35\u0c4d\u0c35\u0c47\u0c28\u0c3e..\nMy one of my fav.\nRead more\n2.5K\nReply\n48 replies\n@Madhu_tej_world\n5 years ago (edited)\nEnni sarlu chusina chudali anipinchey movies... \nEnni sarlu songs vinna vinali anipinchey movies... \nAnand and Godhavari \nWho else agree \n1.1K\nReply\n27 replies\n@SV-nh7ww\n5 years ago\nI just love how Veturi garu weaves in the names of the characters in the film \"Rupa\" and \"Anand\" in the lyrics, especially in \"Nenena...nee rupena...\" and \"aanandamena...\" Masterful crafting of song lyrics!\n855\nReply\n13 replies\n@zadshl777\n6 years ago (edited)\n2026 anyone..?.... one of my favourite song.\n I'm still listening  amazing composition \n2.3K\nReply\n163 replies\n@gayatrit2971\n5 years ago\n2021 anyone? .... beautiful song\n136\nReply\n6 replies\n@tarun6444\n5 years ago\n\u0c08 \u0c2a\u0c3e\u0c1f \u0c35\u0c3f\u0c28\u0c3f \u0c35\u0c47\u0c1f\u0c42\u0c30\u0c3f \u0c17\u0c3e\u0c30\u0c3f \u0c17\u0c4a\u0c2a\u0c4d\u0c2a\u0c24\u0c28\u0c02 \u0c17\u0c41\u0c30\u0c3f\u0c02\u0c1a\u0c3f \u0c28\u0c46\u0c2e\u0c30\u0c41 \u0c35\u0c47\u0c38\u0c41\u0c15\u0c4b\u0c15 \u0c2a\u0c4b\u0c24\u0c47 \u0c16\u0c1a\u0c4d\u0c1a\u0c3f\u0c24\u0c02\u0c17\u0c3e \u0c05\u0c26\u0c3f \u0c2a\u0c46\u0c26\u0c4d\u0c26 \u0c24\u0c2a\u0c4d\u0c2a\u0c47..........\n174\nReply\n2 replies\n@sumabangaru123\n7 months ago\n2026 \u0c32\u0c4b \u0c0e\u0c35\u0c30\u0c2f\u0c3f\u0c28\u0c3e  \u0c35\u0c3f\u0c02\u0c1f\u0c41\u0c28\u0c4d\u0c28\u0c3e\u0c30\u0c3e\n144\nReply\n11 replies\n@telugukhabar643\n1 year ago\n2025 lo evaraina \u0c35\u0c3f\u0c02\u0c1f\u0c41\u0c28\u0c4d\u0c28\u0c3e\u0c30\u0c3e \n334\nReply\n15 replies\n@srilathapurnima7561\n7 years ago (edited)\n2019 lo kuda e song vinnavallu like cheyandi super song\n546\nReply\n12 replies\n@golinaveen7314\n7 years ago\n\"Gasagasala kowgilintha\"  what a cute romantic expression . veturi kalaniki vayasu eppudu 16 anipistundi.\n168\nReply\n3 replies\n@rishikkrishna8360\n4 years ago\n2022!! Still feels like a fresh breeze!\n188\nReply\n2 replies\n@vijayalakshmi-qq6no\n2 years ago\nManchi chitraniki adbutamaina \u0c38\u0c3e\u0c39\u0c3f\u0c24\u0c4d\u0c2f\u0c02 \u0c24\u0c4b\u0c21\u0c48\u0c24\u0c47.... , punnami \u0c35\u0c46\u0c28\u0c4d\u0c28\u0c46\u0c32 lo \u0c1c\u0c3e\u0c2c\u0c3f\u0c32\u0c3f la \u0c07\u0c38\u0c41\u0c15 \u0c24\u0c3f\u0c28\u0c4d\u0c28\u0c46\u0c32 pai chekke silpala vale \u0c2e\u0c28\u0c38\u0c41\u0c15\u0c41 \u0c38\u0c26\u0c3e \u0c06\u0c39\u0c4d\u0c32\u0c3e\u0c26\u0c3e\u0c28\u0c4d\u0c28\u0c3f \u0c15\u0c32\u0c3f\u0c17\u0c3f\u0c38\u0c4d\u0c24\u0c3e\u0c2f\u0c3f\n39\nReply\n@Navaneethasworld\n2 years ago\n2024 anybody listening\n144\nReply\n1 reply\n@suravarapuchalamareddysama362\n5 years ago\n\u0c2e\u0c02\u0c1a\u0c3f \u0c1a\u0c3f\u0c24\u0c4d\u0c30\u0c02\n\u0c2e\u0c02\u0c1a\u0c3f \u0c38\u0c3e\u0c39\u0c3f\u0c24\u0c4d\u0c2f\u0c02\n\u0c2e\u0c02\u0c1a\u0c3f \u0c38\u0c02\u0c17\u0c40\u0c24\u0c02\n\u0c2e\u0c28\u0c38\u0c41 \u0c2a\u0c4d\u0c30\u0c36\u0c3e\u0c02\u0c24\u0c24\nFeel Good Song\ufe0f\nRead more\n106\nReply\n1 reply\n@BhargaviSunkari-i9s\n1 year ago\nIt's almost 2025 anyone is listening still now\n68\nReply\n1 reply\n@suvarchalachowdary739\n6 years ago (edited)\nAnyone who was listening during 2020 lockdown month April??\n97\nReply\n2 replies\n@hemanth7119\n5 years ago (edited)\n\u0c36\u0c47\u0c16\u0c30\u0c4d \u0c15\u0c2e\u0c4d\u0c2e\u0c41\u0c32 \u0c17\u0c3e\u0c30\u0c3f \u0c26\u0c30\u0c4d\u0c36\u0c15\u0c24\u0c4d\u0c35\u0c02\u0c32\u0c4b \u0c05\u0c24\u0c4d\u0c2f\u0c02\u0c24 \u0c05\u0c26\u0c4d\u0c2d\u0c41\u0c24\u0c2e\u0c48\u0c28 \u0c38\u0c3e\u0c39\u0c3f\u0c24\u0c4d\u0c2f\u0c02 \u0c05\u0c02\u0c26\u0c3f\u0c02\u0c1a\u0c3f\u0c28 \u0c2e\u0c28 \u0c35\u0c47\u0c1f\u0c42\u0c30\u0c3f \u0c38\u0c41\u0c02\u0c26\u0c30 \u0c30\u0c3e\u0c2e\u0c2e\u0c42\u0c30\u0c4d\u0c24\u0c3f \u0c17\u0c3e\u0c30\u0c3f \u0c05\u0c30\u0c4d\u0c25\u0c35\u0c02\u0c24\u0c2e\u0c48\u0c28 \u0c17\u0c40\u0c24\u0c3e\u0c28\u0c3f\u0c15\u0c3f \u0c15\u0c46.\u0c2f\u0c02.\u0c30\u0c3e\u0c27\u0c3e\u0c15\u0c43\u0c37\u0c4d\u0c23\u0c28\u0c4d \u0c17\u0c3e\u0c30\u0c41 \u0c2e\u0c30\u0c2a\u0c41\u0c30\u0c3e\u0c28\u0c3f \u0c2e\u0c27\u0c41\u0c30\u0c3e\u0c24\u0c3f \u0c2e\u0c27\u0c41\u0c30\u0c2e\u0c48\u0c28 \u0c38\u0c02\u0c17\u0c40\u0c24\u0c02 \u0c38\u0c4d\u0c35\u0c30\u0c28\u0c30\u0c1a\u0c17\u0c3e \u0c15\u0c46.\u0c2f\u0c02.\u0c30\u0c3e\u0c27\u0c3e\u0c15\u0c43\u0c37\u0c4d\u0c23\u0c28\u0c4d \u0c17\u0c3e\u0c30\u0c41 \u0c36\u0c4d\u0c30\u0c47\u0c2f\u0c3e \u0c18\u0c4b\u0c37\u0c32\u0c4d \u0c17\u0c3e\u0c30\u0c41 \u0c06\u0c32\u0c2a\u0c3f\u0c02\u0c1a\u0c3f \u0c05\u0c2a\u0c42\u0c30\u0c4d\u0c35\u0c2e\u0c48\u0c28 \u0c2e\u0c27\u0c41\u0c30\u0c3e\u0c28\u0c41\u0c2d\u0c42\u0c24\u0c3f\u0c28\u0c3f \u0c15\u0c32\u0c3f\u0c17\u0c3f\u0c02\u0c1a\u0c3f\u0c28 \u0c08 \u0c2a\u0c3e\u0c1f\u0c32\u0c4b \u0c28\u0c1f\u0c41\u0c21\u0c41 \u0c30\u0c3e\u0c1c\u0c3e \u0c28\u0c1f\u0c3f \u0c15\u0c2e\u0c3e\u0c32\u0c3f\u0c28\u0c3f \u0c2e\u0c41\u0c16\u0c30\u0c4d\u0c1c\u0c40 \u0c17\u0c3e\u0c30\u0c3f \u0c05\u0c2d\u0c3f\u0c28\u0c2f\u0c02 \u0c35\u0c30\u0c4d\u0c23\u0c28\u0c3e\u0c24\u0c40\u0c24\u0c02.\n83\nReply\n1 reply\n@Sannmathi\n5 years ago\nAfter long time at morning 4:30 this song makes me to cry with joy, tears in eyes.....such great song gifted for telugu people....love you all who all are part of this song, and to all who feel same like me.\n189\nReply\n2 replies\n \n \n \n \nNext:\nBommanu Geesthey Telugu Lyrics I Bommarillu Songs | Siddharth,Genelia | DSP | Maa Paata Mee Nota\nMix - Anand Telugu Movie || Nuvvena Full Song With Lyrics || Raja,Kamalini Mukherjee\n4:11\nAnand Telugu Movie Songs - Nuvena Na Nuvena\nStar Maa Music\n3.4M\n16y ago\n4:27\nYamunatheeram Song Telugu Lyrics | Anand Movie | Raja, Kamalinee | Sekhar Kammula |KM Radha Krishnan\nMaa Paata Mee Nota\n155K\n3w ago\n3:35\nEm Sandeham Ledu Song Telugu Lyrics | Oohalu Gusagusalade Movie Songs | Naga Shaurya, Rashi Khanna\nEvident India Lyrical Songs\n6.3M\n5y ago\n5:14\nNeeli Meghamula lo Full Video Song | 35 Chinna Katha Kaadu | Vishwadev,Nivetha Thomas|Vivek Sagar\nAditya Music\n25M\n1y ago\n6:29\nChuttu Chutti - Lyrical | Narasimha | Rajnikanth | AR Rahman | Soundarya | KS Ravikumar\nSaregama Telugu\n3.6M\n3mo ago\n4:58\nNaalo Oohalaku Full Song ll Chandamama Songs ll Siva Balaji,Navadeep, Kajal,Sindhu Menon\nAditya Music\n3.9M\n10y ago\n5:46\nNenani Neevani Full Song With Telugu Lyrics | Kothabangarulokam | Varun Sandesh, Swetha Basu Prasad\nAditya Music\n7.6M\n10y ago\n5:05\nYeto Vellipoyindi Manasu Video Song  | Ninne Pelladatha Movie | Nagarjuna,Tabu\nAnnapurna Studios\n29M\n12y ago\n4:47\nKammani Ee Premalekha full Song | Guna Telugu Movie Songs | Kamal Haasan | Ilayaraja | Mango Music\nMango Music\n14M\n9y ago\n4:46\nMandaara Video Song | Bhaagamathie | Anushka | Shreya Ghoshal | Thaman S\nSaregama Telugu\n31M\n4y ago\n5:08\nSurya S/o Krishnan - Monna Kanipinchavu Telugu Video | Suriya | Harris Jayaraj\nSonyMusicSouthVEVO\n17M\n8y ago\n3:47\nAnand Telugu Movie Songs - Yamuna Theeram\nStar Maa Music\n8M\n16y ago\n3:50\nOohalu Gusagusalade Video Songs HD - Em Sandeham Ledu Song - Vel Records\nVel Records\n54M\n12y ago\n4:10\nKadalalle Video Song | Dear Comrade Telugu | Vijay Deverakonda | Rashmika | Bharat Kamma\nT-Series Telugu\n45M\n6y ago\n3:48\nVikramasimha - Yedemaina Sakhi Video | A.R. Rahman | Rajinikanth, Deepika\nSonyMusicSouthVEVO\n13M\n12y ago\n4:24\nFull video: Arare Arare | Happy Days Movie | Varun,Sandesh | Micky J M | Vanamali |A Sekhar Kammula\nT-Series Telugu\n11M\n2y ago\n4:40\nKajal Aggarwal Chandamama Video Song | Volga Videos\nVolga Video\n15M\n8y ago\n4:08\nChalla Gaali Thakuthunna \u0c24\u0c46\u0c32\u0c41\u0c17\u0c41 \u0c32\u0c3f\u0c30\u0c3f\u0c15\u0c4d\u0c38\u0c4d| Yevade Subramanyam | Nani,Malavika | Radhan | Telugu Songs\nLahari Music Telugu\n483K\n1y ago\n6:34\nYemaaya Chesave - Vintunnavaa Telugu Video | Naga Chaitanya, Samantha\nSonyMusicSouthVEVO\n21M\n7y ago\n5:39\nKonte Chuputho Video Song || Ananthapuram 1980 Movie Songs || Swati, Jai, Sasikumar\nSri Venkateswara Movies\n44M\n11y ago\n \n \n \n \nDid you know...\nYou can enjoy YouTube Music on your desktop. Listen on the web player.\nTerms apply. Cancel anytime\nNo thanks\nCheck it out",
+          "video": {
+            "index": 0,
+            "exists": true,
+            "visible": true,
+            "paused": false,
+            "ended": false,
+            "current_time": 23.007866,
+            "duration": 312.021,
+            "ready_state": 4,
+            "muted": false,
+            "width": 989,
+            "height": 556,
+            "advanced_by": 2.029
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-page-3.png",
+          "videos": [
+            {
+              "index": 0,
+              "exists": true,
+              "visible": true,
+              "paused": false,
+              "ended": false,
+              "current_time": 23.007866,
+              "duration": 312.021,
+              "ready_state": 4,
+              "muted": false,
+              "width": 989,
+              "height": 556,
+              "advanced_by": 2.029
+            },
+            {
+              "index": 1,
+              "exists": true,
+              "visible": false,
+              "paused": true,
+              "ended": false,
+              "current_time": 0,
+              "duration": 201.221,
+              "ready_state": 4,
+              "muted": true,
+              "width": 0,
+              "height": 0,
+              "advanced_by": 0.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

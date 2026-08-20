@@ -178,20 +178,43 @@ def _capture_browser_pages(context, sidepanel, safe_id: str) -> list[dict[str, o
         except Exception as exc:
             record["body_error"] = str(exc)
         try:
-            video = page.locator("video").first
-            if video.count():
-                page.wait_for_timeout(2_000)
-                record["video"] = video.evaluate(
-                    """element => ({
+            video_locator = page.locator("video")
+            if video_locator.count():
+                snapshot_script = """elements => elements.map((element, index) => {
+                    const rect = element.getBoundingClientRect();
+                    const style = getComputedStyle(element);
+                    return {
+                        index,
                         exists: true,
+                        visible: rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none',
                         paused: element.paused,
                         ended: element.ended,
                         current_time: element.currentTime,
                         duration: Number.isFinite(element.duration) ? element.duration : null,
                         ready_state: element.readyState,
                         muted: element.muted,
-                    })"""
+                        width: Math.round(rect.width),
+                        height: Math.round(rect.height),
+                    };
+                })"""
+                before_videos = video_locator.evaluate_all(snapshot_script)
+                page.wait_for_timeout(2_000)
+                after_videos = video_locator.evaluate_all(snapshot_script)
+                for item in after_videos:
+                    index = int(item.get("index", -1))
+                    before = next((candidate for candidate in before_videos if int(candidate.get("index", -2)) == index), {})
+                    item["advanced_by"] = round(float(item.get("current_time") or 0) - float(before.get("current_time") or 0), 3)
+                record["videos"] = after_videos
+                active = max(
+                    after_videos,
+                    key=lambda item: (
+                        bool(item.get("visible")),
+                        float(item.get("advanced_by") or 0) > 0.05,
+                        not bool(item.get("paused")),
+                        float(item.get("current_time") or 0),
+                    ),
                 )
+                record["video"] = active
         except Exception as exc:
             record["video_error"] = str(exc)
         page_screenshot = REPORT_DIR / f"{safe_id}-page-{visible_index}.png"

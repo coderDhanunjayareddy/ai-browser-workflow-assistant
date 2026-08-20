@@ -1,62 +1,38 @@
 {
   "mode": "extension_sidepanel_playwright",
-  "extension_id": "jhdcodghcijcagmebpelnmokmomhcfno",
-  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_s2_r4_20260820",
+  "extension_id": "nmfkjjmffjbbolcmkdpkeligpclgjldd",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_s4_20260820",
   "results": [
     {
-      "task_id": "D3-S2",
-      "status": "completed",
-      "duration_s": 128.5,
-      "phase": "completed",
+      "task_id": "D3-S4",
+      "status": "timeout",
+      "duration_s": 105.9,
+      "phase": "Executing",
       "error": "",
-      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 e254718 \u00b7 stabilization-20260820T164745Z \u00b7 pid 10040\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nMedia playback was executed through the verified HTML media control.\n\nReport answer: started playing \"Telugu music\" on YouTube.\n\nReport claim: The visible YouTube media element accepted the play operation.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open Gmail\nGmail: Secure, AI-Powered Email for Everyone | Google Wo\u2026\nhttps://workspace.google.com/intl/en-US/gmail/\nVerification: no_effect\nTime: 12.2s\nNavigating to: https://mail.google.com/\n\u26a1\nStep 2\nOPEN_NEW_TAB\nOpen the resolved destination for play Telugu music\nYouTube\nhttps://www.youtube.com/\nVerification: not_applicable\nTime: 17.2s\nOpened tab: 1313022539\nTab switch: verified\nOpened new tab: https://www.youtube.com/\n\u26a1\nStep 3\nFILL\nEnter media query \"Telugu music\" in the visible YouTube search field\nYouTube\nhttps://www.youtube.com/\nVerification: verified\nTime: 406ms\nWidget adapter filled autocomplete input without selectable suggestion.\n\u26a1\nStep 4\nKEYBOARD_SHORTCUT\nSubmit media search for \"Telugu music\"\nYouTube\nhttps://www.youtube.com/\nVerification: not_applicable\nTime: 543ms\nCDP keyboard_shortcut dispatched via accessibility_name grounding.\n\u26a1\nStep 5\nCLICK\nOpen the visible YouTube result \"Aaya Sher - Lyrical | The Paradise | Nani | Anirudh Ravichander | Srikanth Odela 4 minutes, 57 seconds\"\nYouTube\nhttps://www.youtube.com/watch?v=-I8WpNNboaw&list=RD-I8WpNNboaw&start_rad\u2026\nVerification: verified\nTime: 512ms\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 6\nMEDIA_CONTROL\nStart playback on the visible YouTube media element\nYouTube\nhttps://www.youtube.com/watch?v=-I8WpNNboaw&list=RD-I8WpNNboaw&start_rad\u2026\nVerification: verified\nTime: 57ms\nMedia play completed.\n\u2713 Done \u2014 6 of 6 steps succeeded",
-      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2.png",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-target.png",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 e254718 \u00b7 stabilization-20260820T170248Z \u00b7 pid 28468\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nExecuting\u2026\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nDiscover an evidence-backed destination for RBVRRIT college Portal.\n\n\u26a1\nStep 1\nNAVIGATE\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: verified\nTime: 34.1s\nNavigating to: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 2\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 7.4s\nOpened tab: 1920213642\nTab switch: verified\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 3\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 8.7s\nOpened tab: 1920213643\nTab switch: verified\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 4\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 5.2s\nOpened tab: 1920213644\nTab switch: verified\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 5\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 5.9s\nOpened tab: 1920213645\nTab switch: verified\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 6\nOPEN_NEW_TAB\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: not_applicable\nTime: 5.3s\nOpened tab: 1920213646\nOpened new tab: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u23f3\nExecuting Step 7: Search for the official destination of RBVRRIT college Portal",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-target.png",
       "target_controls": [
         {
-          "tag": "button",
+          "tag": "textarea",
           "role": "",
-          "aria_label": "Open search",
+          "aria_label": "",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
         },
         {
           "tag": "input",
-          "role": "combobox",
-          "aria_label": "Search",
+          "role": "",
+          "aria_label": "",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
         },
         {
-          "tag": "button",
+          "tag": "input",
           "role": "",
-          "aria_label": "Close search",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Close",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Open Tooltip: This feature is available with Google AI Pro or Ultra plans.",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Expand all",
+          "aria_label": "",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
@@ -72,33 +48,77 @@
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-page-1.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-1.png"
         },
         {
           "index": 2,
-          "url": "https://workspace.google.com/intl/en-US/gmail/",
-          "title": "Gmail: Secure, AI-Powered Email for Everyone | Google Workspace",
-          "body_text": "Gmail\nSkip to main content\nFor work\nSign in\nCreate an account\nNew: Gmail is entering the Gemini era\nLearn more\nAI-powered email for everyone\n\nSecure, smart and easy-to-use email, used by billions, now enhanced with Gemini.\n\nCreate an account\nFor work\nGemini in Gmail\n\nWith Gemini in Gmail, you get a personal, proactive inbox assistant that helps you respond quickly in your own voice, get things done faster, and turn information into answers without the digging.\n\nWrite better emails with the help of AI\n\nGemini in Gmail saves you time drafting or polishing emails, and suggested replies help you reply in one click, in your voice.\n\nGet caught up on email threads fast\nAsk Gemini to search your\u00a0inbox\u00a0\nEmail that\u2019s secure, private, and puts you in control\nWe never use your Gmail content for any ads purposes\n\nGmail uses industry-leading encryption for all messages you receive and send. We never use your Gmail content to personalize ads.\n\nGmail keeps over a billion people safe every day\nThe most advanced phishing protections available\nBest-in-class controls over emails you send\nGet more done with Gmail\nStay connected and get organized\n\nStart a Chat, jump into a video call with Meet, or collaborate in a Doc, all right from Gmail.\n\nGet more done faster\nNever forget to reply\nGmail is better on the app\nExpress yourself with emojis\n\nEmoji reactions are a fast and fun way to reply to emails, only available with the Gmail app.\n\nFind your emails faster\nSwitch between accounts\nBring the best of Gmail to your device\n\nWorks with other tools\n\nGmail works great with desktop clients like Microsoft Outlook, Apple Mail and Mozilla Thunderbird, including contact and event sync.\n\nStay productive, even offline\n\nGmail offline lets you read, reply, delete, and search your Gmail messages when you\u2019re not connected to the internet.\n\nExperience Gmail on any device\n\nEnjoy the ease and simplicity of Gmail, wherever you are.\n\nGmail is now part of Google Workspace\n\nCollaborate faster, from any device, anytime, all in one place.\n\nGoogle Workspace is a set of productivity and collaboration tools that helps individuals, teams, and businesses stay on top of everything. It is a flexible, innovative solution for business or personal use that includes all of your favorite apps like Gmail, Calendar, Drive, Docs, Meet, and more.\n\nLearn more\nFind the answers you need\nExpand all\n\nGmail has always had strong security as a foundation. We work hard to protect you from spam, phishing, and malware, before they reach your inbox. Our AI-enhanced spam-filtering capabilities block nearly 10 million spam emails every minute.\n\nNeed more help?\n\nBrowse tips and step-by-step guides made for both new users and power users.\n\nHelp Center\nShow the world how it\u2019s done.\n\nGet started with a more powerful Gmail.\n\nCreate an account\nFor work\n\nFollow our Blog\n\nPrivacy\nTerms\nAbout Google\nGoogle Products\nHelp\nHelp\nEnglish\nBahasa Indonesia\n\u010ce\u0161tina\nDansk\nDeutsch\nDeutsch \u2013 Schweiz\nEnglish\nEnglish \u2013 Australia\nEnglish \u2013 Canada\nEnglish \u2013 India\nEnglish \u2013 Indonesia\nEnglish \u2013 Ireland\nEnglish \u2013 Malaysia\nEnglish \u2013 New Zealand\nEnglish \u2013 Philippines\nEnglish \u2013 Singapore\nEnglish \u2013 South Africa\nEnglish \u2013 United Kingdom\nEspa\u00f1ol\nEspa\u00f1ol (Latinoam\u00e9rica)\nEspa\u00f1ol (Latinoam\u00e9rica) \u2013 Argentina\nEspa\u00f1ol (Latinoam\u00e9rica) \u2013 Estados Unidos\nEspa\u00f1ol (Latinoam\u00e9rica) \u2013 M\u00e9xico\nFran\u00e7ais\nFran\u00e7ais \u2013 Canada\nFran\u00e7ais \u2013 Suisse\nItaliano\nMagyar\nNederlands\nNorsk\nPolski\nPortugu\u00eas (Brasil)\nPortugu\u00eas (Portugal)\nSuomi\nSvenska\nTi\u1ebfng Vi\u1ec7t\nT\u00fcrk\u00e7e\n\u0420\u0443\u0441\u0441\u043a\u0438\u0439\n\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430\n\u05e2\u05d1\u05e8\u05d9\u05ea\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u2013 \u0645\u0635\u0631\n\u0641\u0627\u0631\u0633\u06cc\n\u0e44\u0e17\u0e22\n\ud55c\uad6d\uc5b4\n\u4e2d\u6587 (\u9999\u6e2f)\n\u4e2d\u6587\uff08\u7b80\u4f53\u4e2d\u6587\uff09\n\u4e2d\u6587\uff08\u7e41\u9ad4\u4e2d\u6587\uff09\n\u65e5\u672c\u8a9e",
+          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3DizeHaqiyHsSnseMPqr-IqQM&q=EhAkCUDwACoZQEmuOflS7_BvGKXvnNQGIjAp0yfKlamm6BCgFmOCmlUIpw-87zP4m16txV9ssLqXpRmhFzwV6E1StfHlXDbArLcyAVJaAUM",
+          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=izeHaqiyHsSnseMPqr-IqQM",
+          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:21:48Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=izeHaqiyHsSnseMPqr-IqQM\n",
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-page-2.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-2.png"
         },
         {
           "index": 3,
-          "url": "https://www.youtube.com/watch?v=-I8WpNNboaw&list=RD-I8WpNNboaw&start_radio=1",
-          "title": "Andamaina Premarani Video Song | Premikudu Movie | Prabhu Deva, Nagma | A. R. Rahman | Telugu Songs - YouTube",
-          "body_text": "IN\nSkip navigation\nSign in\n0:00 / 0:15\nAndamaina Premarani Video Song | Premikudu Movie | Prabhu Deva, Nagma | A. R. Rahman | Telugu Songs\nAditya Music\n36.7M subscribers\nSubscribe\n37K\nShare\nDownload\nSave\n14M views  5 months ago  #AdityaMusic #TeluguOldSongs #90sSongs\nWATCH Andamaina Premarani Video Song 4K from Premikudu Movie, Starring Prabhu Deva and Nagma, Music Composed by the musical maestro A. R. Rahman, Sung by  S. P. Balasubrahmanyam, Udit Narayan, and S.P.B. Pallavi only on Aditya Music.\n\u00a0\u2026\n...more\n\nComments\n \n \n \n \nNext:\nAwaara - Chiru Chiru Video | Yuvanshankar | Karthi\nMix - Andamaina Premarani Video Song | Premikudu Movie | Prabhu Deva, Nagma | A. R. Rahman | Telugu Songs\n5:47\nUrvashi Urvashi 4K Video Song | Premikudu Movie | Prabhu Deva, Nagma | A. R. Rahman | Shankar\nAditya Music\n1M\n3mo ago\n5:22\nVayyari Bhama Video Song | Thammudu Telugu Movie | Pawan Kalyan | Aditi Govitrikar | Mango Music\nMango Music\n2.8M\n1y ago\n6:22\nJeans Movie || Hayirabba Hayirabba Video Song || Prashanth, Aishwarya Rai || Shalimarcinema\nShalimar Telugu & Hindi Movies\n48M\n12y ago\n5:45\nSIVAJI - MUVAL MUVAL *TELUGU VIDEO SONG*\nManikanta Sai A\n1.1M\n11y ago\n5:34\nI - Manoharudu - Nuvvunte Naa Jathagaa Video with Lyrics |Vikram, Amy J. | A.R. Rahman\nSonyMusicSouthVEVO\n14M\n6mo ago\n4:56\nMerupu Kalalu Video Songs || Vennelave Vennelave Song - AR Rahman Hit Songs - Prabhudeva,Kajol\nRose Telugu Movies\n99M\n10y ago\n4:47\nKammani Ee Premalekha full Song | Guna Telugu Movie Songs | Kamal Haasan | Ilayaraja | Mango Music\nMango Music\n14M\n9y ago\n6:13\nYemi Cheyamanduve - Audio Song | Priyuraalu Pilichindi | A.R. Rahman | Shankar Mahadevan\nTelugu Classic Songs\n167K\n8d ago\n5:40\nMukkala Mukkabala Video Song 4K | Premikudu Movie | Prabhu Deva, Nagma | A. R. Rahman | Shankar\nAditya Music\n3.2M\n5mo ago\n4:40\nOye Video Songs | Oye Oye (Title Song) Video Song | Siddharth, Shamili | Sri Balaji Video\nSri Balaji Music\n35M\n13y ago\n6:09\nUsure Poyene Video Song || Villain Movie || Vikram, Aishwarya Rai, Priyamani\nSri Venkateswara Movies\n3.3M\n9y ago\n5:04\nAadavari Matalaku Arthale Verule Movie Video songs - Allantha Doorala - Venkatesh,Trisha\nGanesh Videos\n9.3M\n5y ago\n4:27\nLove Me Again - 4K Video Song | Nannaku Prematho | Jr NTR | Rakul Preet Singh | DSP\nJunglee Music Telugu\n2M\n9mo ago\n4:17\nEe Manase 4K Video Song | Tholiprema | Pawan Kalyan, Keerthi Reddy | SPB | Deva\nLahari Music\n50M\n3y ago\n5:39\nKonte Chuputho Video Song || Ananthapuram 1980 Movie Songs || Swati, Jai, Sasikumar\nSri Venkateswara Movies\n44M\n11y ago\n5:01\nJaamu Raatiri 4K Video Song | Kshana Kshanam | Venkatesh, Sridevi | M. M. Keeravani\nLahari Music\n4.9M\n11mo ago\n6:24\nJorsey Jorsey Telugu VIdeo Song || Magadheera Telugu Movie || Ram Charan , Kajal Agarwal\nGeetha Arts Music\n48M\n11y ago\n5:08\nMaate Vinadhuga Full Video Song | Vijay Deverakonda, Priyanka Jawalkar | Sid Sriram | Jakes Bejoy\nAditya Music PLAYBACK\n86M\n7y ago\n5:39\nKannula Baasalu Theliyavule Full Video Song || 7/G Brindavan Colony || Ravi Krishna, Sonia Agarwal\nShalimar Film Express\n88M\n11y ago\n5:52\nPriyuralu Pilichindi Telugu Movie | Yemi Cheyamanduve Video Song | Ajith | Aishwarya Rai | Tabu\nMango Music\n16M\n11y ago\n \n \n \n ",
+          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3DvjeHaoTRBPfRwcsPzrjeuQk&q=EhAkCUDwACoZQEmuOflS7_BvGL7vnNQGIjDQfoLkLs1DQnwzRoDOV4Vj7Qxg1tEbW-1xbu5Dsu_C_f42ews6ehheaUa2oCvSRiAyAVJaAUM",
+          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=vjeHaoTRBPfRwcsPzrjeuQk",
+          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:09Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=vjeHaoTRBPfRwcsPzrjeuQk\n",
           "video": {
-            "exists": true,
-            "paused": false,
-            "ended": false,
-            "current_time": 0,
-            "duration": 15,
-            "ready_state": 0,
-            "muted": false
+            "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-page-3.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-3.png"
+        },
+        {
+          "index": 4,
+          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3DxTeHat24MPOPseMP0bXwwQs&q=EhAkCUDwACoZQEmuOflS7_BvGMjvnNQGIjCU29coXVPES9Xzil26k760uTfuzSLXumbyChtvyrtULnc1u_bgh4IdOhOLh508aLQyAVJaAUM",
+          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=xTeHat24MPOPseMP0bXwwQs",
+          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:17Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=xTeHat24MPOPseMP0bXwwQs\n",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-4.png"
+        },
+        {
+          "index": 5,
+          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3DzjeHapj0PMyZseMPjK-kqAw&q=EhAkCUDwACoZQEmuOflS7_BvGM_vnNQGIjCTq9ar0xPpCH5ZQjJeKVIh4kXltQN8910Tzr2gRMSKkXn2ZiuoPgi1sCbgk9N6UZ0yAVJaAUM",
+          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=zjeHapj0PMyZseMPjK-kqAw",
+          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:24Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=zjeHapj0PMyZseMPjK-kqAw\n",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-5.png"
+        },
+        {
+          "index": 6,
+          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3D1TeHauCSHYPbseMPu9KbsQU&q=EhAkCUDwACoZQEmuOflS7_BvGNbvnNQGIjAkXx8GjpZ05AKMSojGEeVJHRmPejSvZuBSQq7Q76dIx90SRb16yvci3AMcwecPl8gyAVJaAUM",
+          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=1TeHauCSHYPbseMPu9KbsQU",
+          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:31Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=1TeHauCSHYPbseMPu9KbsQU\n",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-6.png"
+        },
+        {
+          "index": 7,
+          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3D2zeHas_bHrGMnesPpJrNuQ4&q=EhAkCUDwACoZQEmuOflS7_BvGNzvnNQGIjBtIlJWGUGqSVgDPZI-EYsGP301H7Rx3QjOfk2tY8ym9sUnFubnvnBzX1kYrBvQwoIyAVJaAUM",
+          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=2zeHas_bHrGMnesPpJrNuQ4",
+          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:37Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=2zeHas_bHrGMnesPpJrNuQ4\n",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-7.png"
+        },
+        {
+          "index": 8,
+          "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3DRBVRRIT%2Bcollege%2BPortal%2Bofficial%2Bportal%26sei%3D4TeHarWyE8HsseMPsen5-Ag&q=EhAkCUDwACoZQEmuOflS7_BvGOLvnNQGIjDlrLqi7C5d-_tbyPEaBm_ybvdsCYuUhJ4GYNiTXwdtM8XNe_Z7YfzlYnZpJ00LpuEyAVJaAUM",
+          "title": "https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=4TeHarWyE8HsseMPsen5-Ag",
+          "body_text": "\n\nAbout this page\n\nOur systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. Why did this happen?\n\n\n\nIP address: 2409:40f0:2a:1940:49ae:39f9:52ef:f06f\nTime: 2026-08-20T17:22:43Z\nURL: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal&sei=4TeHarWyE8HsseMPsen5-Ag\n",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-8.png"
         }
       ]
     }
