@@ -35,6 +35,43 @@ const CDP_ACTIONS = new Set([
 
 const DUPLICATE_SIDE_EFFECT_TERMS = /\b(delete|remove|purchase|payment|pay|place order|checkout|submit|send|publish|post|confirm|logout|sign out|transfer|book|reserve)\b/i
 
+export function keyboardDispatchParameters(key: string, modifiers = 0): Record<string, unknown> {
+  const normalized = String(key || '').trim()
+  const special: Record<string, { key: string; code: string; virtualKeyCode: number; text?: string }> = {
+    enter: { key: 'Enter', code: 'Enter', virtualKeyCode: 13, text: '\r' },
+    tab: { key: 'Tab', code: 'Tab', virtualKeyCode: 9 },
+    escape: { key: 'Escape', code: 'Escape', virtualKeyCode: 27 },
+    backspace: { key: 'Backspace', code: 'Backspace', virtualKeyCode: 8 },
+    delete: { key: 'Delete', code: 'Delete', virtualKeyCode: 46 },
+    arrowup: { key: 'ArrowUp', code: 'ArrowUp', virtualKeyCode: 38 },
+    arrowdown: { key: 'ArrowDown', code: 'ArrowDown', virtualKeyCode: 40 },
+    arrowleft: { key: 'ArrowLeft', code: 'ArrowLeft', virtualKeyCode: 37 },
+    arrowright: { key: 'ArrowRight', code: 'ArrowRight', virtualKeyCode: 39 },
+    space: { key: ' ', code: 'Space', virtualKeyCode: 32, text: ' ' },
+  }
+  const matched = special[normalized.toLowerCase()]
+  if (matched) {
+    return {
+      key: matched.key,
+      code: matched.code,
+      windowsVirtualKeyCode: matched.virtualKeyCode,
+      nativeVirtualKeyCode: matched.virtualKeyCode,
+      modifiers,
+      ...(matched.text ? { text: matched.text, unmodifiedText: matched.text } : {}),
+    }
+  }
+  const character = normalized.slice(0, 1)
+  const upper = character.toUpperCase()
+  const virtualKeyCode = upper ? upper.charCodeAt(0) : 0
+  return {
+    key: character,
+    code: /^[a-z]$/i.test(character) ? `Key${upper}` : character,
+    windowsVirtualKeyCode: virtualKeyCode,
+    nativeVirtualKeyCode: virtualKeyCode,
+    modifiers,
+  }
+}
+
 export function shouldAttemptCdpFallback(
   action: ExecutableAction,
   result: { success: boolean; verification?: { verified?: boolean; reason?: string } },
@@ -153,6 +190,7 @@ function runtimeGroundingExpression(selector: string, exactName: string | null):
       if (matches.length > 1) return { ok: false, reason: 'selector_ambiguous', matchCount: matches.length };
       const direct = matches[0] || null;
       if (direct && (!exactName || label(direct) === normalize(exactName))) {
+        direct.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
         const r = direct.getBoundingClientRect();
         return { ok: true, x: offsetX + r.left + r.width / 2, y: offsetY + r.top + r.height / 2, observedName: label(direct) };
       }
@@ -333,8 +371,12 @@ export class CdpController {
       const key = parts.pop() || ''
       const modifiers = parts.reduce((mask, part) => mask | ({ alt: 1, ctrl: 2, control: 2, meta: 4, command: 4, shift: 8 }[part.toLowerCase()] || 0), 0)
       if (!key) throw new Error('keyboard shortcut has no key')
-      await send(target, 'Input.dispatchKeyEvent', { type: 'keyDown', key, modifiers })
-      await send(target, 'Input.dispatchKeyEvent', { type: 'keyUp', key, modifiers })
+      await mouse('mouseMoved')
+      await mouse('mousePressed', { button: 'left', clickCount: 1 })
+      await mouse('mouseReleased', { button: 'left', clickCount: 1 })
+      const keyParameters = keyboardDispatchParameters(key, modifiers)
+      await send(target, 'Input.dispatchKeyEvent', { type: 'rawKeyDown', ...keyParameters })
+      await send(target, 'Input.dispatchKeyEvent', { type: 'keyUp', ...keyParameters, text: '', unmodifiedText: '' })
       return
     }
     if (action.action_type === 'hover') {

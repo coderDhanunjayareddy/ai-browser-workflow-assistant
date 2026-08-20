@@ -32,6 +32,7 @@ const {
   chooseAccessibilityBackendNode,
   chooseExactAccessibilityBackendNode,
   countFrames,
+  keyboardDispatchParameters,
   shouldAttemptCdpFallback,
   visionHitCompatible,
 } = require(path.join(outDir, 'background', 'cdp_control.js'))
@@ -79,6 +80,18 @@ test('fallback is limited to safe, non-consequential no-effect actions', () => {
   assert.equal(shouldAttemptCdpFallback(action(), { success: true, verification: { reason: 'verified' } }), false)
 })
 
+test('special keys include the CDP code and virtual-key fields required by Chromium', () => {
+  assert.deepEqual(keyboardDispatchParameters('Enter'), {
+    key: 'Enter',
+    code: 'Enter',
+    windowsVirtualKeyCode: 13,
+    nativeVirtualKeyCode: 13,
+    modifiers: 0,
+    text: '\r',
+    unmodifiedText: '\r',
+  })
+})
+
 test('frame inventory recursively counts nested frames', () => {
   const result = countFrames({
     frame: { id: 'root' },
@@ -110,6 +123,11 @@ test('box model center is converted from page to viewport coordinates', () => {
     centerFromBoxModel({ content: [100, 200, 140, 200, 140, 240, 100, 240] }, 10, 20),
     { x: 110, y: 200 },
   )
+})
+
+test('stable selector grounding scrolls an exact offscreen target into the viewport before input', () => {
+  const source = fs.readFileSync(path.join(root, 'src/background/cdp_control.ts'), 'utf8')
+  assert.match(source, /direct\.scrollIntoView\(\{ block: 'center', inline: 'center', behavior: 'instant' \}\)/)
 })
 
 test('vision coordinates require a current compatible hit target', () => {

@@ -89,6 +89,20 @@ test('contract fails closed for an ungrounded click, invalid origin, or missing 
   assert.throws(() => buildCanonicalActionContract(clickAction(), context, ''), /idempotency key/)
 })
 
+test('navigation-result click preserves its exact URL postcondition', () => {
+  const contract = buildCanonicalActionContract(clickAction({
+    grounding: {
+      source: 'dom_snapshot',
+      accessibility_name: 'Telugu music result',
+      role: 'link',
+      semantic_kind: 'navigation_result',
+      expected_url_path: '/watch',
+    },
+  }), context, 'media-result-key')
+  assert.equal(contract.expected_effect.kind, 'url_change')
+  assert.equal(contract.expected_effect.url_path, '/watch')
+})
+
 test('explicit navigation can bootstrap from New Tab but not another privileged page', () => {
   const navigate = clickAction({
     action_id: 'navigate-1', action_type: 'navigate', target_selector: '', grounding: {},
@@ -126,4 +140,17 @@ test('production service worker has one click mutation route and no selector-rec
   assert.match(clickBranch, /cdpController\.execute/)
   assert.doesNotMatch(clickBranch, /executeAction|executeActionV2|findRecoverySelector|\.click\(/)
   assert.match(worker, /Click rejected outside the canonical CDP dispatch path/)
+})
+
+test('production service worker dispatches keyboard shortcuts through trusted CDP input', () => {
+  const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
+  const keyboardBranch = worker.match(/if \(action\.action_type === 'keyboard_shortcut'\) \{[\s\S]*?\n    \}/)?.[0] || ''
+  assert.match(keyboardBranch, /cdpController\.execute/)
+  assert.match(worker, /service_worker>policy>canonical_cdp_keyboard/)
+})
+
+test('navigation waits for redirect chains to settle before verification or a dependent action', () => {
+  const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
+  assert.match(worker, /await waitForTabNavigationSettle\(tab\.id, tabUrl\)/)
+  assert.match(worker, /stableSamples >= 6/)
 })

@@ -171,6 +171,11 @@ def _is_current_page_interaction(text: str) -> bool:
             "next page",
             "paged list",
             "pagination",
+            "play",
+            "listen",
+            "music",
+            "song",
+            "video",
         )
     )
 
@@ -237,6 +242,11 @@ def _is_interactive_task(text: str) -> bool:
             "next page",
             "paged list",
             "pagination",
+            "play",
+            "listen",
+            "music",
+            "song",
+            "video",
         )
     )
 
@@ -258,6 +268,9 @@ def _target_state_reached(prior_steps: list[Any]) -> bool:
                 "dashboard loaded",
                 "welcome page",
                 "target state reached",
+                "media play completed",
+                "playback started",
+                "video playing",
             )
         ):
             return True

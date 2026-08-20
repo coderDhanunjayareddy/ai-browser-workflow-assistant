@@ -36,7 +36,7 @@ import {
   normalizeOpenTabUrl,
   parseTabReference,
 } from './tab_control'
-import { isGroundedBrowserTarget } from './target_tab'
+import { isGroundedBrowserTarget, isSelectableBrowserTarget } from './target_tab'
 import {
   validateServiceWorkerMessage,
   type ExecutableAction,
@@ -73,7 +73,7 @@ async function getTargetTab(): Promise<chrome.tabs.Tab | undefined> {
   try {
     const tabs = await chrome.tabs.query({ active: true })
     if (tabs && tabs.length > 0) {
-      const targetTab = tabs.find(t => t.url && !t.url.startsWith('chrome-extension://'))
+      const targetTab = tabs.find(t => isSelectableBrowserTarget(t.url))
       if (targetTab) return targetTab
     }
   } catch (e) {
@@ -84,7 +84,7 @@ async function getTargetTab(): Promise<chrome.tabs.Tab | undefined> {
     const targetTab = tabs
       .filter(t => {
         const url = t.url ?? ''
-        return /^https?:\/\//.test(url)
+        return isSelectableBrowserTarget(url)
       })
       .sort((a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0))[0]
     if (targetTab) return targetTab
@@ -93,7 +93,7 @@ async function getTargetTab(): Promise<chrome.tabs.Tab | undefined> {
   }
   try {
     const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    return currentTab
+    return isSelectableBrowserTarget(currentTab?.url) ? currentTab : undefined
   } catch (e) {
     console.error('Error querying current window active tab:', e)
   }
@@ -254,37 +254,29 @@ async function waitForActiveTabComplete(tabId: number): Promise<void> {
   })
 }
 
-async function waitForTabUrlReady(tabId: number, expectedUrl: string): Promise<chrome.tabs.Tab | null> {
-  const expectedPrefix = expectedUrl.replace(/#.*$/, '')
-  const initial = await chrome.tabs.get(tabId).catch(() => null)
-  const initialUrl = initial?.url || ''
-  if (initial && initialUrl !== 'about:blank' && initialUrl.startsWith(expectedPrefix) && initial.status === 'complete') {
-    return initial
+async function waitForTabNavigationSettle(
+  tabId: number,
+  previousUrl: string,
+  timeoutMs = 12_000,
+): Promise<chrome.tabs.Tab | null> {
+  const deadline = Date.now() + timeoutMs
+  let lastSignature = ''
+  let stableSamples = 0
+  let latest: chrome.tabs.Tab | null = null
+  while (Date.now() < deadline) {
+    latest = await chrome.tabs.get(tabId).catch(() => null)
+    const currentUrl = latest?.url || ''
+    const signature = `${currentUrl}|${latest?.status || ''}`
+    if (currentUrl && currentUrl !== previousUrl && latest?.status === 'complete') {
+      stableSamples = signature === lastSignature ? stableSamples + 1 : 1
+      if (stableSamples >= 6) return latest
+    } else {
+      stableSamples = 0
+    }
+    lastSignature = signature
+    await sleep(250)
   }
-
-  return await new Promise<chrome.tabs.Tab | null>((resolve) => {
-    let settled = false
-    const finish = async () => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      chrome.tabs.onUpdated.removeListener(listener)
-      resolve(await chrome.tabs.get(tabId).catch(() => null))
-    }
-    const timer = setTimeout(finish, 12_000)
-
-    async function listener(updatedTabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) {
-      if (updatedTabId !== tabId) return
-      const current = changeInfo.url || tab.url || ''
-      const latest = await chrome.tabs.get(tabId).catch(() => null)
-      const latestUrl = latest?.url || current
-      if (latest && latestUrl !== 'about:blank' && latestUrl.startsWith(expectedPrefix) && latest.status === 'complete') {
-        await finish()
-      }
-    }
-
-    chrome.tabs.onUpdated.addListener(listener)
-  })
+  return latest
 }
 
 function isRestrictedUrl(url: string | undefined): boolean {
@@ -483,6 +475,7 @@ async function handleExecuteAction(
         return
       }
       await chrome.tabs.update(tab.id, { url })
+      await waitForTabNavigationSettle(tab.id, tabUrl)
       const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, {
         success: true,
         message: `Navigating to: ${url}`,
@@ -505,6 +498,25 @@ async function handleExecuteAction(
         postconditionResult,
         contract,
         'service_worker>policy>canonical_cdp_click',
+      )
+      await persistAdapterTrace(action, completed)
+      sendResponse({ result: completed })
+      return
+    }
+
+    if (action.action_type === 'keyboard_shortcut') {
+      if (contract.browser_binding.frame_id !== 'top') {
+        sendResponse({ error: 'Browser action rejected: exact child-frame dispatch is not yet supported by the canonical keyboard executor.' })
+        return
+      }
+      const cdpExecution = await cdpController.execute(tab.id, action)
+      const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, cdpExecution, startedAt)
+      const exactPostcondition = await verifyExactPostconditionWithRetry(tab.id, contract)
+      const postconditionResult = applyExactPostcondition(verifiedResult, exactPostcondition)
+      const completed = attachCanonicalContractEvidence(
+        postconditionResult,
+        contract,
+        'service_worker>policy>canonical_cdp_keyboard',
       )
       await persistAdapterTrace(action, completed)
       sendResponse({ result: completed })
@@ -809,7 +821,7 @@ async function executeTabControlAction(action: ExecutableAction): Promise<(Basic
     let loaded: chrome.tabs.Tab = opened
     if (typeof opened.id === 'number') {
       timeline.navigation_wait_started_ms = Date.now()
-      loaded = await waitForTabUrlReady(opened.id, url) || opened
+      loaded = await waitForTabNavigationSettle(opened.id, 'about:blank') || opened
       timeline.navigation_complete_ms = Date.now()
     }
     tabWorkspace = registerTab(tabWorkspace, tabSnapshotFromChromeTab(opened))

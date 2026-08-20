@@ -6,8 +6,10 @@ import type {
   SuggestedAction,
 } from '../types'
 
-function expectedEffectKind(actionType: string): ExpectedEffectKind {
+function expectedEffectKind(action: SuggestedAction): ExpectedEffectKind {
+  const actionType = action.action_type
   if (actionType === 'navigate') return 'url_change'
+  if (actionType === 'click' && action.grounding?.expected_url_path) return 'url_change'
   if (actionType === 'click') return 'target_state_change'
   if (actionType === 'fill') return 'value_change'
   if (['select_option', 'choose_date'].includes(actionType)) return 'selection_change'
@@ -110,8 +112,9 @@ export function buildCanonicalActionContract(
       title: resourceTitle,
     },
     expected_effect: {
-      kind: expectedEffectKind(action.action_type),
-      description: action.description || `${action.action_type} must produce a verified ${expectedEffectKind(action.action_type)}`,
+      kind: expectedEffectKind(action),
+      description: action.description || `${action.action_type} must produce a verified ${expectedEffectKind(action)}`,
+      url_path: grounding?.expected_url_path?.trim() || null,
     },
     safety_class: action.safety_level,
     idempotency_key: idempotencyKey,

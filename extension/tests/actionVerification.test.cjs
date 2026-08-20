@@ -75,6 +75,31 @@ test('click reports no effect when state is unchanged', () => {
   assert.equal(verification.reason, 'no_effect')
 })
 
+test('navigation-result click requires the declared URL path, not a generic DOM change', () => {
+  const navigationClick = {
+    ...action('click'),
+    grounding: { expected_url_path: '/watch' },
+  }
+  const wrongPage = verifyActionEffect(
+    navigationClick,
+    result('click'),
+    state({ url: 'https://www.youtube.com/results?search_query=telugu+music' }),
+    state({ url: 'https://www.youtube.com/results?search_query=telugu+music', domSignature: 'lazy-loaded' }),
+    30,
+  )
+  assert.equal(wrongPage.verified, false)
+
+  const watchPage = verifyActionEffect(
+    navigationClick,
+    result('click'),
+    state({ url: 'https://www.youtube.com/results?search_query=telugu+music' }),
+    state({ url: 'https://www.youtube.com/watch?v=synthetic', domSignature: 'watch-page' }),
+    30,
+  )
+  assert.equal(watchPage.verified, true)
+  assert.equal(watchPage.signals.expected_url_path_matched, true)
+})
+
 test('fill is verified when value changes', () => {
   const verification = verifyActionEffect(
     action('fill', 'Ada'),

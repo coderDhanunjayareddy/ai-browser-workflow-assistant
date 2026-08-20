@@ -31,3 +31,7 @@ def test_affirmative_attachment_still_creates_upload_blueprint_and_target() -> N
     assert _is_upload_workflow(task) is True
     assert workflow_category(task) == "file_upload"
     assert _targets(task)["uploaded_files"] == 1
+
+
+def test_media_playback_is_an_interactive_browser_workflow() -> None:
+    assert workflow_category("Play Telugu music on YouTube") == "interactive_browser_task"

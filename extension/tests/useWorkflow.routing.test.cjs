@@ -70,7 +70,7 @@ const {
   shouldRequestSemanticRecovery,
 } = require(path.join(outDir, 'sidepanel/hooks/useWorkflow.js'))
 const { mergeInteractiveElementLists } = require(path.join(outDir, 'content/extractor.js'))
-const { isGroundedBrowserTarget } = require(path.join(outDir, 'background/target_tab.js'))
+const { isGroundedBrowserTarget, isSelectableBrowserTarget } = require(path.join(outDir, 'background/target_tab.js'))
 
 test.after(() => {
   fs.rmSync(outDir, { recursive: true, force: true })
@@ -82,6 +82,16 @@ test('browser control accepts only grounded http/https page tabs', () => {
   assert.equal(isGroundedBrowserTarget('chrome-extension://abc/sidepanel.html'), false)
   assert.equal(isGroundedBrowserTarget('chrome://extensions'), false)
   assert.equal(isGroundedBrowserTarget('about:blank'), false)
+})
+
+test('target selection permits only web pages and safe navigation bootstrap tabs', () => {
+  assert.equal(isSelectableBrowserTarget('https://web.whatsapp.com/'), true)
+  assert.equal(isSelectableBrowserTarget('chrome://newtab/'), true)
+  assert.equal(isSelectableBrowserTarget('chrome://new-tab-page/'), true)
+  assert.equal(isSelectableBrowserTarget('about:blank'), true)
+  assert.equal(isSelectableBrowserTarget('chrome-extension://abc/sidepanel.html'), false)
+  assert.equal(isSelectableBrowserTarget('chrome://extensions/'), false)
+  assert.equal(isSelectableBrowserTarget('file:///C:/secret.txt'), false)
 })
 
 test('each newly submitted task receives a fresh mission session identity', () => {

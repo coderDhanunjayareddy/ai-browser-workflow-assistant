@@ -401,6 +401,22 @@ def _failed_prior_for_url(url: str, prior_steps: list[Any]) -> str | None:
     return None
 
 
+def _objective_navigation_failure(objective: DestinationObjective, prior_steps: list[Any]) -> str | None:
+    if objective.explicit_url:
+        return _failed_prior_for_url(objective.explicit_url, prior_steps)
+    if objective.app_id:
+        return _failed_prior_for_url(_APP_BY_ID[objective.app_id].entry_url, prior_steps)
+    return None
+
+
+def _has_prior_destination_attempt(prior_steps: list[Any]) -> bool:
+    return any(
+        str(_step_data(step).get("action_type") or "").lower() in {"navigate", "open_new_tab"}
+        and bool(_safe_http_url(str(_step_data(step).get("value") or "")))
+        for step in prior_steps
+    )
+
+
 def _navigation_failure_outcome(destination_name: str, failure: str) -> tuple[str, str]:
     if any(term in failure for term in ("invalid canonical action contract", "contract_mismatch", "contract mismatch")):
         return (
@@ -460,8 +476,15 @@ def _decision(task: str, page_context: Any, prior_steps: list[Any], user_context
     current_url = str(getattr(page_context, "url", "") or "")
     completed_count = 0
     pending: DestinationObjective | None = None
-    for objective in objectives:
+    for index, objective in enumerate(objectives):
         if _objective_satisfied(objective, current_url, prior_steps, user_context):
+            completed_count += 1
+            continue
+        # A terminal failure in one objective must not erase independent work
+        # later in a compound instruction. Preserve the attempted destination
+        # and continue with the next objective; a single-objective task still
+        # reports its failure immediately below.
+        if _objective_navigation_failure(objective, prior_steps) and index < len(objectives) - 1:
             completed_count += 1
             continue
         pending = objective
@@ -567,6 +590,237 @@ def _action_id(session_id: str, objective: DestinationObjective, url: str) -> st
     return f"destination-{digest}"
 
 
+def _step_data(step: Any) -> dict[str, Any]:
+    return step.model_dump() if hasattr(step, "model_dump") else dict(step)
+
+
+def _successful_media_step(prior_steps: list[Any], action_type: str, marker: str = "") -> bool:
+    for step in prior_steps:
+        data = _step_data(step)
+        if str(data.get("action_type") or "").lower() != action_type:
+            continue
+        result = str(data.get("execution_result") or "").lower()
+        if any(term in result for term in ("fail", "error", "no_effect", "no effect", "rejected")):
+            continue
+        combined = " ".join(str(data.get(key) or "") for key in ("description", "value", "execution_result")).lower()
+        if not marker or marker.lower() in combined:
+            return True
+    return False
+
+
+def _media_query(task: str) -> str:
+    query = re.sub(r"^\s*(?:please\s+)?(?:play|listen\s+to)\s+", "", task, flags=re.IGNORECASE)
+    query = re.sub(r"\s+(?:on|using|in)\s+(?:the\s+)?(?:youtube|you\s*tube|yt)\s*$", "", query, flags=re.IGNORECASE)
+    return " ".join(query.strip(" .,;").split()) or "music"
+
+
+def _element_data(element: Any) -> dict[str, Any]:
+    return element.model_dump() if hasattr(element, "model_dump") else dict(element)
+
+
+def _element_label(data: dict[str, Any]) -> str:
+    return " ".join(str(data.get(key) or "") for key in (
+        "text", "accessibility_name", "aria_label", "placeholder", "title", "name", "role", "type",
+    )).lower()
+
+
+def _youtube_watch_selector(href: str) -> str | None:
+    """Return a stable selector for the visible YouTube title link.
+
+    YouTube renders a hidden thumbnail link and a visible ``#video-title``
+    link for the same video.  Preserve the video identity while explicitly
+    selecting the accessible title variant instead of reusing an extractor
+    selector that may point at either duplicate.
+    """
+    parsed = urlparse(str(href or ""))
+    video_id = parse_qs(parsed.query).get("v", [""])[0]
+    if not re.fullmatch(r"[A-Za-z0-9_-]{6,20}", video_id):
+        return None
+    return f'a#video-title[href*="v={video_id}"]'
+
+
+def _visible_elements(page_context: Any) -> list[dict[str, Any]]:
+    return [
+        data for data in (_element_data(item) for item in list(getattr(page_context, "interactive_elements", []) or []))
+        if data.get("visible", True) and str(data.get("selector") or "")
+    ]
+
+
+def _media_action(
+    session_id: str,
+    stage: str,
+    action_type: str,
+    selector: str,
+    value: str,
+    description: str,
+    reasoning: str,
+    grounding: dict[str, Any] | None = None,
+) -> AnalyzeResponse:
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis=reasoning,
+        outcome_kind="act",
+        suggested_actions=[SuggestedAction(
+            action_id=f"media-{hashlib.sha256(f'{session_id}|{stage}'.encode()).hexdigest()[:16]}",
+            action_type=action_type,
+            target_selector=selector,
+            value=value,
+            description=description,
+            reasoning=reasoning,
+            confidence=0.9,
+            safety_level="safe",
+            grounding=grounding or {},
+            provenance=[{
+                "source_type": "system",
+                "source_id": "capability_adapter.media.v1",
+                "trust": "trusted",
+                "labels": ["media_playback", "visible_semantic_grounding", stage],
+            }],
+        )],
+    )
+
+
+def _resolve_media_playback(
+    *,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    prior_steps: list[Any],
+) -> AnalyzeResponse | None:
+    objectives = decompose_destination_objectives(task)
+    media_objective = next((
+        objective for objective in objectives
+        if objective.capability == "media_playback" and objective.app_id == "youtube"
+    ), None)
+    if media_objective is None:
+        return None
+    current_url = str(getattr(page_context, "url", "") or "")
+    if not _host_matches(current_url, _APP_BY_ID["youtube"].domains):
+        return None
+    parsed = urlparse(current_url)
+    elements = _visible_elements(page_context)
+    query = _media_query(media_objective.text)
+
+    if parsed.path == "/watch":
+        if _successful_media_step(prior_steps, "media_control", "media play completed"):
+            blocked_apps = [
+                _APP_BY_ID[objective.app_id].display_name
+                for objective in objectives
+                if objective.app_id and _objective_navigation_failure(objective, prior_steps)
+            ]
+            partial_prefix = (
+                f"Partially completed: {', '.join(blocked_apps)} could not be verified and its existing page was preserved; "
+                if blocked_apps else ""
+            )
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis="Media playback was executed through the verified HTML media control.",
+                outcome_kind="report",
+                report=ReportOutcome(
+                    answer=f'{partial_prefix}started playing "{query}" on YouTube.',
+                    claim=(
+                        "The visible YouTube media element accepted the play operation; earlier blocked objectives were not retried."
+                        if blocked_apps else "The visible YouTube media element accepted the play operation."
+                    ),
+                ),
+                suggested_actions=[],
+                sgv_verified=True,
+                goal_convergence=True,
+                backend_authoritative_report=True,
+            )
+        return _media_action(
+            session_id, "play", "media_control", "video", '{"operation":"play"}',
+            "Start playback on the visible YouTube media element",
+            "Use the registered media capability only after a visible YouTube watch page is open.",
+        )
+
+    if parsed.path == "/results":
+        watch_candidates = [
+            data for data in elements
+            if "/watch?" in str(data.get("href") or "")
+            and _youtube_watch_selector(str(data.get("href") or ""))
+        ]
+        query_tokens = {token for token in _normalize(query).split() if len(token) > 2}
+
+        def watch_label(data: dict[str, Any]) -> str:
+            return next((
+                str(data.get(key) or "").strip()
+                for key in ("accessibility_name", "aria_label", "text")
+                if str(data.get(key) or "").strip()
+            ), "")
+
+        def watch_score(data: dict[str, Any]) -> tuple[float, int]:
+            label = watch_label(data)
+            normalized = _normalize(label)
+            compact_label = " ".join(label.lower().split())
+            score = min(len(label), 160) / 160
+            score += 0.35 * len(query_tokens.intersection(normalized.split()))
+            if re.fullmatch(r"(?:\d+:\d+\s*)+(?:now playing)?", compact_label):
+                score -= 2.0
+            if "now playing" in normalized and len(normalized.split()) <= 6:
+                score -= 1.0
+            return score, len(label)
+
+        watch_result = max(watch_candidates, key=watch_score) if watch_candidates else None
+        if watch_result:
+            exact_name = watch_label(watch_result)
+            stable_selector = _youtube_watch_selector(str(watch_result.get("href") or ""))
+            if not stable_selector:
+                return None
+            return _media_action(
+                session_id, "open-result", "click", stable_selector, "",
+                f'Open the visible YouTube result "{exact_name or query}"',
+                "Ground the choice to a visible YouTube watch-result link; do not use unobserved coordinates.",
+                grounding={
+                    "accessibility_name": exact_name,
+                    "role": "link",
+                    "semantic_kind": "navigation_result",
+                    "expected_url_path": "/watch",
+                } if exact_name else None,
+            )
+
+    filled = _successful_media_step(prior_steps, "fill", "media query")
+    search_field = next((
+        data for data in elements
+        if "search" in _element_label(data)
+        and str(data.get("type") or "").lower() in {"input", "textarea", "text", "search"}
+    ), None)
+    if not filled and search_field:
+        return _media_action(
+            session_id, "fill-query", "fill", str(search_field["selector"]), query,
+            f'Enter media query "{query}" in the visible YouTube search field',
+            "Use the visible semantic search field exposed by the current media application.",
+        )
+    if filled and search_field and not _successful_media_step(prior_steps, "keyboard_shortcut", "submit media search"):
+        return _media_action(
+            session_id, "submit-query", "keyboard_shortcut", str(search_field["selector"]), "Enter",
+            f'Submit media search for "{query}"',
+            "Submit from the uniquely grounded search field and verify that the results URL opens.",
+        )
+
+    waits = sum(
+        1 for step in prior_steps
+        if str(_step_data(step).get("action_type") or "").lower() == "wait"
+        and "media controls" in str(_step_data(step).get("description") or "").lower()
+    )
+    if waits < 2:
+        return _media_action(
+            session_id, f"wait-{waits + 1}", "wait", "window", "1000",
+            "Wait briefly for visible media controls or results",
+            "The expected semantic media control is not visible yet; use one bounded refresh wait.",
+        )
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis="The media workflow stopped after bounded waits because the required visible control never appeared.",
+        outcome_kind="ask",
+        clarification_question=(
+            "YouTube opened, but I could not find a visible search field, result, or media control after two checks. "
+            "Please check whether YouTube is showing a consent, network, or sign-in interstitial, then continue."
+        ),
+        suggested_actions=[],
+    )
+
+
 def resolve_destination(
     *,
     session_id: str,
@@ -575,6 +829,14 @@ def resolve_destination(
     prior_steps: list[Any] | None = None,
     user_context: str = "",
 ) -> AnalyzeResponse | None:
+    media_response = _resolve_media_playback(
+        session_id=session_id,
+        task=task,
+        page_context=page_context,
+        prior_steps=prior_steps or [],
+    )
+    if media_response is not None:
+        return media_response
     decision = _decision(task, page_context, prior_steps or [], user_context)
     if decision.kind == "none" or decision.objective is None:
         return None
@@ -611,7 +873,7 @@ def resolve_destination(
         )
     assert decision.url
     current_url = str(getattr(page_context, "url", "") or "")
-    preserve_existing = bool(_successful_prior_urls(prior_steps or [])) and current_url.startswith(("http://", "https://"))
+    preserve_existing = _has_prior_destination_attempt(prior_steps or []) and current_url.startswith(("http://", "https://"))
     action_type = "open_new_tab" if preserve_existing else "navigate"
     return AnalyzeResponse(
         session_id=session_id,

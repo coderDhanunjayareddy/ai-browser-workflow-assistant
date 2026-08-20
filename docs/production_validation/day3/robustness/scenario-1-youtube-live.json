@@ -1,0 +1,688 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "djiellcpmahkcbgjnjfkfbilnfmjkimc",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_youtube_r2_20260820",
+  "results": [
+    {
+      "task_id": "CUSTOM",
+      "status": "completed",
+      "duration_s": 53.1,
+      "phase": "completed",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 46d3365 \u00b7 stabilization-20260820T133504Z \u00b7 pid 13668\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nMedia playback was executed through the verified HTML media control.\n\nReport answer: Started playing \"Telugu music\" on YouTube.\n\nReport claim: The visible YouTube media element accepted the play operation.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Play Telugu music on YouTube\nYouTube\nhttps://www.youtube.com/\nVerification: no_effect\nTime: 65ms\nNavigating to: https://www.youtube.com/\n\u26a1\nStep 2\nFILL\nEnter media query \"Telugu music\" in the visible YouTube search field\nYouTube\nhttps://www.youtube.com/\nVerification: verified\nTime: 413ms\nWidget adapter selected autocomplete suggestion: Telugu music\n\u26a1\nStep 3\nKEYBOARD_SHORTCUT\nSubmit media search for \"Telugu music\"\nYouTube\nhttps://www.youtube.com/\nVerification: not_applicable\nTime: 470ms\nCDP keyboard_shortcut dispatched via accessibility_name grounding.\n\u26a1\nStep 4\nCLICK\nOpen the visible YouTube result \"Yemito ivala rekkalochinattu song ||(Lyrical video) Movie:Andala rakshasi || Rahul , Lavanya 4 minutes, 27 seconds\"\nPilichina Ranantava Song With Telugu Lyrics | Athadu Mov\u2026\nhttps://www.youtube.com/watch?v=_QwXjd_1plk&list=RD_QwXjd_1plk&start_rad\u2026\nVerification: verified\nTime: 439ms\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 5\nMEDIA_CONTROL\nStart playback on the visible YouTube media element\nPilichina Ranantava Song With Telugu Lyrics | Athadu Mov\u2026\nhttps://www.youtube.com/watch?v=_QwXjd_1plk&list=RD_QwXjd_1plk&start_rad\u2026\nVerification: verified\nTime: 603ms\nMedia play completed.\n\u2713 Done \u2014 5 of 5 steps succeeded",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\custom.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\custom-target.png",
+      "target_controls": [
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Back",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Guide",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Skip navigation",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "combobox",
+          "aria_label": "",
+          "placeholder": "Search",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Clear search query",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Search",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Search",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Search with your voice",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Settings",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Close",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Play",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Show cards",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Show cards",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Close",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "More",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Copy link",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Playlist",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "like this video along with 78,462 other people",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Dislike this video",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Comments",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Share",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "More actions",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "link",
+          "aria_label": "Visit site This link opens in new tab",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "My Ad Center",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Close",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Close",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Play (k)",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Mute (m)",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Autoplay is on",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Subtitles/closed captions unavailable",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Settings",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Theater mode (t)",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Play on TV",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Full screen (f)",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Subscribe to Maa Paata Mee Nota.",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Current setting is personalized notifications. Tap to change your notification setting for Maa Paata Mee Nota",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "like this video along with 78,462 other people",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Dislike this video",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Share",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Download",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Save to playlist",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "More actions",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "More actions",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "More actions",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Show transcript",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "like this video along with 78,462 other people",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Dislike this video",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Share",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Download",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Save to playlist",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "More actions",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "More actions",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "yt-formatted-string",
+          "role": "textbox",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "@maapaatameenotayt",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Like this comment along with 1.4K other people",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Dislike this comment",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Heart",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Reply",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "23 replies",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Hide replies",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "23 replies",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "@rajoptics2007",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Like this comment along with 6 other people",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Dislike this comment",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Reply",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "@meejurusivakoti1318",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Like this comment along with 36 other people",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Dislike this comment",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Reply",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "@sanjukumar580",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Like this comment along with 380 other people",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Dislike this comment",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Reply",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "6 replies",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Hide replies",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "6 replies",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "@armyofkoindis4544",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\custom-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "https://www.youtube.com/watch?v=_QwXjd_1plk&list=RD_QwXjd_1plk&start_radio=1",
+          "title": "Pilichina Ranantava Song With Telugu Lyrics | Athadu Movie | Mahesh Babu, Trisha |Maa Paata Mee Nota - YouTube",
+          "body_text": "IN\nSkip navigation\nSign in\nSpeak Up Confidently\ncharisma-r.riseguide.com\nVisit site\nSponsored\n2 of 2\ncharisma-r.riseguide.com\n0:03 / 1:40\nPilichina Ranantava Song With Telugu Lyrics | Athadu Movie | Mahesh Babu, Trisha |Maa Paata Mee Nota\nMaa Paata Mee Nota\n5.21M subscribers\nSubscribe\n78K\nShare\nDownload\nSave\n44M views  2 years ago  Telugu Songs\nEnjoy the lovely song \"Pilichina Ranantava\" from the hit Telugu movie \"Athadu\". The song beautifully portrays the relationship between a Bava and Mardhal, played by Mahesh Babu and Trisha respectively.\n\u00a0\u2026\n...more\n\n656 Comments\nSort by\nAdd a comment...\nPinned by @maapaatameenotayt\n@maapaatameenotayt\n2 years ago\nListen to this spicy treat of Mahesh babu\u2019s #GunturKaaramsongs : https://bitly.ws/3dfUQ\n1.4K\nReply\n23 replies\n@rajoptics2007\n5 days ago\nAny body listening in 2026  August\n6\nReply\n@meejurusivakoti1318\n1 year ago\nIam j ntr fan but Mahesh anna athadu movie and songs is excellent  E rojulo kuda not boring\n36\nReply\n@sanjukumar580\n2 years ago\n\u0c08 \u0c2a\u0c3e\u0c1f \u0c0e\u0c02\u0c24 \u0c2e\u0c02\u0c26\u0c3f \u0c15\u0c3f \u0c07\u0c37\u0c4d\u0c1f\u0c02..\n\u0c05\u0c24\u0c21\u0c41 \u0c38\u0c3f\u0c28\u0c3f\u0c2e\u0c3e \u0c32\u0c4b\u0c28\u0c3f \u0c2a\u0c3e\u0c1f\u0c32\u0c41 \u0c2e\u0c30\u0c3f\u0c2f\u0c41 BGM \u0c0e\u0c28\u0c4d\u0c28\u0c3f \u0c38\u0c3e\u0c30\u0c4d\u0c32\u0c41 \u0c35\u0c3f\u0c28\u0c4d\u0c28\u0c3e \u0c2e\u0c33\u0c4d\u0c33\u0c40 \u0c2e\u0c33\u0c4d\u0c33\u0c40 \u0c35\u0c3f\u0c28\u0c3e\u0c32\u0c3f \u0c05\u0c28\u0c3f\u0c2a\u0c3f\u0c38\u0c4d\u0c24\u0c41\u0c02\u0c26\u0c3f..\n380\nReply\n6 replies\n@armyofkoindis4544\n2 years ago\nBeautiful jodi\nWe want see this jodi once again\nGod please help me\n91\nReply\n@VamshiPaidipelli\n1 year ago\nAnybody listening 2025\n706\nReply\n37 replies\n@sakewalasailesh6201\n5 months ago\nOnly 90s kids feel the song\n22\nReply\n1 reply\n@ambarishv2575\n2 years ago\nSteppamar  waiting,,fan of Sudigali SUDHEER anna from Bangalore,chikkaballapuraa\n25\nReply\n@srinivaslochali8488\n2 years ago\nTraditional\nModern dress yedhyina Trisha always good \nee movie lo mareenu simply super\n41\nReply\n@DalliKoteswaramma-qm1ck\n2 years ago\nTrish is a genuine actor\n32\nReply\n@prasadreddy1270\n2 years ago\n\u0c2a\u0c3f\u0c32\u0c3f\u0c1a\u0c3f\u0c28\u0c3e \u0c30\u0c3e\u0c28\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\u0c15\u0c32\u0c41\u0c38\u0c41\u0c15\u0c4b \u0c32\u0c47\u0c28\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\u0c28\u0c32\u0c41\u0c17\u0c41\u0c30\u0c41 \u0c35\u0c41\u0c28\u0c4d\u0c28\u0c3e\u0c30\u0c02\u0c1f\u0c3e\u0c35\u0c3e \u0c13 \u0c13\r\n\u0c1a\u0c3f\u0c32\u0c3f\u0c2a\u0c3f\u0c17\u0c3e \u0c1a\u0c46\u0c02\u0c24\u0c15\u0c41 \u0c30\u0c3e\u0c32\u0c47\u0c35\u0c3e\r\n\r\n\u0c24\u0c46\u0c32\u0c3f\u0c35\u0c3f\u0c17\u0c3e \u0c1a\u0c47\u0c30\u0c47 \u0c24\u0c4b\u0c35\u0c3e\r\n\u0c24\u0c46\u0c32\u0c3f\u0c2f\u0c28\u0c47 \u0c32\u0c47\u0c26\u0c3e \u0c2c\u0c3e\u0c35\r\n\u0c05\u0c1f\u0c41 \u0c07\u0c1f\u0c41 \u0c1a\u0c42\u0c38\u0c4d\u0c24\u0c42 \u0c35\u0c41\u0c02\u0c1f\u0c3e\u0c35\u0c3e \u0c13 \u0c13\r\n\u0c24\u0c1f\u0c2a\u0c1f\u0c3e \u0c07\u0c38\u0c4d\u0c24\u0c42 \u0c35\u0c41\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\r\n\u0c38\u0c2e\u0c2f\u0c02 \u0c15\u0c3e\u0c26\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\u0c38\u0c30\u0c26\u0c3e \u0c32\u0c47\u0c26\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\u0c38\u0c30\u0c38\u0c02 \u0c1a\u0c47\u0c26\u0c02\u0c1f\u0c3e\u0c35\u0c3e \u0c2c\u0c3e\u0c35\u0c3e\r\n\r\n\u0c1a\u0c28\u0c41\u0c35\u0c47 \u0c24\u0c17\u0c26\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\u0c2e\u0c28\u0c35\u0c47 \u0c35\u0c3f\u0c28\u0c28\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\u0c35\u0c30\u0c38\u0c48 \u0c07\u0c1f\u0c41 \u0c30\u0c2e\u0c4d\u0c2e\u0c02\u0c1f\u0c47\r\n\u0c28\u0c3e\u0c2e\u0c3e\u0c1f \u0c2e\u0c28\u0c4d\u0c28\u0c3f\u0c02\u0c1a\u0c35\u0c3e\r\n\r\n\u0c21\u0c4b\u0c32\u0c41 \u0c2d\u0c3e\u0c1c\u0c3e\u0c32 \u0c07\u0c32\u0c3e \u0c28 \u0c35\u0c46\u0c02\u0c1f \u0c2a\u0c21\u0c24\u0c3e\u0c35\u0c3e\r\n\u0c1a\u0c46\u0c32\u0c3e\u0c15\u0c3f \u0c30\u0c4b\u0c1c\u0c3e \u0c06\u0c17\u0c2e\u0c02\u0c1f\u0c47 \u0c06\u0c17\u0c28\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\u0c21\u0c4b\u0c32\u0c41 \u0c2d\u0c3e\u0c1c\u0c3e\u0c32 \u0c07\u0c32\u0c3e \u0c28 \u0c35\u0c46\u0c02\u0c1f \u0c2a\u0c21\u0c24\u0c3e\u0c35\u0c3e\r\n\u0c1a\u0c46\u0c32\u0c3e\u0c15\u0c3f \u0c30\u0c4b\u0c1c\u0c3e \u0c06\u0c17\u0c2e\u0c02\u0c1f\u0c47 \u0c06\u0c17\u0c28\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\r\n\u0c15\u0c28\u0c41\u0c32\u0c41\u0c02\u0c1f\u0c47 \u0c38\u0c4a\u0c17\u0c38\u0c47 \u0c15\u0c28\u0c2a\u0c21\u0c26\u0c3e\r\n\u0c2e\u0c28\u0c38\u0c41\u0c02\u0c1f\u0c47 \u0c24\u0c17\u0c41\u0c2e\u0c3e\u0c30\u0c4d\u0c17\u0c02 \u0c26\u0c4a\u0c30\u0c15\u0c26\u0c3e\r\n\u0c30\u0c3e\u0c28\u0c28\u0c15\r\n\r\n\u0c05\u0c28\u0c41\u0c15\u0c41\u0c02\u0c1f\u0c47 \u0c38\u0c30\u0c3f\u0c2a\u0c4b\u0c26\u0c47 \u0c35\u0c28\u0c3f\u0c24\r\n\u0c05\u0c1f\u0c41\u0c2a\u0c48 \u0c0f \u0c2a\u0c4a\u0c30\u0c2c\u0c3e\u0c1f\u0c41 \u0c1c\u0c30\u0c17\u0c26\u0c3e\r\n\u0c30\u0c2e\u0c4d\u0c2e\u0c23\u0c15\r\n\r\n\u0c2a\u0c46\u0c30\u0c3f\u0c17\u0c3f\u0c28 \u0c26\u0c3e\u0c39\u0c02 \u0c24\u0c30\u0c17\u0c26\u0c47\r\n\u0c2a\u0c46\u0c26\u0c35\u0c41\u0c32\u0c41 \u0c24\u0c3e\u0c15\u0c02\u0c26\u0c47\r\n\u0c24\u0c30\u0c3f\u0c2e\u0c3f\u0c28 \u0c24\u0c3e\u0c2a\u0c02 \u0c24\u0c3e\u0c33\u0c3e\u0c26\u0c47\r\n\u0c2e\u0c26\u0c28\u0c41\u0c21\u0c3f \u0c2c\u0c3e\u0c23\u0c02 \u0c24\u0c17\u0c3f\u0c32\u0c3f\u0c24\u0c47\r\n\r\n\u0c1a\u0c3e\u0c32\u0c4d\u0c32\u0c47 \u0c2c\u0c21\u0c3e\u0c2f\u0c3f \u0c28\u0c3e\u0c24\u0c4b \u0c32\u0c21\u0c3e\u0c2f\u0c3f\r\n\u0c24\u0c17\u0c4d\u0c17\u0c3f\u0c02\u0c1a\u0c35\u0c4b\u0c2f\u0c3f \u0c05\u0c2c\u0c4d\u0c2c\u0c3e\u0c2f\u0c3f\r\n\r\n\u0c39\u0c3e\u0c35 \u0c39\u0c35\u0c3e\u0c2f\u0c3f \u0c06\u0c2e\u0c4d\u0c2e\u0c4b \u0c05\u0c2e\u0c4d\u0c2e\u0c3e\u0c2f\u0c3f \u0c35\u0c3f\u0c28\u0c3e\u0c28\u0c41\u0c32\u0c47\r\n\r\n\u0c39\u0c3e\u0c35 \u0c39\u0c35\u0c3e\u0c2f\u0c3f \u0c06\u0c2e\u0c4d\u0c2e\u0c4b \u0c05\u0c2e\u0c4d\u0c2e\u0c3e\u0c2f\u0c3f\r\n\u0c35\u0c3f\u0c28\u0c4d\u0c28\u0c3e\u0c02 \u0c15\u0c26\u0c3e \u0c28\u0c40 \u0c38\u0c28\u0c4d\u0c28\u0c3e\u0c2f\u0c3f\r\n\u0c39\u0c3e\u0c35 \u0c39\u0c35\u0c3e\u0c2f\u0c3f \u0c06\u0c2e\u0c4d\u0c2e\u0c4b \u0c05\u0c2e\u0c4d\u0c2e\u0c3e\u0c2f\u0c3f\r\n\u0c35\u0c3f\u0c28\u0c4d\u0c28\u0c3e\u0c02 \u0c15\u0c26\u0c3e \u0c28\u0c40 \u0c38\u0c28\u0c4d\u0c28\u0c3e\u0c2f\u0c3f\r\n\r\n\u0c2a\u0c3f\u0c32\u0c3f\u0c1a\u0c3f\u0c28\u0c3e \u0c30\u0c3e\u0c28\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\u0c15\u0c32\u0c41\u0c38\u0c41\u0c15\u0c4b \u0c32\u0c47\u0c28\u0c02\u0c1f\u0c3e\u0c35\u0c3e\r\n\u0c28\u0c32\u0c41\u0c17\u0c41\u0c30\u0c41 \u0c35\u0c41\u0c28\u0c4d\u0c28\u0c3e\u0c30\u0c02\u0c1f\u0c3e\u0c35\u0c3e \u0c13 \u0c13\r\n\u0c1a\u0c3f\u0c32\u0c3f\u0c2a\u0c3f\u0c17\u0c3e \u0c1a\u0c46\u0c02\u0c24\u0c15\u0c41 \u0c30\u0c3e\u0c32\u0c47\u0c35\u0c3e\r\n\r\n\u0c2e\u0c4a\u0c39\u0c2e\u0c3e\u0c1f\u0c02 \u0c2a\u0c46\u0c21\u0c24\u0c3e\u0c35\u0c3e \u0c05\u0c24\u0c3f\u0c17\u0c3e\r\n\u0c38\u0c41\u0c15\u0c41\u0c2e\u0c3e\u0c30\u0c02 \u0c1a\u0c3f\u0c1f\u0c3f\u0c15\u0c47\u0c38\u0c4d\u0c24\u0c47 \u0c1a\u0c4a\u0c30\u0c35\u0c17\u0c3e\r\n\u0c1a\u0c46\u0c30\u0c35\u0c41\u0c17\u0c3e\r\n\r\n\u0c07\u0c30\u0c15\u0c3e\u0c1f\u0c02 \u0c2a\u0c46\u0c21\u0c24\u0c3e\u0c35\u0c47 \u0c07\u0c26\u0c3f\u0c17\u0c3e \u0c06\u0c2c\u0c3e\u0c32\r\n\u0c28\u0c40 \u0c17\u0c41\u0c2c\u0c41\u0c32\u0c46\u0c02\u0c1f\u0c47 \u0c15\u0c41\u0c26\u0c41\u0c30\u0c41\u0c17\u0c3e \u0c06\u0c17\u0c35\u0c41\u0c17\u0c3e\r\n\u0c06\u0c17\u0c35\u0c41\u0c17\u0c3e\r\n\r\n\u0c26\u0c30\u0c3f\u0c36\u0c28\u0c2e\u0c3f\u0c38\u0c4d\u0c24\u0c47 \u0c38\u0c41\u0c32\u0c41\u0c35\u0c41\u0c17\u0c3e\r\n\u0c05\u0c32\u0c41\u0c38\u0c41\u0c17\u0c3e \u0c1a\u0c42\u0c38\u0c4d\u0c24\u0c3e\u0c35\u0c3e\r\n\u0c38\u0c30\u0c38\u0c15\u0c41 \u0c35\u0c38\u0c4d\u0c24\u0c47 \u0c26\u0c41\u0c30\u0c41\u0c38\u0c41\u0c17\u0c3e\r\n\u0c2e\u0c24\u0c3f \u0c1a\u0c46\u0c21\u0c3f\u0c2a\u0c4b\u0c26\u0c3e \u0c2e\u0c30\u0c26\u0c32\u0c3e\r\n\r\n\u0c35\u0c30\u0c3e\u0c32 \u0c2c\u0c3e\u0c32\u0c3e \u0c35\u0c30\u0c3f\u0c02\u0c1a\u0c41\u0c35\u0c47\u0c33\r\n\u0c24\u0c30\u0c3f\u0c02\u0c1a\u0c3e\u0c28\u0c02\u0c1f\u0c42 \u0c24\u0c17\u0c41\u0c35\u0c47\u0c32\r\n\r\n\u0c28\u0c3f\u0c17\u0c30\u0c2e\u0c3f\u0c1f\u0c4d\u0c1f \u0c1c\u0c3f\u0c17\u0c47\u0c33\u0c28\u0c32\r\n\u0c1c\u0c28\u0c02 \u0c1a\u0c46\u0c21\u0c47\u0c32\u0c3e\r\n\r\n\u0c28\u0c3f\u0c17\u0c30\u0c2e\u0c3f\u0c1f\u0c4d\u0c1f \u0c1c\u0c3f\u0c17\u0c47\u0c33\u0c28\u0c32\r\n\u0c1c\u0c28\u0c02 \u0c1a\u0c46\u0c21\u0c47\u0c32\u0c3e \u0c1c\u0c35\u0c30\u0c3e\u0c32\r\n\u0c28\u0c3f\u0c17\u0c30\u0c2e\u0c3f\u0c1f\u0c4d\u0c1f \u0c1c\u0c3f\u0c17\u0c47\u0c33\u0c28\u0c32\r\n\u0c1c\u0c28\u0c02 \u0c1a\u0c46\u0c21\u0c47\u0c32\u0c3e \u0c1c\u0c35\u0c30\u0c3e\u0c32\r\n\r\n\u0c24\u0c28\u0c4d\u0c28\u0c3e\u0c28\u0c3e \u0c28\u0c3e\u0c28\u0c47 \u0c24\u0c28\u0c4d\u0c28\u0c3e\u0c28\u0c3e \u0c28\u0c3e\u0c28\u0c47\r\n\u0c24\u0c28\u0c4d\u0c28\u0c3e\u0c28\u0c3e \u0c28\u0c3e\u0c28\u0c47 \u0c24\u0c28\u0c28\u0c28\r\n\u0c24\u0c28\u0c4d\u0c28\u0c3e\u0c28\u0c3e \u0c28\u0c3e\u0c28\u0c47 \u0c24\u0c28\u0c4d\u0c28\u0c3e\u0c28\u0c3e \u0c28\u0c3e\u0c28\u0c47\r\n\u0c24\u0c28\u0c4d\u0c28\u0c3e\u0c28\u0c3e \u0c28\u0c3e\u0c28\u0c47 \u0c24\u0c28\u0c28\u0c28\r\n\u0c24\u0c28\u0c4d\u0c28\u0c3e\u0c28\u0c3e \u0c28\u0c3e\u0c28\u0c47 \u0c24\u0c28\u0c4d\u0c28\u0c3e\u0c28\u0c3e \u0c28\u0c3e\u0c28\u0c47\r\n\u0c24\u0c28\u0c4d\u0c28\u0c3e\u0c28\u0c3e \u0c28\u0c3e\u0c28\u0c47 \u0c24\u0c28\u0c28\u0c28\nRead more\n527\nReply\n11 replies\n@ereshhv5136\n2 years ago\nSuper lyrics \n28\nReply\n@vijay1usa\n1 year ago\nMelodious and entertaining song\u2026I wish there would be Athadu sequel from TRIVIKRAM sir!\n27\nReply\n@SmilingAlbatross-ev4nc\n1 year ago\nI like this song so many times watched in the video \ufe0f\ufe0f\ufe0f\ufe0f\ufe0f\n5\nReply\n@adityakiran7504\n1 year ago\nYOU ARE SUPER MAHESH BABU!\nONE MORE GREAT QUALITY OF YOURS, IS THAT YOU BEHAVE VERY DECENTLY WITH HEROINES.\nHATS OFF!\n8\nReply\n@archanaenaganti6533\n2 years ago\nAmazing work done by director .. what a family movie. \n12\nReply\n@nagasaiduggaraju\n5 months ago\n3:42 venu swamy\n\n\nBackground dancers lo baba master,raghu master\n5\nReply\n@prakash-t2b1d\n10 months ago\nSouth queen Trisha awsome\n5\nReply\n@arshiyarafi1432\n2 years ago\nMy fav song &film Athadu\n4\nReply\n@karanravi3551\n4 months ago\n\u0c85\u0c9a\u0ccd\u0c9a\u0cc1\u0ca4\u0cbe\u0ca8\u0c82\u0ca6\u0cbe\u0caf \u0ca8\u0cae\u0c83. \n\u0c85\u0ca8\u0c82\u0ca4\u0cbe\u0caf \u0ca8\u0cae\u0c83 \n\u0c97\u0ccb\u0cb5\u0cbf\u0c82\u0ca6\u0cbe\u0caf \u0ca8\u0cae\u0c83 \n\u0ca8\u0c82\u0cac\u0cbf \u0c95\u0cc6\u0c9f\u0ccd\u0c9f\u0cb5\u0cb0\u0cbf\u0cb2\u0ccd\u0cb2\u0cb5\u0ccb \u0cb0\u0cbe\u0caf\u0cb0\u0ca8\n2\nReply\n \n \n \n \nNext:\nPillagali Allari Full Song Telugu Lyrics | Athadu Movie | Mahesh babu, Trisha | Maa Paata Mee Nota\nMix - Pilichina Ranantava Song With Telugu Lyrics | Athadu Movie | Mahesh Babu, Trisha |Maa Paata Mee Nota\nSpeak Up Confidently\nSponsored\ncharisma-r.riseguide.com\nVisit site\nLuxury Flats in Balanagar\nSeamless Connectivity to Kukatpally, Madhapur & IT Corridor.\nSponsored\nA2A Homeland\nVisit site\n4:49\nPillagali Allari Full Song Telugu Lyrics | Athadu Movie | Mahesh babu, Trisha | Maa Paata Mee Nota\nMaa Paata Mee Nota\n5.5M\n3y ago\n5:09\nKhaleja - Pileche Video with Lyrics | Mahesh Babu, Anushka | Manisarma\nSonyMusicSouthVEVO\n16M\n1y ago\n19:59\n\u0c36\u0c4b\u0c2d\u0c28\u0c4d \u0c2c\u0c3e\u0c2c\u0c41 \u0c2e\u0c27\u0c41\u0c30\u0c2e\u0c48\u0c28 \u0c17\u0c40\u0c24\u0c3e\u0c32\u0c41 | S.P. Balasubrahmanyam Songs | Kusalammaa Neeku | Chinni O Chinni\nSobhan Babu Telugu Classics\n199\n1d ago\nNew\n4:29\nNeetho Cheppana Full Video Song - Athadu Video Songs - Mahesh Babu, Trisha\nAditya Music\n18M\n12y ago\n6:29\nChuttu Chutti - Lyrical | Narasimha | Rajnikanth | AR Rahman | Soundarya | KS Ravikumar\nSaregama Telugu\n3.6M\n3mo ago\n5:19\nMuvvala Navvakala All Time Hit Love Melody Song 4K | Prabhas, Trisha | S P Balu, KS Chitra |Pournami\nTelugu Video Songs Club\n10M\n7mo ago\n5:51\nCheppave Chirugali Song Telugu Lyrics |Okkadu  |Mahesh Babu,Bhoomika|Mani Sharma| Maa Paata Mee Nota\nMaa Paata Mee Nota\n9.3M\n2y ago\n6:03\nNuvvostanante Nenoddantana Songs | Ghal Ghal (Aakasam Thakela) Video Song | Siddhartha\nSriBalajiMovies\n23M\n13y ago\n5:45\nAttarintiki Full Video Song | Mahesh Babu, Bhumika | Okkadu Movie Song | Mani Sharma | Shreya Goshal\nOnly Telugu Songs\n4.5M\n2y ago\n4:29\nAvunu Nijam Full Song Telugu Lyrics | Athadu Movie | Mahesh babu, Trisha | Maa Paata Mee Nota\nMaa Paata Mee Nota\n23M\n4y ago\n5:38\nMahesh Babu Cheppave Chirugali 4K Quality Digital Re-release Video Song | Blockbuster Movie Okkadu\nOnly Telugu Songs\n5.6M\n1y ago\n5:19\nKallu Moosi Yoschisthey - Veedokkade Songs | Suriya | Tamannaah | Harris Jayaraj | KV Anand | AVM\nAVM Productions - Movies\n72M\n13y ago\n5:23\nRegu Mullole - Chandamama Movie Songs - Navadeep, Kajal, Sivabalaji Sindhu menon\nVolga Video\n40M\n14y ago\n4:58\nIdhedho Bagundhe Full Video Song | Mirchi Movie | Prabhas, Anushka Shetty | DSP | Koratala Siva\nAditya Music\n2.4M\n1y ago\n5:30\nHoyna Hoyna 8K Video Song | Gangleader | Nani | Priyanka Mohan | Anirudh Ravichander\nSony Music South\n315K\n8d ago\n4:03\nApudo Ipudo Video Song (4K) | Bommarillu Movie Songs | Siddharth, Genelia | Devi Sri Prasad\nMango Music\n1.2M\n12d ago\n4:34\nNeetho Cheppana Telugu Lyrics | Athadu Movie | Mahesh babu, Trisha | Maa Paata Mee Nota\nMaa Paata Mee Nota\n2.6M\n4y ago\n4:53\nEm Jaruguthondi 4K Video Song | Mahatma | Srikanth, Bhavana | Vijay Antony | Krishna Vamsi\nMRT Music - Telugu\n256K\n6mo ago\n3:58\nNuvvem Maya Chesavo gani Song 4K | Cute Actress Bhoomika Chawla Poses | Okkadu | Old Telugu Songs\nOld Telugu Songs\n969K\n4mo ago\n5:53\nEkkada Ekkada Mahesh Babu, Sonali Bendre Evergreen Movie Song | Telugu Videos\nTelugu Videos \n6.5M\n2y ago\n \n \n \n \nWhere music meets your desktop\nOur desktop experience was built to be your music destination. Listen to official albums & more.\nTerms apply. Cancel anytime\nNo thanks\nCheck it out\nWhere music meets your desktop. Shift + Enter for more information.",
+          "video": {
+            "exists": true,
+            "paused": false,
+            "ended": false,
+            "current_time": 6.680943,
+            "duration": 100.121,
+            "ready_state": 4,
+            "muted": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\custom-page-2.png"
+        }
+      ]
+    }
+  ]
+}

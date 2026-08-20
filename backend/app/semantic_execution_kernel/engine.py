@@ -238,6 +238,15 @@ class SemanticExecutionKernel:
                     "proposal": snapshot.proposal.to_dict(),
                 },
             )
+        if snapshot.eligibility and not snapshot.eligibility.eligible:
+            repaired_interactive = _repair_ungrounded_interactive_action(result, snapshot)
+            if repaired_interactive is not None:
+                tracer.clear_failures(session_id)
+                return repaired_interactive
+            refresh_response = _interactive_entity_refresh_response(result, snapshot, prior_steps)
+            if refresh_response is not None:
+                tracer.clear_failures(session_id)
+                return refresh_response
         failures_before = tracer.failures(session_id)
         latest_failure_before = failures_before[-1] if failures_before else None
         current_lookup_succeeded = bool(snapshot.proposal and snapshot.proposal.entity_id)
@@ -316,12 +325,6 @@ class SemanticExecutionKernel:
         if pagination_repair is not None:
             return pagination_repair
         if snapshot.eligibility and not snapshot.eligibility.eligible:
-            repaired_interactive = _repair_ungrounded_interactive_action(result, snapshot)
-            if repaired_interactive is not None:
-                return repaired_interactive
-            refresh_response = _interactive_entity_refresh_response(result, snapshot, prior_steps)
-            if refresh_response is not None:
-                return refresh_response
             failure_reason = snapshot.eligibility.reason
             if "entity_missing" in snapshot.eligibility.failures:
                 _debug_v494_kernel(
@@ -785,9 +788,15 @@ def _looks_like_interactive_browser_task(task: str) -> bool:
             "create",
             "update",
             "save",
+            "play",
+            "listen",
+            "music",
+            "song",
+            "video",
+            "youtube",
         )
     )
-    browser_goal = any(term in text for term in ("open", "go to", "navigate", "use", "login", "sign in"))
+    browser_goal = any(term in text for term in ("open", "go to", "navigate", "use", "login", "sign in", "play", "listen"))
     return action_or_app and browser_goal
 
 

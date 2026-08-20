@@ -327,6 +327,31 @@ def test_interactive_browser_task_stays_in_validate_for_browser_interaction(monk
     assert result.suggested_actions[0].action_type == "fill"
 
 
+def test_media_playback_stays_in_validate_until_playback_is_verified(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="interactive-youtube-playback",
+        task="Play Telugu music on YouTube",
+        page_context=_page("https://www.youtube.com/"),
+        prior_steps=[
+            PriorStep(
+                action_type="navigate",
+                description="Open resolved YouTube destination",
+                target_selector="",
+                value="https://www.youtube.com/",
+                execution_result="success",
+                page_url="https://www.youtube.com/",
+                page_title="YouTube",
+            ),
+        ],
+    )
+
+    assert snapshot.workflow_category == "interactive_browser_task"
+    assert snapshot.active_phase.name == "VALIDATE"
+    assert {"fill", "click", "wait", "media_control"}.issubset(snapshot.active_phase.allowed_actions)
+
+
 def test_after_required_pages_opened_active_phase_becomes_read(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "shadow")
     engine = ExecutionOrchestrator()

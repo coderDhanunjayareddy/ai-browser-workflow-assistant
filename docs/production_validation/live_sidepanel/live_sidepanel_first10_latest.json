@@ -1,141 +1,29 @@
 {
   "mode": "extension_sidepanel_playwright",
-  "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
-  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_cert_final_20260820",
+  "extension_id": "cabhaaiihiignbgondnkjlkpgpepmejo",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_s2_r3_20260820",
   "results": [
     {
-      "task_id": "DAY3-FINAL-SMOKE",
-      "status": "completed",
-      "duration_s": 27.2,
-      "phase": "unknown",
+      "task_id": "D3-S2",
+      "status": "failed",
+      "duration_s": 36.6,
+      "phase": "failed",
       "error": "",
-      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 b5bec81 \u00b7 stabilization-20260820T103544Z \u00b7 pid 16124\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nVerified the exact WhatsApp chat \"Teja Spc\" and stopped because no further action was requested.\n\n\u26a1\nStep 1\nFILL\nSearch WhatsApp for the explicitly requested recipient Teja Spc\nWhatsApp\nhttps://web.whatsapp.com/\nVerification: verified\nTime: 82ms\nFilled field: #_r_a_\n\u26a1\nStep 2\nCLICK\nOpen the exact WhatsApp search result visibly named Teja Spc\nWhatsApp\nhttps://web.whatsapp.com/\nVerification: verified\nTime: 570ms\nCDP click dispatched via stable_selector grounding.\n\u2713 Done \u2014 2 of 2 steps succeeded",
-      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\day3-final-smoke.png",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\day3-final-smoke-target.png",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 46d3365 \u00b7 stabilization-20260820T134334Z \u00b7 pid 1576\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nNavigation ended safely after the recorded execution failure; the application did not repeat the action.\n\nReport answer: I could not open YouTube after one bounded attempt. The recorded execution failed, so I stopped without repeating it.\n\nReport claim: The requested navigation was not dispatched or could not be verified, and no duplicate attempt was made.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open Gmail\nGmail: Secure, AI-Powered Email for Everyone | Google Wo\u2026\nhttps://workspace.google.com/intl/en-US/gmail/\nVerification: verified\nTime: 5.3s\nNavigating to: https://mail.google.com/\n\u2717\nStep 2\nOPEN_NEW_TAB\nOpen the resolved destination for play Telugu music\nGmail: Secure, AI-Powered Email for Everyone | Google Wo\u2026\nhttps://workspace.google.com/intl/en-US/gmail/\nBrowser action rejected: canonical origin, URL, tab, or window identity changed before dispatch.\nBrowser action rejected: canonical origin, URL, tab, or window identity changed before dispatch.\n\u2713 Done \u2014 1 of 2 steps succeeded",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-target.png",
       "target_controls": [
         {
           "tag": "button",
           "role": "",
-          "aria_label": "Chats",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Calls",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Status",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Channels",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Communities",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Meta AI",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Media",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "You",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "New chat",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Menu",
+          "aria_label": "Open search",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
         },
         {
           "tag": "input",
-          "role": "textbox",
-          "aria_label": "",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "End icon button",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "tab",
-          "aria_label": "New list",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Video call",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Voice call",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
+          "role": "combobox",
           "aria_label": "Search",
           "placeholder": "",
           "contenteditable": "",
@@ -144,7 +32,7 @@
         {
           "tag": "button",
           "role": "",
-          "aria_label": "Menu",
+          "aria_label": "Close search",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
@@ -152,7 +40,7 @@
         {
           "tag": "button",
           "role": "",
-          "aria_label": "Attach",
+          "aria_label": "Close",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
@@ -160,23 +48,7 @@
         {
           "tag": "button",
           "role": "",
-          "aria_label": "Emojis, GIFs, Stickers",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "div",
-          "role": "textbox",
-          "aria_label": "Type a message to Teja Spc",
-          "placeholder": "",
-          "contenteditable": "true",
-          "testid": "conversation-compose-box-input"
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Voice message",
+          "aria_label": "Open Tooltip: This feature is available with Google AI Pro or Ultra plans.",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
@@ -184,18 +56,33 @@
         {
           "tag": "button",
           "role": "",
-          "aria_label": "Voice message",
+          "aria_label": "Expand all",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-page-1.png"
         },
         {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
+          "index": 2,
+          "url": "https://workspace.google.com/intl/en-US/gmail/",
+          "title": "Gmail: Secure, AI-Powered Email for Everyone | Google Workspace",
+          "body_text": "Gmail\nSkip to main content\nFor work\nSign in\nCreate an account\nNew: Gmail is entering the Gemini era\nLearn more\nAI-powered email for everyone\n\nSecure, smart and easy-to-use email, used by billions, now enhanced with Gemini.\n\nCreate an account\nFor work\nGemini in Gmail\n\nWith Gemini in Gmail, you get a personal, proactive inbox assistant that helps you respond quickly in your own voice, get things done faster, and turn information into answers without the digging.\n\nWrite better emails with the help of AI\n\nGemini in Gmail saves you time drafting or polishing emails, and suggested replies help you reply in one click, in your voice.\n\nGet caught up on email threads fast\nAsk Gemini to search your\u00a0inbox\u00a0\nEmail that\u2019s secure, private, and puts you in control\nWe never use your Gmail content for any ads purposes\n\nGmail uses industry-leading encryption for all messages you receive and send. We never use your Gmail content to personalize ads.\n\nGmail keeps over a billion people safe every day\nThe most advanced phishing protections available\nBest-in-class controls over emails you send\nGet more done with Gmail\nStay connected and get organized\n\nStart a Chat, jump into a video call with Meet, or collaborate in a Doc, all right from Gmail.\n\nGet more done faster\nNever forget to reply\nGmail is better on the app\nExpress yourself with emojis\n\nEmoji reactions are a fast and fun way to reply to emails, only available with the Gmail app.\n\nFind your emails faster\nSwitch between accounts\nBring the best of Gmail to your device\n\nWorks with other tools\n\nGmail works great with desktop clients like Microsoft Outlook, Apple Mail and Mozilla Thunderbird, including contact and event sync.\n\nStay productive, even offline\n\nGmail offline lets you read, reply, delete, and search your Gmail messages when you\u2019re not connected to the internet.\n\nExperience Gmail on any device\n\nEnjoy the ease and simplicity of Gmail, wherever you are.\n\nGmail is now part of Google Workspace\n\nCollaborate faster, from any device, anytime, all in one place.\n\nGoogle Workspace is a set of productivity and collaboration tools that helps individuals, teams, and businesses stay on top of everything. It is a flexible, innovative solution for business or personal use that includes all of your favorite apps like Gmail, Calendar, Drive, Docs, Meet, and more.\n\nLearn more\nFind the answers you need\nExpand all\n\nGmail has always had strong security as a foundation. We work hard to protect you from spam, phishing, and malware, before they reach your inbox. Our AI-enhanced spam-filtering capabilities block nearly 10 million spam emails every minute.\n\nNeed more help?\n\nBrowse tips and step-by-step guides made for both new users and power users.\n\nHelp Center\nShow the world how it\u2019s done.\n\nGet started with a more powerful Gmail.\n\nCreate an account\nFor work\n\nFollow our Blog\n\nPrivacy\nTerms\nAbout Google\nGoogle Products\nHelp\nHelp\nEnglish\nBahasa Indonesia\n\u010ce\u0161tina\nDansk\nDeutsch\nDeutsch \u2013 Schweiz\nEnglish\nEnglish \u2013 Australia\nEnglish \u2013 Canada\nEnglish \u2013 India\nEnglish \u2013 Indonesia\nEnglish \u2013 Ireland\nEnglish \u2013 Malaysia\nEnglish \u2013 New Zealand\nEnglish \u2013 Philippines\nEnglish \u2013 Singapore\nEnglish \u2013 South Africa\nEnglish \u2013 United Kingdom\nEspa\u00f1ol\nEspa\u00f1ol (Latinoam\u00e9rica)\nEspa\u00f1ol (Latinoam\u00e9rica) \u2013 Argentina\nEspa\u00f1ol (Latinoam\u00e9rica) \u2013 Estados Unidos\nEspa\u00f1ol (Latinoam\u00e9rica) \u2013 M\u00e9xico\nFran\u00e7ais\nFran\u00e7ais \u2013 Canada\nFran\u00e7ais \u2013 Suisse\nItaliano\nMagyar\nNederlands\nNorsk\nPolski\nPortugu\u00eas (Brasil)\nPortugu\u00eas (Portugal)\nSuomi\nSvenska\nTi\u1ebfng Vi\u1ec7t\nT\u00fcrk\u00e7e\n\u0420\u0443\u0441\u0441\u043a\u0438\u0439\n\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430\n\u05e2\u05d1\u05e8\u05d9\u05ea\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u2013 \u0645\u0635\u0631\n\u0641\u0627\u0631\u0633\u06cc\n\u0e44\u0e17\u0e22\n\ud55c\uad6d\uc5b4\n\u4e2d\u6587 (\u9999\u6e2f)\n\u4e2d\u6587\uff08\u7b80\u4f53\u4e2d\u6587\uff09\n\u4e2d\u6587\uff08\u7e41\u9ad4\u4e2d\u6587\uff09\n\u65e5\u672c\u8a9e",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s2-page-2.png"
         }
       ]
     }

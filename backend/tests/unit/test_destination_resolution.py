@@ -1,5 +1,5 @@
 from app.destination_resolution import decompose_destination_objectives, resolve_destination
-from app.schemas.request import ContentBlock, PageContext, PriorStep
+from app.schemas.request import ContentBlock, InteractiveElement, PageContext, PriorStep
 
 
 def page(url: str = "chrome://newtab/", *, links: list[tuple[str, str]] | None = None) -> PageContext:
@@ -53,6 +53,32 @@ def internally_rejected_navigation(url: str) -> PriorStep:
     )
 
 
+def media_step(action_type: str, description: str, value: str, result: str = "success") -> PriorStep:
+    return PriorStep(
+        action_type=action_type,
+        description=description,
+        target_selector="#target",
+        value=value,
+        execution_result=result,
+        page_url="https://www.youtube.com/",
+        page_title="YouTube",
+    )
+
+
+def youtube_page(url: str, elements: list[InteractiveElement]) -> PageContext:
+    return PageContext(
+        url=url,
+        title="YouTube",
+        metadata={},
+        interactive_elements=elements,
+        content_blocks=[],
+        headings=[],
+        selected_text="",
+        visible_text="Search Home Music",
+        images=[],
+    )
+
+
 def test_natural_language_known_application_resolves_without_supplied_url():
     result = resolve_destination(
         session_id="s1",
@@ -64,6 +90,75 @@ def test_natural_language_known_application_resolves_without_supplied_url():
     assert result.outcome_kind == "act"
     assert result.suggested_actions[0].action_type == "navigate"
     assert result.suggested_actions[0].value == "https://www.youtube.com/"
+
+
+def test_media_adapter_uses_visible_controls_then_verified_media_element():
+    search_field = InteractiveElement(
+        type="input", selector='input[name="search_query"]', text="Search", placeholder="Search", visible=True,
+    )
+    search_button = InteractiveElement(
+        type="button", selector='button[aria-label="Search"]', text="Search", aria_label="Search", visible=True,
+    )
+    home = youtube_page("https://www.youtube.com/", [search_field, search_button])
+
+    fill = resolve_destination(session_id="media-flow", task="Play Telugu music on YouTube", page_context=home)
+    assert fill is not None
+    assert fill.suggested_actions[0].action_type == "fill"
+    assert fill.suggested_actions[0].target_selector == 'input[name="search_query"]'
+    assert fill.suggested_actions[0].value == "Telugu music"
+
+    filled_step = media_step("fill", 'Enter media query "Telugu music" in the visible YouTube search field', "Telugu music")
+    submit = resolve_destination(
+        session_id="media-flow", task="Play Telugu music on YouTube", page_context=home, prior_steps=[filled_step],
+    )
+    assert submit is not None
+    assert submit.suggested_actions[0].action_type == "keyboard_shortcut"
+    assert submit.suggested_actions[0].target_selector == 'input[name="search_query"]'
+    assert submit.suggested_actions[0].value == "Enter"
+
+    results = youtube_page(
+        "https://www.youtube.com/results?search_query=Telugu+music",
+        [
+            InteractiveElement(
+                type="a", selector='a.thumbnail[href="/watch?v=synthetic"]', text="4:57 4:57 Now playing",
+                href="https://www.youtube.com/watch?v=synthetic", visible=True,
+            ),
+            InteractiveElement(
+                type="a", selector='a.title[href="/watch?v=synthetic"]', text="Telugu music result",
+                href="https://www.youtube.com/watch?v=synthetic", visible=True,
+            ),
+        ],
+    )
+    open_result = resolve_destination(
+        session_id="media-flow", task="Play Telugu music on YouTube", page_context=results,
+        prior_steps=[filled_step, media_step("keyboard_shortcut", "Submit media search", "Enter")],
+    )
+    assert open_result is not None
+    assert open_result.suggested_actions[0].action_type == "click"
+    assert open_result.suggested_actions[0].target_selector == 'a#video-title[href*="v=synthetic"]'
+    assert open_result.suggested_actions[0].grounding == {
+        "accessibility_name": "Telugu music result",
+        "role": "link",
+        "semantic_kind": "navigation_result",
+        "expected_url_path": "/watch",
+    }
+
+    watch = youtube_page("https://www.youtube.com/watch?v=synthetic", [])
+    play = resolve_destination(
+        session_id="media-flow", task="Play Telugu music on YouTube", page_context=watch,
+        prior_steps=[filled_step, media_step("click", "Open the first visible YouTube result", "")],
+    )
+    assert play is not None
+    assert play.suggested_actions[0].action_type == "media_control"
+    assert play.suggested_actions[0].target_selector == "video"
+
+    complete = resolve_destination(
+        session_id="media-flow", task="Play Telugu music on YouTube", page_context=watch,
+        prior_steps=[media_step("media_control", "Start playback", '{"operation":"play"}', "Media play completed.")],
+    )
+    assert complete is not None
+    assert complete.outcome_kind == "report"
+    assert complete.sgv_verified is True
 
 
 def test_compound_task_preserves_completed_gmail_and_opens_youtube_in_new_tab():
@@ -81,6 +176,37 @@ def test_compound_task_preserves_completed_gmail_and_opens_youtube_in_new_tab():
     assert continued is not None
     assert continued.suggested_actions[0].action_type == "open_new_tab"
     assert continued.suggested_actions[0].value == "https://www.youtube.com/"
+
+
+def test_compound_task_preserves_failed_gmail_attempt_and_continues_independent_media_objective():
+    continued = resolve_destination(
+        session_id="s2-blocked",
+        task="Open Gmail and play Telugu music",
+        page_context=page("https://workspace.google.com/intl/en-US/gmail/"),
+        prior_steps=[failed_navigation("https://mail.google.com/")],
+    )
+    assert continued is not None
+    assert continued.outcome_kind == "act"
+    assert continued.suggested_actions[0].action_type == "open_new_tab"
+    assert continued.suggested_actions[0].value == "https://www.youtube.com/"
+
+
+def test_compound_media_completion_reports_partial_block_without_retrying_gmail():
+    complete = resolve_destination(
+        session_id="s2-partial",
+        task="Open Gmail and play Telugu music",
+        page_context=youtube_page("https://www.youtube.com/watch?v=synthetic", []),
+        prior_steps=[
+            failed_navigation("https://mail.google.com/"),
+            media_step("media_control", "Start playback", '{"operation":"play"}', "Media play completed."),
+        ],
+    )
+    assert complete is not None
+    assert complete.outcome_kind == "report"
+    assert complete.sgv_verified is True
+    assert "Partially completed" in complete.report.answer
+    assert "Gmail" in complete.report.answer
+    assert '"Telugu music"' in complete.report.answer
 
 
 def test_incompatible_constrained_application_pauses_with_clear_alternative():

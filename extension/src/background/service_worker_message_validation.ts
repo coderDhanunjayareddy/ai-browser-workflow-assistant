@@ -15,6 +15,7 @@ export type ExecutableAction = {
     accessibility_name?: string | null
     role?: string | null
     semantic_kind?: string | null
+    expected_url_path?: string | null
     screenshot_verified?: boolean
     screenshot_hash?: string | null
     bounding_box?: { x: number; y: number; width: number; height: number } | null
@@ -109,6 +110,10 @@ function validateGrounding(value: unknown): boolean {
   if (value.accessibility_name !== undefined && !isBoundedString(value.accessibility_name, 500, true)) return false
   if (value.role !== undefined && !isBoundedString(value.role, 100, true)) return false
   if (value.semantic_kind !== undefined && !isBoundedString(value.semantic_kind, 200, true)) return false
+  if (value.expected_url_path !== undefined) {
+    if (!isBoundedString(value.expected_url_path, 2048, true)) return false
+    if (value.expected_url_path !== null && value.expected_url_path !== '' && !String(value.expected_url_path).startsWith('/')) return false
+  }
   if (value.screenshot_verified !== undefined && typeof value.screenshot_verified !== 'boolean') return false
   if (value.screenshot_hash !== undefined && !isBoundedString(value.screenshot_hash, 128, true)) return false
   if (value.bounding_box !== undefined && value.bounding_box !== null) {
@@ -173,6 +178,9 @@ export function validateCanonicalActionContract(value: unknown): value is Canoni
   if (!isRecord(value.expected_effect)) return false
   const effectKinds = new Set(['url_change', 'target_state_change', 'value_change', 'selection_change', 'viewport_change', 'tab_state_change', 'page_state_change', 'no_mutation'])
   if (!effectKinds.has(String(value.expected_effect.kind)) || !isBoundedString(value.expected_effect.description, 5000)) return false
+  if (value.expected_effect.url_path !== undefined && !isBoundedString(value.expected_effect.url_path, 2048, true)) return false
+  const actionExpectedPath = isRecord(value.action.grounding) ? value.action.grounding.expected_url_path ?? null : null
+  if ((value.expected_effect.url_path ?? null) !== actionExpectedPath) return false
   if (!['safe', 'caution', 'danger'].includes(String(value.safety_class)) || value.safety_class !== value.action.safety_level) return false
   if (!isBoundedString(value.idempotency_key, 1000) || !String(value.idempotency_key).trim()) return false
 

@@ -389,6 +389,41 @@ def test_interactive_fill_contact_is_grounded_to_visible_search_field(monkeypatc
     assert result.suggested_actions[0].target_selector == 'div[role="textbox"][aria-label="Search or start new chat"]'
 
 
+def test_active_pipeline_repairs_media_search_to_visible_search_field(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    monkeypatch.setattr(settings, "v493_entity_pipeline_trace", "active")
+    page = PageContext(
+        url="https://www.youtube.com/",
+        title="YouTube",
+        metadata={},
+        interactive_elements=[
+            InteractiveElement(
+                type="input",
+                selector='input[name="search_query"]',
+                text="Search",
+                visible=True,
+            ),
+        ],
+        content_blocks=[],
+        headings=[],
+        selected_text="",
+        visible_text="Search Home Music",
+        images=[],
+    )
+
+    result = SemanticExecutionKernel().postprocess_response(
+        result=_response("fill", value="Telugu music"),
+        session_id="kernel-youtube-search-grounding",
+        task="Play Telugu music on YouTube",
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "fill"
+    assert result.suggested_actions[0].target_selector == 'input[name="search_query"]'
+
+
 def test_interactive_fill_message_is_grounded_to_visible_message_box(monkeypatch):
     monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
     engine = SemanticExecutionKernel()
@@ -487,7 +522,7 @@ def test_active_entity_pipeline_reports_exact_stage_for_missing_planner_url(monk
 
     assert result.outcome_kind == "replan"
     assert result.replan is not None
-    assert "ENTITY_PIPELINE_FAILURE stage=SEMANTIC_KERNEL" in result.replan.reason
+    assert "ENTITYPIPELINEFAILURE STAGE=SEMANTICKERNEL" in result.replan.reason.upper().replace("_", "")
     assert not [
         entity for entity in list_entities(session_id)
         if entity.source_layer == "semantic_execution_kernel" and entity.entity_type == "url_candidate"

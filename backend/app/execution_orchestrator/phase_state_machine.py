@@ -22,7 +22,7 @@ ALLOWED_ACTIONS: dict[PhaseName, list[str]] = {
     "OPEN": ["open_new_tab", "focus_existing_tab", "switch_tab", "wait"],
     "READ": ["focus_existing_tab", "switch_tab", "scroll", "wait"],
     "EXTRACT": ["focus_existing_tab", "switch_tab", "scroll", "wait"],
-    "VALIDATE": ["focus_existing_tab", "switch_tab", "wait", "scroll", "fill", "click", "select_option", "choose_date", "hover", "keyboard_shortcut"],
+    "VALIDATE": ["focus_existing_tab", "switch_tab", "wait", "scroll", "fill", "click", "select_option", "choose_date", "hover", "keyboard_shortcut", "media_control"],
     "SYNTHESIZE": [],
     "REPORT": [],
     "COMPLETE": [],
@@ -95,8 +95,13 @@ def _is_interactive_browser_task(text: str) -> bool:
         "search",
         "pull request",
         "comment",
+        "play",
+        "listen",
+        "music",
+        "song",
+        "video",
     )
-    browser_goal_terms = ("open", "go to", "navigate", "use", "login", "sign in", "search")
+    browser_goal_terms = ("open", "go to", "navigate", "use", "login", "sign in", "search", "play", "listen")
     return any(term in text for term in action_terms) and any(term in text for term in browser_goal_terms)
 
 

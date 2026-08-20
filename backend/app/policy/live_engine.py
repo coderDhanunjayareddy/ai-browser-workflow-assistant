@@ -325,6 +325,15 @@ class LivePolicyEngine:
         expected_resource_url = contract_origin.get("target_url") if action.action_type in {"navigate", "open_new_tab"} else observed_url
         if resource.get("url") != expected_resource_url:
             return "execution_contract_resource_mismatch"
+        action_grounding = contract_action.get("grounding") if isinstance(contract_action.get("grounding"), dict) else {}
+        expected_url_path = expected.get("url_path")
+        if expected_url_path != action_grounding.get("expected_url_path"):
+            return "execution_contract_expected_effect_mismatch"
+        if expected_url_path is not None and (
+            not isinstance(expected_url_path, str)
+            or (expected_url_path and not expected_url_path.startswith("/"))
+        ):
+            return "execution_contract_expected_effect_invalid"
         if action.action_type == "click" and not str(target.get("selector") or "").strip():
             return "execution_contract_click_target_missing"
         return None

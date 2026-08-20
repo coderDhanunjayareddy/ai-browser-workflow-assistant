@@ -149,6 +149,59 @@ class TaskRun:
     screenshot: str
     target_screenshot: str
     target_controls: list[dict[str, str]]
+    initial_url: str
+    browser_pages: list[dict[str, object]]
+
+
+def _capture_browser_pages(context, sidepanel, safe_id: str) -> list[dict[str, object]]:
+    """Capture independent browser evidence; never infer semantic success from panel text."""
+    pages: list[dict[str, object]] = []
+    visible_index = 0
+    for page in context.pages:
+        if page == sidepanel or page.url.startswith("chrome-extension://"):
+            continue
+        visible_index += 1
+        record: dict[str, object] = {
+            "index": visible_index,
+            "url": page.url,
+            "title": "",
+            "body_text": "",
+            "video": {"exists": False},
+            "screenshot": "",
+        }
+        try:
+            record["title"] = page.title()
+        except Exception as exc:
+            record["title_error"] = str(exc)
+        try:
+            record["body_text"] = page.locator("body").inner_text(timeout=5_000)[-8_000:]
+        except Exception as exc:
+            record["body_error"] = str(exc)
+        try:
+            video = page.locator("video").first
+            if video.count():
+                page.wait_for_timeout(2_000)
+                record["video"] = video.evaluate(
+                    """element => ({
+                        exists: true,
+                        paused: element.paused,
+                        ended: element.ended,
+                        current_time: element.currentTime,
+                        duration: Number.isFinite(element.duration) ? element.duration : null,
+                        ready_state: element.readyState,
+                        muted: element.muted,
+                    })"""
+                )
+        except Exception as exc:
+            record["video_error"] = str(exc)
+        page_screenshot = REPORT_DIR / f"{safe_id}-page-{visible_index}.png"
+        try:
+            page.screenshot(path=str(page_screenshot), full_page=False, timeout=10_000)
+            record["screenshot"] = str(page_screenshot)
+        except Exception as exc:
+            record["screenshot_error"] = str(exc)
+        pages.append(record)
+    return pages
 
 
 def _extension_id(context) -> str:
@@ -298,7 +351,6 @@ def _looks_like_critical_approval(text: str) -> bool:
 
 
 def _open_workflow_panel(sidepanel) -> None:
-    sidepanel.bring_to_front()
     workflow_tab = sidepanel.get_by_role("button", name=re.compile(r"^Workflow$", re.I))
     workflow_tab.click(timeout=10_000)
     try:
@@ -352,6 +404,7 @@ def _open_reloaded_sidepanel(context, extension_id: str):
 
 
 def _run_task(
+    context,
     sidepanel,
     target,
     task_id: str,
@@ -360,15 +413,21 @@ def _run_task(
     file_path: str = "",
     allow_confirmed_critical: bool = False,
     enable_advanced_control: bool = False,
+    initial_url: str = "about:blank",
 ) -> TaskRun:
     started = time.time()
     safe_id = task_id.lower()
     target.bring_to_front()
     try:
-        target.goto(_initial_target_url(prompt), wait_until="domcontentloaded", timeout=45_000)
+        target.goto(initial_url, wait_until="domcontentloaded", timeout=45_000)
     except Exception:
         pass
-    sidepanel.bring_to_front()
+    # The validation harness renders the extension side panel in a normal
+    # extension page because Playwright cannot attach to Chrome's side-panel
+    # surface. Keep the real browser target active while driving that page in
+    # the background; otherwise chrome.tabs.query({active: true}) incorrectly
+    # grounds execution to the privileged chrome-extension:// page.
+    target.bring_to_front()
     _open_workflow_panel(sidepanel)
     _click_if_visible(sidepanel, "Clear")
     approved_file = Path(file_path).resolve() if file_path else None
@@ -484,6 +543,7 @@ def _run_task(
         )
     except Exception:
         target_controls = []
+    browser_pages = _capture_browser_pages(context, sidepanel, safe_id)
     return TaskRun(
         task_id=task_id,
         status=terminal_status,
@@ -494,6 +554,8 @@ def _run_task(
         screenshot=str(screenshot),
         target_screenshot=str(target_screenshot),
         target_controls=target_controls,
+        initial_url=initial_url,
+        browser_pages=browser_pages,
     )
 
 
@@ -529,6 +591,20 @@ def main() -> int:
         help="Repeat a custom prompt in one authenticated browser process; each attempt receives a distinct evidence ID.",
     )
     parser.add_argument("--profile-dir", type=str, default="")
+    parser.add_argument(
+        "--extension-dir",
+        type=str,
+        default="",
+        help="Optional unpacked extension build directory; defaults to extension/dist.",
+    )
+    parser.add_argument(
+        "--start-from-new-tab",
+        action="store_true",
+        help=(
+            "Start every task at chrome://newtab/ and require the application to resolve the destination. "
+            "This disables the legacy prompt-keyword bootstrap used by the general validation suite."
+        ),
+    )
     parser.add_argument(
         "--browser-channel",
         choices=("chromium", "chrome"),
@@ -570,8 +646,9 @@ def main() -> int:
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     profile_dir = Path(args.profile_dir).resolve() if args.profile_dir else REPORT_DIR / f"profile_{int(time.time() * 1000)}"
-    if not EXTENSION_DIR.exists():
-        raise SystemExit(f"Extension build not found: {EXTENSION_DIR}")
+    extension_dir = Path(args.extension_dir).resolve() if args.extension_dir else EXTENSION_DIR
+    if not extension_dir.exists():
+        raise SystemExit(f"Extension build not found: {extension_dir}")
 
     results: list[TaskRun] = []
     with sync_playwright() as pw:
@@ -579,8 +656,8 @@ def main() -> int:
             "headless": False,
             "viewport": {"width": 1440, "height": 950},
             "args": [
-                f"--disable-extensions-except={EXTENSION_DIR}",
-                f"--load-extension={EXTENSION_DIR}",
+                f"--disable-extensions-except={extension_dir}",
+                f"--load-extension={extension_dir}",
                 # Chromium documents this test switch as disabling QUIC. The
                 # live validation profile observed ERR_QUIC_PROTOCOL_ERROR on
                 # WhatsApp, so force the normal HTTPS transport for repeatable
@@ -604,7 +681,7 @@ def main() -> int:
             selected_tasks = TASKS[: args.limit]
         target = context.new_page()
         first_prompt = "Open WhatsApp" if args.inspect_chat_name else (selected_tasks[0][1] if selected_tasks else "")
-        initial_url = _initial_target_url(first_prompt)
+        initial_url = "chrome://newtab/" if args.start_from_new_tab else _initial_target_url(first_prompt)
         try:
             target.goto(initial_url, wait_until="domcontentloaded", timeout=45_000)
         except Exception as exc:
@@ -629,6 +706,8 @@ def main() -> int:
                     screenshot="",
                     target_screenshot=str(target_screenshot),
                     target_controls=[],
+                    initial_url=initial_url,
+                    browser_pages=[],
                 )
             )
             _write_report(extension_id, profile_dir, results)
@@ -715,6 +794,7 @@ def main() -> int:
         for task_id, prompt in selected_tasks:
             print(f"[live-sidepanel] starting {task_id}", flush=True)
             result = _run_task(
+                context,
                 sidepanel,
                 target,
                 task_id,
@@ -723,6 +803,7 @@ def main() -> int:
                 args.file_path,
                 args.allow_confirmed_critical,
                 args.enable_advanced_control,
+                initial_url,
             )
             results.append(result)
             _write_report(extension_id, profile_dir, results)

@@ -5,7 +5,7 @@
 
 **Expanded Day 3 robustness implementation:** Complete
 
-**Day 3 live exit:** Met; 20/20 consecutive authenticated application-side-panel runs passed.
+**Day 3 live exit:** Reopened. The 20/20 authenticated WhatsApp sequence verifies the exact-chat search/click sub-gate only; its harness pre-opened WhatsApp and therefore did not verify destination resolution from New Tab. The New Tab WhatsApp gate and scenarios 1–6 still require live application-side-panel validation.
 
 ## Delivered
 
@@ -77,7 +77,7 @@ Runs 1 and 2 are not counted toward the required 20 consecutive passes. They are
 
 ## 20/20 authenticated application-side-panel certification
 
-The user authenticated the project-owned persistent validation profile by scanning WhatsApp's QR code. A fresh certification sequence then ran the natural-language instruction from New Tab 20 consecutive times through the real extension side panel:
+The user authenticated the project-owned persistent validation profile by scanning WhatsApp's QR code. A fresh sequence then ran the natural-language instruction 20 consecutive times through the real extension side panel. A later harness audit found that `_initial_target_url()` pre-opened WhatsApp based on the prompt before each submission, so this sequence is retained only as evidence for exact-chat grounding/click verification and zero-send behavior; it is not New Tab destination-resolution evidence:
 
 `Open WhatsApp and open the exact direct chat named Teja Spc. Do not type a message, attach a file, or send anything.`
 
@@ -91,7 +91,9 @@ The user authenticated the project-owned persistent validation profile by scanni
 | Duplicate external effects | 0 |
 | Minimum / average / p95 / maximum latency | 27.8 / 32.44 / 37.4 / 42.6 seconds |
 
-Each run used stable-selector grounding for the recipient row, trusted CDP input for the click, and the exact WhatsApp postcondition before completion. The final screenshot visually confirms the `Teja Spc` header and an empty `Type a message` composer. Raw aggregate evidence is in [live_sidepanel_first10_latest.json](../live_sidepanel/live_sidepanel_first10_latest.json); per-run side-panel and target screenshots are stored beside it as `day3-cert-01` through `day3-cert-20`.
+Each run used stable-selector grounding for the recipient row, trusted CDP input for the click, and the exact WhatsApp postcondition before completion. The final screenshot visually confirms the `Teja Spc` header and an empty `Type a message` composer. Raw aggregate evidence is in [day3-cert-20-run.json](../live_sidepanel/day3-cert-20-run.json); per-run side-panel and target screenshots are stored beside it as `day3-cert-01` through `day3-cert-20`.
+
+After certification, one final presentation-only smoke run passed in 27.2 seconds with the same two actions and exact composer evidence. It confirmed the completed UI no longer displays the contradictory `Semantic progress has stalled` notice.
 
 The failures retained before certification exposed four distinct root causes: a non-actionable title-span click, negative safety text misclassified as an upload objective, verified post-click evidence not reaching convergence, and optional diagnostics being stripped at a message boundary. The final design promotes the click to the unique containing chat row, normalizes negative clauses centrally across planning layers, and completes an open-only exact-target task at the side-panel controller immediately after the service worker's postcondition-gated success. No failed attempt is counted in the 20/20 result.
 

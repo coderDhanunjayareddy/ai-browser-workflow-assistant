@@ -154,6 +154,7 @@ function bindObservationGrounding(action: SuggestedAction, context: PageContext)
   return {
     ...action,
     grounding: {
+      ...(action.grounding || {}),
       source: visualAction ? 'vision_region' : 'dom_snapshot',
       selector_id: observed.selector_id ?? observed.element_id ?? null,
       accessibility_name: observed.accessibility_name ?? observed.aria_label ?? observed.text ?? null,

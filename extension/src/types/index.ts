@@ -69,6 +69,7 @@ export interface ActionGrounding {
   accessibility_name?: string | null
   role?: string | null
   semantic_kind?: string | null
+  expected_url_path?: string | null
   screenshot_verified?: boolean
   screenshot_hash?: string | null
   bounding_box?: { x: number; y: number; width: number; height: number } | null
@@ -119,6 +120,7 @@ export interface CanonicalActionContract {
   expected_effect: {
     kind: ExpectedEffectKind
     description: string
+    url_path?: string | null
   }
   safety_class: SafetyLevel
   idempotency_key: string

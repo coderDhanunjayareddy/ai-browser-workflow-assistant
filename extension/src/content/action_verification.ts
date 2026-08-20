@@ -6,6 +6,7 @@ export interface VerifiableAction {
   target_selector: string | null
   value: string | null
   description?: string
+  grounding?: { expected_url_path?: string | null }
 }
 
 export interface BasicExecutionResult {
@@ -322,6 +323,12 @@ export function verifyActionEffect(
     wave4_capability: executionResult.wave4_capability ?? null,
     wave4_validated: executionResult.wave4_validated ?? null,
     cdp_navigation_signal_count: Number(executionResult.adapter_trace?.cdp_navigation_signal_count || 0),
+    expected_url_path: action.grounding?.expected_url_path || null,
+    expected_url_path_matched: (() => {
+      const expectedPath = action.grounding?.expected_url_path?.trim()
+      if (!expectedPath) return null
+      try { return new URL(after.url).pathname === expectedPath } catch { return false }
+    })(),
   }
 
   if (!executionResult.success) {
@@ -333,7 +340,9 @@ export function verifyActionEffect(
 
   switch (action.action_type) {
     case 'click':
-      verified = Boolean(
+      verified = action.grounding?.expected_url_path
+        ? signals.expected_url_path_matched === true && signals.url_changed === true
+        : Boolean(
         signals.url_changed ||
         signals.dom_changed ||
         signals.focus_changed ||
@@ -346,7 +355,7 @@ export function verifyActionEffect(
         signals.visible_text_length_changed ||
         signals.interactive_count_changed ||
         Number(signals.cdp_navigation_signal_count || 0) > 0,
-      )
+        )
       break
 
     case 'fill':
