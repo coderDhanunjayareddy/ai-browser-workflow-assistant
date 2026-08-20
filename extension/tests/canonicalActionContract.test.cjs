@@ -154,3 +154,8 @@ test('navigation waits for redirect chains to settle before verification or a de
   assert.match(worker, /await waitForTabNavigationSettle\(tab\.id, tabUrl\)/)
   assert.match(worker, /stableSamples >= 6/)
 })
+
+test('open-new-tab validates the exact source tab separately from the destination origin', () => {
+  const worker = fs.readFileSync(path.join(root, 'src/background/service-worker.ts'), 'utf8')
+  assert.match(worker, /!\['navigate', 'open_new_tab'\]\.includes\(action\.action_type\)/)
+})

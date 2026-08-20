@@ -436,7 +436,7 @@ async function handleExecuteAction(
     }
     if (
       tabUrl !== contract.origin.observed_url ||
-      (!bootstrapNavigation && action.action_type !== 'navigate' && new URL(tabUrl).origin !== contract.origin.origin) ||
+      (!bootstrapNavigation && !['navigate', 'open_new_tab'].includes(action.action_type) && new URL(tabUrl).origin !== contract.origin.origin) ||
       (contract.browser_binding.window_id !== null && tab.windowId !== contract.browser_binding.window_id)
     ) {
       sendResponse({ error: 'Browser action rejected: canonical origin, URL, tab, or window identity changed before dispatch.' })
