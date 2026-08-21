@@ -190,6 +190,14 @@ test('consequential submission reserves once before trusted input and settles de
   assert.match(worker, /It will not be retried automatically/)
 })
 
+test('confirmation UI displays exact consequential destination and content immediately before approval', () => {
+  const app = fs.readFileSync(path.join(root, 'src', 'sidepanel', 'App.tsx'), 'utf8')
+  assert.match(app, /Exact destination:/)
+  assert.match(app, /Exact content:/)
+  assert.match(app, /confirmation is valid once/)
+  assert.match(app, /Confirm &/)
+})
+
 test('production service worker dispatches keyboard shortcuts through trusted CDP input', () => {
   const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
   const keyboardBranch = worker.match(/if \(action\.action_type === 'keyboard_shortcut'\) \{[\s\S]*?\n    \}/)?.[0] || ''

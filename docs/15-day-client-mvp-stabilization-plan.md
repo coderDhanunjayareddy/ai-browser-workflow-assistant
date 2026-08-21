@@ -118,7 +118,7 @@
 
 **Completed 2026-08-21:** The generic broker contract, controlled effect fixtures, safety policy, and authenticated live preview gate passed. The frozen extension-side-panel build completed 20/20 consecutive New Tab runs: each run resolved the destination, opened the exact entity, activated the observed insertion menu, selected exactly one approved synthetic file, verified the exact preview, and stopped without sending. Chooser selections were 20/20 exact, preview verifications 20/20, sends 0, send actions 0, retries 0, duplicate/second choosers 0, and wrong bindings 0. Latency was 44.3–74.2 seconds (average 61.91; p95 73.9), retained as a performance-hardening finding. See [Day 4 content-insertion report](production_validation/day4/day4-content-insertion-report.md) and [20-run raw evidence](production_validation/live_sidepanel/day4-cert-20-run.json).
 
-### Day 5 — WhatsApp confirmation and exactly-once send
+### Day 5 — Generic confirmation and exactly-once external submission
 
 - Require confirmation after recipient and attachment are visible, immediately before send.
 - Make send idempotent and non-retriable after uncertain dispatch.
@@ -126,6 +126,8 @@
 - Run the complete WhatsApp release gate.
 
 **Exit:** 20 consecutive successful sends to a consenting test contact/self-chat, zero wrong recipients, and zero duplicates.
+
+**In progress 2026-08-21:** The provider-neutral contract, immediate confirmation UI, single-use policy receipt, mutation-boundary idempotency ledger, uncertain-dispatch stop, exact delivery verifier, and terminal convergence path are implemented. The controlled browser gate passed 20/20, including a deliberate duplicate activation in every run with zero duplicate effects. The real-service 20-send exit gate remains pending and no real sends were performed: browser control is connected, but browser safety requires the user to open the privileged certification extension tab once; the final run also requires a named consenting self/test destination plus immediate scoped confirmation. See [Day 5 report](production_validation/day5/day5-confirmation-exactly-once-report.md) and [controlled raw summary](production_validation/live_sidepanel/day5-controlled-20-run.json).
 
 ### Day 6 — Gmail search and thread grounding
 

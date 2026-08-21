@@ -1,0 +1,27 @@
+{
+  "schema_version": "day5_controlled_exactly_once.v1",
+  "date": "2026-08-21",
+  "scope": "provider-neutral loopback fixture; not a real-service or extension-side-panel certification",
+  "fixture": {
+    "destination_entity": "Synthetic Recipient",
+    "content_identity": "synthetic-day5.txt",
+    "size_bytes": 130,
+    "sha256": "5009CC5417C8C6B175E13637BFF785182C49E8D78F91ED9F07DBDEC840C10945"
+  },
+  "summary": {
+    "runs": 20,
+    "passed": 20,
+    "wrong_destinations": 0,
+    "duplicate_effects": 0,
+    "first_dispatch_effect_count_each_run": 1,
+    "effect_count_after_deliberate_duplicate_each_run": 1,
+    "latency_seconds": {"min": 1.54, "average": 1.684, "p95": 1.84, "max": 1.96}
+  },
+  "framework_reported_call_seconds": [1.62, 1.65, 1.54, 1.96, 1.81, 1.71, 1.84, 1.79, 1.73, 1.66, 1.62, 1.55, 1.75, 1.58, 1.57, 1.59, 1.70, 1.65, 1.62, 1.75],
+  "release_gate": {
+    "controlled_gate": "passed",
+    "real_service_20_send_gate": "pending",
+    "real_sends_performed": 0,
+    "blocker": "A user-opened certification extension tab is required because automation cannot open privileged extension URLs; consenting destination and immediate action-time confirmation are also required"
+  }
+}

@@ -1185,12 +1185,24 @@ function ActionCard({ action, stepNumber, autoMode, onApprove, onReject }: Actio
       </div>
       <p style={s.cardDescription}>{action.description}</p>
       <p style={s.cardReasoning}>{action.reasoning}</p>
+      {action.consequential_submission && (
+        <div style={{ ...s.value, border: '1px solid #f59e0b', borderRadius: 6, padding: 8 }}>
+          <div><strong>External action:</strong> {action.consequential_submission.operation}</div>
+          <div><strong>Exact destination:</strong> {action.consequential_submission.destination_entity}</div>
+          <div><strong>Exact content:</strong> {action.consequential_submission.content_identity}</div>
+          <div>This confirmation is valid once and only for these displayed identities.</div>
+        </div>
+      )}
       {action.target_selector && <code style={s.selector}>{action.target_selector}</code>}
       {action.value && <p style={s.value}>Value: <strong>{action.value}</strong></p>}
 
       {/* Always show buttons — in auto mode they're secondary. For danger, always manual. */}
       <div style={s.actionButtons}>
-        <button onClick={onApprove} style={s.approveBtn}>✓ Approve</button>
+        <button onClick={onApprove} style={s.approveBtn}>
+          {action.consequential_submission
+            ? `✓ Confirm & ${action.consequential_submission.operation}`
+            : '✓ Approve'}
+        </button>
         <button onClick={onReject} style={s.rejectBtn}>✕ Reject</button>
       </div>
     </div>

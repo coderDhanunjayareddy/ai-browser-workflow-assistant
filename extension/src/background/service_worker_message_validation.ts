@@ -33,11 +33,11 @@ export type ExecutableAction = {
   consequential_submission?: {
     schema_version: 'consequential_submission.v1'
     submission_id: string
-    operation: string
+    operation: 'send' | 'share' | 'submit' | 'post' | 'publish'
     destination_entity: string
     content_identity: string
     preview_required: boolean
-    verification_mode: string
+    verification_mode: 'delivered_content_and_destination'
   } | null
 }
 

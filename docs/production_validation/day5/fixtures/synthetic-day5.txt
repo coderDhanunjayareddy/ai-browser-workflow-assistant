@@ -1,0 +1,2 @@
+Synthetic Day 5 confirmation and exactly-once delivery fixture.
+This file contains no personal, confidential, or production data.

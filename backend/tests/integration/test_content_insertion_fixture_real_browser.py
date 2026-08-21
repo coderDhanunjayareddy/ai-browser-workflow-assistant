@@ -7,6 +7,7 @@ from app.certification.fixtures import FixtureServer
 
 
 FIXTURE = Path(__file__).resolve().parents[3] / "docs" / "production_validation" / "day4" / "fixtures" / "synthetic-day4.txt"
+DAY5_FIXTURE = Path(__file__).resolve().parents[3] / "docs" / "production_validation" / "day5" / "fixtures" / "synthetic-day5.txt"
 
 
 @pytest.fixture(scope="module")
@@ -44,4 +45,28 @@ def test_effect_classes_are_declared_and_preview_does_not_send(server) -> None:
         page.locator("#poll-draft").click()
         assert page.locator("#draft-state").inner_text() == "Poll draft opened"
         assert page.locator("#send-count").inner_text() == "0"
+        browser.close()
+
+
+@pytest.mark.parametrize("run_index", range(20))
+def test_consequential_fixture_exposes_exact_identity_and_prevents_duplicate_effect(server, run_index: int) -> None:
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(server.base_url + "/content-insertion")
+
+        assert page.locator("#destination").get_attribute("data-submission-destination") == "Synthetic Recipient"
+        page.locator("#content-file").set_input_files(str(DAY5_FIXTURE))
+        assert page.locator("#content-preview").get_attribute("data-content-identity") == DAY5_FIXTURE.name
+        assert page.locator("#send-count").inner_text() == "0"
+
+        page.locator("#content-send").click()
+        delivered = page.locator('[data-delivery-state="delivered"]')
+        assert delivered.count() == 1
+        assert delivered.get_attribute("data-content-identity") == DAY5_FIXTURE.name
+        assert page.locator("#send-count").inner_text() == "1"
+
+        page.locator("#content-send").click()
+        assert delivered.count() == 1
+        assert page.locator("#send-count").inner_text() == "1"
         browser.close()
