@@ -322,7 +322,7 @@ def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
                 const buttons = Array.from(document.querySelectorAll('button'));
                 const button = buttons.find((el) => {
                     const text = (el.textContent || '').toLowerCase();
-                    return (text.includes('approve') || text.includes('resume safely')) && !el.hasAttribute('disabled');
+                    return text.includes('approve') && !el.hasAttribute('disabled');
                 });
                 if (button instanceof HTMLElement) {
                     button.scrollIntoView({ block: 'center', inline: 'center' });
@@ -338,11 +338,8 @@ def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
         pass
     for locator in (
         sidepanel.get_by_role("button", name=re.compile(r"Approve", re.I)).first,
-        sidepanel.get_by_role("button", name=re.compile(r"Resume safely", re.I)).first,
         sidepanel.locator("button", has_text=re.compile(r"Approve", re.I)).first,
-        sidepanel.locator("button", has_text=re.compile(r"Resume safely", re.I)).first,
         sidepanel.get_by_text(re.compile(r"Approve", re.I)).first,
-        sidepanel.get_by_text(re.compile(r"Resume safely", re.I)).first,
     ):
         try:
             if locator.is_visible(timeout=500):
@@ -509,14 +506,12 @@ def _run_task(
         if planner_replan:
             terminal_status = "failed"
             break
-        explicit_failure = (
-            "workflow failed" in lowered
-            or "analysis failed:" in lowered
-            or "observation failed:" in lowered
-            or "execution_failed" in lowered
-            or "execution failed" in lowered
-            or "error:" in lowered
-        )
+        # Action cards intentionally retain raw diagnostic evidence. Do not
+        # mistake an in-progress card containing "Error:" or
+        # "execution failed" for the workflow's terminal user-facing state.
+        # The application exposes its sanitized terminal error separately.
+        workflow_error = sidepanel.locator('[data-testid="workflow-error"]')
+        explicit_failure = workflow_error.count() > 0 and workflow_error.first.is_visible()
         if false_completion or explicit_failure:
             terminal_status = "failed"
             break
@@ -567,12 +562,19 @@ def _run_task(
     except Exception:
         target_controls = []
     browser_pages = _capture_browser_pages(context, sidepanel, safe_id)
+    workflow_error_text = ""
+    try:
+        workflow_error = sidepanel.locator('[data-testid="workflow-error"]')
+        if workflow_error.count() > 0 and workflow_error.first.is_visible():
+            workflow_error_text = workflow_error.first.inner_text().strip()
+    except Exception:
+        workflow_error_text = ""
     return TaskRun(
         task_id=task_id,
         status=terminal_status,
         duration_s=round(time.time() - started, 1),
         phase=phase,
-        error=_extract_error(text),
+        error=workflow_error_text or _extract_error(text),
         evidence=text[-5000:],
         screenshot=str(screenshot),
         target_screenshot=str(target_screenshot),

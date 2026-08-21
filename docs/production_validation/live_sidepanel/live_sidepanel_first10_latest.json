@@ -1,114 +1,18 @@
 {
   "mode": "extension_sidepanel_playwright",
-  "extension_id": "mogneegaclkfmdjgjcjbcaifnlbefofn",
-  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_s4_r2_20260820",
+  "extension_id": "nfphflhilhpnhbenbomkfgfecljmfkcf",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_cert_final_20260820",
   "results": [
     {
-      "task_id": "D3-S4",
-      "status": "completed",
-      "duration_s": 55.8,
-      "phase": "unknown",
+      "task_id": "D3-WA-NEWTAB-PROBE-PW162",
+      "status": "needs_info",
+      "duration_s": 40.8,
+      "phase": "Waiting for info",
       "error": "",
-      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 a748908 \u00b7 stabilization-20260820T173856Z \u00b7 pid 29508\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nDestination discovery ended safely without selecting an unverifiable website.\n\nReport answer: I could not verify an official destination for \"RBVRRIT college Portal\" from the available search results. No candidate website was opened. Please provide the city, full organization name, or another identifying detail.\n\nReport claim: No verified destination was available in observed search evidence.\n\n\u26a1\nStep 1\nNAVIGATE\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: verified\nTime: 10.3s\nNavigating to: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 2\nNAVIGATE\nSearch for the official destination of RBVRRIT college Portal\nRBVRRIT college Portal official portal - Search\nhttps://www.bing.com/search?q=RBVRRIT+college+Portal+official+portal\nVerification: verified\nTime: 10.3s\nNavigating to: https://www.bing.com/search?q=RBVRRIT+college+Portal+official+portal\n\u2713 Done \u2014 2 of 2 steps succeeded",
-      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4.png",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-target.png",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 ee8c8d9 \u00b7 stabilization-20260821T054320Z \u00b7 pid 6032\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for info\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nWhatsApp is open, but the observed page is the authentication screen rather than an authenticated chat list. No page control was selected and the workflow was not retried.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open WhatsApp\nWhatsApp\nhttps://web.whatsapp.com/\nVerification: verified\nTime: 3.0s\nNavigating to: https://web.whatsapp.com/\n\nNEED INFORMATION\n\nWhatsApp needs to be linked or signed in before I can open the exact chat. Please complete WhatsApp's login in this browser, then resume the workflow.\n\nContinue",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-wa-newtab-probe-pw162.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-wa-newtab-probe-pw162-target.png",
       "target_controls": [
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "Enter your search here - Search suggestions will show as you type",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "paste image link to search",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "textarea",
-          "role": "textbox",
-          "aria_label": "",
-          "placeholder": "Ask a follow-up ",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Send",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "Paste image or URL",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "input",
-          "role": "",
-          "aria_label": "",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
         {
           "tag": "input",
           "role": "",
@@ -128,44 +32,17 @@
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-1.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-wa-newtab-probe-pw162-page-1.png"
         },
         {
           "index": 2,
-          "url": "https://www.bing.com/search?q=RBVRRIT+college+Portal+official+portal&rdr=1&rdrig=3C29868B327C4B2DA02D6A3425E985F9",
-          "title": "RBVRRIT college Portal official portal - Search",
-          "body_text": "Skip to content\nAccessibility Feedback\nRewards\nAllSearchImagesVideosMapsNews\nMore\nPrivacy\nTerms",
+          "url": "https://web.whatsapp.com/",
+          "title": "WhatsApp",
+          "body_text": "Download WhatsApp for Windows\nGet extra features like voice and video calling, screen sharing and more.\nDownload\nScan to log in\nLink with phone number instead.\n1\nScan the QR code with your phone's camera\n2\nTap the link to open WhatsApp \n3\nScan the QR code again to link to your account\nNeed help?\nStay logged in on this browser\nLog in with phone number\nDon't have a WhatsApp account?\nGet started\nYour personal messages are end-to-end encrypted\nTerms & Privacy Policy",
           "video": {
-            "index": 0,
-            "exists": true,
-            "visible": false,
-            "paused": true,
-            "ended": false,
-            "current_time": 0,
-            "duration": null,
-            "ready_state": 0,
-            "muted": false,
-            "width": 0,
-            "height": 0,
-            "advanced_by": 0.0
+            "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-page-2.png",
-          "videos": [
-            {
-              "index": 0,
-              "exists": true,
-              "visible": false,
-              "paused": true,
-              "ended": false,
-              "current_time": 0,
-              "duration": null,
-              "ready_state": 0,
-              "muted": false,
-              "width": 0,
-              "height": 0,
-              "advanced_by": 0.0
-            }
-          ]
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-wa-newtab-probe-pw162-page-2.png"
         }
       ]
     }

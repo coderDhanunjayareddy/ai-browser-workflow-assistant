@@ -92,10 +92,21 @@ _APP_BY_ID = {app.app_id: app for app in APP_DESTINATIONS}
 _SEARCH_HOSTS = {"google.com", "www.google.com", "bing.com", "www.bing.com"}
 _UNSAFE_SCHEMES = {"javascript", "data", "file", "chrome", "chrome-extension", "about"}
 _ACCOUNT_PATH_TERMS = ("login", "signin", "sign-in", "account", "student", "portal", "exam")
+_TERMINAL_FAILURE_TERMS = (
+    "fail", "error", "no_effect", "no effect", "timeout", "timed out",
+    "policy", "confirmation", "approval", "sign-in", "signin",
+    "authentication", "not authenticated", "login required", "network",
+    "offline", "connection refused", "rejected", "blocked",
+)
 
 
 def _normalize(text: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9]+", " ", str(text or "").lower()).split())
+
+
+def _is_terminal_failure(result: str) -> bool:
+    normalized = str(result or "").lower()
+    return any(term in normalized for term in _TERMINAL_FAILURE_TERMS)
 
 
 def _app_mentioned(text: str) -> AppDestination | None:
@@ -252,7 +263,7 @@ def _successful_prior_urls(prior_steps: list[Any]) -> list[str]:
     for step in prior_steps or []:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
         result = str(data.get("execution_result") or "").lower()
-        if any(term in result for term in ("fail", "error", "no_effect", "no effect")):
+        if _is_terminal_failure(result):
             continue
         value = _safe_http_url(str(data.get("value") or ""))
         page_url = _safe_http_url(str(data.get("page_url") or ""))
@@ -417,7 +428,7 @@ def _failed_prior_for_url(url: str, prior_steps: list[Any]) -> str | None:
         if str(data.get("value") or "").rstrip("/").lower() != expected:
             continue
         result = str(data.get("execution_result") or "").lower()
-        if any(term in result for term in ("fail", "error", "no_effect", "no effect", "timeout")):
+        if _is_terminal_failure(result):
             return result
     return None
 
@@ -588,10 +599,10 @@ def _decision(task: str, page_context: Any, prior_steps: list[Any], user_context
     credible = [candidate for candidate in candidates if candidate.score >= 0.55]
     if not credible:
         return DestinationDecision(
-            "report", pending,
+            "ask", pending,
             message=(
                 f'I could not verify an official destination for "{pending.entity_name}" from the available search results. '
-                "No candidate website was opened. Please provide the city, full organization name, or another identifying detail."
+                "No candidate website was opened. What city, full organization name, or other identifying detail should I use?"
             ),
         )
     top = credible[0]
@@ -638,7 +649,7 @@ def _successful_media_step(prior_steps: list[Any], action_type: str, marker: str
         if str(data.get("action_type") or "").lower() != action_type:
             continue
         result = str(data.get("execution_result") or "").lower()
-        if any(term in result for term in ("fail", "error", "no_effect", "no effect", "rejected")):
+        if _is_terminal_failure(result):
             continue
         combined = " ".join(str(data.get(key) or "") for key in ("description", "value", "execution_result")).lower()
         if not marker or marker.lower() in combined:

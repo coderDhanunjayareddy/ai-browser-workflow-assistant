@@ -275,6 +275,9 @@ export function meaningfulWorkflowFailure(
   if (/policy|confirmation|approval|privileged url/.test(text)) {
     return { category: 'policy', userMessage: `I paused${subject} because the safety policy or required confirmation did not allow it to continue. No additional action was taken.`, retryable: false }
   }
+  if (/frame with id .* showing error page|chrome-error:\/\/|extraction failed.*error page|err_unsafe_port/.test(text)) {
+    return { category: 'network', userMessage: `The destination for${subject || ' the requested navigation'} returned a browser error page. I stopped after one attempt and did not repeat the navigation.`, retryable: false }
+  }
   if (/timed out|timeout/.test(text)) {
     return { category: 'timeout', userMessage: `The ${stage} step${subject} did not finish within the safe time limit. I stopped the attempt instead of waiting or retrying indefinitely.`, retryable: true }
   }
@@ -1013,9 +1016,17 @@ function nextAllowedActions(actions: SuggestedAction[], completed: CompletedActi
 export function shouldRequestSemanticRecovery(
   action: SuggestedAction,
   completed: CompletedAction[],
+  postActionObservationAvailable = true,
 ): boolean {
+  // Re-analysis is only useful when the mutated browser state can be observed.
+  // Chrome error pages (for example ERR_CONNECTION_REFUSED/ERR_UNSAFE_PORT)
+  // cannot be extracted by the content-script pipeline. Re-entering the loop
+  // from the stale pre-action snapshot hides the real failure and can produce
+  // a duplicate navigation attempt.
+  if (!postActionObservationAvailable) return false
   if (action.safety_level !== 'safe' || actionRequiresExplicitApproval(action)) return false
   const latestMessage = String(completed[completed.length - 1]?.result?.message || '').toLowerCase()
+  if (/frame with id .* showing error page|chrome-error:\/\/|extraction failed.*error page/.test(latestMessage)) return false
   if (/policy|confirmation|approval|may already have been dispatched|uncertain|privileged/.test(latestMessage)) return false
   const signature = actionSignature(action)
   const failures = completed.filter(({ action: priorAction, result }) =>
@@ -1843,6 +1854,7 @@ export function useWorkflow() {
     }
 
     let pageContextAfterAction = pageContext
+    let postActionObservationAvailable = true
 
     if (result.success) {
       if (result.page_context) {
@@ -1938,6 +1950,7 @@ export function useWorkflow() {
               }
             }
           } else {
+            postActionObservationAvailable = false
             result = {
               success: false,
               message: `Could not verify page progress after ${action.action_type}: ${extractionError || 'page read failed'}`,
@@ -1945,6 +1958,7 @@ export function useWorkflow() {
             }
           }
         } catch (err) {
+          postActionObservationAvailable = false
           result = {
             success: false,
             message: `Could not verify page progress after ${action.action_type}: ${errMsg(err)}`,
@@ -1986,7 +2000,7 @@ export function useWorkflow() {
 
     if (!result.success) {
       const friendly = meaningfulWorkflowFailure(result.message || 'Intent execution failed.', 'execution', action.description)
-      if (shouldRequestSemanticRecovery(action, newCompleted)) {
+      if (friendly.retryable && shouldRequestSemanticRecovery(action, newCompleted, postActionObservationAvailable)) {
         setState((s) => ({
           ...s,
           phase: 'refreshing',

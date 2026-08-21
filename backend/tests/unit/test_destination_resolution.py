@@ -53,6 +53,18 @@ def internally_rejected_navigation(url: str) -> PriorStep:
     )
 
 
+def terminal_navigation(url: str, result: str) -> PriorStep:
+    return PriorStep(
+        action_type="navigate",
+        description=f"Open {url}",
+        target_selector=None,
+        value=url,
+        execution_result=result,
+        page_url="chrome://newtab/",
+        page_title="New Tab",
+    )
+
+
 def media_step(action_type: str, description: str, value: str, result: str = "success") -> PriorStep:
     return PriorStep(
         action_type=action_type,
@@ -333,7 +345,7 @@ def test_one_high_confidence_public_destination_opens_automatically():
     assert result.suggested_actions[0].value == "https://portal.acmeuniversity.edu/"
 
 
-def test_unverifiable_destination_reports_meaningfully_without_navigation():
+def test_unverifiable_destination_requests_identifying_detail_without_navigation():
     result = resolve_destination(
         session_id="s7",
         task="Open ZQX Unknown College portal",
@@ -345,10 +357,10 @@ def test_unverifiable_destination_reports_meaningfully_without_navigation():
     )
 
     assert result is not None
-    assert result.outcome_kind == "report"
-    assert result.sgv_verified is True
+    assert result.outcome_kind == "ask"
     assert result.suggested_actions == []
-    assert "No candidate website was opened" in result.report.answer
+    assert "No candidate website was opened" in result.clarification_question
+    assert "What city" in result.clarification_question
 
 
 def test_failed_navigation_is_not_repeated_and_becomes_meaningful_terminal_report():
@@ -380,6 +392,30 @@ def test_internal_navigation_rejection_is_not_misattributed_to_network_or_search
     assert "network" in result.report.answer  # explicitly says it was not blamed
     assert "No verified destination" not in result.report.claim
     assert "Destination discovery" not in result.analysis
+
+
+def test_terminal_navigation_failure_classes_stop_without_duplicate_actions():
+    cases = [
+        ("navigation timed out after the configured budget", "timed out", "navigation_network"),
+        ("navigation had no effect and page was unchanged", "did not change", "navigation_no_effect"),
+        ("authentication required; login required", "authentication is required", "navigation_auth"),
+        ("policy blocked navigation pending confirmation", "safety policy", "navigation_policy"),
+    ]
+    for index, (failure, expected_answer, expected_category) in enumerate(cases, start=1):
+        result = resolve_destination(
+            session_id=f"failure-class-{index}",
+            task="Open WhatsApp",
+            page_context=page(),
+            prior_steps=[terminal_navigation("https://web.whatsapp.com/", failure)],
+        )
+
+        assert result is not None
+        assert result.outcome_kind == "report"
+        assert result.suggested_actions == []
+        assert expected_answer in result.report.answer
+        assert result.sgv_verified is True
+        assert result.goal_convergence is True
+        assert expected_category in result.analysis or "recorded execution failure" in result.analysis
 
 
 def test_generic_page_control_is_not_misclassified_as_a_web_destination():

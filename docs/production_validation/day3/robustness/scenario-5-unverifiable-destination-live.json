@@ -1,0 +1,173 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "ghkihiboggdmcklabgonmoicibnpjacf",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_s5_20260821",
+  "results": [
+    {
+      "task_id": "D3-S5",
+      "status": "needs_info",
+      "duration_s": 40.4,
+      "phase": "Waiting for info",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 ee8c8d9 \u00b7 stabilization-20260821T051500Z \u00b7 pid 6348\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for info\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nDestination resolution paused because identity or capability was not safe to infer.\n\n\u26a1\nStep 1\nNAVIGATE\nSearch for the official destination of Zyralune Quantum Municipal Benefits Portal\nhttps://www.google.com/search?q=Zyralune+Quantum+Municip\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: verified\nTime: 4.8s\nNavigating to: https://www.google.com/search?q=Zyralune+Quantum+Municipal+Benefits+Portal+official+portal\n\u26a1\nStep 2\nNAVIGATE\nSearch for the official destination of Zyralune Quantum Municipal Benefits Portal\nZyralune Quantum Municipal Benefits Portal official port\u2026\nhttps://www.bing.com/search?q=Zyralune+Quantum+Municipal+Benefits+Portal\u2026\nVerification: verified\nTime: 4.0s\nNavigating to: https://www.bing.com/search?q=Zyralune+Quantum+Municipal+Benefits+Portal+official+portal\n\nNEED INFORMATION\n\nI could not verify an official destination for \"Zyralune Quantum Municipal Benefits Portal\" from the available search results. No candidate website was opened. What city, full organization name, or other identifying detail should I use?\n\nContinue",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s5.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s5-target.png",
+      "target_controls": [
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "Enter your search here - Search suggestions will show as you type",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "paste image link to search",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "textarea",
+          "role": "textbox",
+          "aria_label": "",
+          "placeholder": "Ask a follow-up ",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Send",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "Paste image or URL",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s5-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "https://www.bing.com/search?q=Zyralune+Quantum+Municipal+Benefits+Portal+official+portal",
+          "title": "Zyralune Quantum Municipal Benefits Portal official portal - Search",
+          "body_text": "Skip to content\nAccessibility Feedback\nRewards\nALLSEARCHIMAGESVIDEOSMAPSNEWSCOPILOT\nMORE\nAbout 3,180 results\ngraphy.com\nhttps://zyralune.graphy.com \u203a public \u203a login\nzyralune.graphy.com\n\nJavaScript must be enabled to run this app.\n\n\u00a0\nquantum.com\nhttps://myservices.quantum.com\nQuantum - Sign up or sign in\n\nForgot your password? Don't have an account? Sign up now.\n\nnha.gov.in\nhttps://beneficiary.nha.gov.in \u203a ayushman\nPMJAY - Beneficiary Portal - NHA\n\nAccess the PMJAY Beneficiary Portal for Ayushman Bharat scheme details and services.\n\npayorconnectivity.com\nhttps://municipalhealthbenefitfund.payorconnectivity.com\nLogin Page\n\nPlease enter your PCS Username Username: Submit PCS Portal Sign-In Assistance Guide\n\nquantumbso.com\nhttps://csl.quantumbso.com \u203a qilscsl\nWelcome to Q-iLS... - Quantum\n\nWelcome to Q-iLS... Forgot Password?\n\nquantum-services.com\nhttps://portal.quantum-services.com \u203a login.html\nLogin to Quantum-NET\n\nNote: To login to Quantum-NET, your browser must accept cookies. If you need help ensuring that your browser supports cookies, \u2026\n\nquantumhb.com\nhttps://partner.quantumhb.com\nQuantum Health Benefits Portal | Login\n\nWelcome Back!\n\nnha.gov.in\nhttps://dashboard.nha.gov.in \u203a login\nPMJAY - Dashboard\n\nAuthentication Mode* Select Forgot credentials Login If you don't have an account, please SIGNUP\n\npmjay.gov.in\nhttps://ump.pmjay.gov.in \u203a login\nPMJAY - UMP\n\nAuthentication Mode* Select Forgot credentials Login If you don't have an account, please SIGNUP For Signup tutorial, please Click \u2026\n\nMyBMC\nhttp://portal.mcgm.gov.in\nTranslate this result\nBMC\n\nBMC\n\n1\n2\n3\nPrivacy\nTerms\nVerify patient benefits Quantum Health\nQuantum Frequency educational tools\nQuantum Frequency dashboard features",
+          "video": {
+            "index": 0,
+            "exists": true,
+            "visible": false,
+            "paused": true,
+            "ended": false,
+            "current_time": 0,
+            "duration": null,
+            "ready_state": 0,
+            "muted": false,
+            "width": 0,
+            "height": 0,
+            "advanced_by": 0.0
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s5-page-2.png",
+          "videos": [
+            {
+              "index": 0,
+              "exists": true,
+              "visible": false,
+              "paused": true,
+              "ended": false,
+              "current_time": 0,
+              "duration": null,
+              "ready_state": 0,
+              "muted": false,
+              "width": 0,
+              "height": 0,
+              "advanced_by": 0.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

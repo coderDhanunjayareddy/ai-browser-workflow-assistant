@@ -1,11 +1,11 @@
 {
-  "recorded_at": "2026-08-20T17:39:24.9866097Z",
+  "recorded_at": "2026-08-21T05:43:35.5619860Z",
   "backend_url": "http://localhost:8000",
-  "process_id": 29508,
+  "process_id": 6032,
   "app_version": "0.4.0",
-  "build_commit": "a748908",
-  "build_id": "stabilization-20260820T173856Z",
+  "build_commit": "ee8c8d9",
+  "build_id": "stabilization-20260821T054320Z",
   "extension_dist": "C:\\Work\\AI_Browser_Assist\\extension\\dist",
-  "backend_stdout": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\day1\\runtime\\stabilization-20260820T173856Z.stdout.log",
-  "backend_stderr": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\day1\\runtime\\stabilization-20260820T173856Z.stderr.log"
+  "backend_stdout": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\day1\\runtime\\stabilization-20260821T054320Z.stdout.log",
+  "backend_stderr": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\day1\\runtime\\stabilization-20260821T054320Z.stderr.log"
 }

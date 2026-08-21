@@ -1,0 +1,141 @@
+{
+  "recorded_at": "2026-08-21T05:44:39.827064+00:00",
+  "method": "live POST /analyze with synthetic prior-step failure evidence",
+  "runtime": {
+    "service": "ai-browser-assist-backend",
+    "app_version": "0.4.0",
+    "build_commit": "ee8c8d9",
+    "build_id": "stabilization-20260821T054320Z",
+    "canonical_backend_url": "http://localhost:8000",
+    "process_id": 6032
+  },
+  "db": "connected",
+  "passed": true,
+  "results": [
+    {
+      "case": "timeout",
+      "injected_execution_result": "navigation timed out after the configured budget",
+      "expected_answer_fragment": "timed out",
+      "latency_ms": 2595.0,
+      "passed": true,
+      "response": {
+        "session_id": "day3-failure-timeout-98aa8ad8-9fd3-4e84-b8e4-d2592f66f726",
+        "analysis": "Navigation ended safely after the recorded execution failure; the application did not repeat the action.",
+        "outcome_kind": "report",
+        "suggested_actions": [],
+        "clarification_question": null,
+        "report": {
+          "answer": "I could not open WhatsApp because the navigation timed out or network connectivity was unavailable. I stopped instead of repeating the same navigation.",
+          "claim": "The requested navigation was not dispatched or could not be verified, and no duplicate attempt was made."
+        },
+        "replan": null,
+        "sgv_verified": true,
+        "goal_convergence": true,
+        "backend_authoritative_report": true,
+        "intent_dispatch": null,
+        "intent_execution": null,
+        "execution_orchestrator": null
+      }
+    },
+    {
+      "case": "no_effect",
+      "injected_execution_result": "navigation had no effect and page was unchanged",
+      "expected_answer_fragment": "did not change",
+      "latency_ms": 2129.0,
+      "passed": true,
+      "response": {
+        "session_id": "day3-failure-no_effect-2e56386d-1893-47dd-b6ae-b7c7079fb6e4",
+        "analysis": "Navigation ended safely after the recorded execution failure; the application did not repeat the action.",
+        "outcome_kind": "report",
+        "suggested_actions": [],
+        "clarification_question": null,
+        "report": {
+          "answer": "I could not verify that WhatsApp opened because the browser state did not change. I stopped without repeating the action.",
+          "claim": "The requested navigation was not dispatched or could not be verified, and no duplicate attempt was made."
+        },
+        "replan": null,
+        "sgv_verified": true,
+        "goal_convergence": true,
+        "backend_authoritative_report": true,
+        "intent_dispatch": null,
+        "intent_execution": null,
+        "execution_orchestrator": null
+      }
+    },
+    {
+      "case": "authentication",
+      "injected_execution_result": "authentication required; login required",
+      "expected_answer_fragment": "authentication is required",
+      "latency_ms": 2127.6,
+      "passed": true,
+      "response": {
+        "session_id": "day3-failure-authentication-a670a2c9-a92d-47bc-8def-a2e7fce96f68",
+        "analysis": "Navigation ended safely after the recorded execution failure; the application did not repeat the action.",
+        "outcome_kind": "report",
+        "suggested_actions": [],
+        "clarification_question": null,
+        "report": {
+          "answer": "I could not open WhatsApp because authentication is required or unavailable. I stopped instead of repeating the navigation.",
+          "claim": "The requested navigation was not dispatched or could not be verified, and no duplicate attempt was made."
+        },
+        "replan": null,
+        "sgv_verified": true,
+        "goal_convergence": true,
+        "backend_authoritative_report": true,
+        "intent_dispatch": null,
+        "intent_execution": null,
+        "execution_orchestrator": null
+      }
+    },
+    {
+      "case": "policy",
+      "injected_execution_result": "policy blocked navigation pending confirmation",
+      "expected_answer_fragment": "safety policy",
+      "latency_ms": 2111.5,
+      "passed": true,
+      "response": {
+        "session_id": "day3-failure-policy-90d38c9d-6488-456d-8f80-549ba15b77f7",
+        "analysis": "Navigation ended safely after the recorded execution failure; the application did not repeat the action.",
+        "outcome_kind": "report",
+        "suggested_actions": [],
+        "clarification_question": null,
+        "report": {
+          "answer": "I did not open WhatsApp because the safety policy or required confirmation blocked the navigation. No navigation was dispatched and no automatic retry was attempted.",
+          "claim": "The requested navigation was not dispatched or could not be verified, and no duplicate attempt was made."
+        },
+        "replan": null,
+        "sgv_verified": true,
+        "goal_convergence": true,
+        "backend_authoritative_report": true,
+        "intent_dispatch": null,
+        "intent_execution": null,
+        "execution_orchestrator": null
+      }
+    },
+    {
+      "case": "internal_contract",
+      "injected_execution_result": "failure: Execution message has an invalid canonical action contract.",
+      "expected_answer_fragment": "internal execution validation",
+      "latency_ms": 2134.8,
+      "passed": true,
+      "response": {
+        "session_id": "day3-failure-internal_contract-87684b0e-862f-49f3-9bf5-f52f65e1e178",
+        "analysis": "Navigation ended safely after the recorded execution failure; the application did not repeat the action.",
+        "outcome_kind": "report",
+        "suggested_actions": [],
+        "clarification_question": null,
+        "report": {
+          "answer": "I could not open WhatsApp because internal execution validation rejected the navigation before browser mutation. I stopped without retrying or blaming the website, network, or sign-in state.",
+          "claim": "The requested navigation was not dispatched or could not be verified, and no duplicate attempt was made."
+        },
+        "replan": null,
+        "sgv_verified": true,
+        "goal_convergence": true,
+        "backend_authoritative_report": true,
+        "intent_dispatch": null,
+        "intent_execution": null,
+        "execution_orchestrator": null
+      }
+    }
+  ]
+}

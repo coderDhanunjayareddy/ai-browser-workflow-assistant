@@ -973,7 +973,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
       )}
 
       {/* Workflow error */}
-      {error && <p style={s.error}>{error}</p>}
+      {error && <p data-testid="workflow-error" style={s.error}>{error}</p>}
       {isFailed && task.trim() && (
         <button onClick={() => void resumeWorkflow()} style={s.primaryBtn}>Resume safely</button>
       )}

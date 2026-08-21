@@ -266,12 +266,31 @@ test('raw workflow failures become meaningful bounded user outcomes', () => {
   const target = meaningfulWorkflowFailure('Selector target not found', 'execution', 'Open exact chat')
   assert.equal(target.category, 'target_not_found')
   assert.match(target.userMessage, /did not click a substitute/i)
+
+  const errorPage = meaningfulWorkflowFailure(
+    'Could not verify page progress after navigate: Extraction failed: Frame with ID 0 is showing error page',
+    'execution',
+    'Open synthetic destination',
+  )
+  assert.equal(errorPage.category, 'network')
+  assert.equal(errorPage.retryable, false)
+  assert.match(errorPage.userMessage, /after one attempt/i)
 })
 
 test('semantic recovery is bounded and never replans consequential or uncertain actions', () => {
   const safe = action({ action_type: 'navigate', target_selector: '', value: 'https://www.youtube.com/', description: 'Open YouTube' })
   const failedOnce = [completedAction({ action: safe, result: { success: false, message: 'navigation timeout', action_id: safe.action_id } })]
   assert.equal(shouldRequestSemanticRecovery(safe, failedOnce), true)
+  assert.equal(shouldRequestSemanticRecovery(safe, failedOnce, false), false)
+  const chromeErrorPage = [completedAction({
+    action: safe,
+    result: {
+      success: false,
+      message: 'Could not verify page progress after navigate: Extraction failed: Frame with ID 0 is showing error page',
+      action_id: safe.action_id,
+    },
+  })]
+  assert.equal(shouldRequestSemanticRecovery(safe, chromeErrorPage), false)
 
   const failedTwice = [...failedOnce, completedAction({ action: safe, result: { success: false, message: 'no_effect', action_id: safe.action_id } })]
   assert.equal(shouldRequestSemanticRecovery(safe, failedTwice), false)

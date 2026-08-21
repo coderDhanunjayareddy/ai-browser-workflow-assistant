@@ -1,0 +1,189 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "ghkihiboggdmcklabgonmoicibnpjacf",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_s4_r3_20260821",
+  "results": [
+    {
+      "task_id": "D3-S4-R3",
+      "status": "needs_info",
+      "duration_s": 43.7,
+      "phase": "Waiting for info",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 ee8c8d9 \u00b7 stabilization-20260821T051500Z \u00b7 pid 6348\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for info\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nDestination resolution paused because identity or capability was not safe to infer.\n\n\u26a1\nStep 1\nNAVIGATE\nSearch for the official destination of RBVRRIT college Portal\nhttps://www.google.com/search?q=RBVRRIT+college+Portal+o\u2026\nhttps://www.google.com/sorry/index?continue=https://www.google.com/searc\u2026\nVerification: verified\nTime: 5.5s\nNavigating to: https://www.google.com/search?q=RBVRRIT+college+Portal+official+portal\n\u26a1\nStep 2\nNAVIGATE\nSearch for the official destination of RBVRRIT college Portal\nRBVRRIT college Portal official portal - Search\nhttps://www.bing.com/search?q=RBVRRIT+college+Portal+official+portal\nVerification: verified\nTime: 7.0s\nNavigating to: https://www.bing.com/search?q=RBVRRIT+college+Portal+official+portal\n\nNEED INFORMATION\n\nI could not verify an official destination for \"RBVRRIT college Portal\" from the available search results. No candidate website was opened. What city, full organization name, or other identifying detail should I use?\n\nContinue",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-r3.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-r3-target.png",
+      "target_controls": [
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "Enter your search here - Search suggestions will show as you type",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "paste image link to search",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Like",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Dislike",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "textarea",
+          "role": "textbox",
+          "aria_label": "",
+          "placeholder": "Ask a follow-up ",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Send",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "Paste image or URL",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-r3-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "https://www.bing.com/search?q=RBVRRIT+college+Portal+official+portal",
+          "title": "RBVRRIT college Portal official portal - Search",
+          "body_text": "Skip to content\nAccessibility Feedback\nRewards\nALLSEARCHIMAGESVIDEOSMAPSNEWSSHOPPING\nMORE\nAbout 45,800 results\nOfficial Site\nrbvrrit.com\nhttp://rbvrrit.com\nRaja Bahadur Venkata Rama Reddy Institute of Technology\n\nRaja Bahadur Venkata Rama Reddy Institute of Technology (RBVRRIT) was established under the aegis of Raja Bahadur Venkata \u2026\n\nOpen rbvrrit.com\nFrom rbvrrit.com\nHome\nGrievance Connection problem\nPlacements\nThe RBVRR Institute of Technology Training & Placement Cell was \u2026\nGallery\nR. Rama KRishna Reddey Memorial Building Raja Bahadur Venkata \u2026\nBoard of Management\nThe RBVRR Institute of Technology is an academic entity managed by the \u2026\nMCA\nThe MCA department was started by the RBVRR Institute of Technology, in \u2026\nMBA\nProfile MBA department was started by RBVRRInstitute of Technology, in \u2026\n\u00a0\nrbvrrit.ac.in\nhttps://rbvrrit.ac.in \u203a body.html\nRaja Bahadur Venkata Rama Reddy Institute of Technology\n\n75% of teh time allotted to coverage of university curriculam.\n\nbvrit.edu.in\nhttps://bvrit.edu.in \u203a Default.aspx\nCollege Automation Package - bvrit.edu.in\n\nClick here to view the on-line payment process User Name : Password :\n\nrbvrres.com\nhttps://www.rbvrres.com \u203a Rbvrrit.php\nRAJA BAHADUR VENKATA RAMA REDDY EDUCATIONAL SOCIETY\n\nRBVRRIT was started with MCA course during the academic year 2002-03 and added MBA course during the academic year 2009 \u2026\n\nrbvrrit.com\nhttps://rbvrrit.com \u203a mca.php\nRaja Bahadur Venkata Rama Reddy Institute of Technology - rbvrrit.com\n\nThe Convener of Admissions, APSCHE, through statewide online counseling allocates 84 students to RBVRRIT to pursue their MCA \u2026\n\nrbvrrit.com\nhttps://rbvrrit.com \u203a board.php\nRaja Bahadur Venkata Rama Reddy Institute of Technology - rbvrrit.com\n\nThe RBVRR Institute of Technology is an academic entity managed by the Raja Bahadur Venkata Rama Reddy Educational Society, \u2026\n\nrbvrrit.ac.in\nhttps://rbvrrit.ac.in \u203a board.html\nRaja Bahadur Venkata Rama Reddy Institute of Technology\n\nThe RBVRR Institute of Technology is an academic entity managed by the Raja Bahadur Venkata Rama Reddy Educational Society, \u2026\n\nrbvrrit.com\nhttps://www.rbvrrit.com \u203a mca.html\nRaja Bahadur Venkata Rama Reddy Institute of Technology - rbvrrit.com\n\nThe MCA programme attracts young and bright students of the state. The Convener of Admissions, APSCHE, through statewide \u2026\n\nrbvrrit.ac.in\nhttps://rbvrrit.ac.in \u203a contact.html\nRaja Bahadur Venkata Rama Reddy Institute of Technology\n\nTelangana, India - 500001. 75% of teh time allotted to coverage of university curriculam.\n\nrbvrrit.com\nhttps://www.rbvrrit.com \u203a mba.html\nRaja Bahadur Venkata Rama Reddy Institute of Technology - rbvrrit.com\n\nIn many colleges affiliated to Osmania University RBVRR Institute of Technology has emerged as preferred destination for students \u2026\n\nMissing: RBVRRIT collegeMust include: RBVRRIT college\nPeople also ask\nWhat does rbvrrit stand for?\nWhat is rbvrr Institute of Technology?\nHow many seats are there in rbvrrit?\nLike\nDislike\n\u00a0\n1\n2\n3\nPrivacy\nTerms",
+          "video": {
+            "index": 0,
+            "exists": true,
+            "visible": false,
+            "paused": true,
+            "ended": false,
+            "current_time": 0,
+            "duration": null,
+            "ready_state": 0,
+            "muted": false,
+            "width": 0,
+            "height": 0,
+            "advanced_by": 0.0
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\d3-s4-r3-page-2.png",
+          "videos": [
+            {
+              "index": 0,
+              "exists": true,
+              "visible": false,
+              "paused": true,
+              "ended": false,
+              "current_time": 0,
+              "duration": null,
+              "ready_state": 0,
+              "muted": false,
+              "width": 0,
+              "height": 0,
+              "advanced_by": 0.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
