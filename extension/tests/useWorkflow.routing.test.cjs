@@ -39,9 +39,11 @@ function compileRouter() {
 compileRouter()
 const {
   appendValidationPriorStepOnce,
+  applyClarificationAnswers,
   actionRequiresDomSettle,
   actionRequiresExplicitApproval,
   buildAnalyzeRequestBody,
+  bindObservationGrounding,
   buildBackendIntentPriorStep,
   buildBudgetedPlannerContext,
   buildRejectedReportPriorStep,
@@ -180,6 +182,7 @@ function action(overrides = {}) {
     reasoning: overrides.reasoning ?? 'The button advances the workflow.',
     confidence: overrides.confidence ?? 0.9,
     safety_level: overrides.safety_level ?? 'safe',
+    grounding: overrides.grounding,
   }
 }
 
@@ -411,6 +414,71 @@ test('routes ask outcomes to clarification without actions', () => {
   assert.equal(routed.phase, 'awaiting_user')
   assert.equal(routed.contractOutcome, 'ask')
   assert.equal(routed.clarificationQuestion, 'Which account should I use?')
+  assert.deepEqual(routed.pendingActions, [])
+})
+
+test('authoritative destination clarification updates the effective durable task', () => {
+  const original = 'Open WhatsApp and open the exact chat named "@old_handle". Do not send anything.'
+  const corrected = applyClarificationAnswers(original, [
+    'Question: I found no exact visible match for "@old_handle". Please provide the exact displayed contact name.\nAnswer: RAHUL',
+  ])
+
+  assert.match(corrected, /^Use the exact recipient named "RAHUL"\./)
+  assert.match(corrected, /Open WhatsApp/)
+
+  const body = buildAnalyzeRequestBody(
+    'clarified-session',
+    original,
+    pageContext(),
+    [],
+    ['Question: I found no exact visible match for "@old_handle". Please provide the exact displayed contact name.\nAnswer: RAHUL'],
+  )
+  assert.equal(body.task, corrected)
+})
+
+test('observation binding preserves an explicit immutable target identity', () => {
+  const bound = bindObservationGrounding(action({
+    action_type: 'click',
+    target_selector: '[data-testid="result-rahul"]',
+    grounding: {
+      source: 'dom_snapshot',
+      accessibility_name: 'Rahul',
+      role: 'row',
+      semantic_kind: 'recipient',
+    },
+  }), pageContext({
+    interactive_elements: [{
+      type: 'div',
+      role: 'row',
+      selector: '[data-testid="result-rahul"]',
+      accessibility_name: 'Rahul 1:56 PM Recent message',
+      visible: true,
+    }],
+  }))
+
+  assert.equal(bound.grounding.accessibility_name, 'Rahul')
+  assert.equal(bound.grounding.role, 'row')
+  assert.equal(bound.grounding.semantic_kind, 'recipient')
+})
+
+test('same-URL navigate continuation is rejected as a no-effect action', () => {
+  const sameUrl = action({
+    action_id: 'same-url',
+    action_type: 'navigate',
+    target_selector: 'window',
+    value: 'https://web.whatsapp.com/',
+    description: 'Reach target state',
+  })
+  const routed = routeAnalyzeOutcome(response({
+    outcome_kind: 'act',
+    suggested_actions: [sameUrl],
+  }), {
+    completedActions: [],
+    currentUrl: 'https://web.whatsapp.com/',
+    userInputs: [],
+  })
+
+  assert.equal(routed.phase, 'failed')
   assert.deepEqual(routed.pendingActions, [])
 })
 

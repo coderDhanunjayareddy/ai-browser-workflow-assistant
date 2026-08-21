@@ -18,8 +18,18 @@ function Get-CanonicalHealth {
     # Invoke-RestMethod can wait on Windows proxy/name-resolution state even after
     # Uvicorn is accepting loopback connections. curl gives us a hard per-attempt
     # deadline so runtime startup cannot become an unbounded launcher bottleneck.
-    $body = & curl.exe --silent --show-error --max-time 3 "$($Url.TrimEnd('/'))/health" 2>$null
-    if ($LASTEXITCODE -ne 0 -or -not $body) { return $null }
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        # A stopped backend is an expected probe result during a controlled
+        # restart, not a launcher exception.
+        $ErrorActionPreference = "SilentlyContinue"
+        $body = & curl.exe --silent --max-time 3 "$($Url.TrimEnd('/'))/health" 2>$null
+        $curlExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($curlExitCode -ne 0 -or -not $body) { return $null }
     try { return ($body | ConvertFrom-Json) }
     catch { return $null }
 }
@@ -133,8 +143,15 @@ if ($canonicalPids.Count -eq 1) {
 }
 
 New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
-$commit = (& git -C $repoRoot rev-parse --short HEAD 2>$null).Trim()
+$repoIgnore = Join-Path $repoRoot ".gitignore"
+$commit = (& git -c "core.excludesfile=$repoIgnore" -C $repoRoot rev-parse --short HEAD 2>$null).Trim()
 if (-not $commit) { $commit = "dev" }
+$trackedChanges = (& git -c "core.excludesfile=$repoIgnore" -C $repoRoot status --porcelain --untracked-files=no 2>$null)
+if ($trackedChanges -and $commit -ne "dev") {
+    # Do not present a locally modified runtime as the pristine HEAD commit.
+    # The timestamped build ID distinguishes individual dirty builds.
+    $commit = "$commit-dirty"
+}
 $buildId = "stabilization-" + (Get-Date).ToUniversalTime().ToString("yyyyMMddTHHmmssZ")
 $appVersion = "0.4.0"
 

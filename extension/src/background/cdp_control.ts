@@ -171,13 +171,20 @@ async function send(target: chrome.debugger.Debuggee, method: string, params: Re
   return await chrome.debugger.sendCommand(target, method, params) as ProtocolResult
 }
 
-function runtimeGroundingExpression(selector: string, exactName: string | null): string {
+export function runtimeGroundingExpression(selector: string, exactName: string | null): string {
   return `(() => {
     const selector = ${JSON.stringify(selector)};
     const exactName = ${JSON.stringify(exactName)};
     let visited = 0;
     const normalize = (value) => String(value || '').replace(/\\s+/g, ' ').trim().toLowerCase();
     const label = (el) => normalize(el.getAttribute('aria-label') || el.getAttribute('title') || el.value || el.textContent || '');
+    const containsUniqueExactIdentity = (el) => {
+      if (!exactName || !el.querySelectorAll) return false;
+      const exact = Array.from(el.querySelectorAll('[aria-label], [title]'))
+        .filter(visible)
+        .filter((candidate) => label(candidate) === normalize(exactName));
+      return exact.length === 1;
+    };
     const visible = (el) => {
       const r = el.getBoundingClientRect();
       const s = getComputedStyle(el);
@@ -189,7 +196,7 @@ function runtimeGroundingExpression(selector: string, exactName: string | null):
       try { matches = Array.from(root.querySelectorAll(selector)).filter(visible); } catch { return { ok: false, reason: 'selector_invalid' }; }
       if (matches.length > 1) return { ok: false, reason: 'selector_ambiguous', matchCount: matches.length };
       const direct = matches[0] || null;
-      if (direct && (!exactName || label(direct) === normalize(exactName))) {
+      if (direct && (!exactName || label(direct) === normalize(exactName) || containsUniqueExactIdentity(direct))) {
         direct.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
         const r = direct.getBoundingClientRect();
         return { ok: true, x: offsetX + r.left + r.width / 2, y: offsetY + r.top + r.height / 2, observedName: label(direct) };

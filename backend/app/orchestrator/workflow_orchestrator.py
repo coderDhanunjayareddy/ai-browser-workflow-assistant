@@ -2316,6 +2316,7 @@ def _deterministic_observed_control_response(
     description = ""
     content_insertion: dict[str, Any] | None = None
     consequential_submission: dict[str, Any] | None = None
+    target_grounding: dict[str, Any] | None = None
 
     def prior_step_succeeded(step: Any) -> bool:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
@@ -2418,10 +2419,6 @@ def _deterministic_observed_control_response(
     current_url = str(getattr(page_context, "url", "") or "")
     is_whatsapp = "web.whatsapp.com" in current_url.lower()
     whatsapp_recipient = _messaging_recipient_from_task(task) if is_whatsapp else None
-    whatsapp_chat_row_selector = ""
-    if whatsapp_recipient:
-        escaped_recipient = whatsapp_recipient.replace("\\", "\\\\").replace('"', '\\"')
-        whatsapp_chat_row_selector = f'[role="row"]:has(span[title="{escaped_recipient}"])'
     if is_whatsapp and whatsapp_recipient and _interactive_page_state(page_context)["login_required"]:
         return AnalyzeResponse(
             session_id=session_id,
@@ -2441,6 +2438,61 @@ def _deterministic_observed_control_response(
         label_terms=("type a message",),
         selector_terms=("type a message",),
     ) if is_whatsapp else None
+    # A visible composer proves only that *some* conversation is open.  It is
+    # not destination evidence.  Before any downstream mutation, require an
+    # exact identity established either by the trusted post-click verifier or
+    # by an explicit composer label such as "Type a message to Alice".
+    # This invariant is destination/provider neutral at the evidence layer:
+    # mutation-capable actions consume the exact identity recorded by the
+    # preceding selection action and never infer it from a search query.
+    if is_whatsapp and whatsapp_recipient and whatsapp_message_control is not None:
+        exact_destination_verified = False
+        observed_destination = ""
+        for step in reversed(list(prior_steps or [])):
+            data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+            evidence = dict(data.get("browser_evidence") or {})
+            expected = str(evidence.get("adapter_exact_expected_name") or "").strip()
+            observed = str(evidence.get("adapter_exact_observed_name") or "").strip()
+            if (
+                evidence.get("adapter_exact_identity_verified") is True
+                and expected
+                and observed
+                and expected.casefold() == whatsapp_recipient.casefold()
+                and observed.casefold() == whatsapp_recipient.casefold()
+            ):
+                exact_destination_verified = True
+                observed_destination = observed
+                break
+        if not exact_destination_verified:
+            for element in elements:
+                label = " ".join(
+                    str(element.get(key) or "")
+                    for key in ("aria_label", "accessibility_name", "placeholder")
+                ).strip()
+                match = re.search(r"\btype a message to\s+(.+?)\s*$", label, flags=re.IGNORECASE)
+                if match:
+                    observed_destination = match.group(1).strip()
+                    exact_destination_verified = observed_destination.casefold() == whatsapp_recipient.casefold()
+                    break
+        downstream_mutation_requested = bool(re.search(
+            r"\b(attach|upload|insert|add|send|share|submit|post|publish|type|write|reply|message)\b",
+            affirmative_text,
+        ))
+        if downstream_mutation_requested and not exact_destination_verified:
+            observed_note = f' The currently observed destination is "{observed_destination}".' if observed_destination else ""
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    f'The requested destination "{whatsapp_recipient}" has not been verified as the currently open '
+                    f'conversation.{observed_note} No content insertion or submission control was selected.'
+                ),
+                outcome_kind="ask",
+                clarification_question=(
+                    f'I could not verify the exact destination "{whatsapp_recipient}". '
+                    "Choose an exact visible match or provide a different unambiguous destination before attaching or sending anything."
+                ),
+                suggested_actions=[],
+            )
     is_public_browser_test_form = (
         "selenium.dev/selenium/web/web-form.html" in current_url.lower()
         and "test data" in task_text
@@ -2524,7 +2576,7 @@ def _deterministic_observed_control_response(
         # Messaging contact pickers are not site-search forms. Prefer a currently
         # visible exact recipient and otherwise fill the contact search field;
         # blindly pressing Enter can open the wrong chat (or do nothing).
-        exact_contact = _find_observed_control(elements, exact_labels=(whatsapp_recipient,))
+        exact_contact = _find_exact_recipient_control(elements, whatsapp_recipient)
         search_control = _find_observed_control(
             elements,
             label_terms=("search or start new chat", "search contacts", "search"),
@@ -2540,33 +2592,55 @@ def _deterministic_observed_control_response(
                 ),
                 None,
             )
-        visible_text = str(getattr(page_context, "visible_text", "") or "")
-        search_was_filled = bool(
-            search_control is not None
-            and str(search_control.get("selector") or "") in completed_fills
+        search_selector = str((search_control or {}).get("selector") or "")
+        search_was_filled = any(
+            str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "fill"
+            and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "") == search_selector
+            and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or "").strip().casefold() == whatsapp_recipient.casefold()
+            and prior_step_succeeded(step)
+            for step in prior_steps
+        )
+        waited_after_search = any(
+            str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "wait"
+            and prior_step_succeeded(step)
+            for step in prior_steps
         )
         search_state = dict(search_control.get("state") or {}) if search_control is not None else {}
         search_has_exact_value = str(search_state.get("value") or "").strip().casefold() == whatsapp_recipient.casefold()
-        recipient_is_visible_result = bool(
-            search_has_exact_value
-            or (
-                search_was_filled
-                and re.search(
-                    rf"(?:^|\n)\s*{re.escape(whatsapp_recipient)}\s*(?:\n|$)",
-                    visible_text,
-                    flags=re.IGNORECASE,
-                )
-            )
-        )
         if exact_contact is not None and str(exact_contact.get("selector") or "") not in completed_clicks:
-            selector = whatsapp_chat_row_selector
+            # Preserve the selector that was actually observed.  Inventing a
+            # parent-row selector here breaks the canonical grounding contract
+            # and can silently remove the exact-name postcondition.
+            selector = str(exact_contact.get("selector") or "")
             action_type = "click"
             description = f"Open the observed exact WhatsApp chat named {whatsapp_recipient}"
-        elif recipient_is_visible_result:
-            selector = whatsapp_chat_row_selector
-            action_type = "click"
-            description = f"Open the exact WhatsApp search result visibly named {whatsapp_recipient}"
-        elif search_control is not None and str(search_control.get("selector") or "") not in completed_fills:
+            target_grounding = {
+                "source": "dom_snapshot",
+                "selector_id": selector,
+                "accessibility_name": whatsapp_recipient,
+                "role": str(exact_contact.get("role") or exact_contact.get("type") or "").strip() or None,
+                "semantic_kind": "recipient",
+            }
+        elif (search_was_filled or search_has_exact_value) and not waited_after_search:
+            selector = "window"
+            action_type = "wait"
+            value = "1000"
+            description = "Wait once for the filtered exact-destination results to finish rendering"
+        elif search_was_filled or search_has_exact_value:
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    f'The contact search contains "{whatsapp_recipient}", but no currently observed result has that exact identity. '
+                    "The search query itself is not result evidence, so no result was clicked."
+                ),
+                outcome_kind="ask",
+                clarification_question=(
+                    f'I found no exact visible match for "{whatsapp_recipient}". '
+                    "Please provide the exact displayed contact name or choose another unambiguous destination."
+                ),
+                suggested_actions=[],
+            )
+        elif search_control is not None and not search_was_filled:
             selector = str(search_control.get("selector") or "")
             action_type = "fill"
             value = whatsapp_recipient
@@ -2810,7 +2884,7 @@ def _deterministic_observed_control_response(
             "source": "dom_snapshot",
             "selector_id": selector,
             "semantic_kind": "consequential_submission_control",
-        } if consequential_submission else {}),
+        } if consequential_submission else (target_grounding or {})),
         content_insertion=content_insertion,
         consequential_submission=consequential_submission,
     )
@@ -3042,6 +3116,53 @@ def _find_observed_control(
         if label in exact or any(term in label for term in label_terms) or any(term in selector_lower for term in selector_terms):
             return element
     return None
+
+
+def _find_exact_recipient_control(elements: list[dict[str, Any]], requested_name: str) -> dict[str, Any] | None:
+    """Return one observed destination control without accepting highlighted substrings.
+
+    Search UIs commonly split a prefix match into a child span (for example,
+    ``Rahul`` inside ``Rahul Computers``).  Prefer a row/list item whose primary
+    label is the exact requested name followed only by result metadata.  Fall
+    back to an exact leaf only when that leaf selector is unique.
+    """
+    expected = " ".join(str(requested_name or "").split()).casefold()
+    if not expected:
+        return None
+
+    def label(element: dict[str, Any]) -> str:
+        return " ".join(
+            str(element.get(key) or "")
+            for key in ("text", "aria_label", "accessibility_name", "placeholder", "name")
+        ).strip()
+
+    metadata_prefix = re.compile(
+        r"^(?:\(you\)\s+)?(?:\d{1,2}:\d{2}(?:\s*[ap]m)?|today\b|yesterday\b|"
+        r"monday\b|tuesday\b|wednesday\b|thursday\b|friday\b|saturday\b|sunday\b|\d{1,2}/\d{1,2}/\d{2,4}\b)",
+        flags=re.IGNORECASE,
+    )
+    row_candidates: list[dict[str, Any]] = []
+    leaf_candidates: list[dict[str, Any]] = []
+    for element in elements:
+        selector = str(element.get("selector") or "")
+        if not selector:
+            continue
+        observed = " ".join(label(element).split())
+        normalized = observed.casefold()
+        role = str(element.get("role") or "").casefold()
+        if normalized == expected:
+            leaf_candidates.append(element)
+            continue
+        if role in {"row", "listitem", "option"} and normalized.startswith(expected + " "):
+            suffix = observed[len(requested_name):].strip()
+            if metadata_prefix.match(suffix):
+                row_candidates.append(element)
+
+    unique_rows = {str(item.get("selector") or ""): item for item in row_candidates}
+    if len(unique_rows) == 1:
+        return next(iter(unique_rows.values()))
+    unique_leaves = {str(item.get("selector") or ""): item for item in leaf_candidates}
+    return next(iter(unique_leaves.values())) if len(unique_leaves) == 1 else None
 
 
 def _quoted_task_value(task: str, field: str) -> str | None:

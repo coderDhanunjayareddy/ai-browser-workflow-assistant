@@ -33,7 +33,7 @@ Raw summary: [day5-controlled-20-run.json](../live_sidepanel/day5-controlled-20-
 ## Automated verification
 
 - Extension TypeScript type-check: passed.
-- Extension unit/security/workflow suite: 203/203 passed.
+- Extension unit/security/workflow suite: 206/206 passed.
 - Backend policy/orchestrator tests: 52/52 passed.
 - Controlled real-browser fixture: 21/21 tests passed (one no-send preview test plus twenty exactly-once runs).
 - Production extension build: passed.
@@ -45,6 +45,22 @@ Raw summary: [day5-controlled-20-run.json](../live_sidepanel/day5-controlled-20-
 3. A successful click could be followed by an unverifiable result and later replanning. The mutation-boundary state now becomes `uncertain`, which is non-retriable.
 4. Verified delivery lacked a deterministic terminal report, allowing possible redispatch planning. Verified delivery now terminates the objective.
 5. Concurrent execution messages could race a storage get/set pair. Submission reservation is serialized, and a 20-way concurrency test permits exactly one reservation.
+6. The first real-service staging attempt exposed a safety-critical false grounding: the requested self-chat handle was present in the contact-search field, and that query value was incorrectly treated as evidence that an exact result existed. The synthesized row selector was not present in the observation, so its canonical contract carried no exact name; a related message-search result opened instead. The subsequent upload attempt timed out with no file selection, and nothing was sent. The correction removes search-query-as-result evidence, dispatches only selectors present in the observation, stops with clarification when an exact result is absent, and requires trusted exact-destination evidence before any content insertion or submission action.
+7. The corrected safe stop exposed a clarification loop: answers were retained only in supplemental planner context while the deterministic destination resolver continued to read the original task entity. Clarification answers now produce an authoritative typed overlay in the effective durable task, and same-URL navigation continuations are rejected before execution. The current extension suite passes all 206 tests, including destination replacement and same-URL loop regressions.
+8. The next no-send run exposed ambiguous fragment grounding: the requested name `Rahul` appeared both as an exact chat row and as a highlighted substring inside `Rahul Computers`. The planner selected `span[title="Rahul"]`, which matched two elements, and the trusted-input identity check correctly stopped after observing `Chats` instead of the requested identity. The correction ranks the actionable result row whose accessible label begins with the exact identity and result metadata, preserves that immutable identity through observation binding, and permits a row selector only when it contains one unique exact-identity descendant. No click, attachment, or send occurred in the failed run. Backend targeted tests pass 82/82 and the complete extension suite passes 206/206 after the correction.
+
+## First real-service staging failure and containment
+
+- Requested destination: account-owned self-chat `@dhanunjaya_somireddy`.
+- Incorrectly opened destination: a phone-number conversation that did not match the request.
+- Attachment selected: no.
+- File chooser evidence: no selection within the bounded 30-second window.
+- Send attempted: no.
+- Duplicate effect: no.
+- User-facing success claim: no; the workflow stopped safely at content insertion.
+- Regression coverage after correction: 80/80 destination-resolution, observed-control, and orchestrator tests passed, including search-handle ambiguity and wrong-open-destination mutation blocking.
+- Corrected canonical runtime: `v0.4.0`, commit `13d4100`, build `stabilization-20260821T120159Z`, PID `19644`.
+- Latest exact-row corrective runtime: `v0.4.0`, workspace `13d4100-dirty`, build `stabilization-20260821T124225Z`, PID `21000`. The `-dirty` marker is intentional so an uncommitted validation build cannot be mistaken for pristine Git commit `13d4100`.
 
 ## External design cross-check
 

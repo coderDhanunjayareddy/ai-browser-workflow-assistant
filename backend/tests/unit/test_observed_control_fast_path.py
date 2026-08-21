@@ -592,7 +592,7 @@ def test_whatsapp_search_opens_visible_exact_chat_without_empty_enter() -> None:
     assert response is not None
     assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
         "click",
-        '[role="row"]:has(span[title="Teja Spc"])',
+        'span[title="Teja Spc"]',
     )
 
 
@@ -618,7 +618,7 @@ def test_whatsapp_unquoted_recipient_fills_contact_search_instead_of_enter() -> 
     assert (response.suggested_actions[0].action_type, response.suggested_actions[0].value) == ("fill", "Teja Spc")
 
 
-def test_whatsapp_filtered_exact_visible_result_is_opened_when_virtualized_row_is_not_extracted() -> None:
+def test_whatsapp_missing_exact_result_waits_once_then_does_not_click() -> None:
     task = 'Open WhatsApp and open the exact chat named "Teja Spc". Attach the approved file "synthetic.png".'
     page = _page(
         "https://web.whatsapp.com/",
@@ -654,13 +654,37 @@ def test_whatsapp_filtered_exact_visible_result_is_opened_when_virtualized_row_i
     )
 
     assert response is not None
-    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
-        "click",
-        '[role="row"]:has(span[title="Teja Spc"])',
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].action_type == "wait"
+
+    stopped = _deterministic_observed_control_response(
+        session_id="wa",
+        task=task,
+        page_context=page,
+        prior_steps=[
+            PriorStep(
+                action_type="fill",
+                description="contact search",
+                target_selector="#chat-search",
+                value="Teja Spc",
+                execution_result="success",
+            ),
+            PriorStep(
+                action_type="wait",
+                description="wait for results",
+                target_selector="window",
+                value="1000",
+                execution_result="Waited 1000ms",
+            ),
+        ],
     )
+    assert stopped is not None
+    assert stopped.outcome_kind == "ask"
+    assert stopped.suggested_actions == []
+    assert "no exact visible match" in stopped.clarification_question.lower()
 
 
-def test_whatsapp_current_search_value_grounds_exact_virtualized_contact_click() -> None:
+def test_whatsapp_current_search_value_is_not_treated_as_result_identity() -> None:
     task = 'Open WhatsApp and open the exact chat named "Teja Spc". Attach the approved file "synthetic.png".'
     page = _page(
         "https://web.whatsapp.com/",
@@ -685,10 +709,82 @@ def test_whatsapp_current_search_value_grounds_exact_virtualized_contact_click()
     )
 
     assert response is not None
-    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == (
-        "click",
-        '[role="row"]:has(span[title="Teja Spc"])',
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].action_type == "wait"
+
+
+def test_whatsapp_changed_clarification_value_refills_same_search_control() -> None:
+    task = 'Use the exact recipient named "RAHUL". Open WhatsApp and open the exact chat named "@old_handle".'
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="input",
+                selector="#chat-search",
+                text="",
+                visible=True,
+                role="textbox",
+                accessibility_name="Search",
+                state={"value": "@old_handle"},
+            )
+        ],
     )
+    response = _deterministic_observed_control_response(
+        session_id="wa-clarified",
+        task=task,
+        page_context=page,
+        prior_steps=[
+            PriorStep(
+                action_type="fill",
+                description="old contact search",
+                target_selector="#chat-search",
+                value="@old_handle",
+                execution_result="success",
+            )
+        ],
+    )
+
+    assert response is not None
+    assert response.suggested_actions[0].action_type == "fill"
+    assert response.suggested_actions[0].value == "RAHUL"
+
+
+def test_whatsapp_exact_row_outranks_highlighted_prefix_fragment() -> None:
+    task = 'Open WhatsApp and open the exact chat named "Rahul". Do not send anything.'
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(type="span", selector='span[data-highlight="chat"]', text="Rahul", visible=True),
+            InteractiveElement(type="span", selector='span[data-highlight="contact"]', text="Rahul", visible=True),
+            InteractiveElement(
+                type="div",
+                selector='[data-testid="chat-result-rahul"]',
+                text="Rahul 1:56 PM Recent message",
+                visible=True,
+                role="row",
+            ),
+            InteractiveElement(
+                type="div",
+                selector='[data-testid="contact-result-rahul-computers"]',
+                text="Rahul Computers",
+                visible=True,
+                role="row",
+            ),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="wa-exact-row",
+        task=task,
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    action = response.suggested_actions[0]
+    assert action.target_selector == '[data-testid="chat-result-rahul"]'
+    assert action.grounding["accessibility_name"] == "Rahul"
+    assert action.grounding["semantic_kind"] == "recipient"
 
 
 def test_whatsapp_open_chat_advances_to_observed_attachment_control() -> None:
@@ -710,7 +806,7 @@ def test_whatsapp_open_chat_advances_to_observed_attachment_control() -> None:
                 text="",
                 visible=True,
                 role="textbox",
-                aria_label="Type a message",
+                aria_label="Type a message to Teja Spc",
             ),
             InteractiveElement(type="button", selector='button[aria-label="Attach"]', text="", visible=True, role="button", aria_label="Attach"),
         ],
@@ -723,6 +819,57 @@ def test_whatsapp_open_chat_advances_to_observed_attachment_control() -> None:
         "click",
         'button[aria-label="Attach"]',
     )
+
+
+def test_whatsapp_wrong_open_destination_blocks_attachment_mutation() -> None:
+    task = (
+        'Open WhatsApp and open the exact chat named "@dhanunjaya_somireddy". '
+        'Attach the approved file "synthetic-day5.txt" and send it.'
+    )
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="div",
+                selector='div[aria-label="Type a message"]',
+                text="",
+                visible=True,
+                role="textbox",
+                aria_label="Type a message",
+            ),
+            InteractiveElement(
+                type="button",
+                selector='button[aria-label="Attach"]',
+                text="",
+                visible=True,
+                role="button",
+                aria_label="Attach",
+            ),
+        ],
+    )
+    wrong_open = PriorStep(
+        action_type="click",
+        description="open result",
+        target_selector='span[title="@dhanunjaya_somireddy"]',
+        execution_result="success",
+        browser_evidence={
+            "adapter_exact_identity_verified": False,
+            "adapter_exact_expected_name": "@dhanunjaya_somireddy",
+            "adapter_exact_observed_name": "+91 97016 08432",
+        },
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="wa-wrong-destination",
+        task=task,
+        page_context=page,
+        prior_steps=[wrong_open],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "ask"
+    assert response.suggested_actions == []
+    assert "no content insertion or submission control was selected" in response.analysis.lower()
 
 
 def test_wizard_controls_follow_visible_step_and_explicit_values() -> None:

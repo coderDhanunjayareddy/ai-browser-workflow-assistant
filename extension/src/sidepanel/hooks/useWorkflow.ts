@@ -143,7 +143,7 @@ function policyProvenance(sessionId: string, action: SuggestedAction, context: P
   ]
 }
 
-function bindObservationGrounding(action: SuggestedAction, context: PageContext): SuggestedAction {
+export function bindObservationGrounding(action: SuggestedAction, context: PageContext): SuggestedAction {
   const observed = context.interactive_elements.find((element) =>
     element.selector === action.target_selector ||
     (element.selector_id && element.selector_id === action.target_selector) ||
@@ -157,9 +157,9 @@ function bindObservationGrounding(action: SuggestedAction, context: PageContext)
       ...(action.grounding || {}),
       source: visualAction ? 'vision_region' : 'dom_snapshot',
       selector_id: observed.selector_id ?? observed.element_id ?? null,
-      accessibility_name: observed.accessibility_name ?? observed.aria_label ?? observed.text ?? null,
-      role: observed.role ?? observed.type ?? null,
-      semantic_kind: observed.semantic_kind ?? null,
+      accessibility_name: action.grounding?.accessibility_name ?? observed.accessibility_name ?? observed.aria_label ?? observed.text ?? null,
+      role: action.grounding?.role ?? observed.role ?? observed.type ?? null,
+      semantic_kind: action.grounding?.semantic_kind ?? observed.semantic_kind ?? null,
       bounding_box: observed.bounding_box ?? null,
     },
   }
@@ -941,6 +941,43 @@ function buildSupplementalContext(
   return buildBudgetedPlannerContext(sections, PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET)
 }
 
+type ClarificationPair = { question: string; answer: string }
+
+function parseClarificationInput(input: string): ClarificationPair | null {
+  const match = input.match(/^Question:\s*([\s\S]*?)\nAnswer:\s*([\s\S]+)$/i)
+  if (!match) return null
+  const question = match[1].trim()
+  const answer = match[2].trim()
+  return question && answer ? { question, answer } : null
+}
+
+function quoteTaskValue(value: string): string {
+  return `"${value.replace(/["“”]/g, '').trim()}"`
+}
+
+/**
+ * Clarifications are authoritative updates to the durable objective, not mere
+ * planner notes.  Prepending a typed identity override lets deterministic
+ * resolvers consume the correction before the stale entity in the original
+ * request, while the original goal and its safety constraints remain intact.
+ */
+export function applyClarificationAnswers(task: string, userInputs: string[]): string {
+  const pairs = userInputs.map(parseClarificationInput).filter((item): item is ClarificationPair => Boolean(item))
+  if (pairs.length === 0) return task
+  const overlays: string[] = []
+  for (const { question, answer } of pairs) {
+    if (/retry analysis from the current page/i.test(answer)) continue
+    if (/exact visible match|exact destination|contact|recipient|chat/i.test(question)) {
+      overlays.push(`Use the exact recipient named ${quoteTaskValue(answer)}.`)
+    } else if (/institution|portal|website|application|destination|account/i.test(question)) {
+      overlays.push(`Use the exact destination named ${quoteTaskValue(answer)}.`)
+    } else {
+      overlays.push(`Authoritative answer to "${question.replace(/["“”]/g, '')}": ${quoteTaskValue(answer)}.`)
+    }
+  }
+  return overlays.length > 0 ? `${overlays.join(' ')} ${task}` : task
+}
+
 function summarySection(summary: string, priority: PlannerContextSection['priority']): PlannerContextSection {
   const [heading, ...rest] = summary.split('\n')
   return {
@@ -967,12 +1004,13 @@ export function buildAnalyzeRequestBody(
 ): AnalyzeRequestBody {
   const actionPriorSteps = completedActions.length > 0 ? buildPriorSteps(completedActions) : []
   const priorSteps = [...actionPriorSteps, ...validationPriorSteps]
+  const effectiveTask = applyClarificationAnswers(task, userInputs)
   const body = {
     session_id: sessionId,
-    task,
+    task: effectiveTask,
     page_context: pageContext,
     prior_steps: priorSteps.length > 0 ? priorSteps : undefined,
-    supplemental_context: buildSupplementalContext(task, userInputs, workspace, tabWorkspace, missionSnapshot),
+    supplemental_context: buildSupplementalContext(effectiveTask, userInputs, workspace, tabWorkspace, missionSnapshot),
   }
   logAnalyzePayloadDiagnostics(body)
   return body
@@ -1059,6 +1097,14 @@ function isRepeatedAction(action: SuggestedAction, completed: CompletedAction[],
   return matchingCompleted.length >= MAX_REPEATED_INTERACTIVE_ACTIONS
 }
 
+function isSameUrlNavigation(action: SuggestedAction, currentUrl?: string): boolean {
+  if (!currentUrl || action.action_type !== 'navigate' || !action.value?.trim()) return false
+  return normalizeActionValue(action) === normalizeActionValue({
+    ...action,
+    value: currentUrl,
+  })
+}
+
 function nextAllowedActions(actions: SuggestedAction[], completed: CompletedAction[], currentUrl?: string): SuggestedAction[] {
   const allowed: SuggestedAction[] = []
   const seen = new Set<string>()
@@ -1066,6 +1112,7 @@ function nextAllowedActions(actions: SuggestedAction[], completed: CompletedActi
     const signature = actionSignature(action)
     if (seen.has(signature)) continue
     seen.add(signature)
+    if (isSameUrlNavigation(action, currentUrl)) continue
     if (!isRepeatedAction(action, completed, currentUrl)) {
       allowed.push(action)
     }
