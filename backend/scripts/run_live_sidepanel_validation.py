@@ -6,6 +6,7 @@ import re
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
@@ -244,6 +245,33 @@ def _click_if_visible(page, name: str, timeout_ms: int = 1500) -> bool:
         return False
 
 
+def _reset_and_wait_for_prompt(sidepanel, timeout_s: float = 10.0):
+    """Start each run from an editable prompt, including after durable pauses.
+
+    React applies the Clear state update asynchronously. Filling immediately
+    after the click races the render and can target the still-disabled textarea.
+    """
+    textarea = sidepanel.locator("textarea[placeholder*='Describe what you want']").first
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            if textarea.is_visible() and textarea.is_enabled():
+                return textarea
+        except Exception:
+            pass
+        try:
+            clear = sidepanel.get_by_role("button", name="Clear", exact=True)
+            if clear.is_visible() and clear.is_enabled():
+                clear.click(timeout=1_500)
+        except Exception:
+            pass
+        time.sleep(0.15)
+    raise RuntimeError(
+        "Workflow prompt did not become editable after reset; "
+        f"observed panel state: {_sidepanel_text(sidepanel)[:1200]}"
+    )
+
+
 def _sidepanel_text(page) -> str:
     try:
         return page.locator("body").inner_text(timeout=3000)
@@ -449,7 +477,7 @@ def _run_task(
     # grounds execution to the privileged chrome-extension:// page.
     target.bring_to_front()
     _open_workflow_panel(sidepanel)
-    _click_if_visible(sidepanel, "Clear")
+    textarea = _reset_and_wait_for_prompt(sidepanel)
     approved_file = Path(file_path).resolve() if file_path else None
     file_chooser_events: list[str] = []
 
@@ -464,7 +492,6 @@ def _run_task(
             file_chooser_events.append(f"selection_failed:{exc}")
 
     target.on("filechooser", provide_approved_file)
-    textarea = sidepanel.locator("textarea[placeholder*='Describe what you want']").first
     textarea.fill(prompt, timeout=10_000)
     _ensure_auto_mode(sidepanel)
     if enable_advanced_control:
@@ -659,6 +686,14 @@ def main() -> int:
         help="Keep the visible browser open for operator authentication, then wait for Enter before running tasks.",
     )
     parser.add_argument(
+        "--operator-setup-url",
+        default="",
+        help=(
+            "Optional HTTPS page shown only during the operator setup pause. "
+            "Measured tasks still begin at their configured initial URL."
+        ),
+    )
+    parser.add_argument(
         "--reload-extension",
         action="store_true",
         help="Force an already-registered unpacked extension to reload before opening the side panel.",
@@ -809,6 +844,11 @@ def main() -> int:
             context.close()
             return 0
         if args.pause_before_tasks:
+            if args.operator_setup_url:
+                parsed_setup = urlparse(args.operator_setup_url)
+                if parsed_setup.scheme != "https" or not parsed_setup.netloc:
+                    raise SystemExit("--operator-setup-url must be an absolute HTTPS URL")
+                target.goto(args.operator_setup_url, wait_until="domcontentloaded", timeout=45_000)
             target.bring_to_front()
             print(
                 "[live-sidepanel] browser ready for operator authentication; press Enter to continue",

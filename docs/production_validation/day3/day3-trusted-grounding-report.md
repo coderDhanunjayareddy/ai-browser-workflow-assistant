@@ -1,11 +1,11 @@
 # Day 3 Trusted-Grounding Report
 
-**Date:** 2026-08-20
+**Date:** 2026-08-21
 **Trusted-grounding implementation:** Complete
 
 **Expanded Day 3 robustness implementation:** Complete
 
-**Day 3 live exit:** Reopened. The 20/20 authenticated WhatsApp sequence verifies the exact-chat search/click sub-gate only; its harness pre-opened WhatsApp and therefore did not verify destination resolution from New Tab. The New Tab WhatsApp gate and scenarios 1–6 still require live application-side-panel validation.
+**Day 3 live exit:** Passed. Scenarios 1–6 have retained live evidence, and a corrected harness completed 20/20 consecutive authenticated application-side-panel runs genuinely starting from Chrome New Tab. The earlier pre-opened 20/20 sequence remains labeled only as a search/click sub-gate.
 
 ## Delivered
 
@@ -37,7 +37,7 @@ The production invariant is documented in [trusted-grounding-and-postconditions.
 - Production-evidence/red-team gate: **8/8 passed**.
 - Final focused backend gate for grounding, destination resolution, blueprint intent, and convergence: **53/53 passed**.
 - Final focused extension gate for completion, canonical contract, runtime handshake, and message validation: **22/22 passed**; TypeScript type-check and production build passed.
-- Canonical runtime/extension handshake during certification: URL `http://localhost:8000`, server PID `16124`, build `stabilization-20260820T103544Z`, commit `b5bec81`.
+- Canonical runtime/extension handshake during final certification: URL `http://localhost:8000`, server PID `6032`, build `stabilization-20260821T054320Z`, commit `ee8c8d9`.
 
 ## Promoted live API robustness probes
 
@@ -97,13 +97,32 @@ After certification, one final presentation-only smoke run passed in 27.2 second
 
 The failures retained before certification exposed four distinct root causes: a non-actionable title-span click, negative safety text misclassified as an upload objective, verified post-click evidence not reaching convergence, and optional diagnostics being stripped at a message boundary. The final design promotes the click to the unique containing chat row, normalizes negative clauses centrally across planning layers, and completes an open-only exact-target task at the side-panel controller immediately after the service worker's postcondition-gated success. No failed attempt is counted in the 20/20 result.
 
+## Corrected genuine-New-Tab certification
+
+On 2026-08-21, the operator authenticated the isolated project profile in the same browser process used by the harness. The harness was corrected to separate an optional operator-setup URL from the measured initial URL and to wait until React completed a workflow reset before filling the prompt. This removed two validation errors: authenticating the wrong browser profile and racing a still-disabled prompt after `Clear`.
+
+The corrected natural-language instruction then completed 20 consecutive real extension-side-panel runs. Every measured run began at `chrome://newtab/`; the harness did not pre-open or inject the destination URL.
+
+| Gate | Result |
+|---|---:|
+| Completed runs | 20/20 |
+| Genuine `chrome://newtab/` initial states | 20/20 |
+| Exact action sequence: navigate, search fill, trusted click | 20/20 |
+| Trusted CDP click using `stable_selector` grounding | 20/20 |
+| Exact entity-specific composer observed | 20/20 |
+| File-chooser / attach / upload / send actions | 0 |
+| Extra or duplicate action sequences | 0 |
+| Minimum / average / p95 / maximum latency | 29.6 / 38.81 / 42.3 / 43.0 seconds |
+
+The strict post-run audit found no anomalous run. Raw aggregate evidence is in [day3-newtab-cert-20-run.json](../live_sidepanel/day3-newtab-cert-20-run.json), and the final target screenshot is [day3-newtab-cert-20-target.png](../live_sidepanel/day3-newtab-cert-20-target.png).
+
 ## Expanded robustness checkpoint
 
 Product-intent review showed that an explicit URL in the WhatsApp validation prompt would mask a general navigation gap. Day 3 therefore requires natural-language destination resolution, compound-objective decomposition, capability/site compatibility checks, ambiguity clarification, bounded semantic recovery, and meaningful terminal responses before the 20/20 run. That engineering and automated robustness checkpoint is now complete.
 
 This checkpoint is informed by the documented ChatGPT/Codex browser behavior as a reference product: browser navigation and multi-step website interaction, web search, existing-Chrome operation through an extension, shared visible state, and user control. It does not assume or copy undocumented private implementation details.
 
-Acceptance cases are maintained in the main 15-day plan and cover YouTube natural-language resolution, Gmail plus music as a compound task, an impossible Gmail-contained playback request, ambiguous RBVRRIT portal discovery, unverifiable destinations, and bounded failure handling. Automated tests and promoted live API probes passed; the actual-browser mutation gate remains separate.
+Acceptance cases are maintained in the main 15-day plan and cover natural-language destination resolution, compound tasks, incompatible site/capability combinations, ambiguous named portals, unverifiable destinations, and bounded failure handling. Automated tests, promoted live API probes, retained live side-panel robustness evidence, and the corrected actual-browser mutation gate passed.
 
 ## Day 4 entry condition
 

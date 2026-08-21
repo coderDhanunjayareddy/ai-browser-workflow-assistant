@@ -1,0 +1,60 @@
+[
+  {
+    "app_id": "youtube",
+    "display_name": "YouTube",
+    "aliases": ["youtube", "you tube", "yt"],
+    "entry_url": "https://www.youtube.com/",
+    "domains": ["youtube.com"],
+    "capabilities": ["navigation", "media_search", "media_playback"],
+    "default_capabilities": ["media_playback"],
+    "adapter_ids": ["media_search_playback_v1"]
+  },
+  {
+    "app_id": "gmail",
+    "display_name": "Gmail",
+    "aliases": ["gmail", "google mail"],
+    "entry_url": "https://mail.google.com/",
+    "domains": ["mail.google.com"],
+    "capabilities": ["navigation", "email", "mail_search", "draft", "send"]
+  },
+  {
+    "app_id": "whatsapp",
+    "display_name": "WhatsApp",
+    "aliases": ["whatsapp", "whats app", "whatsapp web"],
+    "entry_url": "https://web.whatsapp.com/",
+    "domains": ["web.whatsapp.com"],
+    "capabilities": ["navigation", "messaging", "file_transfer"]
+  },
+  {
+    "app_id": "google_drive",
+    "display_name": "Google Drive",
+    "aliases": ["google drive", "drive"],
+    "entry_url": "https://drive.google.com/",
+    "domains": ["drive.google.com"],
+    "capabilities": ["navigation", "file_storage", "file_search", "file_transfer"]
+  },
+  {
+    "app_id": "google_docs",
+    "display_name": "Google Docs",
+    "aliases": ["google docs", "docs"],
+    "entry_url": "https://docs.google.com/",
+    "domains": ["docs.google.com"],
+    "capabilities": ["navigation", "document_edit", "document_search"]
+  },
+  {
+    "app_id": "linkedin_jobs",
+    "display_name": "LinkedIn Jobs",
+    "aliases": ["linkedin jobs"],
+    "entry_url": "https://www.linkedin.com/jobs/",
+    "domains": ["linkedin.com"],
+    "capabilities": ["navigation", "job_search"]
+  },
+  {
+    "app_id": "linkedin",
+    "display_name": "LinkedIn",
+    "aliases": ["linkedin"],
+    "entry_url": "https://www.linkedin.com/",
+    "domains": ["linkedin.com"],
+    "capabilities": ["navigation", "professional_network"]
+  }
+]

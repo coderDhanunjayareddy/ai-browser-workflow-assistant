@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import parse_qs, quote_plus, urlparse
 
@@ -17,6 +19,8 @@ class AppDestination:
     entry_url: str
     domains: tuple[str, ...]
     capabilities: frozenset[str]
+    default_capabilities: frozenset[str] = field(default_factory=frozenset)
+    adapter_ids: frozenset[str] = field(default_factory=frozenset)
 
 
 @dataclass(frozen=True)
@@ -50,43 +54,37 @@ class DestinationDecision:
     report_category: str | None = None
 
 
-APP_DESTINATIONS: tuple[AppDestination, ...] = (
-    AppDestination(
-        "youtube", "YouTube", ("youtube", "you tube", "yt"),
-        "https://www.youtube.com/", ("youtube.com",),
-        frozenset({"navigation", "media_search", "media_playback"}),
-    ),
-    AppDestination(
-        "gmail", "Gmail", ("gmail", "google mail"),
-        "https://mail.google.com/", ("mail.google.com",),
-        frozenset({"navigation", "email", "mail_search", "draft", "send"}),
-    ),
-    AppDestination(
-        "whatsapp", "WhatsApp", ("whatsapp", "whats app", "whatsapp web"),
-        "https://web.whatsapp.com/", ("web.whatsapp.com",),
-        frozenset({"navigation", "messaging", "file_transfer"}),
-    ),
-    AppDestination(
-        "google_drive", "Google Drive", ("google drive", "drive"),
-        "https://drive.google.com/", ("drive.google.com",),
-        frozenset({"navigation", "file_storage", "file_search", "file_transfer"}),
-    ),
-    AppDestination(
-        "google_docs", "Google Docs", ("google docs", "docs"),
-        "https://docs.google.com/", ("docs.google.com",),
-        frozenset({"navigation", "document_edit", "document_search"}),
-    ),
-    AppDestination(
-        "linkedin_jobs", "LinkedIn Jobs", ("linkedin jobs",),
-        "https://www.linkedin.com/jobs/", ("linkedin.com",),
-        frozenset({"navigation", "job_search"}),
-    ),
-    AppDestination(
-        "linkedin", "LinkedIn", ("linkedin",),
-        "https://www.linkedin.com/", ("linkedin.com",),
-        frozenset({"navigation", "professional_network"}),
-    ),
-)
+def _load_destination_registry() -> tuple[AppDestination, ...]:
+    raw = json.loads(Path(__file__).with_name("destinations.json").read_text(encoding="utf-8"))
+    if not isinstance(raw, list) or not raw:
+        raise RuntimeError("Destination registry must contain at least one entry")
+    destinations: list[AppDestination] = []
+    seen_ids: set[str] = set()
+    for item in raw:
+        if not isinstance(item, dict):
+            raise RuntimeError("Destination registry entries must be objects")
+        app_id = str(item.get("app_id") or "").strip()
+        entry_url = str(item.get("entry_url") or "").strip()
+        parsed = urlparse(entry_url)
+        if not app_id or app_id in seen_ids:
+            raise RuntimeError(f"Destination registry has an invalid or duplicate app_id: {app_id!r}")
+        if parsed.scheme != "https" or not parsed.hostname:
+            raise RuntimeError(f"Destination registry entry {app_id!r} must use an absolute HTTPS URL")
+        seen_ids.add(app_id)
+        destinations.append(AppDestination(
+            app_id=app_id,
+            display_name=str(item.get("display_name") or app_id).strip(),
+            aliases=tuple(str(value).strip() for value in item.get("aliases", []) if str(value).strip()),
+            entry_url=entry_url,
+            domains=tuple(str(value).lower().strip() for value in item.get("domains", []) if str(value).strip()),
+            capabilities=frozenset(str(value).strip() for value in item.get("capabilities", []) if str(value).strip()),
+            default_capabilities=frozenset(str(value).strip() for value in item.get("default_capabilities", []) if str(value).strip()),
+            adapter_ids=frozenset(str(value).strip() for value in item.get("adapter_ids", []) if str(value).strip()),
+        ))
+    return tuple(destinations)
+
+
+APP_DESTINATIONS = _load_destination_registry()
 
 _APP_BY_ID = {app.app_id: app for app in APP_DESTINATIONS}
 _SEARCH_HOSTS = {"google.com", "www.google.com", "bing.com", "www.bing.com"}
@@ -131,7 +129,7 @@ def _capability(text: str) -> str:
         return "media_playback"
     if re.search(r"\b(email|mail|inbox|draft|compose)\b", normalized):
         return "email"
-    if re.search(r"\b(message|chat|whatsapp|text)\b", normalized):
+    if re.search(r"\b(message|chat|text)\b", normalized):
         return "messaging"
     if re.search(r"\b(document|doc|write|edit)\b", normalized):
         return "document_edit"
@@ -242,8 +240,11 @@ def decompose_destination_objectives(task: str) -> list[DestinationObjective]:
         constrained = _constrained_app(part)
         explicit = _explicit_url(part)
         entity = None if app or explicit else _unknown_entity(part)
-        if app is None and capability == "media_playback":
-            app = _APP_BY_ID["youtube"]
+        if app is None:
+            app = next((
+                candidate for candidate in APP_DESTINATIONS
+                if capability in candidate.default_capabilities
+            ), None)
         if not any((app, explicit, entity, constrained)):
             continue
         objectives.append(DestinationObjective(
@@ -657,9 +658,16 @@ def _successful_media_step(prior_steps: list[Any], action_type: str, marker: str
     return False
 
 
-def _media_query(task: str) -> str:
+def _media_query(task: str, app: AppDestination) -> str:
     query = re.sub(r"^\s*(?:please\s+)?(?:play|listen\s+to)\s+", "", task, flags=re.IGNORECASE)
-    query = re.sub(r"\s+(?:on|using|in)\s+(?:the\s+)?(?:youtube|you\s*tube|yt)\s*$", "", query, flags=re.IGNORECASE)
+    aliases = "|".join(re.escape(alias).replace(r"\ ", r"\s+") for alias in app.aliases)
+    if aliases:
+        query = re.sub(
+            rf"\s+(?:on|using|in)\s+(?:the\s+)?(?:{aliases})\s*$",
+            "",
+            query,
+            flags=re.IGNORECASE,
+        )
     return " ".join(query.strip(" .,;").split()) or "music"
 
 
@@ -673,13 +681,12 @@ def _element_label(data: dict[str, Any]) -> str:
     )).lower()
 
 
-def _youtube_watch_selector(href: str) -> str | None:
-    """Return a stable selector for the visible YouTube title link.
+def _media_result_selector(href: str) -> str | None:
+    """Return the registered adapter's stable visible-result selector.
 
-    YouTube renders a hidden thumbnail link and a visible ``#video-title``
-    link for the same video.  Preserve the video identity while explicitly
-    selecting the accessible title variant instead of reusing an extractor
-    selector that may point at either duplicate.
+    This adapter preserves the provider result identity while selecting its
+    accessible title variant instead of an extractor selector that may point
+    at a duplicate hidden thumbnail.
     """
     parsed = urlparse(str(href or ""))
     video_id = parse_qs(parsed.query).get("v", [""])[0]
@@ -739,16 +746,19 @@ def _resolve_media_playback(
     objectives = decompose_destination_objectives(task)
     media_objective = next((
         objective for objective in objectives
-        if objective.capability == "media_playback" and objective.app_id == "youtube"
+        if objective.capability == "media_playback"
+        and objective.app_id
+        and "media_search_playback_v1" in _APP_BY_ID[objective.app_id].adapter_ids
     ), None)
     if media_objective is None:
         return None
+    media_app = _APP_BY_ID[media_objective.app_id]
     current_url = str(getattr(page_context, "url", "") or "")
-    if not _host_matches(current_url, _APP_BY_ID["youtube"].domains):
+    if not _host_matches(current_url, media_app.domains):
         return None
     parsed = urlparse(current_url)
     elements = _visible_elements(page_context)
-    query = _media_query(media_objective.text)
+    query = _media_query(media_objective.text, media_app)
 
     if parsed.path == "/watch":
         if _successful_media_step(prior_steps, "media_control", "media play completed"):
@@ -766,10 +776,10 @@ def _resolve_media_playback(
                 analysis="Media playback was executed through the verified HTML media control.",
                 outcome_kind="report",
                 report=ReportOutcome(
-                    answer=f'{partial_prefix}started playing "{query}" on YouTube.',
+                    answer=f'{partial_prefix}started playing "{query}" on {media_app.display_name}.',
                     claim=(
-                        "The visible YouTube media element accepted the play operation; earlier blocked objectives were not retried."
-                        if blocked_apps else "The visible YouTube media element accepted the play operation."
+                        f"The visible {media_app.display_name} media element accepted the play operation; earlier blocked objectives were not retried."
+                        if blocked_apps else f"The visible {media_app.display_name} media element accepted the play operation."
                     ),
                 ),
                 suggested_actions=[],
@@ -779,15 +789,15 @@ def _resolve_media_playback(
             )
         return _media_action(
             session_id, "play", "media_control", "video", '{"operation":"play"}',
-            "Start playback on the visible YouTube media element",
-            "Use the registered media capability only after a visible YouTube watch page is open.",
+            f"Start playback on the visible {media_app.display_name} media element",
+            "Use the registered media capability only after a visible provider playback page is open.",
         )
 
     if parsed.path == "/results":
         watch_candidates = [
             data for data in elements
             if "/watch?" in str(data.get("href") or "")
-            and _youtube_watch_selector(str(data.get("href") or ""))
+            and _media_result_selector(str(data.get("href") or ""))
         ]
         query_tokens = {token for token in _normalize(query).split() if len(token) > 2}
 
@@ -813,13 +823,13 @@ def _resolve_media_playback(
         watch_result = max(watch_candidates, key=watch_score) if watch_candidates else None
         if watch_result:
             exact_name = watch_label(watch_result)
-            stable_selector = _youtube_watch_selector(str(watch_result.get("href") or ""))
+            stable_selector = _media_result_selector(str(watch_result.get("href") or ""))
             if not stable_selector:
                 return None
             return _media_action(
                 session_id, "open-result", "click", stable_selector, "",
-                f'Open the visible YouTube result "{exact_name or query}"',
-                "Ground the choice to a visible YouTube watch-result link; do not use unobserved coordinates.",
+                f'Open the visible {media_app.display_name} result "{exact_name or query}"',
+                "Ground the choice to a visible provider result link; do not use unobserved coordinates.",
                 grounding={
                     "accessibility_name": exact_name,
                     "role": "link",
@@ -837,7 +847,7 @@ def _resolve_media_playback(
     if not filled and search_field:
         return _media_action(
             session_id, "fill-query", "fill", str(search_field["selector"]), query,
-            f'Enter media query "{query}" in the visible YouTube search field',
+            f'Enter media query "{query}" in the visible {media_app.display_name} search field',
             "Use the visible semantic search field exposed by the current media application.",
         )
     if filled and search_field and not _successful_media_step(prior_steps, "keyboard_shortcut", "submit media search"):
@@ -863,8 +873,8 @@ def _resolve_media_playback(
         analysis="The media workflow stopped after bounded waits because the required visible control never appeared.",
         outcome_kind="ask",
         clarification_question=(
-            "YouTube opened, but I could not find a visible search field, result, or media control after two checks. "
-            "Please check whether YouTube is showing a consent, network, or sign-in interstitial, then continue."
+            f"{media_app.display_name} opened, but I could not find a visible search field, result, or media control after two checks. "
+            f"Please check whether {media_app.display_name} is showing a consent, network, or sign-in interstitial, then continue."
         ),
         suggested_actions=[],
     )

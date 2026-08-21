@@ -23,6 +23,9 @@
 ## Non-negotiable engineering rules
 
 - One production workflow and one authoritative browser executor.
+- Core orchestration must never branch on a literal application, recipient, institution, portal, file, folder, or document name; those identities are runtime contract data.
+- Known destinations and provider adapters are data-driven registry entries. Adapters declare generic capabilities and postconditions; the core selects them by capability and evidence, not by product-name conditionals.
+- Unknown destinations use bounded evidence-backed discovery and clarification. Adding a service must not require editing planner or executor control flow.
 - Prefer deterministic API/site adapters when available; otherwise use exact DOM/a11y grounding followed by trusted CDP input.
 - No fallback may replace an exact named target with a partial or merely related target.
 - Every action must produce a structured postcondition: verified effect, verified no-effect, or explicit uncertainty.
@@ -98,7 +101,7 @@
 5. An unknown or unverifiable destination ends with a meaningful explanation and no navigation side effect.
 6. Repeated no-effect, timeout, unsupported, authentication, and policy failures stop within their configured budgets and produce a meaningful partial/blocked result.
 
-**Reopened 2026-08-20 after evidence audit:** The prior harness pre-opened WhatsApp from the prompt before submitting the workflow. Its 20/20 sequence therefore verifies the exact-chat search/click and zero-send behavior on an authenticated WhatsApp page, but it does **not** verify natural-language destination resolution from New Tab. The six broader robustness scenarios likewise had automated/API evidence rather than the live side-panel evidence required by this exit. Day 3 remains open until the New Tab WhatsApp gate and scenarios 1–6 are executed and verified through the real application surface without harness-owned destination routing. See [Day 3 trusted-grounding report](production_validation/day3/day3-trusted-grounding-report.md) and the [20-run WhatsApp sub-gate result](production_validation/live_sidepanel/day3-cert-20-run.json).
+**Completed 2026-08-21 after corrected evidence audit:** Scenarios 1–6 have retained live evidence. The final authenticated sequence completed 20/20 consecutive real extension-side-panel runs from `chrome://newtab/` without harness-owned destination routing: every run performed exactly navigate, search fill, and trusted stable-selector CDP click; verified the exact entity-specific composer; and performed zero attachment, upload, file-chooser, typing, send, duplicate, or retry actions. Latency was 29.6–43.0 seconds (average 38.81; p95 42.3). The earlier pre-opened 20/20 result remains labeled only as a search/click sub-gate. See [Day 3 trusted-grounding report](production_validation/day3/day3-trusted-grounding-report.md) and [corrected 20-run raw evidence](production_validation/live_sidepanel/day3-newtab-cert-20-run.json).
 
 ### Day 4 — File-selection and upload broker
 
