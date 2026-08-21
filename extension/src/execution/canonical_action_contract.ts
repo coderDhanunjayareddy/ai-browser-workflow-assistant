@@ -121,6 +121,16 @@ export function buildCanonicalActionContract(
   }
 }
 
+export function requiresExactOpenedTargetVerification(contract: CanonicalActionContract): boolean {
+  // The grounded name on a content-insertion action identifies the control
+  // being activated (for example, "Attach"), not a newly opened resource.
+  // Destination identity is preserved separately by the broker declaration
+  // and was verified by the preceding open/select action.
+  return Boolean(contract.target_identity.exact_name?.trim())
+    && !contract.action.content_insertion
+    && !contract.action.consequential_submission
+}
+
 export function attachCanonicalContractEvidence<
   T extends { adapter_trace?: Record<string, string | number | boolean | null> },
 >(result: T, contract: CanonicalActionContract, dispatchPath: string): T & {

@@ -53,7 +53,11 @@ def request(payload: dict | None = None, **updates) -> LivePolicyRequest:
             "resource_identity": {"url": "https://example.com/path?ignored=true", "title": "Example"},
             "expected_effect": {"kind": "target_state_change", "description": "state changes"},
             "safety_class": action_payload["safety_level"],
-            "idempotency_key": f"session-1:1:{action_payload['action_id']}",
+            "idempotency_key": (
+                f"session-1:1:submission:{action_payload['consequential_submission']['submission_id']}"
+                if action_payload.get("consequential_submission")
+                else f"session-1:1:{action_payload['action_id']}"
+            ),
         },
         "provenance": [
             ProvenanceLabel(source_type="user", source_id="task", trust="trusted", labels=["direct_user_request"]),
@@ -101,6 +105,66 @@ def test_confirmation_receipt_is_narrow_one_time_and_action_bound(engine: LivePo
 
     changed = request(action(action_id="pay-1", description="Click Pay Different Invoice", safety_level="caution"), confirmation_receipt_id=receipt.receipt_id)
     assert engine.enforce(changed).allowed is False
+
+
+def test_content_insertion_requires_confirmation_and_is_contract_bound(engine: LivePolicyEngine):
+    insert_action = action(action_id="insert-1", description="Open the observed insertion control")
+    insert_action["content_insertion"] = {
+        "schema_version": "content_insertion_request.v1",
+        "request_id": "content-request-1",
+        "kind": "document",
+        "expected_effect": "preview_then_send",
+        "requires_bound_file": True,
+        "destination_entity": "Synthetic Recipient",
+        "stage": "select_bound_content",
+        "opens_native_chooser": True,
+    }
+    pending = request(insert_action)
+    decision = engine.enforce(pending)
+    assert decision.allowed is False
+    assert decision.policy_decision == "allow_with_confirmation"
+    assert "content_disclosure" in decision.approval_hooks
+
+    receipt = engine.issue_confirmation(pending)
+    assert engine.enforce(pending.model_copy(update={"confirmation_receipt_id": receipt.receipt_id})).allowed is True
+
+    drifted_contract = dict(pending.execution_contract)
+    drifted_action = dict(drifted_contract["action"])
+    drifted_action["content_insertion"] = {**insert_action["content_insertion"], "kind": "image"}
+    drifted_contract["action"] = drifted_action
+    assert engine.enforce(pending.model_copy(update={"execution_contract": drifted_contract})).decision_reason == "execution_contract_action_mismatch"
+
+
+def test_consequential_submission_requires_one_time_confirmation_and_binds_identity(engine: LivePolicyEngine):
+    submit_action = action(action_id="submit-1", description="Activate final control", safety_level="safe")
+    submit_action["consequential_submission"] = {
+        "schema_version": "consequential_submission.v1",
+        "submission_id": "submission-1",
+        "operation": "send",
+        "destination_entity": "Consenting Test Recipient",
+        "content_identity": "synthetic-day5.txt",
+        "preview_required": True,
+        "verification_mode": "delivered_content_and_destination",
+    }
+    pending = request(submit_action)
+    decision = engine.enforce(pending)
+    assert decision.allowed is False
+    assert decision.policy_decision == "allow_with_confirmation"
+    assert "irreversible_external_action" in decision.approval_hooks
+
+    receipt = engine.issue_confirmation(pending)
+    confirmed = pending.model_copy(update={"confirmation_receipt_id": receipt.receipt_id})
+    assert engine.enforce(confirmed).allowed is True
+    assert engine.enforce(confirmed).allowed is False
+
+    changed_contract = dict(pending.execution_contract)
+    changed_action = dict(changed_contract["action"])
+    changed_action["consequential_submission"] = {
+        **submit_action["consequential_submission"],
+        "destination_entity": "Different Recipient",
+    }
+    changed_contract["action"] = changed_action
+    assert engine.enforce(pending.model_copy(update={"execution_contract": changed_contract})).decision_reason == "execution_contract_action_mismatch"
 
 
 def test_confirmation_receipt_is_bound_to_observation_geometry(engine: LivePolicyEngine):

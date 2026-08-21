@@ -519,9 +519,10 @@ export function validateObservableProgress(
   action: SuggestedAction,
   before: PageContext | null,
   after: PageContext,
-  result?: Pick<ExecutionResult, 'success' | 'tab_switch_verified'>,
+  result?: Pick<ExecutionResult, 'success' | 'tab_switch_verified' | 'delivery_verified'>,
 ): string | null {
   if (!before || !actionNeedsObservableProgress(action)) return null
+  if (action.consequential_submission && result?.delivery_verified === true) return null
   if (
     (action.action_type === 'focus_existing_tab' || action.action_type === 'switch_tab') &&
     result?.success &&
@@ -826,10 +827,31 @@ function buildBrowserEvidence(
     'pagination_used_fallback_click',
     'upload_target_selector',
     'upload_input_hidden',
+    'upload_attempted',
+    'upload_completed',
     'upload_files_count',
     'upload_backed_by_file_input',
     'upload_requires_user_file_selection',
     'upload_accepted',
+    'content_request_id',
+    'content_kind',
+    'insertion_effect',
+    'destination_origin',
+    'destination_entity',
+    'content_sha256',
+    'preview_identity_observed',
+    'chooser_cancelled',
+    'filename',
+    'mime_type',
+    'size_bytes',
+    'submission_id',
+    'submission_operation',
+    'submission_attempted',
+    'submission_duplicate_prevented',
+    'delivery_verified',
+    'delivered_content_identity',
+    'delivered_destination_entity',
+    'dispatch_uncertain',
   ]) {
     const value = result[key as keyof ExecutionResult]
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null) {
@@ -844,7 +866,45 @@ function buildBrowserEvidence(
     }
   }
 
-  return Object.keys(evidence).length > 0 ? evidence : undefined
+  const priorityKeys = [
+    'submission_id',
+    'submission_operation',
+    'submission_attempted',
+    'submission_duplicate_prevented',
+    'delivery_verified',
+    'delivered_content_identity',
+    'delivered_destination_entity',
+    'dispatch_uncertain',
+    'content_request_id',
+    'content_kind',
+    'insertion_effect',
+    'destination_origin',
+    'destination_entity',
+    'upload_attempted',
+    'upload_completed',
+    'upload_files_count',
+    'upload_backed_by_file_input',
+    'upload_accepted',
+    'preview_identity_observed',
+    'chooser_cancelled',
+    'filename',
+    'mime_type',
+    'size_bytes',
+    'content_sha256',
+    'adapter_exact_identity_verified',
+    'adapter_exact_target_kind',
+    'adapter_exact_expected_name',
+    'adapter_exact_observed_name',
+  ]
+  const bounded: Record<string, string | number | boolean | null> = {}
+  for (const key of priorityKeys) {
+    if (key in evidence) bounded[key] = evidence[key]
+  }
+  for (const [key, value] of Object.entries(evidence)) {
+    if (Object.keys(bounded).length >= 30) break
+    if (!(key in bounded)) bounded[key] = value
+  }
+  return Object.keys(bounded).length > 0 ? bounded : undefined
 }
 
 function buildSupplementalContext(

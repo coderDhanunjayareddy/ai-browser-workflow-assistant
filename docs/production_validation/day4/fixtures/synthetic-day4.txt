@@ -1,0 +1,3 @@
+Synthetic Day 4 attachment fixture.
+This file contains no personal, account, customer, or production data.
+Fixture ID: day4-content-insertion-v1

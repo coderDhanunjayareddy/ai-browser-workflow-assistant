@@ -75,6 +75,17 @@ def classify_action_risk(action: SuggestedAction) -> tuple[str, list[str], list[
 
     if action.safety_level == "danger":
         reasons.append("planner_marked_danger")
+    insertion = action.content_insertion or {}
+    submission = action.consequential_submission or {}
+    if submission:
+        approval_hooks.extend(["irreversible_external_action", "scoped_confirmation"])
+        reasons.append("consequential_submission_requires_immediate_confirmation")
+    if insertion and (
+        insertion.get("opens_native_chooser") is True
+        or insertion.get("expected_effect") in {"selection_sends_immediately", "device_capture"}
+    ):
+        approval_hooks.extend(["scoped_confirmation", "content_disclosure"])
+        reasons.append("content_insertion_requires_exact_binding_confirmation")
     if any(term in text for term in DESTRUCTIVE_TERMS):
         approval_hooks.append("destructive_action")
         reasons.append("destructive_action_detected")

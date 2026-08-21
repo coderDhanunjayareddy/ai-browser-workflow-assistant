@@ -163,6 +163,61 @@ document.getElementById('file').addEventListener('change',function(e){
   document.getElementById('fname').textContent='Uploaded: '+(e.target.files[0]?e.target.files[0].name:'');});
 </script>""")
 
+# ── 6b. Generic content insertion effects ─────────────────────────────────--
+CONTENT_INSERTION = _p("Content Insertion", """
+<header><h1>Generic Content Insertion</h1></header>
+<main>
+  <section id="preview-provider" data-provider="fixture-preview">
+    <h2>Preview-capable surface</h2>
+    <div id="destination" data-submission-destination="Synthetic Recipient">Synthetic Recipient</div>
+    <input id="content-file" type="file" accept="text/plain,application/pdf,image/*"/>
+    <div id="content-preview" role="dialog" data-submission-preview="true"></div>
+    <button id="content-send" type="button">Send</button>
+    <output id="send-count">0</output>
+    <div id="delivered-items" aria-label="Delivered items"></div>
+  </section>
+  <section id="catalog-provider" data-provider="fixture-catalog">
+    <h2>Catalog/composer surface</h2>
+    <button id="gif-immediate" data-content-kind="gif" data-insertion-effect="selection_sends_immediately">GIF result</button>
+    <button id="emoji-insert" data-content-kind="emoji" data-insertion-effect="inserts_into_composer">Emoji</button>
+    <textarea id="composer"></textarea>
+    <output id="immediate-count">0</output>
+  </section>
+  <section id="structured-provider" data-provider="fixture-structured">
+    <h2>Structured draft surface</h2>
+    <button id="poll-draft" data-content-kind="poll" data-insertion-effect="structured_draft">Poll</button>
+    <div id="draft-state" role="status"></div>
+  </section>
+  <section id="device-provider" data-provider="fixture-device">
+    <h2>Device capture surface</h2>
+    <button id="camera-capture" data-content-kind="camera" data-insertion-effect="device_capture">Camera</button>
+  </section>
+</main>
+<script>
+document.getElementById('content-file').addEventListener('change',function(e){
+  var f=e.target.files[0];
+  var preview=document.getElementById('content-preview');
+  preview.textContent=f?('Preview: '+f.name+' | '+f.type+' | '+f.size):'';
+  if(f){preview.setAttribute('data-content-identity',f.name);}else{preview.removeAttribute('data-content-identity');}
+});
+document.getElementById('content-send').addEventListener('click',function(){
+  var preview=document.getElementById('content-preview');
+  var identity=preview.getAttribute('data-content-identity');
+  if(!identity || document.querySelector('[data-delivery-state="delivered"][data-content-identity="'+CSS.escape(identity)+'"]'))return;
+  var item=document.createElement('div'); item.setAttribute('data-content-identity',identity);
+  item.setAttribute('data-delivery-state','delivered'); item.textContent='Delivered: '+identity;
+  document.getElementById('delivered-items').appendChild(item);
+  preview.textContent=''; preview.removeAttribute('data-content-identity'); preview.removeAttribute('role');
+  preview.removeAttribute('data-submission-preview');
+  var out=document.getElementById('send-count'); out.value=String(Number(out.value||out.textContent||0)+1); out.textContent=out.value;
+});
+document.getElementById('gif-immediate').addEventListener('click',function(){
+  var out=document.getElementById('immediate-count'); out.value=String(Number(out.value||out.textContent||0)+1); out.textContent=out.value;
+});
+document.getElementById('emoji-insert').addEventListener('click',function(){document.getElementById('composer').value+='🙂';});
+document.getElementById('poll-draft').addEventListener('click',function(){document.getElementById('draft-state').textContent='Poll draft opened';});
+</script>""")
+
 # ── 7. File download ────────────────────────────────────────────────────────--
 DOWNLOAD = _p("Download", """
 <header><h1>Reports</h1></header>
@@ -389,6 +444,7 @@ FIXTURES: dict[str, str] = {
     "/crud":       CRUD,
     "/search":     SEARCH,
     "/upload":     UPLOAD,
+    "/content-insertion": CONTENT_INSERTION,
     "/download":   DOWNLOAD,
     "/pagination": PAGINATION,
     "/modal":      MODAL,

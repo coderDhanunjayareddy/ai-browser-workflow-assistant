@@ -6,6 +6,16 @@ export interface FileTransferAction {
   description?: string
   reasoning?: string
   safety_level?: string
+  content_insertion?: {
+    schema_version: 'content_insertion_request.v1'
+    request_id: string
+    kind: string
+    expected_effect: string
+    requires_bound_file: boolean
+    destination_entity: string
+    stage: string
+    opens_native_chooser: boolean
+  } | null
 }
 
 export interface FileTransferExecutionResult {

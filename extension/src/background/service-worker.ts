@@ -17,6 +17,15 @@ import {
 } from '../content/selector_recovery'
 import { executeWidgetAdapter } from '../content/widget_adapters'
 import { executeUploadHandler } from '../content/file_transfer'
+import {
+  inspectContentInsertionSelection,
+  prepareContentInsertionSelectionInspection,
+} from '../content/content_insertion_evidence'
+import {
+  inspectConsequentialSubmission,
+  verifyConsequentialDelivery,
+  type SubmissionPageEvidence,
+} from '../content/consequential_submission_evidence'
 import { executeRichTextAction } from '../content/rich_text'
 import { executeWave2CoreAction } from '../content/wave2_core'
 import { executeWave3VisualAction } from '../content/wave3_visual'
@@ -43,7 +52,10 @@ import {
   type PolicyExecutionContext,
 } from './service_worker_message_validation'
 import type { CanonicalActionContract } from '../types'
-import { attachCanonicalContractEvidence } from '../execution/canonical_action_contract'
+import {
+  attachCanonicalContractEvidence,
+  requiresExactOpenedTargetVerification,
+} from '../execution/canonical_action_contract'
 import { enforceLivePolicy } from './live_policy_client'
 import { advancedControlEnabled, CdpController, shouldAttemptCdpFallback } from './cdp_control'
 import {
@@ -57,6 +69,122 @@ import {
 } from '../workspace/multiTabWorkspace'
 
 const POLICY_BACKEND_URL = BACKEND_URL
+const CONTENT_RESERVATIONS_KEY = 'content_insertion_reservations_v1'
+const SUBMISSION_LEDGER_KEY = 'consequential_submission_ledger_v1'
+
+type SubmissionLedgerRecord = {
+  submission_id: string
+  idempotency_key: string
+  state: 'reserved' | 'dispatching' | 'delivered' | 'uncertain'
+  origin: string
+  destination_entity: string
+  content_identity: string
+  operation: string
+  attempts: 1
+  updated_at_ms: number
+}
+
+let submissionReservationQueue: Promise<void> = Promise.resolve()
+
+async function reserveConsequentialSubmission(
+  contract: CanonicalActionContract,
+  action: ExecutableAction,
+): Promise<{ allowed: true } | { allowed: false; reason: string }> {
+  const declaration = action.consequential_submission
+  if (!declaration) return { allowed: true }
+  const previous = submissionReservationQueue
+  let release!: () => void
+  submissionReservationQueue = new Promise<void>((resolve) => { release = resolve })
+  await previous
+  try {
+    const stored = await chrome.storage.local.get(SUBMISSION_LEDGER_KEY)
+    const ledger = (stored[SUBMISSION_LEDGER_KEY] || {}) as Record<string, SubmissionLedgerRecord>
+    const existing = ledger[declaration.submission_id]
+    if (existing) {
+      return { allowed: false, reason: existing.state === 'delivered' ? 'already_delivered' : 'uncertain_prior_dispatch' }
+    }
+    ledger[declaration.submission_id] = {
+      submission_id: declaration.submission_id,
+      idempotency_key: contract.idempotency_key,
+      state: 'reserved',
+      origin: contract.origin.origin,
+      destination_entity: declaration.destination_entity,
+      content_identity: declaration.content_identity,
+      operation: declaration.operation,
+      attempts: 1,
+      updated_at_ms: Date.now(),
+    }
+    await chrome.storage.local.set({ [SUBMISSION_LEDGER_KEY]: ledger })
+    return { allowed: true }
+  } finally {
+    release()
+  }
+}
+
+async function settleConsequentialSubmission(
+  action: ExecutableAction,
+  state: SubmissionLedgerRecord['state'],
+): Promise<void> {
+  const id = action.consequential_submission?.submission_id
+  if (!id) return
+  const stored = await chrome.storage.local.get(SUBMISSION_LEDGER_KEY)
+  const ledger = (stored[SUBMISSION_LEDGER_KEY] || {}) as Record<string, SubmissionLedgerRecord>
+  const existing = ledger[id]
+  if (!existing) return
+  ledger[id] = { ...existing, state, updated_at_ms: Date.now() }
+  await chrome.storage.local.set({ [SUBMISSION_LEDGER_KEY]: ledger })
+}
+
+type ContentInsertionReservation = {
+  request_id: string
+  chooser_count: number
+  state: 'chooser_opened' | 'selected' | 'cancelled' | 'uncertain'
+  origin: string
+  destination_entity: string
+  kind: string
+  effect: string
+  updated_at_ms: number
+}
+
+async function reserveContentChooser(
+  contract: CanonicalActionContract,
+  action: ExecutableAction,
+): Promise<{ allowed: true } | { allowed: false; reason: string }> {
+  const declaration = action.content_insertion
+  if (!declaration?.opens_native_chooser) return { allowed: true }
+  const stored = await chrome.storage.local.get(CONTENT_RESERVATIONS_KEY)
+  const reservations = (stored[CONTENT_RESERVATIONS_KEY] || {}) as Record<string, ContentInsertionReservation>
+  const existing = reservations[declaration.request_id]
+  if (existing && existing.chooser_count > 0) {
+    return { allowed: false, reason: 'second_chooser_blocked' }
+  }
+  reservations[declaration.request_id] = {
+    request_id: declaration.request_id,
+    chooser_count: 1,
+    state: 'chooser_opened',
+    origin: contract.origin.origin,
+    destination_entity: declaration.destination_entity,
+    kind: declaration.kind,
+    effect: declaration.expected_effect,
+    updated_at_ms: Date.now(),
+  }
+  await chrome.storage.local.set({ [CONTENT_RESERVATIONS_KEY]: reservations })
+  return { allowed: true }
+}
+
+async function settleContentChooser(
+  action: ExecutableAction,
+  state: ContentInsertionReservation['state'],
+): Promise<void> {
+  const requestId = action.content_insertion?.request_id
+  if (!requestId) return
+  const stored = await chrome.storage.local.get(CONTENT_RESERVATIONS_KEY)
+  const reservations = (stored[CONTENT_RESERVATIONS_KEY] || {}) as Record<string, ContentInsertionReservation>
+  const existing = reservations[requestId]
+  if (!existing) return
+  reservations[requestId] = { ...existing, state, updated_at_ms: Date.now() }
+  await chrome.storage.local.set({ [CONTENT_RESERVATIONS_KEY]: reservations })
+}
 
 type TabControlMetadata = {
   opened_tab_id?: number | null
@@ -490,9 +618,131 @@ async function handleExecuteAction(
         sendResponse({ error: 'Browser action rejected: exact child-frame dispatch is not yet supported by the canonical click executor.' })
         return
       }
+      let submissionBefore: SubmissionPageEvidence | null = null
+      if (action.consequential_submission) {
+        const inspection = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: inspectConsequentialSubmission,
+          args: [action.consequential_submission],
+        }).catch(() => null)
+        submissionBefore = inspection?.[0]?.result ?? null
+        if (
+          !submissionBefore?.destination_observed
+          || !submissionBefore.content_observed
+          || (action.consequential_submission.preview_required && !submissionBefore.preview_observed)
+        ) {
+          sendResponse({ error: 'Submission rejected: exact destination and attachment preview were not both observable immediately before dispatch.' })
+          return
+        }
+        const reservation = await reserveConsequentialSubmission(contract, action)
+        if (!reservation.allowed) {
+          sendResponse({
+            result: {
+              success: false,
+              message: `Submission was not repeated: ${reservation.reason}.`,
+              action_id: action.action_id,
+              submission_id: action.consequential_submission.submission_id,
+              submission_operation: action.consequential_submission.operation,
+              submission_attempted: false,
+              submission_duplicate_prevented: true,
+              delivery_verified: reservation.reason === 'already_delivered',
+              dispatch_uncertain: reservation.reason !== 'already_delivered',
+            },
+          })
+          return
+        }
+        await settleConsequentialSubmission(action, 'dispatching')
+      }
+      const chooserReservation = await reserveContentChooser(contract, action)
+      if (!chooserReservation.allowed) {
+        sendResponse({ error: `Content insertion rejected: ${chooserReservation.reason}` })
+        return
+      }
+      if (action.content_insertion?.opens_native_chooser) {
+        const prepared = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: prepareContentInsertionSelectionInspection,
+          args: [action.content_insertion],
+        }).catch(() => null)
+        if (prepared?.[0]?.result !== true) {
+          await settleContentChooser(action, 'uncertain')
+          sendResponse({ error: 'Content insertion rejected because exact selection evidence could not be prepared.' })
+          return
+        }
+      }
       const cdpExecution = await cdpController.execute(tab.id, action)
-      const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, cdpExecution, startedAt)
-      const exactPostcondition = await verifyExactPostconditionWithRetry(tab.id, contract)
+      let executionWithContentEvidence: BasicExecutionResult = cdpExecution
+      if (action.consequential_submission && submissionBefore) {
+        let after: SubmissionPageEvidence | null = null
+        let delivered = false
+        if (cdpExecution.success) {
+          for (let attempt = 0; attempt < 20; attempt += 1) {
+            if (attempt > 0) await sleep(250)
+            const inspection = await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              func: inspectConsequentialSubmission,
+              args: [action.consequential_submission],
+            }).catch(() => null)
+            after = inspection?.[0]?.result ?? null
+            if (after && verifyConsequentialDelivery(submissionBefore, after)) {
+              delivered = true
+              break
+            }
+          }
+        }
+        await settleConsequentialSubmission(action, delivered ? 'delivered' : 'uncertain')
+        executionWithContentEvidence = {
+          ...cdpExecution,
+          success: cdpExecution.success && delivered,
+          message: delivered
+            ? 'The consequential action was dispatched once and its exact destination/content effect was verified.'
+            : 'Dispatch may have occurred, but delivery could not be verified. It will not be retried automatically.',
+          submission_id: action.consequential_submission.submission_id,
+          submission_operation: action.consequential_submission.operation,
+          submission_attempted: true,
+          submission_duplicate_prevented: false,
+          delivery_verified: delivered,
+          delivered_content_identity: delivered ? action.consequential_submission.content_identity : null,
+          delivered_destination_entity: delivered ? action.consequential_submission.destination_entity : null,
+          dispatch_uncertain: !delivered,
+        }
+      }
+      if (action.content_insertion?.opens_native_chooser) {
+        if (!cdpExecution.success) {
+          await settleContentChooser(action, 'uncertain')
+        } else {
+          const inspection = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: inspectContentInsertionSelection,
+            args: [action.content_insertion, 30_000],
+          }).catch(() => null)
+          const evidence = inspection?.[0]?.result
+          if (evidence?.success) {
+            const exactOrigin = evidence.destination_origin === contract.origin.origin
+            await settleContentChooser(action, exactOrigin ? 'selected' : 'uncertain')
+            executionWithContentEvidence = {
+              ...cdpExecution,
+              ...evidence,
+              success: cdpExecution.success && exactOrigin,
+              message: exactOrigin
+                ? evidence.message
+                : 'Content selection origin changed before verification.',
+            }
+          } else {
+            await settleContentChooser(action, evidence?.chooser_cancelled ? 'cancelled' : 'uncertain')
+            executionWithContentEvidence = {
+              ...cdpExecution,
+              ...(evidence || {}),
+              success: false,
+              message: evidence?.message || 'Content selection could not be verified.',
+            }
+          }
+        }
+      }
+      const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, executionWithContentEvidence, startedAt)
+      const exactPostcondition = requiresExactOpenedTargetVerification(contract)
+        ? await verifyExactPostconditionWithRetry(tab.id, contract)
+        : null
       const postconditionResult = applyExactPostcondition(verifiedResult, exactPostcondition)
       const completed = attachCanonicalContractEvidence(
         postconditionResult,
@@ -511,7 +761,9 @@ async function handleExecuteAction(
       }
       const cdpExecution = await cdpController.execute(tab.id, action)
       const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, cdpExecution, startedAt)
-      const exactPostcondition = await verifyExactPostconditionWithRetry(tab.id, contract)
+      const exactPostcondition = requiresExactOpenedTargetVerification(contract)
+        ? await verifyExactPostconditionWithRetry(tab.id, contract)
+        : null
       const postconditionResult = applyExactPostcondition(verifiedResult, exactPostcondition)
       const completed = attachCanonicalContractEvidence(
         postconditionResult,

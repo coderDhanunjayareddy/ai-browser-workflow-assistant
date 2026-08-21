@@ -31,6 +31,15 @@ def test_whatsapp_recipient_stops_before_trailing_safety_sentence() -> None:
     assert _messaging_recipient_from_task(task) == "Teja Spc"
 
 
+def test_exact_recipient_stops_before_next_positive_objective_sentence() -> None:
+    task = (
+        "Open the exact direct chat named Synthetic Recipient. "
+        "Attach the approved synthetic document and verify its preview."
+    )
+
+    assert _messaging_recipient_from_task(task) == "Synthetic Recipient"
+
+
 def test_whatsapp_login_page_pauses_without_selecting_login_controls() -> None:
     task = (
         "Open WhatsApp and open the exact direct chat named Teja Spc. "
@@ -129,7 +138,9 @@ def test_whatsapp_affirmative_attachment_task_does_not_finish_after_chat_open() 
         prior_steps=[],
     )
     assert control is not None
-    assert control.suggested_actions[0].description == "Activate the observed WhatsApp attachment control for the approved file"
+    assert control.suggested_actions[0].description == (
+        "Activate the observed content-insertion control for the broker-bound approved local_file content"
+    )
 
 
 def test_whatsapp_open_only_task_converges_from_trusted_exact_click_evidence() -> None:
@@ -162,6 +173,174 @@ def test_whatsapp_open_only_task_converges_from_trusted_exact_click_evidence() -
     assert report is not None
     assert report.outcome_kind == "report"
     assert report.goal_convergence is True
+
+
+def test_generic_content_insertion_converges_from_exact_preview_evidence_without_send() -> None:
+    task = (
+        "Open the exact direct chat named Synthetic Recipient. "
+        "Attach the explicitly approved synthetic document file named synthetic-day4.txt and verify its preview. "
+        "Do not send anything."
+    )
+    page = _page("https://messaging.example.test/thread/123", [])
+    selection = PriorStep(
+        action_type="click",
+        description="Activate the observed content-insertion control for the broker-bound approved document content",
+        target_selector='button[aria-label="Document"]',
+        value=None,
+        execution_result="success",
+        browser_evidence={
+            "content_request_id": "content-test-1",
+            "content_kind": "document",
+            "destination_origin": "https://messaging.example.test",
+            "destination_entity": "Synthetic Recipient",
+            "upload_files_count": 1,
+            "upload_accepted": True,
+            "filename": "synthetic-day4.txt",
+            "mime_type": "text/plain",
+            "size_bytes": 64,
+            "content_sha256": "a" * 64,
+            "preview_identity_observed": True,
+            "chooser_cancelled": False,
+        },
+    )
+
+    report = _deterministic_observed_report_response(
+        session_id="generic-preview",
+        task=task,
+        page_context=page,
+        prior_steps=[selection],
+    )
+
+    assert report is not None
+    assert report.outcome_kind == "report"
+    assert report.goal_convergence is True
+    assert report.report is not None
+    assert report.report.answer == 'Attached and verified the preview for "synthetic-day4.txt". Nothing was sent.'
+
+
+def test_generic_content_insertion_does_not_converge_for_wrong_origin_or_send_objective() -> None:
+    page = _page("https://messaging.example.test/thread/123", [])
+    evidence = {
+        "content_request_id": "content-test-2",
+        "destination_origin": "https://other.example.test",
+        "destination_entity": "Synthetic Recipient",
+        "upload_files_count": 1,
+        "upload_accepted": True,
+        "filename": "synthetic-day4.txt",
+        "preview_identity_observed": True,
+    }
+    selection = PriorStep(
+        action_type="click",
+        description="Select exact approved content",
+        target_selector="#document",
+        value=None,
+        execution_result="success",
+        browser_evidence=evidence,
+    )
+
+    wrong_origin = _deterministic_observed_report_response(
+        session_id="wrong-origin",
+        task=(
+            "Open the exact chat named Synthetic Recipient. Attach the file named synthetic-day4.txt. "
+            "Do not send anything."
+        ),
+        page_context=page,
+        prior_steps=[selection],
+    )
+    assert wrong_origin is None
+
+    selection.browser_evidence["destination_origin"] = "https://messaging.example.test"
+    send_requested = _deterministic_observed_report_response(
+        session_id="send-requested",
+        task=(
+            "Open the exact chat named Synthetic Recipient. Attach the file named synthetic-day4.txt and send it."
+        ),
+        page_context=page,
+        prior_steps=[selection],
+    )
+    assert send_requested is None
+
+
+def test_generic_submission_is_built_only_from_exact_preview_destination_and_observed_control() -> None:
+    task = (
+        "Open the exact chat named Consenting Test Recipient. Attach synthetic-day5.txt and send it."
+    )
+    page = _page(
+        "https://messaging.example.test/thread/123",
+        [InteractiveElement(type="button", selector="#final-send", text="Send", visible=True, role="button")],
+    )
+    page.visible_text = "Consenting Test Recipient synthetic-day5.txt Send"
+    preview = PriorStep(
+        action_type="click",
+        description="Select exact approved content",
+        target_selector="#document",
+        value=None,
+        execution_result="success",
+        browser_evidence={
+            "destination_origin": "https://messaging.example.test",
+            "destination_entity": "Consenting Test Recipient",
+            "upload_files_count": 1,
+            "upload_accepted": True,
+            "filename": "synthetic-day5.txt",
+            "preview_identity_observed": True,
+        },
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="generic-send",
+        task=task,
+        page_context=page,
+        prior_steps=[preview],
+    )
+
+    assert response is not None
+    action = response.suggested_actions[0]
+    assert action.target_selector == "#final-send"
+    assert action.safety_level == "danger"
+    assert action.consequential_submission is not None
+    assert action.consequential_submission["destination_entity"] == "Consenting Test Recipient"
+    assert action.consequential_submission["content_identity"] == "synthetic-day5.txt"
+
+    preview.browser_evidence["destination_entity"] = "Wrong Recipient"
+    assert _deterministic_observed_control_response(
+        session_id="generic-send",
+        task=task,
+        page_context=page,
+        prior_steps=[preview],
+    ) is None
+
+
+def test_verified_generic_delivery_converges_without_redispatch() -> None:
+    task = "Send synthetic-day5.txt to the exact chat named Consenting Test Recipient."
+    page = _page("https://messaging.example.test/thread/123", [])
+    delivery = PriorStep(
+        action_type="click",
+        description="Activate the observed final submission control for the verified content and destination",
+        target_selector="#final-send",
+        value=None,
+        execution_result="success",
+        browser_evidence={
+            "submission_id": "submission-1",
+            "submission_operation": "send",
+            "submission_attempted": True,
+            "delivery_verified": True,
+            "delivered_content_identity": "synthetic-day5.txt",
+            "delivered_destination_entity": "Consenting Test Recipient",
+            "dispatch_uncertain": False,
+        },
+    )
+
+    report = _deterministic_observed_report_response(
+        session_id="generic-delivery",
+        task=task,
+        page_context=page,
+        prior_steps=[delivery],
+    )
+    assert report is not None
+    assert report.outcome_kind == "report"
+    assert report.sgv_verified is True
+    assert report.goal_convergence is True
+    assert "exactly once" in report.report.answer
 
 
 def test_login_controls_are_selected_in_fill_fill_submit_order() -> None:
@@ -271,7 +450,7 @@ def test_table_edit_and_dynamic_ready_use_observed_controls() -> None:
     assert dynamic.suggested_actions[0].target_selector == "#ready"
 
 
-def test_upload_uses_observed_file_input_and_explicit_filename() -> None:
+def test_upload_activates_observed_file_input_without_passing_a_local_path() -> None:
     response = _deterministic_observed_control_response(
         session_id="upload",
         task='Upload the test file "benchmark_test.txt" using the file input',
@@ -283,8 +462,70 @@ def test_upload_uses_observed_file_input_and_explicit_filename() -> None:
     )
 
     assert response is not None
-    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == ("fill", "#file")
-    assert response.suggested_actions[0].value == "benchmark_test.txt"
+    assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == ("click", "#file")
+    assert response.suggested_actions[0].value == ""
+
+
+def test_attachment_trigger_is_grounded_generically_on_an_unregistered_provider() -> None:
+    response = _deterministic_observed_control_response(
+        session_id="generic-attachment",
+        task='Attach the approved document "synthetic-day4.pdf" without sending it.',
+        page_context=_page(
+            "https://messaging.example.test/thread/123",
+            [InteractiveElement(type="button", selector="#paperclip", text="", visible=True, accessibility_name="Attach")],
+        ),
+        prior_steps=[],
+    )
+
+    assert response is not None
+    action = response.suggested_actions[0]
+    assert (action.action_type, action.target_selector) == ("click", "#paperclip")
+    assert "content-insertion control" in action.description
+    assert "WhatsApp" not in action.description
+
+
+def test_content_insertion_prefers_composer_trigger_over_unrelated_global_media_navigation() -> None:
+    response = _deterministic_observed_control_response(
+        session_id="generic-composer-boundary",
+        task='Attach the approved document "synthetic-day4.txt" without sending it.',
+        page_context=_page(
+            "https://messaging.example.test/thread/123",
+            [
+                InteractiveElement(
+                    type="button",
+                    selector='button[aria-label="Media"]',
+                    text="",
+                    visible=True,
+                    role="button",
+                    aria_label="Media",
+                ),
+                InteractiveElement(
+                    type="div",
+                    selector='div[aria-label="Write a message"]',
+                    text="",
+                    visible=True,
+                    role="textbox",
+                    aria_label="Write a message",
+                ),
+                InteractiveElement(
+                    type="button",
+                    selector='button[aria-label="Attach"]',
+                    text="",
+                    visible=True,
+                    role="button",
+                    aria_label="Attach",
+                ),
+            ],
+        ),
+        prior_steps=[],
+    )
+
+    assert response is not None
+    action = response.suggested_actions[0]
+    assert (action.action_type, action.target_selector) == ("click", 'button[aria-label="Attach"]')
+    assert action.content_insertion is not None
+    assert action.content_insertion["stage"] == "open_insertion_menu"
+    assert action.content_insertion["opens_native_chooser"] is False
 
 
 def test_site_search_fills_observed_field_then_uses_canonical_results_url() -> None:

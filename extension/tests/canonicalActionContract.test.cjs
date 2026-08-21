@@ -23,6 +23,7 @@ execFileSync(process.execPath, [
 const {
   attachCanonicalContractEvidence,
   buildCanonicalActionContract,
+  requiresExactOpenedTargetVerification,
 } = require(path.join(outDir, 'execution', 'canonical_action_contract.js'))
 
 function clickAction(overrides = {}) {
@@ -103,6 +104,32 @@ test('navigation-result click preserves its exact URL postcondition', () => {
   assert.equal(contract.expected_effect.url_path, '/watch')
 })
 
+test('content-insertion control names are not misclassified as newly opened resource identities', () => {
+  const contract = buildCanonicalActionContract(clickAction({
+    target_selector: 'button[aria-label="Attach"]',
+    grounding: {
+      source: 'dom_snapshot',
+      accessibility_name: 'Attach',
+      role: 'button',
+      semantic_kind: 'content_insertion_trigger',
+    },
+    content_insertion: {
+      schema_version: 'content_insertion_request.v1',
+      request_id: 'content-test-1',
+      kind: 'document',
+      expected_effect: 'preview_then_send',
+      requires_bound_file: true,
+      destination_entity: 'Synthetic Recipient',
+      stage: 'open_insertion_menu',
+      opens_native_chooser: false,
+    },
+  }), context, 'content-key')
+
+  assert.equal(contract.target_identity.exact_name, 'Attach')
+  assert.equal(requiresExactOpenedTargetVerification(contract), false)
+  assert.equal(requiresExactOpenedTargetVerification(buildCanonicalActionContract(clickAction(), context, 'open-key')), true)
+})
+
 test('explicit navigation can bootstrap from New Tab but not another privileged page', () => {
   const navigate = clickAction({
     action_id: 'navigate-1', action_type: 'navigate', target_selector: '', grounding: {},
@@ -140,6 +167,27 @@ test('production service worker has one click mutation route and no selector-rec
   assert.match(clickBranch, /cdpController\.execute/)
   assert.doesNotMatch(clickBranch, /executeAction|executeActionV2|findRecoverySelector|\.click\(/)
   assert.match(worker, /Click rejected outside the canonical CDP dispatch path/)
+})
+
+test('content selection evidence is armed before trusted input and remains within the action timeout', () => {
+  const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
+  const prepareIndex = worker.indexOf('func: prepareContentInsertionSelectionInspection')
+  const dispatchIndex = worker.indexOf('const cdpExecution = await cdpController.execute')
+  assert.ok(prepareIndex >= 0)
+  assert.ok(dispatchIndex > prepareIndex)
+  assert.match(worker, /args: \[action\.content_insertion, 30_000\]/)
+})
+
+test('consequential submission reserves once before trusted input and settles delivered or uncertain', () => {
+  const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
+  const preflightIndex = worker.indexOf('func: inspectConsequentialSubmission')
+  const reserveIndex = worker.indexOf('await reserveConsequentialSubmission(contract, action)')
+  const dispatchIndex = worker.indexOf('const cdpExecution = await cdpController.execute')
+  assert.ok(preflightIndex >= 0)
+  assert.ok(reserveIndex > preflightIndex)
+  assert.ok(dispatchIndex > reserveIndex)
+  assert.match(worker, /settleConsequentialSubmission\(action, delivered \? 'delivered' : 'uncertain'\)/)
+  assert.match(worker, /It will not be retried automatically/)
 })
 
 test('production service worker dispatches keyboard shortcuts through trusted CDP input', () => {

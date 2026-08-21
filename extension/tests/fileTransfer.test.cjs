@@ -18,6 +18,7 @@ execFileSync(process.execPath, [
   '--skipLibCheck',
   '--outDir', outDir,
   path.join(root, 'src', 'content', 'file_transfer.ts'),
+  path.join(root, 'src', 'content', 'content_insertion_broker.ts'),
   path.join(root, 'src', 'background', 'file_transfer_metadata.ts'),
 ], { cwd: root, stdio: 'pipe' })
 
@@ -28,6 +29,9 @@ const {
 const {
   downloadMetadata,
 } = require(path.join(outDir, 'background', 'file_transfer_metadata.js'))
+const {
+  validateContentInsertion,
+} = require(path.join(outDir, 'content', 'content_insertion_broker.js'))
 
 function action(overrides = {}) {
   return {
@@ -124,4 +128,101 @@ test('failed download metadata preserves detection and failure status', () => {
   assert.equal(metadata.filename, 'report.csv')
   assert.equal(metadata.mime_type, 'text/csv')
   assert.equal(metadata.size_bytes, null)
+})
+
+function insertionFixture(overrides = {}) {
+  const now = 1_800_000_000_000
+  const request = {
+    request_id: 'insert-1',
+    kind: 'document',
+    destination_origin: 'https://messaging.example.test',
+    destination_entity: 'Synthetic Recipient',
+    idempotency_key: 'insert-once-1',
+    expected_effect: 'preview_then_send',
+    approved_binding_id: 'binding-1',
+    confirmation_token: null,
+    ...overrides.request,
+  }
+  const binding = {
+    binding_id: 'binding-1',
+    kind: 'document',
+    filename: 'synthetic-day4.pdf',
+    mime_type: 'application/pdf',
+    size_bytes: 128,
+    content_sha256: 'a'.repeat(64),
+    destination_origin: 'https://messaging.example.test',
+    destination_entity: 'Synthetic Recipient',
+    idempotency_key: 'insert-once-1',
+    approved_at_ms: now - 1000,
+    expires_at_ms: now + 60_000,
+    synthetic: true,
+    ...overrides.binding,
+  }
+  const capability = {
+    kind: 'document',
+    effect: 'preview_then_send',
+    selector: 'input[type=file]',
+    backed_by_file_input: true,
+    accepted_mime_types: ['application/pdf'],
+    multiple: false,
+    ...overrides.capability,
+  }
+  const reservation = {
+    chooser_count: 0,
+    consumed: false,
+    effect_uncertain: false,
+    observed_origin: 'https://messaging.example.test/thread/1',
+    ...overrides.reservation,
+  }
+  return { request, binding, capability, reservation, now }
+}
+
+test('generic broker accepts one exact synthetic file binding for the observed origin and entity', () => {
+  const value = insertionFixture()
+  assert.deepEqual(
+    validateContentInsertion(value.request, value.binding, value.capability, value.reservation, value.now),
+    { allowed: true, requires_confirmation: false, reason: 'approved_file_binding_verified' },
+  )
+})
+
+test('generic broker blocks path substitution, stale grants, cross-origin reuse and second chooser', () => {
+  for (const value of [
+    insertionFixture({ request: { approved_binding_id: 'other-binding' } }),
+    insertionFixture({ binding: { expires_at_ms: 1_799_999_999_999 } }),
+    insertionFixture({ reservation: { observed_origin: 'https://other.example.test' } }),
+    insertionFixture({ reservation: { chooser_count: 1 } }),
+  ]) {
+    const decision = validateContentInsertion(value.request, value.binding, value.capability, value.reservation, value.now)
+    assert.equal(decision.allowed, false)
+  }
+})
+
+test('selection that sends immediately requires confirmation before selecting content', () => {
+  const value = insertionFixture({
+    request: {
+      kind: 'gif',
+      expected_effect: 'selection_sends_immediately',
+      approved_binding_id: null,
+    },
+    capability: {
+      kind: 'gif',
+      effect: 'selection_sends_immediately',
+      backed_by_file_input: false,
+      accepted_mime_types: [],
+    },
+  })
+  assert.deepEqual(
+    validateContentInsertion(value.request, null, value.capability, value.reservation, value.now),
+    { allowed: false, requires_confirmation: true, reason: 'confirmation_required_before_selection' },
+  )
+  value.request.confirmation_token = 'confirmed-once'
+  assert.equal(validateContentInsertion(value.request, null, value.capability, value.reservation, value.now).allowed, true)
+})
+
+test('uncertain insertion effect blocks retry for every content kind', () => {
+  const value = insertionFixture({ reservation: { effect_uncertain: true } })
+  assert.deepEqual(
+    validateContentInsertion(value.request, value.binding, value.capability, value.reservation, value.now),
+    { allowed: false, requires_confirmation: false, reason: 'uncertain_effect_blocks_retry' },
+  )
 })

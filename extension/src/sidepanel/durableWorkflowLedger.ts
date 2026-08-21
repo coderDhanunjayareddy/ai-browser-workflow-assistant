@@ -59,7 +59,10 @@ export function isSafeAutonomousNavigation(action: SuggestedAction): boolean {
 }
 
 export function durableExecutionKey(action: SuggestedAction, tabId: number): string {
-  const identity = action.intent_id || action.action_id || [
+  const submission = action.consequential_submission
+  const identity = submission
+    ? `submission:${submission.submission_id}:${submission.operation}:${submission.destination_entity}:${submission.content_identity}`
+    : action.intent_id || action.action_id || [
     action.action_type,
     action.target_selector || '',
     action.value || '',
@@ -158,7 +161,7 @@ export function completeDurableExecution(
   if (!current) return ledger
   const record: DurableExecutionRecord = {
     ...current,
-    status: result.success ? 'succeeded' : 'failed',
+    status: result.success ? 'succeeded' : result.dispatch_uncertain ? 'uncertain' : 'failed',
     result,
     updatedAt: now,
   }

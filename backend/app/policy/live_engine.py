@@ -70,6 +70,8 @@ def action_digest(action: SuggestedAction, execution_contract: dict | None = Non
         "value": action.value,
         "description": action.description,
         "grounding": action.grounding,
+        "content_insertion": action.content_insertion,
+        "consequential_submission": action.consequential_submission,
         "execution_contract": execution_contract or {},
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -294,7 +296,10 @@ class LivePolicyEngine:
                 or not str(grounding_policy.get("screenshot_hash") or "").strip()
             ):
                 return "execution_contract_screenshot_binding_invalid"
-        immutable_fields = ("action_id", "action_type", "target_selector", "value", "safety_level")
+        immutable_fields = (
+            "action_id", "action_type", "target_selector", "value", "safety_level",
+            "content_insertion", "consequential_submission",
+        )
         action_payload = action.model_dump(mode="json")
         if any(contract_action.get(field) != action_payload.get(field) for field in immutable_fields):
             return "execution_contract_action_mismatch"
@@ -304,6 +309,23 @@ class LivePolicyEngine:
             return "execution_contract_safety_mismatch"
         if not str(contract.get("idempotency_key") or "").strip():
             return "execution_contract_idempotency_missing"
+        submission = action.consequential_submission or {}
+        if submission:
+            required_submission = {
+                "schema_version": "consequential_submission.v1",
+                "preview_required": True,
+                "verification_mode": "delivered_content_and_destination",
+            }
+            if any(submission.get(key) != value for key, value in required_submission.items()):
+                return "execution_contract_submission_invalid"
+            if submission.get("operation") not in {"send", "share", "submit", "post", "publish"}:
+                return "execution_contract_submission_invalid"
+            if any(not str(submission.get(key) or "").strip() for key in (
+                "submission_id", "destination_entity", "content_identity",
+            )):
+                return "execution_contract_submission_invalid"
+            if str(submission["submission_id"]) not in str(contract.get("idempotency_key") or ""):
+                return "execution_contract_submission_idempotency_mismatch"
         if not isinstance(binding.get("tab_id"), int) or not str(binding.get("frame_id") or "").strip():
             return "execution_contract_browser_binding_invalid"
         observed_url = str(contract_origin.get("observed_url") or "")

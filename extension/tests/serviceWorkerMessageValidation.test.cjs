@@ -170,6 +170,40 @@ test('rejects unsafe or malformed privileged URL arguments', () => {
   assert.equal(validateExecutableAction(action({ action_type: 'navigate', value: 'https://example.com' })), true)
 })
 
+test('content insertion declaration is typed and preserved inside the canonical action', () => {
+  const insertion = {
+    schema_version: 'content_insertion_request.v1',
+    request_id: 'content-request-1',
+    kind: 'document',
+    expected_effect: 'preview_then_send',
+    requires_bound_file: true,
+    destination_entity: 'Synthetic Recipient',
+    stage: 'select_bound_content',
+    opens_native_chooser: true,
+  }
+  assert.equal(validateExecutableAction(action({ content_insertion: insertion })), true)
+  assert.equal(validateServiceWorkerMessage(executeMessage({ contract: contract({ content_insertion: insertion }) }), sender, runtimeId), null)
+  assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, kind: 'unknown' } })), false)
+  assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, opens_native_chooser: 'yes' } })), false)
+})
+
+test('consequential submission declaration binds destination and content identity', () => {
+  const submission = {
+    schema_version: 'consequential_submission.v1',
+    submission_id: 'submission-1',
+    operation: 'send',
+    destination_entity: 'Consenting Test Recipient',
+    content_identity: 'synthetic-day5.txt',
+    preview_required: true,
+    verification_mode: 'delivered_content_and_destination',
+  }
+  assert.equal(validateExecutableAction(action({ consequential_submission: submission })), true)
+  assert.equal(validateServiceWorkerMessage(executeMessage({ contract: contract({ consequential_submission: submission }) }), sender, runtimeId), null)
+  assert.equal(validateExecutableAction(action({ consequential_submission: { ...submission, destination_entity: '' } })), false)
+  assert.equal(validateExecutableAction(action({ consequential_submission: { ...submission, operation: 'retry' } })), false)
+  assert.equal(validateExecutableAction(action({ consequential_submission: { ...submission, preview_required: false } })), false)
+})
+
 test('rejects malformed action fields and tab bindings', () => {
   assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({}, { browser_binding: { tab_id: -1, window_id: 2, frame_id: 'top' } }) }), sender, runtimeId), /invalid canonical action contract/)
   assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({ action_id: '' }) }), sender, runtimeId), /invalid canonical action contract/)

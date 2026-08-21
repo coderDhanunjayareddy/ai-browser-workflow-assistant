@@ -22,6 +22,7 @@ from app.run_ledger import RunLedgerWriter
 from app.observability.tracing import record_structured_trace
 from app.observability.metrics import default_metric_sink
 from app.feature_flags import is_active, is_shadow_or_active
+from app.file_upload_broker.policy import build_file_upload_broker_policy
 from app.context_packet import ContextPacketBuilder, PlannerV2Adapter
 from app.context_packet.telemetry import record_packet_metrics
 from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
@@ -2313,6 +2314,8 @@ def _deterministic_observed_control_response(
     action_type = ""
     value: str | None = None
     description = ""
+    content_insertion: dict[str, Any] | None = None
+    consequential_submission: dict[str, Any] | None = None
 
     def prior_step_succeeded(step: Any) -> bool:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
@@ -2354,6 +2357,63 @@ def _deterministic_observed_control_response(
         if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "click"
         and prior_step_succeeded(step)
     }
+
+    # A final external mutation is eligible only after the broker has observed
+    # exact preview evidence from a prior action. This is provider-neutral: the
+    # currently observed operation control, destination and content identities
+    # become immutable data in the submission contract.
+    prior_preview_evidence: dict[str, Any] | None = None
+    for step in reversed(prior_steps):
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        evidence = dict(data.get("browser_evidence") or {})
+        if (
+            evidence.get("preview_identity_observed") is True
+            and evidence.get("upload_accepted") is True
+            and int(evidence.get("upload_files_count") or 0) == 1
+            and str(evidence.get("filename") or "").strip()
+        ):
+            prior_preview_evidence = evidence
+            break
+    requested_operation_match = re.search(r"\b(send|share|submit|post|publish)\b", affirmative_text)
+    if requested_operation_match and prior_preview_evidence is not None:
+        operation = requested_operation_match.group(1)
+        content_identity = str(prior_preview_evidence.get("filename") or "").strip()
+        destination_entity = str(prior_preview_evidence.get("destination_entity") or "").strip()
+        observed_origin = str(prior_preview_evidence.get("destination_origin") or "").rstrip("/")
+        current_origin = ""
+        try:
+            parsed = urlparse(str(getattr(page_context, "url", "") or ""))
+            current_origin = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+        except Exception:
+            current_origin = ""
+        requested_entity = _messaging_recipient_from_task(task) or destination_entity
+        identity_bound = (
+            bool(content_identity and destination_entity and observed_origin and current_origin)
+            and content_identity.casefold() in str(task or "").casefold()
+            and requested_entity.casefold() == destination_entity.casefold()
+            and observed_origin.casefold() == current_origin.casefold()
+        )
+        operation_control = _find_observed_control(
+            elements,
+            exact_labels=(operation,),
+            label_terms=(operation,),
+            selector_terms=(operation,),
+        )
+        if identity_bound and operation_control is not None:
+            selector = str(operation_control.get("selector") or "")
+            action_type = "click"
+            description = "Activate the observed final submission control for the verified content and destination"
+            consequential_submission = {
+                "schema_version": "consequential_submission.v1",
+                "submission_id": "submission_" + hashlib.sha256(
+                    f"{session_id}|{operation}|{current_origin}|{destination_entity}|{content_identity}".encode("utf-8")
+                ).hexdigest()[:24],
+                "operation": operation,
+                "destination_entity": destination_entity,
+                "content_identity": content_identity,
+                "preview_required": True,
+                "verification_mode": "delivered_content_and_destination",
+            }
 
     current_url = str(getattr(page_context, "url", "") or "")
     is_whatsapp = "web.whatsapp.com" in current_url.lower()
@@ -2549,7 +2609,25 @@ def _deterministic_observed_control_response(
                 action_type = "keyboard_shortcut"
                 value = "ENTER"
                 description = "Submit the explicitly requested site search after filling the observed search field"
-    elif any(term in affirmative_text for term in ("upload", "attach")) and "file" in affirmative_text:
+    elif any(term in affirmative_text for term in ("upload", "attach", "insert", "add")) and any(
+        term in affirmative_text
+        for term in ("file", "document", "pdf", "image", "photo", "video", "audio")
+    ):
+        insertion_policy = build_file_upload_broker_policy(task)
+        requested_kind = insertion_policy.requested_content_kinds[0]
+        destination_entity = _messaging_recipient_from_task(task) or ""
+        content_insertion = {
+            "schema_version": "content_insertion_request.v1",
+            "request_id": "content_" + hashlib.sha1(
+                f"{session_id}|{requested_kind}|{destination_entity}".encode("utf-8")
+            ).hexdigest()[:16],
+            "kind": requested_kind,
+            "expected_effect": "preview_then_send",
+            "requires_bound_file": insertion_policy.requires_user_selected_file,
+            "destination_entity": destination_entity,
+            "stage": "open_insertion_menu",
+            "opens_native_chooser": False,
+        }
         control = next(
             (
                 element
@@ -2562,22 +2640,69 @@ def _deterministic_observed_control_response(
             ),
             None,
         )
-        if control is not None and str(control.get("selector") or "") not in completed_fills:
+        if control is not None and str(control.get("selector") or "") not in completed_clicks:
             selector = str(control.get("selector") or "")
-            action_type = "fill"
-            value = _quoted_task_value(task, "file")
-            description = "Upload the explicitly requested file through the observed file input"
-        elif is_whatsapp:
-            attach_control = _find_observed_control(
+            action_type = "click"
+            value = ""
+            description = "Activate the observed file input for the broker-bound approved content"
+            content_insertion["stage"] = "select_bound_content"
+            content_insertion["opens_native_chooser"] = True
+        else:
+            kind_terms = {
+                "document": ("document", "file", "attach", "attachment", "upload"),
+                "image": ("photo", "photos", "image", "images", "media", "attach"),
+                "video": ("video", "videos", "media", "attach"),
+                "audio": ("audio", "sound", "voice", "attach"),
+                "local_file": ("attach", "attachment", "file", "upload", "add"),
+            }
+            requested_terms = tuple(dict.fromkeys(
+                term
+                for kind in insertion_policy.requested_content_kinds
+                for term in kind_terms.get(kind, ())
+            )) or kind_terms["local_file"]
+            # Prefer an explicit insertion-menu trigger before content-kind
+            # navigation.  A page can expose unrelated global controls such as
+            # "Media" alongside the message composer; treating the first
+            # content-kind word as an attachment target can leave the composer
+            # entirely.  Once the trigger has been used, the newly observed
+            # kind-specific menu item becomes eligible on the next observation.
+            generic_menu_terms = ("attach", "attachment", "upload", "add", "more")
+            generic_control = _find_observed_control(
                 elements,
-                exact_labels=("attach", "document", "file"),
-                label_terms=("attach", "document", "choose file", "select file"),
-                selector_terms=("attach",),
+                exact_labels=generic_menu_terms,
+                label_terms=("attach", "attachment", "upload file", "add attachment"),
+                selector_terms=("attach", "attachment", "upload", "paperclip"),
+            )
+            generic_selector = str((generic_control or {}).get("selector") or "")
+            if generic_selector in completed_clicks:
+                generic_control = None
+
+            attach_control = generic_control or _find_observed_control(
+                elements,
+                exact_labels=requested_terms,
+                label_terms=requested_terms,
+                selector_terms=("attach", "attachment", "upload", "file", "paperclip"),
             )
             if attach_control is not None and str(attach_control.get("selector") or "") not in completed_clicks:
                 selector = str(attach_control.get("selector") or "")
                 action_type = "click"
-                description = "Activate the observed WhatsApp attachment control for the approved file"
+                observed_label = " ".join(
+                    str(attach_control.get(key) or "")
+                    for key in ("text", "aria_label", "accessibility_name", "title")
+                ).lower()
+                generic_menu_terms = {"attach", "attachment", "upload", "add", "more"}
+                selected_specific_kind = any(
+                    term in observed_label
+                    for term in requested_terms
+                    if term not in generic_menu_terms
+                )
+                if selected_specific_kind:
+                    content_insertion["stage"] = "select_bound_content"
+                    content_insertion["opens_native_chooser"] = True
+                description = (
+                    "Activate the observed content-insertion control for the broker-bound approved "
+                    f"{requested_kind} content"
+                )
     elif "wizard" in task_text or "onboarding" in task_text:
         fullname_control = _find_observed_control(elements, label_terms=("full name",), selector_terms=("fullname", "full-name"))
         role_control = _find_observed_control(elements, exact_labels=("role",), selector_terms=("#role", "role"))
@@ -2676,7 +2801,18 @@ def _deterministic_observed_control_response(
         description=description,
         reasoning="The requested control is visible in the current browser observation and is grounded by its selector.",
         confidence=0.96,
-        safety_level="safe",
+        safety_level="danger" if consequential_submission else "safe",
+        grounding={
+            "source": "dom_snapshot",
+            "selector_id": selector,
+            "semantic_kind": "content_insertion_trigger",
+        } if content_insertion else ({
+            "source": "dom_snapshot",
+            "selector_id": selector,
+            "semantic_kind": "consequential_submission_control",
+        } if consequential_submission else {}),
+        content_insertion=content_insertion,
+        consequential_submission=consequential_submission,
     )
     return AnalyzeResponse(
         session_id=session_id,
@@ -2699,6 +2835,89 @@ def _deterministic_observed_report_response(
     affirmative_text = affirmative_task_text(task)
     current_url = str(getattr(page_context, "url", "") or "").lower()
     visible_text = " ".join(str(getattr(page_context, "visible_text", "") or "").split())
+    for step in reversed(list(prior_steps or [])):
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        evidence = dict(data.get("browser_evidence") or {})
+        if evidence.get("delivery_verified") is not True:
+            continue
+        content_identity = str(evidence.get("delivered_content_identity") or "").strip()
+        destination_entity = str(evidence.get("delivered_destination_entity") or "").strip()
+        operation = str(evidence.get("submission_operation") or "submission").strip()
+        requested_entity = _messaging_recipient_from_task(task) or destination_entity
+        if (
+            content_identity
+            and destination_entity
+            and content_identity.casefold() in str(task or "").casefold()
+            and requested_entity.casefold() == destination_entity.casefold()
+        ):
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    "The mutation-boundary evidence verifies one external dispatch and the exact delivered "
+                    "content/destination identities. The same submission id cannot be dispatched again."
+                ),
+                outcome_kind="report",
+                report=ReportOutcome(
+                    answer=f'Verified {operation} of "{content_identity}" to "{destination_entity}" exactly once.',
+                    claim=(
+                        f'Post-dispatch evidence matched content "{content_identity}" and destination '
+                        f'"{destination_entity}".'
+                    ),
+                ),
+                suggested_actions=[],
+                sgv_verified=True,
+                goal_convergence=True,
+                backend_authoritative_report=True,
+            )
+    insertion_evidence: dict[str, Any] | None = None
+    for step in reversed(list(prior_steps or [])):
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        evidence = dict(data.get("browser_evidence") or {})
+        if (
+            evidence.get("preview_identity_observed") is True
+            and evidence.get("upload_accepted") is True
+            and int(evidence.get("upload_files_count") or 0) == 1
+            and str(evidence.get("filename") or "").strip()
+        ):
+            insertion_evidence = evidence
+            break
+    if insertion_evidence is not None:
+        filename = str(insertion_evidence.get("filename") or "").strip()
+        expected_origin = ""
+        try:
+            parsed = urlparse(current_url)
+            expected_origin = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+        except Exception:
+            expected_origin = ""
+        observed_origin = str(insertion_evidence.get("destination_origin") or "").rstrip("/")
+        requested_entity = _messaging_recipient_from_task(task) or ""
+        observed_entity = str(insertion_evidence.get("destination_entity") or "").strip()
+        exact_filename_bound = filename.casefold() in str(task or "").casefold()
+        exact_origin_bound = bool(expected_origin and observed_origin and expected_origin.casefold() == observed_origin.casefold())
+        exact_entity_bound = not requested_entity or (
+            observed_entity and requested_entity.casefold() == observed_entity.casefold()
+        )
+        send_requested = bool(re.search(r"\b(send|share|submit|post|publish)\b", affirmative_text))
+        if exact_filename_bound and exact_origin_bound and exact_entity_bound and not send_requested:
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    "The broker evidence verifies one exact approved file, the current destination origin and entity, "
+                    "and the visible attachment preview. The affirmative task contains no send objective."
+                ),
+                outcome_kind="report",
+                report=ReportOutcome(
+                    answer=f'Attached and verified the preview for "{filename}". Nothing was sent.',
+                    claim=(
+                        f'The exact broker-bound file "{filename}" produced a verified preview at the requested '
+                        "destination with one selected file and no send action."
+                    ),
+                ),
+                suggested_actions=[],
+                sgv_verified=True,
+                goal_convergence=True,
+                backend_authoritative_report=True,
+            )
     if "web.whatsapp.com" in current_url:
         recipient = _messaging_recipient_from_task(task)
         downstream_mutation_requested = bool(re.search(
@@ -2845,13 +3064,13 @@ def _messaging_recipient_from_task(task: str) -> str | None:
     if quoted and quoted.group(1).strip():
         return quoted.group(1).strip()
     patterns = (
-        r"\b(?:exact\s+)?(?:chat|contact|recipient)\s+named\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*[,;!?]|\.\s+(?:do\s+not|don't|without|never|no)\b|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
-        r"\bsearch\s+for\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*[,;!?]|\.\s+(?:do\s+not|don't|without|never|no)\b|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
+        r"\b(?:exact\s+)?(?:chat|contact|recipient)\s+named\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*[,;!?]|\.\s+(?:do\s+not|don't|without|never|no|open|attach|upload|send|share|verify|create|select|choose|insert|add)\b|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
+        r"\bsearch\s+for\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*[,;!?]|\.\s+(?:do\s+not|don't|without|never|no|open|attach|upload|send|share|verify|create|select|choose|insert|add)\b|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
     )
     for pattern in patterns:
         match = re.search(pattern, text, flags=re.IGNORECASE)
         if match:
-            recipient = match.group(1).strip(" \t\r\n\"'\u201c\u201d")
+            recipient = match.group(1).strip(" \t\r\n\"'\u201c\u201d.")
             recipient = re.sub(r"^(?:the\s+)?exact\s+(?:chat|contact|recipient)\s+(?:named\s+)?", "", recipient, flags=re.IGNORECASE)
             if recipient:
                 return recipient

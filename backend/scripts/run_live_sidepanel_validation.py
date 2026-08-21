@@ -380,7 +380,11 @@ def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
 
 
 def _looks_like_critical_approval(text: str) -> bool:
-    approval_visible = "requires approval" in text or "approve" in text
+    approval_visible = bool(re.search(
+        r"\brequires approval\b|\bapproval required\b|\bapprove this action\b|(?:^|\n)\s*[✓]?\s*approve\s*(?:\n|$)",
+        text,
+        flags=re.IGNORECASE,
+    ))
     send_like = "send" in text and any(term in text for term in ("message", "whatsapp", "email", "mail"))
     account_like = any(
         term in text

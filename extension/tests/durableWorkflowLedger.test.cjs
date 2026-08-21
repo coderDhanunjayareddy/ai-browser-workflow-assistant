@@ -69,6 +69,27 @@ test('restart marks an in-flight action uncertain and pauses instead of replayin
   assert.match(restored.workflow.error, /will not be repeated/i)
 })
 
+test('consequential submission identity survives regenerated planner action ids and uncertain dispatch never retries', () => {
+  const declaration = {
+    schema_version: 'consequential_submission.v1', submission_id: 'submission-1', operation: 'send',
+    destination_entity: 'Consenting Test Recipient', content_identity: 'synthetic-day5.txt',
+    preview_required: true, verification_mode: 'delivered_content_and_destination',
+  }
+  const firstAction = action({
+    action_id: 'planner-a', intent_id: null, action_type: 'click', safety_level: 'danger',
+    consequential_submission: declaration,
+  })
+  const regenerated = { ...firstAction, action_id: 'planner-b' }
+  let ledger = ledgerApi.createDurableLedger(workflow(), 100)
+  const reserved = ledgerApi.reserveDurableExecution(ledger, firstAction, 7, 'manual', 101)
+  ledger = ledgerApi.completeDurableExecution(reserved.ledger, reserved.record.key, {
+    success: false, message: 'dispatch acknowledgement timed out', action_id: 'planner-a', dispatch_uncertain: true,
+  }, 102)
+  const duplicate = ledgerApi.reserveDurableExecution(ledger, regenerated, 7, 'manual', 103)
+  assert.equal(duplicate.accepted, false)
+  assert.equal(duplicate.reason, 'uncertain_prior_dispatch')
+})
+
 test('automatic retries are bounded and limited to low-risk reversible actions', () => {
   assert.equal(ledgerApi.isLowRiskReversibleAction(action()), true)
   assert.equal(ledgerApi.isLowRiskReversibleAction(action({ action_type: 'click' })), false)

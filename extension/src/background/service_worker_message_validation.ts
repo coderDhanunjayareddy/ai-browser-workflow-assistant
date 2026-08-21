@@ -20,6 +20,25 @@ export type ExecutableAction = {
     screenshot_hash?: string | null
     bounding_box?: { x: number; y: number; width: number; height: number } | null
   }
+  content_insertion?: {
+    schema_version: 'content_insertion_request.v1'
+    request_id: string
+    kind: string
+    expected_effect: string
+    requires_bound_file: boolean
+    destination_entity: string
+    stage: string
+    opens_native_chooser: boolean
+  } | null
+  consequential_submission?: {
+    schema_version: 'consequential_submission.v1'
+    submission_id: string
+    operation: string
+    destination_entity: string
+    content_identity: string
+    preview_required: boolean
+    verification_mode: string
+  } | null
 }
 
 export type PolicyProvenanceLabel = {
@@ -91,6 +110,12 @@ export function validateExecutableAction(value: unknown): value is ExecutableAct
   if (value.reasoning !== undefined && !isBoundedString(value.reasoning, 5000)) return false
   if (value.safety_level !== undefined && !['safe', 'caution', 'danger'].includes(String(value.safety_level))) return false
   if (value.grounding !== undefined && !validateGrounding(value.grounding)) return false
+  if (value.content_insertion !== undefined && value.content_insertion !== null) {
+    if (!validateContentInsertionDeclaration(value.content_insertion)) return false
+  }
+  if (value.consequential_submission !== undefined && value.consequential_submission !== null) {
+    if (!validateConsequentialSubmission(value.consequential_submission)) return false
+  }
   if (['navigate', 'open_new_tab'].includes(String(value.action_type))) {
     if (typeof value.value !== 'string') return false
     try {
@@ -101,6 +126,32 @@ export function validateExecutableAction(value: unknown): value is ExecutableAct
     }
   }
   return true
+}
+
+function validateContentInsertionDeclaration(value: unknown): boolean {
+  if (!isRecord(value) || value.schema_version !== 'content_insertion_request.v1') return false
+  const kinds = new Set(['local_file', 'document', 'image', 'video', 'audio', 'camera', 'contact', 'poll', 'event', 'sticker', 'gif', 'emoji'])
+  const effects = new Set(['preview_then_send', 'selection_sends_immediately', 'inserts_into_composer', 'structured_draft', 'device_capture'])
+  return kinds.has(String(value.kind))
+    && effects.has(String(value.expected_effect))
+    && typeof value.requires_bound_file === 'boolean'
+    && isBoundedString(value.request_id, 200) && Boolean(String(value.request_id).trim())
+    && isBoundedString(value.destination_entity, 500)
+    && ['open_insertion_menu', 'select_bound_content'].includes(String(value.stage))
+    && typeof value.opens_native_chooser === 'boolean'
+}
+
+function validateConsequentialSubmission(value: unknown): boolean {
+  if (!isRecord(value) || value.schema_version !== 'consequential_submission.v1') return false
+  return isBoundedString(value.submission_id, 300)
+    && Boolean(String(value.submission_id).trim())
+    && ['send', 'share', 'submit', 'post', 'publish'].includes(String(value.operation))
+    && isBoundedString(value.destination_entity, 500)
+    && Boolean(String(value.destination_entity).trim())
+    && isBoundedString(value.content_identity, 1000)
+    && Boolean(String(value.content_identity).trim())
+    && value.preview_required === true
+    && value.verification_mode === 'delivered_content_and_destination'
 }
 
 function validateGrounding(value: unknown): boolean {

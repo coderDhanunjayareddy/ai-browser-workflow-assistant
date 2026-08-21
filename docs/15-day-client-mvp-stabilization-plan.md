@@ -103,14 +103,20 @@
 
 **Completed 2026-08-21 after corrected evidence audit:** Scenarios 1–6 have retained live evidence. The final authenticated sequence completed 20/20 consecutive real extension-side-panel runs from `chrome://newtab/` without harness-owned destination routing: every run performed exactly navigate, search fill, and trusted stable-selector CDP click; verified the exact entity-specific composer; and performed zero attachment, upload, file-chooser, typing, send, duplicate, or retry actions. Latency was 29.6–43.0 seconds (average 38.81; p95 42.3). The earlier pre-opened 20/20 result remains labeled only as a search/click sub-gate. See [Day 3 trusted-grounding report](production_validation/day3/day3-trusted-grounding-report.md) and [corrected 20-run raw evidence](production_validation/live_sidepanel/day3-newtab-cert-20-run.json).
 
-### Day 4 — File-selection and upload broker
+### Day 4 — Generic content-insertion and upload broker
 
-- Bind uploads to one explicit, approved local file handle.
-- Verify filename, MIME type, size, destination origin, and attachment preview.
-- Prevent path substitution, stale chooser reuse, and a second chooser after uncertainty.
-- Use synthetic files only.
+- Model the user-visible operation as a typed `ContentInsertionRequest`, not as an application-specific attachment path. Initial kinds are local document, image, video, audio, camera capture, contact, poll, event, sticker, GIF, and emoji; future kinds extend the registry without changing planner or executor control flow.
+- Bind local-file insertions to one explicit, user-approved synthetic file handle and immutable metadata: content hash, filename, detected MIME/signature, size, source grant, destination origin, exact entity identity, and idempotency key.
+- Discover insertion capabilities from the observed interface and provider-adapter declarations. A provider may support only a subset; unsupported kinds produce a clear capability result rather than guessing another control.
+- Separate `preview_then_send`, `selection_sends_immediately`, `inserts_into_composer`, `structured_draft`, and `device_capture` effects. Anything that sends or publishes on selection pauses for explicit confirmation before selection.
+- Verify the exact preview/draft/composer effect without sending. Filename, MIME/signature, size, destination origin/entity, preview identity, and selected-kind evidence must agree before completion.
+- Prevent path substitution, stale grants, stale chooser reuse, a second chooser after uncertainty, multiple file insertion when one was approved, cross-origin reuse, and retry after an uncertain consequential effect.
+- Camera, microphone, contacts, and other device/account data require a scoped browser permission plus explicit confirmation; unavailable hardware or permissions produce a meaningful blocked result.
+- Use synthetic files and synthetic structured content only during certification.
 
-**Exit:** Correct WhatsApp attachment preview appears in 20/20 runs without sending.
+**Exit:** The generic broker contract and cross-provider controlled fixtures pass for every insertion-effect class; then one representative preview-capable live messaging surface shows the correct synthetic attachment preview in 20/20 runs with zero sends, duplicate insertions, stale-grant reuse, or second choosers. This live surface is a certification adapter, not a product-specific architecture boundary.
+
+**Completed 2026-08-21:** The generic broker contract, controlled effect fixtures, safety policy, and authenticated live preview gate passed. The frozen extension-side-panel build completed 20/20 consecutive New Tab runs: each run resolved the destination, opened the exact entity, activated the observed insertion menu, selected exactly one approved synthetic file, verified the exact preview, and stopped without sending. Chooser selections were 20/20 exact, preview verifications 20/20, sends 0, send actions 0, retries 0, duplicate/second choosers 0, and wrong bindings 0. Latency was 44.3–74.2 seconds (average 61.91; p95 73.9), retained as a performance-hardening finding. See [Day 4 content-insertion report](production_validation/day4/day4-content-insertion-report.md) and [20-run raw evidence](production_validation/live_sidepanel/day4-cert-20-run.json).
 
 ### Day 5 — WhatsApp confirmation and exactly-once send
 

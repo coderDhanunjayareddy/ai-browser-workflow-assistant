@@ -827,6 +827,50 @@ test('upload prior step carries file broker evidence', () => {
   assert.equal(evidence.upload_accepted, true)
 })
 
+test('content broker evidence remains schema-bounded and outranks verbose adapter diagnostics', () => {
+  const adapter_trace = Object.fromEntries(
+    Array.from({ length: 30 }, (_, index) => [`diagnostic_${index}`, `value-${index}`]),
+  )
+  const request = buildAnalyzeRequestBody(
+    'session-content',
+    'Attach the file named synthetic-day4.txt and verify its preview. Do not send anything.',
+    pageContext({ url: 'https://messaging.example.test/thread/123' }),
+    [completedAction({
+      action: action({ action_id: 'content-1', action_type: 'click', target_selector: '#document' }),
+      result: {
+        success: true,
+        message: 'Broker-bound content preview verified: synthetic-day4.txt',
+        action_id: 'content-1',
+        adapter_trace,
+        content_request_id: 'content-request-1',
+        content_kind: 'document',
+        insertion_effect: 'preview_then_send',
+        destination_origin: 'https://messaging.example.test',
+        destination_entity: 'Synthetic Recipient',
+        upload_attempted: true,
+        upload_completed: true,
+        upload_files_count: 1,
+        upload_backed_by_file_input: true,
+        upload_accepted: true,
+        preview_identity_observed: true,
+        chooser_cancelled: false,
+        filename: 'synthetic-day4.txt',
+        mime_type: 'text/plain',
+        size_bytes: 64,
+        content_sha256: 'a'.repeat(64),
+      },
+    })],
+    [],
+  )
+
+  const evidence = request.prior_steps[0].browser_evidence
+  assert.ok(Object.keys(evidence).length <= 30)
+  assert.equal(evidence.filename, 'synthetic-day4.txt')
+  assert.equal(evidence.preview_identity_observed, true)
+  assert.equal(evidence.destination_origin, 'https://messaging.example.test')
+  assert.equal(evidence.upload_files_count, 1)
+})
+
 test('context budget manager leaves under-budget context unchanged', () => {
   const context = buildBudgetedPlannerContext([
     { heading: 'Mission Snapshot', content: 'Goal: Find invoice total', priority: 1 },

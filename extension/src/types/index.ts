@@ -60,6 +60,29 @@ export interface SuggestedAction {
   confidence: number
   safety_level: SafetyLevel
   grounding?: ActionGrounding
+  content_insertion?: ContentInsertionDeclaration | null
+  consequential_submission?: ConsequentialSubmissionDeclaration | null
+}
+
+export interface ContentInsertionDeclaration {
+  schema_version: 'content_insertion_request.v1'
+  request_id: string
+  kind: 'local_file' | 'document' | 'image' | 'video' | 'audio' | 'camera' | 'contact' | 'poll' | 'event' | 'sticker' | 'gif' | 'emoji'
+  expected_effect: 'preview_then_send' | 'selection_sends_immediately' | 'inserts_into_composer' | 'structured_draft' | 'device_capture'
+  requires_bound_file: boolean
+  destination_entity: string
+  stage: 'open_insertion_menu' | 'select_bound_content'
+  opens_native_chooser: boolean
+}
+
+export interface ConsequentialSubmissionDeclaration {
+  schema_version: 'consequential_submission.v1'
+  submission_id: string
+  operation: 'send' | 'share' | 'submit' | 'post' | 'publish'
+  destination_entity: string
+  content_identity: string
+  preview_required: boolean
+  verification_mode: 'delivered_content_and_destination'
 }
 
 export interface ActionGrounding {
@@ -368,6 +391,22 @@ export interface ExecutionResult {
   upload_backed_by_file_input?: boolean
   upload_requires_user_file_selection?: boolean
   upload_accepted?: boolean
+  content_request_id?: string
+  content_kind?: string
+  insertion_effect?: string
+  destination_origin?: string
+  destination_entity?: string
+  content_sha256?: string | null
+  preview_identity_observed?: boolean
+  chooser_cancelled?: boolean
+  submission_id?: string
+  submission_operation?: string
+  submission_attempted?: boolean
+  submission_duplicate_prevented?: boolean
+  delivery_verified?: boolean
+  delivered_content_identity?: string | null
+  delivered_destination_entity?: string | null
+  dispatch_uncertain?: boolean
   download_detected?: boolean
   download_completed?: boolean
   filename?: string | null

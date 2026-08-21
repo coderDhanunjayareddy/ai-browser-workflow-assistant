@@ -47,6 +47,30 @@ export interface BasicExecutionResult {
   contract_idempotency_key?: string
   contract_target_name?: string | null
   contract_resource_url?: string
+  content_request_id?: string
+  content_kind?: string
+  insertion_effect?: string
+  destination_origin?: string
+  destination_entity?: string
+  upload_files_count?: number
+  upload_attempted?: boolean
+  upload_completed?: boolean
+  upload_backed_by_file_input?: boolean
+  filename?: string | null
+  mime_type?: string | null
+  size_bytes?: number | null
+  content_sha256?: string | null
+  preview_identity_observed?: boolean
+  upload_accepted?: boolean
+  chooser_cancelled?: boolean
+  submission_id?: string
+  submission_operation?: string
+  submission_attempted?: boolean
+  submission_duplicate_prevented?: boolean
+  delivery_verified?: boolean
+  delivered_content_identity?: string | null
+  delivered_destination_entity?: string | null
+  dispatch_uncertain?: boolean
 }
 
 export interface ActionVerificationTargetState {
@@ -103,6 +127,14 @@ export interface VerifiedExecutionResult extends BasicExecutionResult {
   upload_backed_by_file_input?: boolean
   upload_requires_user_file_selection?: boolean
   upload_accepted?: boolean
+  content_request_id?: string
+  content_kind?: string
+  insertion_effect?: string
+  destination_origin?: string
+  destination_entity?: string
+  content_sha256?: string | null
+  preview_identity_observed?: boolean
+  chooser_cancelled?: boolean
   download_detected?: boolean
   download_completed?: boolean
   filename?: string | null

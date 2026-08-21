@@ -28,6 +28,13 @@ class SuggestedAction(BaseModel):
     # Observation-time geometry for the final screenshot/coordinate fallback.
     # The policy digest binds this data to the approved action.
     grounding: dict[str, Any] = Field(default_factory=dict)
+    # Generic content-insertion declaration preserved by the canonical action
+    # contract. Provider, entity and file identities remain runtime data.
+    content_insertion: Optional[dict[str, Any]] = None
+    # Generic declaration for an irreversible external submission. The
+    # destination and content identities are runtime values; providers are
+    # adapters and are never encoded in this contract.
+    consequential_submission: Optional[dict[str, Any]] = None
 
 
 class ReportOutcome(BaseModel):
