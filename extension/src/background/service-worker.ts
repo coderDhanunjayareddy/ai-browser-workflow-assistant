@@ -73,6 +73,88 @@ const POLICY_BACKEND_URL = BACKEND_URL
 const CONTENT_RESERVATIONS_KEY = 'content_insertion_reservations_v1'
 const submissionLedger = new ConsequentialSubmissionLedger(chrome.storage.local)
 
+type TrustedLocalFile = {
+  absolute_path: string
+  filename: string
+  mime_type: string
+  size_bytes: number
+  source: 'chrome_downloads_exact_match' | 'local_downloads_broker_exact_match'
+}
+
+function leafName(path: string): string {
+  return String(path || '').split(/[\\/]/).pop() || ''
+}
+
+async function resolveTrustedLocalFile(action: ExecutableAction): Promise<
+  { allowed: true; file: TrustedLocalFile } | { allowed: false; reason: string }
+> {
+  const declaration = action.content_insertion
+  if (!declaration?.opens_native_chooser || !declaration.requires_bound_file) {
+    return { allowed: false, reason: 'approved_file_binding_not_required' }
+  }
+  const requested = String(declaration.requested_filename || '').trim()
+  if (!requested || /[\\/]/.test(requested)) {
+    return { allowed: false, reason: 'exact_filename_missing' }
+  }
+  const items = await chrome.downloads.search({ exists: true, limit: 200, orderBy: ['-startTime'] })
+  const exact = items.filter((item) => (
+    item.state === 'complete'
+    && Boolean(item.filename)
+    && leafName(item.filename).normalize('NFKC').toLocaleLowerCase() === requested.normalize('NFKC').toLocaleLowerCase()
+  ))
+  const unique = new Map(exact.map((item) => [String(item.filename).toLocaleLowerCase(), item]))
+  if (unique.size === 0) {
+    try {
+      const response = await fetch(`${POLICY_BACKEND_URL}/local-files/resolve-download`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-AI-Browser-Assist-Extension': 'service-worker',
+        },
+        body: JSON.stringify({ filename: requested }),
+      })
+      if (!response.ok) {
+        return { allowed: false, reason: `exact_download_not_found:${requested}` }
+      }
+      const resolved = await response.json() as Partial<TrustedLocalFile>
+      if (
+        typeof resolved.absolute_path !== 'string'
+        || !resolved.absolute_path
+        || leafName(resolved.absolute_path).normalize('NFKC').toLocaleLowerCase() !== requested.normalize('NFKC').toLocaleLowerCase()
+        || typeof resolved.filename !== 'string'
+        || resolved.filename.normalize('NFKC').toLocaleLowerCase() !== requested.normalize('NFKC').toLocaleLowerCase()
+        || typeof resolved.mime_type !== 'string'
+        || !Number.isFinite(resolved.size_bytes)
+        || Number(resolved.size_bytes) <= 0
+        || resolved.source !== 'local_downloads_broker_exact_match'
+      ) {
+        return { allowed: false, reason: `local_download_broker_invalid:${requested}` }
+      }
+      return { allowed: true, file: resolved as TrustedLocalFile }
+    } catch {
+      return { allowed: false, reason: `local_download_broker_unavailable:${requested}` }
+    }
+  }
+  if (unique.size > 1) {
+    return { allowed: false, reason: `ambiguous_exact_download:${requested}` }
+  }
+  const item = [...unique.values()][0]
+  const size = Number(item.fileSize || item.totalBytes || 0)
+  if (!Number.isFinite(size) || size <= 0) {
+    return { allowed: false, reason: `download_metadata_incomplete:${requested}` }
+  }
+  return {
+    allowed: true,
+    file: {
+      absolute_path: item.filename,
+      filename: leafName(item.filename),
+      mime_type: String(item.mime || 'application/octet-stream'),
+      size_bytes: size,
+      source: 'chrome_downloads_exact_match',
+    },
+  }
+}
+
 async function reserveConsequentialSubmission(
   contract: CanonicalActionContract,
   action: ExecutableAction,
@@ -609,6 +691,17 @@ async function handleExecuteAction(
         }
         await settleConsequentialSubmission(action, 'dispatching')
       }
+      let trustedLocalFile: TrustedLocalFile | undefined
+      if (action.content_insertion?.opens_native_chooser) {
+        const trustedFile = await resolveTrustedLocalFile(action)
+        if (!trustedFile.allowed) {
+          sendResponse({
+            error: `Content insertion needs one exact, locally approved Downloads file (${trustedFile.reason}). No chooser was opened and no file was selected.`,
+          })
+          return
+        }
+        trustedLocalFile = trustedFile.file
+      }
       const chooserReservation = await reserveContentChooser(contract, action)
       if (!chooserReservation.allowed) {
         sendResponse({ error: `Content insertion rejected: ${chooserReservation.reason}` })
@@ -626,7 +719,11 @@ async function handleExecuteAction(
           return
         }
       }
-      const cdpExecution = await cdpController.execute(tab.id, action)
+      const cdpExecution = await cdpController.execute(
+        tab.id,
+        action,
+        trustedLocalFile,
+      )
       let executionWithContentEvidence: BasicExecutionResult = cdpExecution
       if (action.consequential_submission && submissionBefore) {
         let after: SubmissionPageEvidence | null = null

@@ -287,6 +287,9 @@ export function meaningfulWorkflowFailure(
   if (/permission|access denied|not allowed|restricted/.test(text)) {
     return { category: 'permission', userMessage: `The browser blocked${subject || ' this step'} because the required permission or destination is unavailable. No further action was attempted.`, retryable: false }
   }
+  if (/exact_download_not_found|ambiguous_exact_download|exact_filename_missing|local_download_broker/.test(text)) {
+    return { category: 'target_not_found', userMessage: `I could not bind one exact approved Downloads file for${subject || ' the requested insertion'}. I stopped without opening or retrying the file chooser.`, retryable: false }
+  }
   if (/no[_ ]effect|unchanged|did not change|could not verify page progress/.test(text)) {
     return { category: 'no_effect', userMessage: `The page did not show the expected result after${subject || ' the attempted action'}. I recorded the no-effect result and stopped repeating the same step.`, retryable: true }
   }

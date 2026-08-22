@@ -466,6 +466,7 @@ def _run_task(
     allow_confirmed_critical: bool = False,
     enable_advanced_control: bool = False,
     initial_url: str = "about:blank",
+    legacy_harness_file_selection: bool = False,
 ) -> TaskRun:
     started = time.time()
     safe_id = task_id.lower()
@@ -495,7 +496,12 @@ def _run_task(
         except Exception as exc:
             file_chooser_events.append(f"selection_failed:{exc}")
 
-    target.on("filechooser", provide_approved_file)
+    # Production certification must exercise the application's own trusted
+    # file binder. Harness injection remains available only for explicitly
+    # labelled historical/diagnostic comparisons and can never be mistaken
+    # for an application-autonomous pass.
+    if legacy_harness_file_selection:
+        target.on("filechooser", provide_approved_file)
     textarea.fill(prompt, timeout=10_000)
     _ensure_auto_mode(sidepanel)
     if enable_advanced_control:
@@ -654,6 +660,12 @@ def main() -> int:
         help="Optional unpacked extension build directory; defaults to extension/dist.",
     )
     parser.add_argument(
+        "--extension-id",
+        type=str,
+        default="",
+        help="Known unpacked extension ID for profiles where the service worker is dormant at bootstrap.",
+    )
+    parser.add_argument(
         "--start-from-new-tab",
         action="store_true",
         help=(
@@ -668,6 +680,14 @@ def main() -> int:
         help="Browser binary used for the visible extension run. Chrome is a bounded fallback when Windows blocks bundled Chromium network access.",
     )
     parser.add_argument("--file-path", type=str, default="")
+    parser.add_argument(
+        "--legacy-harness-file-selection",
+        action="store_true",
+        help=(
+            "Diagnostic-only: let Playwright inject --file-path into a chooser. "
+            "Never use this flag for production application certification."
+        ),
+    )
     parser.add_argument(
         "--inspect-chat-name",
         type=str,
@@ -733,7 +753,12 @@ def main() -> int:
             launch_options["channel"] = "chrome"
         context = pw.chromium.launch_persistent_context(str(profile_dir), **launch_options)
         context.set_default_timeout(15_000)
-        extension_id = _extension_id(context)
+        if args.extension_id:
+            if not re.fullmatch(r"[a-p]{32}", args.extension_id):
+                raise SystemExit("--extension-id must be one 32-character Chrome extension ID")
+            extension_id = args.extension_id
+        else:
+            extension_id = _extension_id(context)
         if args.prompt:
             base_task_id = args.task_id or "CUSTOM"
             selected_tasks = (
@@ -873,6 +898,7 @@ def main() -> int:
                 args.allow_confirmed_critical,
                 args.enable_advanced_control,
                 initial_url,
+                args.legacy_harness_file_selection,
             )
             results.append(result)
             _write_report(extension_id, profile_dir, results)

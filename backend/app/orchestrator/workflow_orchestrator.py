@@ -2577,7 +2577,11 @@ def _deterministic_observed_control_response(
         # Messaging contact pickers are not site-search forms. Prefer a currently
         # visible exact recipient and otherwise fill the contact search field;
         # blindly pressing Enter can open the wrong chat (or do nothing).
-        exact_contact = _find_exact_recipient_control(elements, whatsapp_recipient)
+        exact_contact = _find_exact_recipient_control(
+            elements,
+            whatsapp_recipient,
+            ordinal=_destination_ordinal_from_task(task),
+        )
         search_control = _find_observed_control(
             elements,
             label_terms=("search or start new chat", "search contacts", "search"),
@@ -2702,6 +2706,7 @@ def _deterministic_observed_control_response(
             "destination_entity": destination_entity,
             "stage": "open_insertion_menu",
             "opens_native_chooser": False,
+            "requested_filename": _requested_local_filename(task),
         }
         control = next(
             (
@@ -2742,8 +2747,12 @@ def _deterministic_observed_control_response(
             # entirely.  Once the trigger has been used, the newly observed
             # kind-specific menu item becomes eligible on the next observation.
             generic_menu_terms = ("attach", "attachment", "upload", "add", "more")
+            insertion_controls = [
+                element for element in elements
+                if _is_viable_content_insertion_control(element)
+            ]
             generic_control = _find_observed_control(
-                elements,
+                insertion_controls,
                 exact_labels=generic_menu_terms,
                 label_terms=("attach", "attachment", "upload file", "add attachment"),
                 selector_terms=("attach", "attachment", "upload", "paperclip"),
@@ -2753,7 +2762,7 @@ def _deterministic_observed_control_response(
                 generic_control = None
 
             remaining_insertion_controls = [
-                element for element in elements
+                element for element in insertion_controls
                 if str(element.get("selector") or "") not in completed_clicks
             ]
             attach_control = generic_control or _find_observed_control(
@@ -3131,7 +3140,66 @@ def _find_observed_control(
     return None
 
 
-def _find_exact_recipient_control(elements: list[dict[str, Any]], requested_name: str) -> dict[str, Any] | None:
+def _is_viable_content_insertion_control(element: dict[str, Any]) -> bool:
+    """Exclude message content/status nodes from upload-control grounding.
+
+    Result and message containers can contain words such as ``document`` or
+    ``file`` because they describe existing content. They are evidence, not
+    controls. Keep this generic by requiring an interactive semantic signal
+    and rejecting selectors that identify delivery/status metadata.
+    """
+    selector = str(element.get("selector") or "").strip()
+    if not selector:
+        return False
+    selector_lower = selector.casefold()
+    if any(
+        marker in selector_lower
+        for marker in (
+            "last-msg-status",
+            "message-status",
+            "delivery-status",
+            "read-receipt",
+            "timestamp",
+        )
+    ):
+        return False
+
+    element_type = str(element.get("type") or "").casefold()
+    role = str(element.get("role") or "").casefold()
+    interactive_types = {"button", "input", "a", "select", "option", "label"}
+    interactive_roles = {"button", "menuitem", "option", "link", "combobox"}
+    if element_type in interactive_types or role in interactive_roles:
+        return True
+
+    # Some applications implement controls as focusable generic elements.
+    # Accept those only when their own accessible identity (not descendant
+    # text) describes an insertion action.
+    accessible_identity = " ".join(
+        str(element.get(key) or "")
+        for key in ("aria_label", "accessibility_name", "title")
+    ).casefold()
+    return any(
+        term in accessible_identity
+        for term in (
+            "attach",
+            "attachment",
+            "upload",
+            "document",
+            "file",
+            "photo",
+            "image",
+            "video",
+            "audio",
+        )
+    )
+
+
+def _find_exact_recipient_control(
+    elements: list[dict[str, Any]],
+    requested_name: str,
+    *,
+    ordinal: int | None = None,
+) -> dict[str, Any] | None:
     """Return one observed destination control without accepting highlighted substrings.
 
     Search UIs commonly split a prefix match into a child span (for example,
@@ -3144,10 +3212,15 @@ def _find_exact_recipient_control(elements: list[dict[str, Any]], requested_name
         return None
 
     def label(element: dict[str, Any]) -> str:
-        return " ".join(
-            str(element.get(key) or "")
-            for key in ("text", "aria_label", "accessibility_name", "placeholder", "name")
-        ).strip()
+        parts: list[str] = []
+        seen: set[str] = set()
+        for key in ("text", "aria_label", "accessibility_name", "placeholder", "name"):
+            part = " ".join(str(element.get(key) or "").split())
+            normalized = part.casefold()
+            if part and normalized not in seen:
+                parts.append(part)
+                seen.add(normalized)
+        return " ".join(parts).strip()
 
     metadata_prefix = re.compile(
         r"^(?:\(you\)\s+)?(?:\d{1,2}:\d{2}(?:\s*[ap]m)?|today\b|yesterday\b|"
@@ -3171,11 +3244,28 @@ def _find_exact_recipient_control(elements: list[dict[str, Any]], requested_name
             if metadata_prefix.match(suffix):
                 row_candidates.append(element)
 
+    def visual_order(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        unique = {str(item.get("selector") or ""): item for item in items}
+        return sorted(
+            unique.values(),
+            key=lambda item: (
+                float(dict(item.get("bounding_box") or {}).get("y", float("inf"))),
+                float(dict(item.get("bounding_box") or {}).get("x", float("inf"))),
+                str(item.get("selector") or ""),
+            ),
+        )
+
     unique_rows = {str(item.get("selector") or ""): item for item in row_candidates}
     if len(unique_rows) == 1:
         return next(iter(unique_rows.values()))
     unique_leaves = {str(item.get("selector") or ""): item for item in leaf_candidates}
-    return next(iter(unique_leaves.values())) if len(unique_leaves) == 1 else None
+    if len(unique_leaves) == 1:
+        return next(iter(unique_leaves.values()))
+    if ordinal is not None and ordinal > 0:
+        ranked = visual_order(row_candidates) or visual_order(leaf_candidates)
+        if ordinal <= len(ranked):
+            return ranked[ordinal - 1]
+    return None
 
 
 def _quoted_task_value(task: str, field: str) -> str | None:
@@ -3188,6 +3278,18 @@ def _first_quoted_task_value(task: str) -> str | None:
     return match.group(1).strip() if match and match.group(1).strip() else None
 
 
+def _requested_local_filename(task: str) -> str | None:
+    """Extract an exact leaf filename without treating other quoted identities as files."""
+    text = str(task or "")
+    candidates = re.findall(r'''["'\u201c]([^"'\u201d]+\.[A-Za-z0-9]{1,24})["'\u201d]''', text)
+    candidates.extend(re.findall(r'''(?<![\w./\\-])([\w@()+,\-]+\.[A-Za-z0-9]{1,24})(?![\w/\\-])''', text))
+    for value in candidates:
+        candidate = value.strip()
+        if candidate and "/" not in candidate and "\\" not in candidate and candidate not in {".", ".."}:
+            return candidate
+    return None
+
+
 def _messaging_recipient_from_task(task: str) -> str | None:
     text = " ".join(str(task or "").split())
     quoted = re.search(
@@ -3196,7 +3298,7 @@ def _messaging_recipient_from_task(task: str) -> str | None:
         flags=re.IGNORECASE,
     )
     if quoted and quoted.group(1).strip():
-        return quoted.group(1).strip()
+        return _strip_destination_ordinal(quoted.group(1).strip())
     patterns = (
         r"\b(?:exact\s+)?(?:chat|contact|recipient)\s+named\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*[,;!?]|\.\s+(?:do\s+not|don't|without|never|no|open|attach|upload|send|share|verify|create|select|choose|insert|add)\b|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
         r"\bsearch\s+for\s+[\"'\u201c]?(.+?)(?=[\"'\u201d]?(?:\s*[,;!?]|\.\s+(?:do\s+not|don't|without|never|no|open|attach|upload|send|share|verify|create|select|choose|insert|add)\b|\s+and\s+(?:open|attach|send|share|upload)|\s+then\b|$))",
@@ -3207,8 +3309,36 @@ def _messaging_recipient_from_task(task: str) -> str | None:
             recipient = match.group(1).strip(" \t\r\n\"'\u201c\u201d.")
             recipient = re.sub(r"^(?:the\s+)?exact\s+(?:chat|contact|recipient)\s+(?:named\s+)?", "", recipient, flags=re.IGNORECASE)
             if recipient:
-                return recipient
+                return _strip_destination_ordinal(recipient)
     return None
+
+
+def _strip_destination_ordinal(value: str) -> str:
+    return re.sub(
+        r"\s+(?:the\s+)?(?:first|second|third|fourth|fifth|\d+(?:st|nd|rd|th))\s+"
+        r"(?:chat|contact|conversation|result)\s*$",
+        "",
+        str(value or "").strip(),
+        flags=re.IGNORECASE,
+    ).strip()
+
+
+def _destination_ordinal_from_task(task: str) -> int | None:
+    text = " ".join(str(task or "").split())
+    match = re.search(
+        r"\b(?:the\s+)?(first|second|third|fourth|fifth|\d+(?:st|nd|rd|th))\s+"
+        r"(?:chat|contact|conversation|result)\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    token = match.group(1).casefold()
+    named = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}
+    if token in named:
+        return named[token]
+    numeric = re.match(r"\d+", token)
+    return int(numeric.group(0)) if numeric else None
 
 
 def _canonical_site_search_url(current_url: str, query: str, task_text: str) -> str | None:

@@ -54,6 +54,7 @@ function action(overrides = {}) {
 function installChromeMock(commandHandler) {
   const calls = []
   let listener = null
+  calls.emit = (method, params = {}) => listener?.({ tabId: 9 }, method, params)
   global.chrome = {
     debugger: {
       attach: async (target, version) => { calls.push(['attach', target, version]) },
@@ -260,6 +261,9 @@ test('transient content option is revealed and grounded inside one trusted dispa
         : { result: { value: { ok: true, x: 60, y: 70 } } }
     }
     if (method === 'Accessibility.getFullAXTree') return { nodes: [] }
+    if (method === 'Input.dispatchMouseEvent' && params?.type === 'mouseReleased' && targetAttempts >= 2) {
+      setTimeout(() => calls.emit('Page.fileChooserOpened', { backendNodeId: 314, frameId: 'root' }), 0)
+    }
     return {}
   })
   const result = await new CdpController().execute(9, action({
@@ -276,9 +280,17 @@ test('transient content option is revealed and grounded inside one trusted dispa
       opens_native_chooser: true,
       reveal_selector: 'button[aria-label="Attach"]',
     },
-  }))
+  }), {
+    absolute_path: 'C:\\Users\\Tester\\Downloads\\synthetic-day5.txt',
+    filename: 'synthetic-day5.txt',
+    mime_type: 'text/plain',
+    size_bytes: 130,
+    source: 'chrome_downloads_exact_match',
+  })
   assert.equal(result.success, true)
   assert.equal(targetAttempts, 2)
   assert.equal(calls.filter((item) => item[0] === 'command' && item[1] === 'Input.dispatchMouseEvent' && item[2].type === 'mousePressed').length, 2)
   assert.match(String(result.adapter_trace.cdp_grounding_attempts), /content_insertion_reveal:selected_verified_trigger/)
+  assert.match(String(result.adapter_trace.cdp_grounding_attempts), /file_binding:chrome_downloads_exact_match:exact_filename/)
+  assert.equal(calls.some((item) => item[0] === 'command' && item[1] === 'DOM.setFileInputFiles' && item[2].backendNodeId === 314), true)
 })

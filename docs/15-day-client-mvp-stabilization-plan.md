@@ -116,7 +116,9 @@
 
 **Exit:** The generic broker contract and cross-provider controlled fixtures pass for every insertion-effect class; then one representative preview-capable live messaging surface shows the correct synthetic attachment preview in 20/20 runs with zero sends, duplicate insertions, stale-grant reuse, or second choosers. This live surface is a certification adapter, not a product-specific architecture boundary.
 
-**Completed 2026-08-21:** The generic broker contract, controlled effect fixtures, safety policy, and authenticated live preview gate passed. The frozen extension-side-panel build completed 20/20 consecutive New Tab runs: each run resolved the destination, opened the exact entity, activated the observed insertion menu, selected exactly one approved synthetic file, verified the exact preview, and stopped without sending. Chooser selections were 20/20 exact, preview verifications 20/20, sends 0, send actions 0, retries 0, duplicate/second choosers 0, and wrong bindings 0. Latency was 44.3–74.2 seconds (average 61.91; p95 73.9), retained as a performance-hardening finding. See [Day 4 content-insertion report](production_validation/day4/day4-content-insertion-report.md) and [20-run raw evidence](production_validation/live_sidepanel/day4-cert-20-run.json).
+**Reopened by evidence audit 2026-08-22:** The generic broker contract, controlled effect fixtures, safety policy, and authenticated page/preview path passed, but the 20-run driver supplied the file through its own Playwright `filechooser` callback (`chooser.set_files(...)`). Those runs are valid integration-fixture evidence, not proof that the production extension independently bound and selected the named local file from a natural-language task. The application-only live gate is therefore pending and must be rerun with harness-side file injection disabled. See [Day 4 content-insertion report](production_validation/day4/day4-content-insertion-report.md) and [20-run raw evidence](production_validation/live_sidepanel/day4-cert-20-run.json).
+
+**Corrective implementation 2026-08-22:** The generic trusted executor now extracts an exact leaf filename, resolves one exact completed Chrome Downloads entry without exposing its absolute path to the planner, intercepts one native chooser, and assigns the bound file atomically through CDP. The validation driver defaults to application-owned selection and requires an explicit legacy diagnostic flag before it may call Playwright `set_files`. Automated gates pass (extension 209/209; focused backend 61/61); the rebuilt unpacked extension still needs one privileged Chrome reload before the application-only live preview run, so the Day 4 exit remains open.
 
 ### Day 5 — Generic confirmation and exactly-once external submission
 
@@ -124,6 +126,7 @@
 - Make send idempotent and non-retriable after uncertain dispatch.
 - Verify the delivered attachment in the exact conversation.
 - Run the complete WhatsApp release gate.
+- Expose passive executor telemetry as an optional visible action cursor: it follows only the coordinates selected by the authoritative executor, shows the target/action and click state, pauses at confirmation boundaries, has no mutation authority of its own, and supports reduced motion. A cursor animation must never be accepted as action or verification evidence.
 
 **Exit:** 20 consecutive successful sends to a consenting test contact/self-chat, zero wrong recipients, and zero duplicates.
 

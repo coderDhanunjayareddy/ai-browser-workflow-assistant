@@ -28,6 +28,14 @@ export type CdpExecutionResult = {
   adapter_trace: Record<string, string | number | boolean | null>
 }
 
+export type TrustedLocalFile = {
+  absolute_path: string
+  filename: string
+  mime_type: string
+  size_bytes: number
+  source: 'chrome_downloads_exact_match' | 'local_downloads_broker_exact_match'
+}
+
 const CDP_ACTIONS = new Set([
   'fill', 'select_option', 'choose_date', 'hover', 'scroll',
   'keyboard_shortcut', 'visual_region', 'canvas_action', 'svg_action',
@@ -288,13 +296,17 @@ async function sha256Text(value: string): Promise<string> {
 }
 
 export class CdpController {
-  async execute(tabId: number, action: ExecutableAction): Promise<CdpExecutionResult> {
+  async execute(tabId: number, action: ExecutableAction, trustedLocalFile?: TrustedLocalFile): Promise<CdpExecutionResult> {
     const target = debuggee(tabId)
     const startedAt = performance.now()
     const navigationSignals: string[] = []
-    const onEvent = (source: chrome.debugger.Debuggee, method: string) => {
+    let fileChooserResolve: ((value: { backendNodeId: number; frameId?: string }) => void) | null = null
+    const onEvent = (source: chrome.debugger.Debuggee, method: string, params?: Record<string, any>) => {
       if (source.tabId === tabId && /^(Page\.(frameNavigated|lifecycleEvent|navigatedWithinDocument)|Target\.(targetCreated|attachedToTarget))$/.test(method)) {
         if (navigationSignals.length < 30) navigationSignals.push(method)
+      }
+      if (source.tabId === tabId && method === 'Page.fileChooserOpened' && Number.isInteger(params?.backendNodeId)) {
+        fileChooserResolve?.({ backendNodeId: Number(params!.backendNodeId), frameId: params?.frameId })
       }
     }
     let attached = false
@@ -361,7 +373,28 @@ export class CdpController {
       if (!grounding.point) {
         return this.result(action, false, 'CDP could not ground the requested target without changing its identity.', inventory, null, grounding.screenshotHash, startedAt, grounding.attempts, grounding.fallbackReason)
       }
+      const needsFileBinding = action.content_insertion?.opens_native_chooser === true
+      if (needsFileBinding && !trustedLocalFile?.absolute_path) {
+        return this.result(action, false, 'Trusted executor rejected the chooser because no exact approved local file was bound.', inventory, grounding.point.source, grounding.screenshotHash, startedAt, grounding.attempts, grounding.fallbackReason)
+      }
+      let chooserPromise: Promise<{ backendNodeId: number; frameId?: string }> | null = null
+      if (needsFileBinding) {
+        await send(target, 'Page.setInterceptFileChooserDialog', { enabled: true })
+        chooserPromise = new Promise((resolve) => { fileChooserResolve = resolve })
+      }
       await this.dispatch(target, action, grounding.point)
+      if (chooserPromise && trustedLocalFile) {
+        const chooser = await Promise.race([
+          chooserPromise,
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('bounded_file_chooser_timeout')), 5_000)),
+        ])
+        await send(target, 'DOM.setFileInputFiles', {
+          files: [trustedLocalFile.absolute_path],
+          backendNodeId: chooser.backendNodeId,
+        })
+        await send(target, 'Page.setInterceptFileChooserDialog', { enabled: false }).catch(() => undefined)
+        grounding.attempts.push(`file_binding:${trustedLocalFile.source}:exact_filename`)
+      }
       await new Promise((resolve) => setTimeout(resolve, 180))
       return this.result(action, true, `CDP ${action.action_type} dispatched via ${grounding.point.source} grounding.`, inventory, grounding.point.source, grounding.screenshotHash, startedAt, grounding.attempts, grounding.fallbackReason)
     } catch (error) {

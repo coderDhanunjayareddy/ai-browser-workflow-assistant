@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.orchestrator.workflow_orchestrator import (
+    _destination_ordinal_from_task,
     _deterministic_observed_control_response,
     _deterministic_observed_report_response,
     _messaging_recipient_from_task,
@@ -38,6 +39,13 @@ def test_exact_recipient_stops_before_next_positive_objective_sentence() -> None
     )
 
     assert _messaging_recipient_from_task(task) == "Synthetic Recipient"
+
+
+def test_recipient_identity_is_separate_from_explicit_ordinal_disambiguation() -> None:
+    task = "Open WhatsApp and search for Ramu (Nanna) the first chat, then attach synthetic-day5.txt."
+
+    assert _messaging_recipient_from_task(task) == "Ramu (Nanna)"
+    assert _destination_ordinal_from_task(task) == 1
 
 
 def test_whatsapp_login_page_pauses_without_selecting_login_controls() -> None:
@@ -143,6 +151,49 @@ def test_whatsapp_affirmative_attachment_task_does_not_finish_after_chat_open() 
     )
 
 
+def test_attachment_grounding_ignores_existing_message_status_content() -> None:
+    task = (
+        "Open WhatsApp and open the exact chat named Ramesh Spc. "
+        "Attach the approved file synthetic-day5.txt and verify its preview. Do not send anything."
+    )
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="div",
+                selector='[data-testid="conversation-compose-box-input"]',
+                text="",
+                visible=True,
+                role="textbox",
+                accessibility_name="Type a message to Ramesh Spc",
+            ),
+            InteractiveElement(
+                type="span",
+                selector='[data-testid="last-msg-status"]',
+                text="Existing attached document synthetic-day5.txt",
+                visible=True,
+            ),
+            InteractiveElement(
+                type="button",
+                selector='button[aria-label="Attach"]',
+                text="",
+                visible=True,
+                accessibility_name="Attach",
+            ),
+        ],
+    )
+
+    control = _deterministic_observed_control_response(
+        session_id="ignore-message-status",
+        task=task,
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert control is not None
+    assert control.suggested_actions[0].target_selector == 'button[aria-label="Attach"]'
+
+
 def test_verified_cdp_menu_click_advances_to_new_content_kind_control() -> None:
     task = "Open the exact chat named Rahul, then attach the approved file synthetic-day5.txt."
     page = _page(
@@ -194,6 +245,7 @@ def test_verified_cdp_menu_click_advances_to_new_content_kind_control() -> None:
     assert action.content_insertion["stage"] == "select_bound_content"
     assert action.content_insertion["opens_native_chooser"] is True
     assert action.content_insertion["reveal_selector"] == 'button[aria-label="Attach"]'
+    assert action.content_insertion["requested_filename"] == "synthetic-day5.txt"
 
 
 def test_whatsapp_open_only_task_converges_from_trusted_exact_click_evidence() -> None:
@@ -735,6 +787,72 @@ def test_whatsapp_missing_exact_result_waits_once_then_does_not_click() -> None:
     assert stopped.outcome_kind == "ask"
     assert stopped.suggested_actions == []
     assert "no exact visible match" in stopped.clarification_question.lower()
+
+
+def test_explicit_first_chat_selects_first_visual_exact_match_without_changing_identity() -> None:
+    task = (
+        "Open WhatsApp and search for Ramu (Nanna) the first chat, then attach "
+        "the approved file synthetic-day5.txt."
+    )
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="input",
+                selector="#chat-search",
+                text="",
+                visible=True,
+                role="textbox",
+                accessibility_name="Search",
+                state={"value": "Ramu (Nanna)"},
+            ),
+            InteractiveElement(
+                type="span",
+                selector="#chat-result-name",
+                text="Ramu (Nanna)",
+                visible=True,
+                accessibility_name="Ramu (Nanna)",
+                bounding_box={"x": 120, "y": 200, "width": 140, "height": 24},
+            ),
+            InteractiveElement(
+                type="span",
+                selector="#message-result-name",
+                text="Ramu (Nanna)",
+                visible=True,
+                accessibility_name="Ramu (Nanna)",
+                bounding_box={"x": 120, "y": 700, "width": 140, "height": 24},
+            ),
+        ],
+    )
+    response = _deterministic_observed_control_response(
+        session_id="wa-first-exact",
+        task=task,
+        page_context=page,
+        prior_steps=[
+            PriorStep(
+                action_type="fill",
+                description="contact search",
+                target_selector="#chat-search",
+                value="Ramu (Nanna)",
+                execution_result="success",
+            ),
+            PriorStep(
+                action_type="wait",
+                description="wait for results",
+                target_selector="window",
+                value="1000",
+                execution_result="success",
+            ),
+        ],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "act"
+    action = response.suggested_actions[0]
+    assert action.action_type == "click"
+    assert action.target_selector == "#chat-result-name"
+    assert action.grounding is not None
+    assert action.grounding["accessibility_name"] == "Ramu (Nanna)"
 
 
 def test_whatsapp_current_search_value_is_not_treated_as_result_identity() -> None:

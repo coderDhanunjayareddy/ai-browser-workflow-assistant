@@ -30,6 +30,7 @@ export type ExecutableAction = {
     stage: string
     opens_native_chooser: boolean
     reveal_selector?: string | null
+    requested_filename?: string | null
   } | null
   consequential_submission?: {
     schema_version: 'consequential_submission.v1'
@@ -141,6 +142,11 @@ function validateContentInsertionDeclaration(value: unknown): boolean {
     && ['open_insertion_menu', 'select_bound_content'].includes(String(value.stage))
     && typeof value.opens_native_chooser === 'boolean'
     && (value.reveal_selector === undefined || value.reveal_selector === null || isBoundedString(value.reveal_selector, 2000))
+    && (value.requested_filename === undefined || value.requested_filename === null || (
+      isBoundedString(value.requested_filename, 500)
+      && Boolean(String(value.requested_filename).trim())
+      && !/[\\/]/.test(String(value.requested_filename))
+    ))
 }
 
 function validateConsequentialSubmission(value: unknown): boolean {

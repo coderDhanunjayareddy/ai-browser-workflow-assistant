@@ -180,11 +180,13 @@ test('content insertion declaration is typed and preserved inside the canonical 
     destination_entity: 'Synthetic Recipient',
     stage: 'select_bound_content',
     opens_native_chooser: true,
+    requested_filename: 'synthetic-day5.txt',
   }
   assert.equal(validateExecutableAction(action({ content_insertion: insertion })), true)
   assert.equal(validateServiceWorkerMessage(executeMessage({ contract: contract({ content_insertion: insertion }) }), sender, runtimeId), null)
   assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, kind: 'unknown' } })), false)
   assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, opens_native_chooser: 'yes' } })), false)
+  assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, requested_filename: '..\\secret.txt' } })), false)
 })
 
 test('consequential submission declaration binds destination and content identity', () => {

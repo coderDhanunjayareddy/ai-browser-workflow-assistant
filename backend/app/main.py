@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import logging
 
-from app.api.routes import health, analyze, workflow, assist, cognitive, research, intelligence, unified, mission, mission_intelligence, mission_blueprint, cognitive_runtime, validation as validation_router, benchmarks as benchmarks_router, intent as intent_router, tabs as tabs_router, trust as trust_router, browser as browser_router, decisions as decisions_router, approvals as approvals_router, governance as governance_router, authorization as authorization_router, runtime as runtime_router, plans as plans_router, gateway as gateway_router, website_intelligence as website_intelligence_router, certification as certification_router, product as product_router, system as system_router, policy as policy_router, tool_routing as tool_routing_router, production_evidence as production_evidence_router
+from app.api.routes import health, analyze, workflow, assist, cognitive, research, intelligence, unified, mission, mission_intelligence, mission_blueprint, cognitive_runtime, validation as validation_router, benchmarks as benchmarks_router, intent as intent_router, tabs as tabs_router, trust as trust_router, browser as browser_router, decisions as decisions_router, approvals as approvals_router, governance as governance_router, authorization as authorization_router, runtime as runtime_router, plans as plans_router, gateway as gateway_router, website_intelligence as website_intelligence_router, certification as certification_router, product as product_router, system as system_router, policy as policy_router, tool_routing as tool_routing_router, production_evidence as production_evidence_router, local_files as local_files_router
 from app.core.config import ENV_FILE, settings
 from app.feature_flags import is_active
 from app.mission_result import api as mission_result_router
@@ -82,7 +82,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"chrome-extension://.*",
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-AI-Browser-Assist-Extension"],
 )
 
 app.include_router(health.router)
@@ -118,3 +118,4 @@ app.include_router(system_router.router)
 app.include_router(policy_router.router)
 app.include_router(tool_routing_router.router)
 app.include_router(production_evidence_router.router)
+app.include_router(local_files_router.router)
