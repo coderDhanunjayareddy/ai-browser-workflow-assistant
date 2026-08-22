@@ -295,6 +295,7 @@ export function extractPageContextV2(): PageContext {
     })
 
   const headings = Array.from(document.querySelectorAll('h1, h2, h3'))
+    .filter((heading) => isVisible(heading))
     .slice(0, 5)
     .map((h) => sanitizeText((h.textContent || '').trim()))
     .filter((text) => text.length > 0)

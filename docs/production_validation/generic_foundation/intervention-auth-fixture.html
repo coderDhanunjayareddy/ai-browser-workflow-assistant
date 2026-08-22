@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Synthetic Workspace Authentication</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #eef3f8; }
+    main { width: min(560px, calc(100% - 40px)); padding: 32px; background: white; border: 1px solid #ccd7e2; border-radius: 18px; box-shadow: 0 16px 45px #16324f1a; }
+    h1 { margin-top: 0; }
+    button { border: 0; border-radius: 9px; padding: 12px 18px; color: white; background: #1367d1; font-weight: 700; cursor: pointer; }
+    .notice { padding: 12px; border-radius: 9px; background: #fff3cd; border: 1px solid #e8c76a; }
+    #workspace { display: none; }
+    code { color: #314052; }
+  </style>
+</head>
+<body>
+  <main>
+    <section id="gate" aria-labelledby="gate-title">
+      <h1 id="gate-title">Sign in required</h1>
+      <p class="notice" role="status">Human authentication is required to continue to the synthetic workspace.</p>
+      <p>This is a local test fixture. It accepts no credentials and makes no network or account change.</p>
+      <button id="complete-auth" type="button" aria-label="Complete synthetic sign in">Complete synthetic sign in</button>
+    </section>
+    <section id="workspace" aria-labelledby="workspace-title">
+      <h1 id="workspace-title">Synthetic workspace ready</h1>
+      <p role="status">Authentication gate cleared. Safe automation may resume.</p>
+      <p><code>fixture_state=authenticated</code></p>
+    </section>
+  </main>
+  <script>
+    const gate = document.querySelector('#gate');
+    const workspace = document.querySelector('#workspace');
+    document.querySelector('#complete-auth').addEventListener('click', () => {
+      gate.style.display = 'none';
+      workspace.style.display = 'block';
+      document.title = 'Synthetic Workspace Ready';
+      history.replaceState(null, '', '#authenticated');
+    });
+  </script>
+</body>
+</html>
