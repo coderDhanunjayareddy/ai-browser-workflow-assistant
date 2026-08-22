@@ -122,6 +122,34 @@ def test_login_words_in_page_prose_do_not_create_a_false_intervention() -> None:
     ) is None
 
 
+def test_login_prose_does_not_abort_a_grounded_destination_action() -> None:
+    page = _page(
+        "https://messaging.example.test/inbox",
+        [
+            InteractiveElement(
+                type="input", selector="#search", text="", visible=True, role="searchbox",
+                accessibility_name="Search contacts",
+            ),
+            InteractiveElement(
+                type="div", selector="#recipient", text="Example Recipient", visible=True, role="listitem",
+                accessibility_name="Example Recipient",
+            ),
+        ],
+    )
+    page.visible_text = "Chats Contacts This help article explains how users log in."
+
+    response = _deterministic_observed_control_response(
+        session_id="generic-prose-action",
+        task="Open the exact direct chat named Example Recipient. Do not send anything.",
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.human_intervention is None
+    assert response.suggested_actions[0].target_selector == "#recipient"
+
+
 def test_mfa_and_captcha_are_classified_before_general_authentication() -> None:
     mfa_page = _page(
         "https://portal.example.test/verify",

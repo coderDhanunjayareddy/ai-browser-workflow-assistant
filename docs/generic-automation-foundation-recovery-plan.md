@@ -146,6 +146,13 @@ Resume sequence:
 
 ## 15-working-day implementation plan
 
+### Progress checkpoint — 2026-08-22
+
+- Authority map, generic capability contracts, final backend capability boundary, extension fail-closed boundary, durable workflow ledger, and core-literal architecture guard are implemented.
+- The Day 9 runtime intervention slice for authentication, MFA, and CAPTCHA is implemented ahead of sequence because it was the immediate blocker: typed pause UI, direct-browser secret handling, bound tab/origin/frame verification, restart persistence, bounded unchanged-gate handling, and exactly-once resume evidence.
+- Current consolidated implementation regression: backend 176/176 passed; extension 219/219 passed; TypeScript check and production build passed.
+- This does not skip Days 5–8 or certify Day 9 live. Semantic observation migration, single-executor cleanup, cross-domain live conformance, and evidence correction remain required before the original Day 5 release gate resumes.
+
 ### Days 1–2 — Evidence reset and authority audit
 
 - Freeze feature work and live consequential tests.

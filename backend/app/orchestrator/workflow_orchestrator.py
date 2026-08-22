@@ -2562,11 +2562,13 @@ def _deterministic_observed_control_response(
         interactive_state["message_selector"], exact_destination_observed,
     )))
     if messaging_surface and requested_destination and interactive_state["login_required"]:
-        return _deterministic_human_intervention_response(
+        intervention_response = _deterministic_human_intervention_response(
             session_id=session_id,
             task=task,
             page_context=page_context,
         )
+        if intervention_response is not None:
+            return intervention_response
     message_control = _find_observed_control(
         elements,
         label_terms=("type a message",),

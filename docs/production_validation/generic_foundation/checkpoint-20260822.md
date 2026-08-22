@@ -36,12 +36,44 @@ Recorded side effects: zero live browser mutations, zero submissions, zero messa
 
 ## Known remaining work
 
-- Wire the human-intervention checkpoint into the visible side-panel pause/resume UI and live workflow state transitions.
+- Run live-browser authentication/MFA/CAPTCHA pause-and-resume validation after reloading the newly built extension; the implementation path is complete but live evidence is not yet certified.
 - Continue moving remaining named knowledge to declarative adapter/registry paths.
 - Eliminate or disable competing mutation leaf paths behind the single dispatch gateway.
 - Build randomized DOM, frame, dialog, delayed-content, chooser, restart, and security conformance fixtures.
 - Run authorized live-browser cross-domain validation with latency, screenshots, traces, retry counts, and side-effect audits.
 - Correct historical Day 3–5 reports before deciding whether the original Day 5 gate can resume.
+
+## Runtime intervention bridge update
+
+The domain-independent human-intervention contract is now connected end to end:
+
+- Browser tab/window/frame identity survives the extension-to-backend page-context boundary.
+- Focused authentication, MFA, and CAPTCHA evidence is classified before provider-specific planning. Mere login-related prose does not create a gate.
+- The backend returns a stable typed checkpoint, never a credential/OTP/CAPTCHA prompt.
+- The side panel displays the smallest required human action and explicitly tells the user to enter secrets only on the website.
+- Resume re-observes the bound tab and origin, verifies the gate disappeared, commits exactly-once resume evidence, then continues the durable mission.
+- Unchanged gates and observation failures stop after two verification attempts; completed or uncertain actions are not replayed.
+- Extension restart restores the intervention checkpoint and completed workflow history.
+
+Post-update validation:
+
+| Suite | Result | Measured runtime |
+|---|---:|---:|
+| Backend generic foundation + integration orchestrator | 176/176 passed | 14.20 s final rerun |
+| Extension full test suite | 219/219 passed | 13.38 s |
+| Extension TypeScript check | passed | 5.2 s (prior focused run) |
+| Extension production build | passed, 71 modules | 10.32 s |
+
+No live browser mutation, submission, upload, or message was performed by this update. This is implementation and fixture evidence, not live cross-domain certification.
+
+### Running-runtime probe
+
+- Canonical runtime: `http://localhost:8000`, PID `30424`, build `stabilization-20260822T112247Z`, commit identity `4a67bed-dirty`.
+- Neutral authentication, MFA, and CAPTCHA page-context requests each returned the correct typed intervention, exact observed origin, tab `77`, zero actions, and no clarification/secret prompt.
+- A first false-positive probe was discarded because the PowerShell harness retained a stale prior response after a failed request. No result from that probe is counted.
+- The clean false-positive probe exposed an early-return defect when legacy broad login prose entered an intervention branch but focused evidence rejected the gate. The branch now continues normal grounding; a new regression verifies a grounded destination action is returned with no intervention.
+- The live non-gate probe then encountered the environment's blocked external AI socket and the client did not return within its intended timeout. This remains a separate orchestration/provider-timeout issue and is not represented as a successful live scenario.
+- Chrome was inspected read-only and remained authenticated. The newly built extension has not yet been reloaded into Chrome, so a live side-panel pause/resume certification is still pending.
 
 ## Warning debt
 
