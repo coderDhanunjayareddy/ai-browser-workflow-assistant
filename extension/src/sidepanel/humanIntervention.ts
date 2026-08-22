@@ -1,3 +1,5 @@
+import type { BackendHumanInterventionRequest, PageContext } from '../types'
+
 export const HUMAN_INTERVENTION_REQUEST_SCHEMA = 'human_intervention.request.v1'
 export const HUMAN_INTERVENTION_RESUME_SCHEMA = 'human_intervention.resume.v1'
 
@@ -37,7 +39,7 @@ export interface HumanInterventionCheckpoint {
   expectedEvidence: ResumeEvidenceKind[]
   expectedOrigin?: string
   expectedTabId?: number
-  expectedFrameId?: number
+  expectedFrameId?: string
   requestBudget: number
   unchangedGateAttempts: number
   state: 'awaiting_user' | 'ready_to_verify' | 'resumed' | 'expired'
@@ -53,7 +55,7 @@ export interface HumanInterventionResumeEvidence {
   evidenceKinds: ResumeEvidenceKind[]
   observedOrigin?: string
   observedTabId?: number
-  observedFrameId?: number
+  observedFrameId?: string
   duplicateDispatchPrevented: true
   verifiedAt: number
 }
@@ -124,4 +126,87 @@ function redactSensitiveText(value: string): string {
     /\b(password|passcode|otp|one[- ]?time code|verification code|api key|access token|secret)\b\s*[:=]\s*\S+/gi,
     '$1: [omitted]',
   )
+}
+
+const BACKEND_EVIDENCE_MAP: Record<BackendHumanInterventionRequest['resume_condition']['evidence_kind'], ResumeEvidenceKind> = {
+  url_matches: 'url_and_origin',
+  origin_matches: 'url_and_origin',
+  element_visible: 'page_state',
+  element_absent: 'page_state',
+  authenticated_state: 'authenticated_identity',
+  authorization_granted: 'page_state',
+  dialog_closed: 'dialog_closed',
+  user_acknowledged: 'explicit_user_confirmation',
+}
+
+export function checkpointFromBackend(
+  request: BackendHumanInterventionRequest,
+  now = Date.now(),
+): HumanInterventionCheckpoint {
+  if (request.schema_version !== HUMAN_INTERVENTION_REQUEST_SCHEMA) {
+    throw new Error('Unsupported human-intervention contract version.')
+  }
+  return createHumanInterventionCheckpoint({
+    requestId: request.intervention_id,
+    missionId: request.mission_id,
+    blockedObjectiveId: request.objective_id,
+    kind: request.kind,
+    message: request.user_message,
+    requestedUserAction: request.requested_action,
+    secretHandling: request.secret_handling === 'direct_browser_only' ? 'direct_browser_only' : 'none',
+    checkpointRef: request.checkpoint_ref,
+    completedObjectiveIds: request.completed_objective_ids,
+    pendingObjectiveIds: request.pending_objective_ids,
+    expectedEvidence: request.kind === 'captcha'
+      ? ['challenge_cleared']
+      : [BACKEND_EVIDENCE_MAP[request.resume_condition.evidence_kind]],
+    expectedOrigin: request.resume_condition.observed_origin,
+    expectedTabId: request.resume_condition.tab_id,
+    expectedFrameId: request.resume_condition.frame_id,
+    requestBudget: request.request_budget,
+    unchangedGateAttempts: request.unchanged_gate_attempts,
+  }, now)
+}
+
+function observedOrigin(url: string): string | undefined {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.origin : undefined
+  } catch {
+    return undefined
+  }
+}
+
+const AUTHENTICATION_GATE = /\b(sign[ -]?in|log[ -]?in|scan (?:the )?qr|qr code|authenticate|authentication required|verify (?:your )?identity|otp|passcode|verification code|one[- ]time (?:code|password)|two[- ]factor|multi[- ]factor)\b/i
+const CHALLENGE_GATE = /\b(captcha|recaptcha|hcaptcha|verify you are human|security challenge|challenge required)\b/i
+
+function contextHasGate(context: PageContext, pattern: RegExp): boolean {
+  if (pattern.test(`${context.title}\n${context.headings.join('\n')}\n${context.visible_text.slice(0, 4000)}`)) return true
+  return context.interactive_elements.some((element) => pattern.test([
+    element.text, element.placeholder, element.aria_label, element.accessibility_name,
+    element.input_type, element.role,
+  ].filter(Boolean).join(' ')))
+}
+
+export function observeInterventionResume(
+  checkpoint: HumanInterventionCheckpoint,
+  context: PageContext,
+): Omit<HumanInterventionResumeEvidence, 'schemaVersion' | 'requestId' | 'missionId' | 'resumedObjectiveId' | 'duplicateDispatchPrevented' | 'verifiedAt'> {
+  const evidenceKinds: ResumeEvidenceKind[] = []
+  const origin = observedOrigin(context.url)
+  const sameOrigin = !checkpoint.expectedOrigin || checkpoint.expectedOrigin === origin
+  if (sameOrigin) evidenceKinds.push('url_and_origin', 'page_state')
+  if (checkpoint.kind === 'authentication' || checkpoint.kind === 'mfa') {
+    if (sameOrigin && !contextHasGate(context, AUTHENTICATION_GATE)) evidenceKinds.push('authenticated_identity')
+  }
+  if (checkpoint.kind === 'captcha') {
+    if (sameOrigin && !contextHasGate(context, CHALLENGE_GATE)) evidenceKinds.push('challenge_cleared')
+  }
+  if (checkpoint.kind === 'privileged_ui' && sameOrigin) evidenceKinds.push('dialog_closed')
+  return {
+    evidenceKinds: [...new Set(evidenceKinds)],
+    observedOrigin: origin,
+    observedTabId: context.tab_id,
+    observedFrameId: 'top',
+  }
 }

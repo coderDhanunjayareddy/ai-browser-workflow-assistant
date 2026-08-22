@@ -832,7 +832,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
   }, [autoMode, state.phase, state.pendingActions, approveAction])
 
   // ── Derived state ─────────────────────────────────────────────────────────
-  const { phase, task, analysisText, pendingActions, activeAction, completedActions, error, clarificationQuestion, report, replan, goalConvergence } = state
+  const { phase, task, analysisText, pendingActions, activeAction, completedActions, error, clarificationQuestion, humanIntervention, report, replan, goalConvergence } = state
   const isWorking   = phase === 'observing' || phase === 'analyzing' || phase === 'executing' || phase === 'refreshing'
   const isAwaiting  = phase === 'awaiting_execution'
   const needsInput  = phase === 'awaiting_user'
@@ -847,7 +847,7 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
   const phaseLabel: Record<string, string> = {
     idle: 'Analyze', observing: 'Reading page…', analyzing: 'Thinking…',
     awaiting_execution: 'Analyze', executing: 'Executing…', refreshing: 'Refreshing…',
-    awaiting_user: 'Waiting for info', reported: 'Analyze', replan: 'Analyze',
+    awaiting_user: humanIntervention ? 'Waiting for you' : 'Waiting for info', reported: 'Analyze', replan: 'Analyze',
     completed: 'Analyze', cancelled: 'Analyze', failed: 'Analyze',
   }
 
@@ -974,8 +974,11 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
 
       {/* Workflow error */}
       {error && <p data-testid="workflow-error" style={s.error}>{error}</p>}
-      {isFailed && task.trim() && (
+      {isFailed && task.trim() && !humanIntervention && (
         <button onClick={() => void resumeWorkflow()} style={s.primaryBtn}>Resume safely</button>
+      )}
+      {isFailed && humanIntervention && humanIntervention.state !== 'expired' && (
+        <button onClick={() => void resumeWorkflow()} style={s.primaryBtn}>Verify human step again</button>
       )}
 
       {/* ── Results area ── */}
@@ -1040,6 +1043,20 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
           )}
 
           {/* Missing information */}
+          {needsInput && humanIntervention && (
+            <div style={s.clarifyBox} data-testid="human-intervention">
+              <p style={s.clarifyLabel}>Human step required</p>
+              <p style={s.clarifyQuestion}>{humanIntervention.message}</p>
+              <p style={s.clarifyQuestion}>{humanIntervention.requestedUserAction}</p>
+              {humanIntervention.secretHandling === 'direct_browser_only' && (
+                <p style={s.clarifyQuestion}>Enter passwords, codes, or other secrets only on the website. The assistant will not request or store them.</p>
+              )}
+              <button onClick={() => void resumeWorkflow()} style={s.primaryBtn}>
+                I completed it — verify and resume
+              </button>
+            </div>
+          )}
+
           {needsInput && clarificationQuestion && (
             <div style={s.clarifyBox}>
               <p style={s.clarifyLabel}>Need information</p>

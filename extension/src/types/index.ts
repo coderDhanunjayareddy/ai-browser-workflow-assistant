@@ -228,6 +228,66 @@ export interface AnalyzeResponse {
   goal_convergence?: boolean
   execution_orchestrator?: PhaseExecutionDirective | null
   intent_execution?: IntentExecutionResult | null
+  capability_contracts?: GenericCapabilityContract[]
+  capability_contract_violations?: CapabilityContractViolation[]
+  human_intervention?: BackendHumanInterventionRequest | null
+}
+
+export interface BackendHumanInterventionRequest {
+  schema_version: 'human_intervention.request.v1'
+  intervention_id: string
+  mission_id: string
+  objective_id: string
+  kind: 'authentication' | 'mfa' | 'captcha' | 'privileged_ui' | 'sensitive_input' | 'consequential_confirmation' | 'identity_ambiguity' | 'external_authorization' | 'external_blocker'
+  reason_code: string
+  user_message: string
+  requested_action: string
+  secret_handling: 'direct_browser_only' | 'non_sensitive_response_allowed' | 'no_user_data_required'
+  checkpoint_ref: string
+  completed_objective_ids: string[]
+  pending_objective_ids: string[]
+  resume_condition: {
+    evidence_kind: 'url_matches' | 'origin_matches' | 'element_visible' | 'element_absent' | 'authenticated_state' | 'authorization_granted' | 'dialog_closed' | 'user_acknowledged'
+    expected_value: string
+    observed_origin: string
+    tab_id: number
+    frame_id: string
+  }
+  request_budget: number
+  unchanged_gate_attempts: number
+  state: 'awaiting_user' | 'satisfied' | 'expired' | 'cancelled' | 'blocked'
+}
+
+export interface GenericCapabilityContract {
+  schema_version: string
+  mission_id: string
+  objective_id: string
+  capability_id: string
+  family: string
+  target: {
+    user_supplied_identity?: string | null
+    entity_type: string
+    exact_match_required: boolean
+    allowed_origin?: string | null
+    tab_id?: number | null
+    frame_id: string
+  }
+  inputs: Record<string, unknown>
+  expected_effect: {
+    effect_type: string
+    observable_postcondition: string
+    required_evidence: string[]
+  }
+  safety_class: string
+  retry_budget: number
+  idempotency_key: string
+  confirmation_required: boolean
+}
+
+export interface CapabilityContractViolation {
+  action_id: string
+  action_type: string
+  reason: string
 }
 
 export interface IntentDTO {

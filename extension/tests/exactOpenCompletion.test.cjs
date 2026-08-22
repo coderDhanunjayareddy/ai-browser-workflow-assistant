@@ -48,22 +48,25 @@ test('unverified identity cannot complete the task', () => {
 test('canonical contract target plus verified exact click completes without optional adapter trace', () => {
   const completion = exactOpenOnlyCompletion(
     'Open WhatsApp and open the exact direct chat named Teja Spc. Do not send anything.',
-    { action_type: 'click', description: 'Open the exact WhatsApp search result visibly named Teja Spc' },
+    { action_type: 'click', description: 'Open the exact observed result visibly named Teja Spc', grounding: { semantic_kind: 'recipient' } },
     {
       success: true,
       contract_target_name: 'Teja Spc',
       contract_resource_url: 'https://web.whatsapp.com/',
-      verification: { verified: true, signals: {} },
+      verification: { verified: true, signals: {
+        exact_identity_verified: true, exact_target_kind: 'chat',
+        exact_expected_name: 'Teja Spc', exact_observed_name: 'Teja Spc',
+      } },
     },
   )
   assert.deepEqual(completion, { targetKind: 'chat', targetName: 'Teja Spc' })
 })
 
-test('postcondition-gated success and exact action description survive stripped diagnostics', () => {
+test('generic click success and an exact-sounding description cannot replace identity evidence', () => {
   const completion = exactOpenOnlyCompletion(
     'Open WhatsApp and open the exact direct chat named Teja Spc. Do not type or send anything.',
     { action_type: 'click', description: 'Open the exact WhatsApp search result visibly named Teja Spc' },
     { success: true },
   )
-  assert.deepEqual(completion, { targetKind: 'chat', targetName: 'Teja Spc' })
+  assert.equal(completion, null)
 })

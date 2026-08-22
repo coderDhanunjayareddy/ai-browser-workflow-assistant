@@ -56,12 +56,19 @@ async def analyze(request: Request, payload: AnalyzeRequest, db: Session = Depen
     try:
         from app.orchestrator.workflow_orchestrator import WorkflowOrchestrator
         orchestrator = WorkflowOrchestrator(payload.session_id, db)
-        return orchestrator.orchestrate_analysis(
+        result = orchestrator.orchestrate_analysis(
             task=payload.task,
             page_context=payload.page_context,
             prior_steps=payload.prior_steps or [],
             supplemental_context=payload.supplemental_context or "",
             handoff_payload=payload.handoff_payload,
+        )
+        from app.semantic_execution_kernel.capability_boundary import bind_capability_contracts
+
+        return bind_capability_contracts(
+            result,
+            session_id=payload.session_id,
+            task=payload.task,
         )
     except errors.APIError as e:
         status_code = e.code or 502

@@ -7,6 +7,12 @@ from dataclasses import replace
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
+from app.intervention_runtime import (
+    create_authentication_intervention,
+    create_captcha_intervention,
+    create_mfa_intervention,
+)
+
 from sqlalchemy.orm import Session
 
 from app.extraction_v2.grounded_registry import GroundedElementRegistry
@@ -931,6 +937,21 @@ class WorkflowOrchestrator:
                 },
             )
             return read_continuation
+        human_intervention = _deterministic_human_intervention_response(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+        )
+        if human_intervention is not None:
+            self._record_v3_event(
+                "human_intervention.requested",
+                {
+                    "page_url": str(getattr(page_context, "url", "") or ""),
+                    "kind": human_intervention.human_intervention.get("kind") if human_intervention.human_intervention else None,
+                    "reason_code": human_intervention.human_intervention.get("reason_code") if human_intervention.human_intervention else None,
+                },
+            )
+            return human_intervention
         interactive_state = _deterministic_interactive_state_response(
             session_id=self.session_id,
             task=task,
@@ -2218,13 +2239,12 @@ def _deterministic_interactive_state_response(
         return None
     current_url = str(getattr(page_context, "url", "") or "")
     title = str(getattr(page_context, "title", "") or "")
-    if "web.whatsapp.com" not in current_url.lower() and "whatsapp" not in title.lower():
-        return None
-    opened = list(getattr(getattr(orchestrator_snapshot, "artifacts", None), "opened_pages", []) or []) if orchestrator_snapshot else []
-    if not any("web.whatsapp.com" in str(url).lower() for url in [current_url, *opened]):
-        return None
-
     state = _interactive_page_state(page_context)
+    if not any((
+        state["login_required"], state["contact_search_selector"],
+        state["message_selector"], state["file_selector"],
+    )):
+        return None
     report = (
         "| Check | Status | Evidence |\n"
         "|---|---|---|\n"
@@ -2250,14 +2270,20 @@ def _interactive_page_state(page_context: Any) -> dict[str, str | bool]:
     visible_text = " ".join(str(getattr(page_context, "visible_text", "") or "").split())
     lower_visible = visible_text.lower()
     state: dict[str, str | bool] = {
-        "login_required": any(term in lower_visible for term in ("use whatsapp on your computer", "link a device", "scan", "qr code")),
+        "login_required": any(term in lower_visible for term in (
+            "sign in", "log in", "login", "link a device", "scan qr", "qr code",
+            "authentication required", "verify your identity",
+        )),
         "login_evidence": "",
         "contact_search_selector": "",
         "message_selector": "",
         "file_selector": "",
     }
     if state["login_required"]:
-        state["login_evidence"] = _first_matching_phrase(lower_visible, ("use whatsapp on your computer", "link a device", "scan", "qr code"))
+        state["login_evidence"] = _first_matching_phrase(lower_visible, (
+            "sign in", "log in", "login", "link a device", "scan qr", "qr code",
+            "authentication required", "verify your identity",
+        ))
     for element in list(getattr(page_context, "interactive_elements", []) or []):
         data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
         selector = str(data.get("selector") or "")
@@ -2289,6 +2315,105 @@ def _interactive_page_state(page_context: Any) -> dict[str, str | bool]:
         ):
             state["file_selector"] = selector
     return state
+
+
+def _authentication_gate_observed(page_context: Any) -> bool:
+    """Require focused authentication evidence, not a keyword anywhere in page prose."""
+    prominent = " ".join([
+        str(getattr(page_context, "title", "") or ""),
+        *[str(item or "") for item in list(getattr(page_context, "headings", []) or [])[:10]],
+    ]).casefold()
+    visible = " ".join(str(getattr(page_context, "visible_text", "") or "").split()).casefold()
+    if re.search(r"\b(sign[ -]?in|log[ -]?in|authentication required|verify your identity)\b", prominent):
+        return True
+    if re.search(r"\b(scan (?:the )?qr|qr code|link a device)\b", visible):
+        return True
+    for element in list(getattr(page_context, "interactive_elements", []) or []):
+        data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
+        if data.get("visible") is False:
+            continue
+        identity = " ".join(
+            str(data.get(key) or "")
+            for key in ("text", "aria_label", "accessibility_name", "placeholder", "role", "type", "input_type")
+        ).casefold()
+        input_type = str(data.get("input_type") or data.get("type") or "").casefold()
+        if input_type == "password":
+            return True
+        if re.search(r"\b(sign[ -]?in|log[ -]?in|continue with|verify identity)\b", identity):
+            return True
+    return False
+
+
+def _mfa_gate_observed(page_context: Any) -> bool:
+    prominent = " ".join([
+        str(getattr(page_context, "title", "") or ""),
+        *[str(item or "") for item in list(getattr(page_context, "headings", []) or [])[:10]],
+    ]).casefold()
+    if re.search(r"\b(two[- ]factor|multi[- ]factor|verification code|one[- ]time (?:code|password)|enter (?:the )?otp)\b", prominent):
+        return True
+    for element in list(getattr(page_context, "interactive_elements", []) or []):
+        data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
+        if data.get("visible") is False:
+            continue
+        identity = " ".join(
+            str(data.get(key) or "")
+            for key in ("text", "aria_label", "accessibility_name", "placeholder", "name")
+        ).casefold()
+        if re.search(r"\b(otp|verification code|one[- ]time (?:code|password)|security code)\b", identity):
+            return True
+    return False
+
+
+def _captcha_gate_observed(page_context: Any) -> bool:
+    visible = " ".join(str(getattr(page_context, "visible_text", "") or "").split()).casefold()
+    if re.search(r"\b(captcha|recaptcha|hcaptcha|verify you are human|security challenge)\b", visible):
+        return True
+    for element in list(getattr(page_context, "interactive_elements", []) or []):
+        data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
+        if data.get("visible") is False:
+            continue
+        identity = " ".join(
+            str(data.get(key) or "")
+            for key in ("text", "aria_label", "accessibility_name", "title", "name", "href")
+        ).casefold()
+        if re.search(r"\b(captcha|recaptcha|hcaptcha|verify you are human)\b", identity):
+            return True
+    return False
+
+
+def _deterministic_human_intervention_response(
+    *,
+    session_id: str,
+    task: str,
+    page_context: Any,
+) -> AnalyzeResponse | None:
+    kind = (
+        "captcha" if _captcha_gate_observed(page_context)
+        else "mfa" if _mfa_gate_observed(page_context)
+        else "authentication" if _authentication_gate_observed(page_context)
+        else None
+    )
+    if kind is None:
+        return None
+    if getattr(page_context, "tab_id", None) is None:
+        return None
+    factory = {
+        "authentication": create_authentication_intervention,
+        "mfa": create_mfa_intervention,
+        "captcha": create_captcha_intervention,
+    }[kind]
+    intervention = factory(session_id=session_id, objective_hint=task, page_context=page_context)
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis=(
+            f"The current objective is blocked by an observed {kind} gate. "
+            "Completed work is checkpointed and no browser action was dispatched."
+        ),
+        outcome_kind="ask",
+        clarification_question=None,
+        suggested_actions=[],
+        human_intervention=intervention.model_dump(mode="json"),
+    )
 
 
 def _deterministic_observed_control_response(
@@ -2418,27 +2543,35 @@ def _deterministic_observed_control_response(
             }
 
     current_url = str(getattr(page_context, "url", "") or "")
-    is_whatsapp = "web.whatsapp.com" in current_url.lower()
-    whatsapp_recipient = _messaging_recipient_from_task(task) if is_whatsapp else None
-    if is_whatsapp and whatsapp_recipient and _interactive_page_state(page_context)["login_required"]:
-        return AnalyzeResponse(
-            session_id=session_id,
-            analysis=(
-                "WhatsApp is open, but the observed page is the authentication screen rather than an authenticated chat list. "
-                "No page control was selected and the workflow was not retried."
-            ),
-            outcome_kind="ask",
-            clarification_question=(
-                "WhatsApp needs to be linked or signed in before I can open the exact chat. "
-                "Please complete WhatsApp's login in this browser, then resume the workflow."
-            ),
-            suggested_actions=[],
+    requested_destination = _messaging_recipient_from_task(task)
+    interactive_state = _interactive_page_state(page_context)
+    messaging_terms_present = bool(re.search(r"\b(chat|contact|recipient|conversation|message|composer)\b", affirmative_text))
+    exact_destination_observed = bool(
+        requested_destination
+        and (
+            _find_exact_recipient_control(elements, requested_destination, ordinal=_destination_ordinal_from_task(task))
+            or any(
+                str(dict(element.get("state") or {}).get("value") or "").strip().casefold()
+                == requested_destination.casefold()
+                for element in elements
+            )
         )
-    whatsapp_message_control = _find_observed_control(
+    )
+    messaging_surface = bool(requested_destination and messaging_terms_present and any((
+        interactive_state["login_required"], interactive_state["contact_search_selector"],
+        interactive_state["message_selector"], exact_destination_observed,
+    )))
+    if messaging_surface and requested_destination and interactive_state["login_required"]:
+        return _deterministic_human_intervention_response(
+            session_id=session_id,
+            task=task,
+            page_context=page_context,
+        )
+    message_control = _find_observed_control(
         elements,
         label_terms=("type a message",),
         selector_terms=("type a message",),
-    ) if is_whatsapp else None
+    ) if messaging_surface else None
     # A visible composer proves only that *some* conversation is open.  It is
     # not destination evidence.  Before any downstream mutation, require an
     # exact identity established either by the trusted post-click verifier or
@@ -2446,7 +2579,7 @@ def _deterministic_observed_control_response(
     # This invariant is destination/provider neutral at the evidence layer:
     # mutation-capable actions consume the exact identity recorded by the
     # preceding selection action and never infer it from a search query.
-    if is_whatsapp and whatsapp_recipient and whatsapp_message_control is not None:
+    if messaging_surface and requested_destination and message_control is not None:
         exact_destination_verified = False
         observed_destination = ""
         for step in reversed(list(prior_steps or [])):
@@ -2458,8 +2591,8 @@ def _deterministic_observed_control_response(
                 evidence.get("adapter_exact_identity_verified") is True
                 and expected
                 and observed
-                and expected.casefold() == whatsapp_recipient.casefold()
-                and observed.casefold() == whatsapp_recipient.casefold()
+                and expected.casefold() == requested_destination.casefold()
+                and observed.casefold() == requested_destination.casefold()
             ):
                 exact_destination_verified = True
                 observed_destination = observed
@@ -2473,7 +2606,7 @@ def _deterministic_observed_control_response(
                 match = re.search(r"\btype a message to\s+(.+?)\s*$", label, flags=re.IGNORECASE)
                 if match:
                     observed_destination = match.group(1).strip()
-                    exact_destination_verified = observed_destination.casefold() == whatsapp_recipient.casefold()
+                    exact_destination_verified = observed_destination.casefold() == requested_destination.casefold()
                     break
         downstream_mutation_requested = bool(re.search(
             r"\b(attach|upload|insert|add|send|share|submit|post|publish|type|write|reply|message)\b",
@@ -2484,12 +2617,12 @@ def _deterministic_observed_control_response(
             return AnalyzeResponse(
                 session_id=session_id,
                 analysis=(
-                    f'The requested destination "{whatsapp_recipient}" has not been verified as the currently open '
+                    f'The requested destination "{requested_destination}" has not been verified as the currently open '
                     f'conversation.{observed_note} No content insertion or submission control was selected.'
                 ),
                 outcome_kind="ask",
                 clarification_question=(
-                    f'I could not verify the exact destination "{whatsapp_recipient}". '
+                    f'I could not verify the exact destination "{requested_destination}". '
                     "Choose an exact visible match or provide a different unambiguous destination before attaching or sending anything."
                 ),
                 suggested_actions=[],
@@ -2573,13 +2706,13 @@ def _deterministic_observed_control_response(
 
     if action_type:
         pass
-    elif is_whatsapp and whatsapp_recipient and whatsapp_message_control is None:
+    elif messaging_surface and requested_destination and message_control is None:
         # Messaging contact pickers are not site-search forms. Prefer a currently
         # visible exact recipient and otherwise fill the contact search field;
         # blindly pressing Enter can open the wrong chat (or do nothing).
         exact_contact = _find_exact_recipient_control(
             elements,
-            whatsapp_recipient,
+            requested_destination,
             ordinal=_destination_ordinal_from_task(task),
         )
         search_control = _find_observed_control(
@@ -2601,7 +2734,7 @@ def _deterministic_observed_control_response(
         search_was_filled = any(
             str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "fill"
             and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "") == search_selector
-            and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or "").strip().casefold() == whatsapp_recipient.casefold()
+            and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or "").strip().casefold() == requested_destination.casefold()
             and prior_step_succeeded(step)
             for step in prior_steps
         )
@@ -2611,18 +2744,18 @@ def _deterministic_observed_control_response(
             for step in prior_steps
         )
         search_state = dict(search_control.get("state") or {}) if search_control is not None else {}
-        search_has_exact_value = str(search_state.get("value") or "").strip().casefold() == whatsapp_recipient.casefold()
+        search_has_exact_value = str(search_state.get("value") or "").strip().casefold() == requested_destination.casefold()
         if exact_contact is not None and str(exact_contact.get("selector") or "") not in completed_clicks:
             # Preserve the selector that was actually observed.  Inventing a
             # parent-row selector here breaks the canonical grounding contract
             # and can silently remove the exact-name postcondition.
             selector = str(exact_contact.get("selector") or "")
             action_type = "click"
-            description = f"Open the observed exact WhatsApp chat named {whatsapp_recipient}"
+            description = f"Open the observed exact messaging destination named {requested_destination}"
             target_grounding = {
                 "source": "dom_snapshot",
                 "selector_id": selector,
-                "accessibility_name": whatsapp_recipient,
+                "accessibility_name": requested_destination,
                 "role": str(exact_contact.get("role") or exact_contact.get("type") or "").strip() or None,
                 "semantic_kind": "recipient",
             }
@@ -2635,12 +2768,12 @@ def _deterministic_observed_control_response(
             return AnalyzeResponse(
                 session_id=session_id,
                 analysis=(
-                    f'The contact search contains "{whatsapp_recipient}", but no currently observed result has that exact identity. '
+                    f'The destination search contains "{requested_destination}", but no currently observed result has that exact identity. '
                     "The search query itself is not result evidence, so no result was clicked."
                 ),
                 outcome_kind="ask",
                 clarification_question=(
-                    f'I found no exact visible match for "{whatsapp_recipient}". '
+                    f'I found no exact visible match for "{requested_destination}". '
                     "Please provide the exact displayed contact name or choose another unambiguous destination."
                 ),
                 suggested_actions=[],
@@ -2648,9 +2781,9 @@ def _deterministic_observed_control_response(
         elif search_control is not None and not search_was_filled:
             selector = str(search_control.get("selector") or "")
             action_type = "fill"
-            value = whatsapp_recipient
-            description = f"Search WhatsApp for the explicitly requested recipient {whatsapp_recipient}"
-    elif "search for" in task_text and not is_whatsapp:
+            value = requested_destination
+            description = f"Search the observed messaging destination for the explicitly requested identity {requested_destination}"
+    elif "search for" in task_text and not messaging_surface:
         search_control = next(
             (
                 element
@@ -3029,8 +3162,8 @@ def _deterministic_observed_report_response(
                 goal_convergence=True,
                 backend_authoritative_report=True,
             )
-    if "web.whatsapp.com" in current_url:
-        recipient = _messaging_recipient_from_task(task)
+    recipient = _messaging_recipient_from_task(task)
+    if recipient:
         downstream_mutation_requested = bool(re.search(
             r"\b(attach|upload|send|type|write|reply|message)\b",
             affirmative_text,
@@ -3073,12 +3206,12 @@ def _deterministic_observed_report_response(
             return AnalyzeResponse(
                 session_id=session_id,
                 analysis=(
-                    f'The trusted post-click evidence identifies the exact requested WhatsApp chat "{recipient}", '
+                    f'The trusted post-click evidence identifies the exact requested messaging destination "{recipient}", '
                     "and the task contains no affirmative request to type, attach, or send anything."
                 ),
                 outcome_kind="report",
                 report=ReportOutcome(
-                    answer=f'Opened and verified the exact WhatsApp chat "{recipient}". Nothing was typed, attached, or sent.',
+                    answer=f'Opened and verified the exact messaging destination "{recipient}". Nothing was typed, attached, or sent.',
                     claim=f'The verified post-click identity is the exact recipient "{recipient}".',
                 ),
                 suggested_actions=[],
@@ -3366,23 +3499,9 @@ def _destination_ordinal_from_task(task: str) -> int | None:
 
 
 def _canonical_site_search_url(current_url: str, query: str, task_text: str) -> str | None:
-    if not query:
-        return None
-    parsed = urlparse(current_url)
-    host = parsed.netloc.lower().split(":", 1)[0].removeprefix("www.")
-    params = dict(parse_qsl(parsed.query, keep_blank_values=True))
-    path = parsed.path or "/"
-    if host == "github.com" or host.endswith(".github.com"):
-        path = "/search"
-        params["q"] = query
-        if "repositories" in task_text:
-            params["type"] = "repositories"
-    elif host == "youtube.com" or host.endswith(".youtube.com"):
-        path = "/results"
-        params = {"search_query": query}
-    else:
-        return None
-    return urlunparse((parsed.scheme or "https", parsed.netloc, path, "", urlencode(params), ""))
+    from app.adapters.search_url_hints import canonical_search_url
+
+    return canonical_search_url(current_url, query, task_text)
 
 
 def _first_matching_phrase(text: str, phrases: tuple[str, ...]) -> str:
@@ -3566,10 +3685,13 @@ def _deterministic_read_phase_response(
         r"|\bfind\s+(?:the\s+)?(?:exact\s+)?contact\s+named\b",
         task_text,
     ))
-    if "web.whatsapp.com" in current_url.lower() and executable_interactive_request:
-        # A messaging app URL is an interaction destination, not a knowledge
-        # source. READ/VALIDATE continuation must not focus the same tab and
-        # starve the next grounded contact/attachment action.
+    interactive_state = _interactive_page_state(page_context)
+    if executable_interactive_request and any((
+        interactive_state["contact_search_selector"], interactive_state["message_selector"],
+        interactive_state["file_selector"],
+    )):
+        # An observed interactive destination is not a knowledge source.
+        # READ/VALIDATE continuation must not starve the next grounded action.
         return None
     active_phase = str(getattr(orchestrator_snapshot.active_phase, "name", "") or "")
     if active_phase not in {"READ", "EXTRACT", "VALIDATE", "SYNTHESIZE", "REPORT"}:

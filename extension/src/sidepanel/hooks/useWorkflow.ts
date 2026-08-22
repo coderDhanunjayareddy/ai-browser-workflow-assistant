@@ -38,9 +38,16 @@ import {
   normalizeLedgerAfterRestart,
   reserveDurableExecution,
   completeDurableExecution,
+  completeHumanInterventionResume,
   saveDurableLedger,
   type DurableWorkflowLedger,
 } from '../durableWorkflowLedger'
+import {
+  checkpointFromBackend,
+  observeInterventionResume,
+  verifyHumanInterventionResume,
+  type HumanInterventionCheckpoint,
+} from '../humanIntervention'
 import { buildCanonicalActionContract } from '../../execution/canonical_action_contract'
 export { buildBudgetedPlannerContext, PLANNER_SUPPLEMENTAL_CONTEXT_BUDGET } from '../contextBudgetManager'
 import type {
@@ -327,6 +334,7 @@ export interface WorkflowState {
   missionSnapshot: MissionSnapshot | null
   userInputs: string[]
   clarificationQuestion: string | null
+  humanIntervention: HumanInterventionCheckpoint | null
   contractOutcome: PlannerOutcomeKind | null
   report: ReportOutcome | null
   replan: ReplanOutcome | null
@@ -392,6 +400,7 @@ interface AnalyzeRoutingResult {
   analysisText: string
   pendingActions: SuggestedAction[]
   clarificationQuestion: string | null
+  humanIntervention?: HumanInterventionCheckpoint | null
   contractOutcome: PlannerOutcomeKind
   report: ReportOutcome | null
   replan: ReplanOutcome | null
@@ -1261,6 +1270,61 @@ export function routeAnalyzeOutcome(
     options.currentUrl,
   )
 
+  const contractFailure = capabilityContractFailure(result, [...allowedActions, ...continuationActions])
+  if (contractFailure) {
+    return {
+      phase: 'failed',
+      analysisText: [result.analysis, contractFailure].filter(Boolean).join('\n\n'),
+      pendingActions: [],
+      clarificationQuestion: null,
+      contractOutcome: outcomeKind,
+      report: null,
+      replan: null,
+      goalConvergence: Boolean(result.goal_convergence),
+      error: contractFailure,
+      continueAfterRejectedReport: false,
+      continueAfterBackendStep: false,
+      rejectedReportPriorStep: null,
+    }
+  }
+
+  if (result.human_intervention) {
+    try {
+      return {
+        phase: 'awaiting_user',
+        analysisText: result.analysis,
+        pendingActions: [],
+        clarificationQuestion: null,
+        humanIntervention: checkpointFromBackend(result.human_intervention),
+        contractOutcome: outcomeKind,
+        report: null,
+        replan: null,
+        goalConvergence: Boolean(result.goal_convergence),
+        error: null,
+        continueAfterRejectedReport: false,
+        continueAfterBackendStep: false,
+        rejectedReportPriorStep: null,
+      }
+    } catch (error) {
+      const message = `The human-intervention contract was invalid: ${errMsg(error)}`
+      return {
+        phase: 'failed',
+        analysisText: message,
+        pendingActions: [],
+        clarificationQuestion: null,
+        humanIntervention: null,
+        contractOutcome: outcomeKind,
+        report: null,
+        replan: null,
+        goalConvergence: Boolean(result.goal_convergence),
+        error: message,
+        continueAfterRejectedReport: false,
+        continueAfterBackendStep: false,
+        rejectedReportPriorStep: null,
+      }
+    }
+  }
+
   if (outcomeKind === 'ask') {
     return {
       phase: 'awaiting_user',
@@ -1388,6 +1452,24 @@ export function routeAnalyzeOutcome(
     continueAfterBackendStep: false,
     rejectedReportPriorStep: null,
   }
+}
+
+function capabilityContractFailure(result: AnalyzeResponse, actions: SuggestedAction[]): string | null {
+  // Older unit fixtures omit both fields. A matched production backend always
+  // serializes them, so presence activates the fail-closed migration boundary.
+  if (result.capability_contracts === undefined && result.capability_contract_violations === undefined) return null
+  const violations = result.capability_contract_violations ?? []
+  if (violations.length > 0) {
+    const first = violations[0]
+    return `The proposed browser operation is unsupported by the generic capability contract (${first.action_type}). I stopped before dispatch instead of guessing a website-specific procedure.`
+  }
+  const covered = new Set((result.capability_contracts ?? []).map((contract) =>
+    String(contract.inputs?.planner_action_ref ?? contract.objective_id),
+  ))
+  const missing = actions.find((action) => !covered.has(String(action.intent_id || action.action_id)))
+  return missing
+    ? `The proposed browser operation “${missing.description}” has no generic capability contract. I stopped before dispatch.`
+    : null
 }
 
 export function cancelWorkflowPatch(): Pick<WorkflowState, 'pendingActions' | 'phase'> {
@@ -1529,6 +1611,7 @@ export function useWorkflow() {
     missionSnapshot: null,
     userInputs: [],
     clarificationQuestion: null,
+    humanIntervention: null,
     contractOutcome: null,
     report: null,
     replan: null,
@@ -1542,6 +1625,7 @@ export function useWorkflow() {
   const [pageContext, setPageContext] = useState<PageContext | null>(null)
   const durableLedgerRef = useRef<DurableWorkflowLedger | null>(null)
   const durableLedgerLoadedRef = useRef(false)
+  const interventionResumeInFlightRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -1592,6 +1676,7 @@ export function useWorkflow() {
       pendingActions: [],
       activeAction: null,
       clarificationQuestion: null,
+      humanIntervention: null,
       contractOutcome: null,
       report: null,
       replan: null,
@@ -1853,6 +1938,7 @@ export function useWorkflow() {
       missionSnapshot,
       userInputs: [],
       clarificationQuestion: null,
+      humanIntervention: null,
       contractOutcome: null,
       report: null,
       replan: null,
@@ -2273,6 +2359,67 @@ export function useWorkflow() {
   const resumeWorkflow = useCallback(async () => {
     const { sessionId, task, completedActions, validationPriorSteps, workspace, tabWorkspace, userInputs } = state
     if (!task.trim()) return
+    const checkpoint = state.humanIntervention
+    if (checkpoint) {
+      if (interventionResumeInFlightRef.current) return
+      interventionResumeInFlightRef.current = true
+      try {
+        const response = await sendToBackground<{ context?: PageContext; error?: string }>({
+          type: 'EXTRACT_CONTEXT',
+          tab_id: checkpoint.expectedTabId,
+        })
+        if (!response.context) throw new Error(response.error || 'The intervention tab could not be observed.')
+        const observed = observeInterventionResume(checkpoint, response.context)
+        const evidence = verifyHumanInterventionResume(checkpoint, observed)
+        if (!evidence) {
+          const attempts = checkpoint.unchangedGateAttempts + 1
+          const expired = attempts >= checkpoint.requestBudget
+          const nextCheckpoint: HumanInterventionCheckpoint = {
+            ...checkpoint,
+            unchangedGateAttempts: attempts,
+            state: expired ? 'expired' : 'awaiting_user',
+            updatedAt: Date.now(),
+          }
+          const message = expired
+            ? 'The required browser state was unchanged after the allowed verification attempts. I stopped without repeating completed actions.'
+            : 'The required browser state is still not verified. Complete the visible human-only step in the same tab, then verify once more.'
+          setState((current) => ({
+            ...current,
+            humanIntervention: nextCheckpoint,
+            phase: expired ? 'failed' : 'awaiting_user',
+            analysisText: message,
+            error: expired ? message : null,
+          }))
+          return
+        }
+        const ledger = durableLedgerRef.current
+        if (!ledger) throw new Error('The durable workflow checkpoint is unavailable.')
+        const resumed = completeHumanInterventionResume(ledger, evidence)
+        durableLedgerRef.current = resumed
+        await saveDurableLedger(resumed)
+        setPageContext(response.context)
+        setState((current) => ({ ...current, humanIntervention: null, error: null }))
+      } catch (error) {
+        const message = `I could not verify the human-only step safely: ${errMsg(error)}`
+        const attempts = checkpoint.unchangedGateAttempts + 1
+        const expired = attempts >= checkpoint.requestBudget
+        setState((current) => ({
+          ...current,
+          humanIntervention: {
+            ...checkpoint,
+            unchangedGateAttempts: attempts,
+            state: expired ? 'expired' : 'awaiting_user',
+            updatedAt: Date.now(),
+          },
+          phase: expired ? 'failed' : 'awaiting_user',
+          error: expired ? message : null,
+          analysisText: message,
+        }))
+        return
+      } finally {
+        interventionResumeInFlightRef.current = false
+      }
+    }
     await runWorkflowLoop({
       sessionId,
       task,
@@ -2303,6 +2450,7 @@ export function useWorkflow() {
       missionSnapshot: null,
       userInputs: [],
       clarificationQuestion: null,
+      humanIntervention: null,
       contractOutcome: null,
       report: null,
       replan: null,

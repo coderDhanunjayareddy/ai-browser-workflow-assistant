@@ -40,22 +40,30 @@ function installPage(hostname, selectorMap) {
 
 test.after(() => fs.rmSync(outDir, { recursive: true, force: true }))
 
-test('WhatsApp chat verification accepts only the exact visible conversation header', () => {
-  installPage('web.whatsapp.com', { 'header [title]': [element({ title: 'Teja Spc' })] })
-  const exact = verifyExactOpenedTarget({ expected_name: 'Teja Spc', semantic_kind: 'recipient', observed_origin: 'https://web.whatsapp.com' })
+test('chat verification accepts only the exact visible conversation header on an arbitrary origin', () => {
+  installPage('messages-one.example', { 'header [title]': [element({ title: 'Teja Spc' })] })
+  const exact = verifyExactOpenedTarget({ expected_name: 'Teja Spc', semantic_kind: 'recipient', observed_origin: 'https://messages-one.example' })
   assert.equal(exact.required, true)
   assert.equal(exact.verified, true)
   assert.equal(exact.target_kind, 'chat')
 
-  const wrong = verifyExactOpenedTarget({ expected_name: 'Teja', semantic_kind: 'recipient', observed_origin: 'https://web.whatsapp.com' })
+  const wrong = verifyExactOpenedTarget({ expected_name: 'Teja', semantic_kind: 'recipient', observed_origin: 'https://messages-one.example' })
   assert.equal(wrong.verified, false)
   assert.equal(wrong.observed_name, 'Teja Spc')
 })
 
-test('Gmail and Docs postconditions bind exact thread subject and document title', () => {
-  installPage('mail.google.com', { '[role="main"] h2': [element({ text: 'Synthetic Day 3 Thread' })] })
-  assert.equal(verifyExactOpenedTarget({ expected_name: 'Synthetic Day 3 Thread', semantic_kind: 'thread', observed_origin: 'https://mail.google.com' }).verified, true)
+test('thread and document postconditions use semantics instead of origin names', () => {
+  installPage('inbox-two.example', { '[role="main"] h2': [element({ text: 'Synthetic Day 3 Thread' })] })
+  assert.equal(verifyExactOpenedTarget({ expected_name: 'Synthetic Day 3 Thread', semantic_kind: 'thread', observed_origin: 'https://inbox-two.example' }).verified, true)
 
-  installPage('docs.google.com', { 'input.docs-title-input': [element({ value: 'Synthetic Day 3 Doc' })] })
-  assert.equal(verifyExactOpenedTarget({ expected_name: 'Synthetic Day 3 Doc', semantic_kind: 'document', observed_origin: 'https://docs.google.com' }).verified, true)
+  installPage('editor-three.example', { 'input[aria-label*="title" i]': [element({ value: 'Synthetic Day 3 Doc' })] })
+  assert.equal(verifyExactOpenedTarget({ expected_name: 'Synthetic Day 3 Doc', semantic_kind: 'document', observed_origin: 'https://editor-three.example' }).verified, true)
+})
+
+test('generic exact identity is required and cannot pass merely because the origin is unknown', () => {
+  installPage('unseen.example', { 'main h1': [element({ text: 'Different resource' })] })
+  const result = verifyExactOpenedTarget({ expected_name: 'Requested resource', semantic_kind: 'unknown', observed_origin: 'https://unseen.example' })
+  assert.equal(result.required, true)
+  assert.equal(result.verified, false)
+  assert.equal(result.target_kind, 'generic')
 })

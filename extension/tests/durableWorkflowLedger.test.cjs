@@ -189,3 +189,53 @@ test('intervention checkpoints reject cross-mission binding and redact inline se
   assert.doesNotMatch(sanitized.message, /123456/)
   assert.doesNotMatch(sanitized.requestedUserAction, /654321/)
 })
+
+test('authentication resume evidence requires the same tab and origin with the gate absent', () => {
+  const checkpoint = interventionApi.createHumanInterventionCheckpoint({
+    requestId: 'intervention-auth', missionId: 'mission-1', blockedObjectiveId: 'objective-auth',
+    kind: 'authentication', message: 'Authentication required.', requestedUserAction: 'Sign in in browser.',
+    secretHandling: 'direct_browser_only', checkpointRef: 'checkpoint-auth', completedObjectiveIds: [],
+    pendingObjectiveIds: ['objective-auth'], expectedEvidence: ['authenticated_identity'],
+    expectedOrigin: 'https://portal.example.test', expectedTabId: 7, expectedFrameId: 'top',
+    requestBudget: 2, unchangedGateAttempts: 0,
+  }, 100)
+  const blocked = interventionApi.observeInterventionResume(checkpoint, {
+    tab_id: 7, url: 'https://portal.example.test/login', title: 'Sign in', metadata: {},
+    interactive_elements: [{ type: 'password', text: '', selector: '#password', visible: true, input_type: 'password' }],
+    content_blocks: [], headings: ['Sign in'], selected_text: '', visible_text: 'Sign in to continue', images: [],
+  })
+  assert.equal(interventionApi.verifyHumanInterventionResume(checkpoint, blocked, 101), null)
+
+  const ready = interventionApi.observeInterventionResume(checkpoint, {
+    tab_id: 7, url: 'https://portal.example.test/workspace', title: 'Workspace', metadata: {},
+    interactive_elements: [{ type: 'button', text: 'New item', selector: '#new', visible: true }],
+    content_blocks: [], headings: ['Workspace'], selected_text: '', visible_text: 'Welcome to your workspace', images: [],
+  })
+  assert.ok(interventionApi.verifyHumanInterventionResume(checkpoint, ready, 102))
+
+  const wrongTab = { ...ready, observedTabId: 8 }
+  assert.equal(interventionApi.verifyHumanInterventionResume(checkpoint, wrongTab, 103), null)
+})
+
+test('captcha checkpoint cannot resume until challenge evidence disappears', () => {
+  const checkpoint = interventionApi.checkpointFromBackend({
+    schema_version: 'human_intervention.request.v1', intervention_id: 'captcha-1',
+    mission_id: 'mission-1', objective_id: 'objective-captcha', kind: 'captcha',
+    reason_code: 'captcha_required', user_message: 'Challenge required.',
+    requested_action: 'Complete the challenge in the browser.', secret_handling: 'direct_browser_only',
+    checkpoint_ref: 'checkpoint-captcha', completed_objective_ids: [], pending_objective_ids: ['objective-captcha'],
+    resume_condition: { evidence_kind: 'element_absent', expected_value: 'challenge absent', observed_origin: 'https://portal.example.test', tab_id: 7, frame_id: 'top' },
+    request_budget: 2, unchanged_gate_attempts: 0, state: 'awaiting_user',
+  }, 100)
+  const visible = interventionApi.observeInterventionResume(checkpoint, {
+    tab_id: 7, url: 'https://portal.example.test/challenge', title: 'Security challenge', metadata: {},
+    interactive_elements: [], content_blocks: [], headings: [], selected_text: '',
+    visible_text: 'Please verify you are human with reCAPTCHA', images: [],
+  })
+  assert.equal(interventionApi.verifyHumanInterventionResume(checkpoint, visible, 101), null)
+  const cleared = interventionApi.observeInterventionResume(checkpoint, {
+    tab_id: 7, url: 'https://portal.example.test/workspace', title: 'Workspace', metadata: {},
+    interactive_elements: [], content_blocks: [], headings: [], selected_text: '', visible_text: 'Workspace ready', images: [],
+  })
+  assert.ok(interventionApi.verifyHumanInterventionResume(checkpoint, cleared, 102))
+})

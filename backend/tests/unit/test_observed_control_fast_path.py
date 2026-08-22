@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.orchestrator.workflow_orchestrator import (
+    _deterministic_human_intervention_response,
     _destination_ordinal_from_task,
     _deterministic_observed_control_response,
     _deterministic_observed_report_response,
@@ -11,6 +12,7 @@ from app.schemas.request import InteractiveElement, PageContext, PriorStep
 
 def _page(url: str, elements: list[InteractiveElement]) -> PageContext:
     return PageContext(
+        tab_id=7,
         url=url,
         title="Fixture",
         metadata={},
@@ -76,7 +78,76 @@ def test_whatsapp_login_page_pauses_without_selecting_login_controls() -> None:
     assert response is not None
     assert response.outcome_kind == "ask"
     assert response.suggested_actions == []
-    assert "needs to be linked or signed in" in response.clarification_question
+    assert response.clarification_question is None
+    intervention = response.human_intervention
+    assert intervention is not None
+    assert intervention["kind"] == "authentication"
+    assert intervention["secret_handling"] == "direct_browser_only"
+    assert intervention["resume_condition"]["tab_id"] == 7
+    assert intervention["resume_condition"]["observed_origin"] == "https://web.whatsapp.com"
+    assert "password" not in intervention["requested_action"].casefold()
+
+
+def test_generic_authentication_gate_is_not_bound_to_a_named_provider() -> None:
+    page = _page(
+        "https://portal.example.test/session",
+        [InteractiveElement(
+            type="input", input_type="password", selector="#credential", text="", visible=True,
+            accessibility_name="Account credential",
+        )],
+    )
+    page.title = "Member access"
+    page.visible_text = "Use your account to continue"
+
+    response = _deterministic_human_intervention_response(
+        session_id="generic-auth", task="Continue the requested portal workflow", page_context=page,
+    )
+
+    assert response is not None
+    assert response.human_intervention["kind"] == "authentication"
+    assert response.human_intervention["resume_condition"]["observed_origin"] == "https://portal.example.test"
+    assert not any(name in str(response.human_intervention).casefold() for name in ("whatsapp", "gmail", "linkedin"))
+
+
+def test_login_words_in_page_prose_do_not_create_a_false_intervention() -> None:
+    page = _page(
+        "https://docs.example.test/article",
+        [InteractiveElement(type="button", selector="#next", text="Next", visible=True)],
+    )
+    page.title = "Migration guide"
+    page.visible_text = "This article explains how users log in to an older system."
+
+    assert _deterministic_human_intervention_response(
+        session_id="generic-read", task="Summarize this article", page_context=page,
+    ) is None
+
+
+def test_mfa_and_captcha_are_classified_before_general_authentication() -> None:
+    mfa_page = _page(
+        "https://portal.example.test/verify",
+        [InteractiveElement(
+            type="input", selector="#code", text="", visible=True,
+            accessibility_name="Verification code",
+        )],
+    )
+    mfa_page.title = "Sign in verification"
+    mfa_response = _deterministic_human_intervention_response(
+        session_id="generic-mfa", task="Continue the portal workflow", page_context=mfa_page,
+    )
+    assert mfa_response.human_intervention["kind"] == "mfa"
+
+    captcha_page = _page(
+        "https://portal.example.test/challenge",
+        [InteractiveElement(
+            type="iframe", selector="#challenge", text="", visible=True,
+            accessibility_name="reCAPTCHA",
+        )],
+    )
+    captcha_page.visible_text = "Verify you are human"
+    captcha_response = _deterministic_human_intervention_response(
+        session_id="generic-captcha", task="Continue the portal workflow", page_context=captcha_page,
+    )
+    assert captcha_response.human_intervention["kind"] == "captcha"
 
 
 def test_whatsapp_open_only_task_reports_after_exact_chat_is_observed() -> None:

@@ -147,16 +147,39 @@ def _current_page_is_task_surface(task: str, category: str, current_url: str) ->
     host = urlparse(current_url).netloc.lower().split(":", 1)[0].removeprefix("www.")
     if not host:
         return False
-    task_text = task.lower()
-    known_surfaces = {
-        "whatsapp": ("web.whatsapp.com",),
-        "gmail": ("mail.google.com",),
-        "linkedin": ("linkedin.com",),
-    }
-    for marker, expected_hosts in known_surfaces.items():
-        if marker in task_text:
-            return any(host == expected or host.endswith(f".{expected}") for expected in expected_hosts)
+    explicit_urls = re.findall(r"https?://[^\s\"'<>]+", str(task or ""), flags=re.IGNORECASE)
+    if explicit_urls:
+        expected_hosts = {
+            urlparse(url.rstrip(".,;!?)).")).netloc.lower().split(":", 1)[0].removeprefix("www.")
+            for url in explicit_urls
+        }
+        return any(host == expected or host.endswith(f".{expected}") for expected in expected_hosts if expected)
+    if re.search(r"\b(open|navigate|visit|go\s+to|launch)\b", str(task or ""), flags=re.IGNORECASE):
+        return _task_mentions_current_surface(task, current_url)
     return True
+
+
+def _task_mentions_current_surface(task: str, current_url: str) -> bool:
+    parsed = urlparse(current_url)
+    task_text = str(task or "").casefold()
+    url_tokens = {
+        token for token in re.split(r"[^a-z0-9]+", f"{parsed.netloc} {parsed.path}".casefold())
+        if len(token) >= 3 and token not in {"www", "com", "org", "net", "local", "localhost", "http", "https"}
+    }
+    if any(re.search(rf"\b{re.escape(token)}\b", task_text) for token in url_tokens):
+        return True
+    semantic_surface_groups = (
+        ("page", "paged", "pagination", "paginator"),
+        ("modal", "dialog", "settings"),
+        ("login", "signin", "sign in", "authentication"),
+        ("chat", "conversation", "thread", "message", "messaging"),
+        ("document", "editor", "file", "folder"),
+    )
+    url_text = f"{parsed.netloc} {parsed.path}".casefold()
+    return any(
+        any(term in task_text for term in group) and any(term in url_text for term in group)
+        for group in semantic_surface_groups
+    )
 
 
 def _source_cap_transition_response(

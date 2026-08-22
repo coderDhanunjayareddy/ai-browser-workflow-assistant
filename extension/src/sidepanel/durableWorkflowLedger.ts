@@ -140,11 +140,21 @@ export function checkpointDurableLedger(
   const base = current?.sessionId === state.sessionId ? current : createDurableLedger(state, now)
   const derivedApproval = approvalStatusForState(state)
   const preserveActiveApproval = state.phase === 'executing' && base.approval.actionId === state.activeAction?.action_id
+  const intervention = state.humanIntervention
+    ? (
+        base.intervention?.checkpoint.requestId === state.humanIntervention.requestId
+          ? base.intervention.resumeEvidence
+            ? base.intervention
+            : { ...base.intervention, checkpoint: sanitizeHumanInterventionCheckpoint(state.humanIntervention) }
+          : { checkpoint: sanitizeHumanInterventionCheckpoint(state.humanIntervention), resumeEvidence: null }
+      )
+    : base.intervention?.checkpoint.state === 'resumed' ? base.intervention : null
   return {
     ...base,
     revision: base.revision + 1,
     updatedAt: now,
     workflow: state,
+    intervention,
     approval: {
       status: preserveActiveApproval ? base.approval.status : derivedApproval,
       actionId: preserveActiveApproval ? base.approval.actionId : pendingActionId(state),
@@ -236,9 +246,13 @@ export function normalizeLedgerAfterRestart(
   ]))
   const interrupted = Object.values(executions).some((record) => record.status === 'uncertain')
   const transient = ['observing', 'analyzing', 'executing', 'refreshing'].includes(ledger.workflow.phase)
+  const restoredWorkflow: WorkflowState = {
+    ...ledger.workflow,
+    humanIntervention: ledger.workflow.humanIntervention ?? ledger.intervention?.checkpoint ?? null,
+  }
   const workflow: WorkflowState = interrupted || transient
     ? {
-        ...ledger.workflow,
+        ...restoredWorkflow,
         phase: 'failed',
         activeAction: null,
         pendingActions: [],
@@ -246,7 +260,7 @@ export function normalizeLedgerAfterRestart(
           ? 'A browser action may have been dispatched before restart. It will not be repeated. Resume to re-observe the page and continue safely.'
           : 'The workflow was interrupted before its checkpoint completed. Resume to continue from the last durable state.',
       }
-    : ledger.workflow
+    : restoredWorkflow
   return {
     ...ledger,
     revision: ledger.revision + 1,

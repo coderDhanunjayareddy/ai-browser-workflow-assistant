@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 
@@ -43,3 +44,23 @@ def test_competing_components_cannot_also_be_authoritative_for_the_same_stage():
         competitors = set(stage.get("competing_components", []))
         assert stage["current_authority"] not in competitors
         assert stage["target_authority"] not in competitors
+
+
+def test_active_core_boundaries_contain_no_named_application_or_service_literals():
+    guarded_files = [
+        "backend/app/orchestrator/workflow_orchestrator.py",
+        "backend/app/execution_orchestrator/engine.py",
+        "extension/src/content/exact_target_verification.ts",
+        "extension/src/execution/exact_open_completion.ts",
+    ]
+    forbidden = re.compile(
+        r"\b(whatsapp|gmail|youtube|linkedin|instagram|amazon|makemytrip)\b",
+        flags=re.IGNORECASE,
+    )
+    violations = {}
+    for relative_path in guarded_files:
+        text = (REPOSITORY_ROOT / relative_path).read_text(encoding="utf-8")
+        matches = sorted({match.group(0).casefold() for match in forbidden.finditer(text)})
+        if matches:
+            violations[relative_path] = matches
+    assert not violations, f"Named application literals must remain in registry/adapter/test paths: {violations}"

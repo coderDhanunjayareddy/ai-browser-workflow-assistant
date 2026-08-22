@@ -27,6 +27,11 @@ class ContentBlock(BaseModel):
 
 
 class PageContext(BaseModel):
+    # Browser identity is supplied by the extension and retained across the
+    # backend boundary so interventions can resume only in the observed tab.
+    tab_id: Optional[int] = Field(default=None, ge=0)
+    window_id: Optional[int] = Field(default=None, ge=0)
+    frame_id: str = Field(default="top", min_length=1, max_length=300)
     url: str
     title: str
     metadata: dict[str, str] = Field(default_factory=dict, max_length=20)

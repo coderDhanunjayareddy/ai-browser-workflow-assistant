@@ -348,6 +348,59 @@ test('routes act outcomes through the existing action path', () => {
   assert.equal(routed.replan, null)
 })
 
+test('matched production responses fail closed when a proposed action lacks a generic capability contract', () => {
+  const routed = route(response({
+    outcome_kind: 'act',
+    suggested_actions: [action({ description: 'Activate observed details' })],
+    capability_contracts: [],
+    capability_contract_violations: [],
+  }))
+
+  assert.equal(routed.phase, 'failed')
+  assert.deepEqual(routed.pendingActions, [])
+  assert.match(routed.error, /no generic capability contract/i)
+})
+
+test('matched generic capability contract permits the existing canonical execution path', () => {
+  const proposed = action({ description: 'Activate observed details' })
+  const routed = route(response({
+    outcome_kind: 'act',
+    suggested_actions: [proposed],
+    capability_contracts: [{
+      schema_version: 'generic_capability.request.v1', mission_id: 'session-1', objective_id: 'a1',
+      capability_id: 'interaction.activate', family: 'interaction',
+      target: { entity_type: 'interactive_control', exact_match_required: false, frame_id: 'top' },
+      inputs: { planner_action_ref: 'a1' },
+      expected_effect: {
+        effect_type: 'declared_state_change', observable_postcondition: 'Details are visible.',
+        required_evidence: ['page_state_change'],
+      },
+      safety_class: 'safe', retry_budget: 0, idempotency_key: 'session-1:a1:a1',
+      confirmation_required: false,
+    }],
+    capability_contract_violations: [],
+  }))
+
+  assert.equal(routed.phase, 'awaiting_execution')
+  assert.equal(routed.pendingActions[0].action_id, 'a1')
+})
+
+test('unsupported capability violation becomes a meaningful terminal outcome before dispatch', () => {
+  const routed = route(response({
+    outcome_kind: 'act',
+    suggested_actions: [action({ action_type: 'provider_specific_magic' })],
+    capability_contracts: [],
+    capability_contract_violations: [{
+      action_id: 'a1', action_type: 'provider_specific_magic',
+      reason: 'Unsupported generic action type',
+    }],
+  }))
+
+  assert.equal(routed.phase, 'failed')
+  assert.match(routed.analysisText, /stopped before dispatch/i)
+  assert.doesNotMatch(routed.analysisText, /selector|stack trace|exception/i)
+})
+
 test('routes orchestrator phase continuation actions into the execution queue', () => {
   const first = action({
     action_id: 'open-1',
@@ -415,6 +468,35 @@ test('routes ask outcomes to clarification without actions', () => {
   assert.equal(routed.contractOutcome, 'ask')
   assert.equal(routed.clarificationQuestion, 'Which account should I use?')
   assert.deepEqual(routed.pendingActions, [])
+})
+
+test('routes typed human intervention to a browser-bound checkpoint without a clarification field', () => {
+  const routed = route(response({
+    outcome_kind: 'ask',
+    clarification_question: null,
+    suggested_actions: [],
+    human_intervention: {
+      schema_version: 'human_intervention.request.v1',
+      intervention_id: 'intervention-auth-1', mission_id: 'mission-1', objective_id: 'objective-auth-1',
+      kind: 'authentication', reason_code: 'authentication_required',
+      user_message: 'Authentication is required.',
+      requested_action: 'Complete sign-in directly in this browser tab.',
+      secret_handling: 'direct_browser_only', checkpoint_ref: 'checkpoint-auth-1',
+      completed_objective_ids: ['objective-open'], pending_objective_ids: ['objective-auth-1'],
+      resume_condition: {
+        evidence_kind: 'authenticated_state', expected_value: 'workspace visible',
+        observed_origin: 'https://example.test', tab_id: 7, frame_id: 'top',
+      },
+      request_budget: 2, unchanged_gate_attempts: 0, state: 'awaiting_user',
+    },
+  }))
+
+  assert.equal(routed.phase, 'awaiting_user')
+  assert.equal(routed.clarificationQuestion, null)
+  assert.equal(routed.humanIntervention.requestId, 'intervention-auth-1')
+  assert.equal(routed.humanIntervention.expectedTabId, 7)
+  assert.deepEqual(routed.humanIntervention.expectedEvidence, ['authenticated_identity'])
+  assert.equal(routed.humanIntervention.secretHandling, 'direct_browser_only')
 })
 
 test('authoritative destination clarification updates the effective durable task', () => {

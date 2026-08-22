@@ -95,3 +95,11 @@ class AnalyzeResponse(BaseModel):
     # Execution Orchestrator phase work is ingested into the Mission Ledger
     # before browser handoff. It is not an extension-owned execution queue.
     execution_orchestrator: Optional[IntentQueueDirective] = None
+    # Domain-independent capability contracts compiled at the final backend
+    # boundary. During migration, violations are observable instead of allowing
+    # an uncontracted action path to remain invisible.
+    capability_contracts: list[dict[str, Any]] = Field(default_factory=list)
+    capability_contract_violations: list[dict[str, str]] = Field(default_factory=list)
+    # Typed, domain-independent handoff for browser work that only a person may
+    # complete (authentication, MFA, CAPTCHA, privileged UI, or confirmation).
+    human_intervention: Optional[dict[str, Any]] = None
