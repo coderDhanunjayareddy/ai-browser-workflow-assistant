@@ -77,6 +77,13 @@ def classify_action_risk(action: SuggestedAction) -> tuple[str, list[str], list[
         reasons.append("planner_marked_danger")
     insertion = action.content_insertion or {}
     submission = action.consequential_submission or {}
+    # WAIT is observational. Mission and planner descriptions may mention the
+    # capability being observed (for example, "wait for an upload control"),
+    # but that text must not turn a typed no-mutation action into a disclosure.
+    # A malformed WAIT carrying an explicit mutation contract still fails into
+    # the normal confirmation path below.
+    if action.action_type == "wait" and not insertion and not submission:
+        return "safe", [], ["typed_observational_wait"]
     if submission:
         approval_hooks.extend(["irreversible_external_action", "scoped_confirmation"])
         reasons.append("consequential_submission_requires_immediate_confirmation")

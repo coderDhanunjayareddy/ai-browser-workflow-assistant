@@ -171,13 +171,46 @@ async function send(target: chrome.debugger.Debuggee, method: string, params: Re
   return await chrome.debugger.sendCommand(target, method, params) as ProtocolResult
 }
 
-export function runtimeGroundingExpression(selector: string, exactName: string | null): string {
+export function runtimeGroundingExpression(selector: string, exactName: string | null, objective: string | null = null): string {
   return `(() => {
     const selector = ${JSON.stringify(selector)};
     const exactName = ${JSON.stringify(exactName)};
+    const objective = ${JSON.stringify(objective)};
     let visited = 0;
     const normalize = (value) => String(value || '').replace(/\\s+/g, ' ').trim().toLowerCase();
     const label = (el) => normalize(el.getAttribute('aria-label') || el.getAttribute('title') || el.value || el.textContent || '');
+    const primaryLine = (el) => String(el.innerText || el.textContent || '')
+      .split(/\\r?\\n/)
+      .map(normalize)
+      .find(Boolean) || '';
+    const resultContainer = (el) => {
+      if (!el.closest) return null;
+      return el.closest('[role="row"], [role="listitem"], [role="option"]')
+        || el.closest('button, a[href], [role="button"], [role="link"], [role="menuitem"], [tabindex="0"]');
+    };
+    const sectionLabel = (container) => {
+      let cursor = container;
+      for (let checked = 0; cursor && checked < 200; checked += 1, cursor = cursor.previousElementSibling) {
+        const heading = cursor.matches && cursor.matches('h1, h2, h3, [role="heading"]')
+          ? cursor
+          : cursor.querySelector && cursor.querySelector('h1, h2, h3, [role="heading"]');
+        const text = heading && normalize(heading.innerText || heading.textContent || heading.getAttribute('aria-label'));
+        if (text) return text;
+      }
+      return '';
+    };
+    const tokenKey = (token) => token.length > 3 && token.endsWith('s') ? token.slice(0, -1) : token;
+    const objectiveTokens = new Set(normalize(objective).split(/[^a-z0-9]+/).filter(Boolean).map(tokenKey));
+    const sectionAffinity = (container) => normalize(sectionLabel(container))
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean)
+      .map(tokenKey)
+      .filter((token) => objectiveTokens.has(token)).length;
+    const exactActionableAncestor = (el) => {
+      if (!exactName || label(el) !== normalize(exactName)) return null;
+      const actionable = resultContainer(el);
+      return actionable && visible(actionable) ? actionable : null;
+    };
     const containsUniqueExactIdentity = (el) => {
       if (!exactName || !el.querySelectorAll) return false;
       const exact = Array.from(el.querySelectorAll('[aria-label], [title]'))
@@ -194,7 +227,32 @@ export function runtimeGroundingExpression(selector: string, exactName: string |
       if (!root || depth > 12 || visited > 8000) return { ok: false, reason: 'selector_search_limit' };
       let matches = [];
       try { matches = Array.from(root.querySelectorAll(selector)).filter(visible); } catch { return { ok: false, reason: 'selector_invalid' }; }
-      if (matches.length > 1) return { ok: false, reason: 'selector_ambiguous', matchCount: matches.length };
+      if (matches.length > 1) {
+        const exactAncestors = [...new Set(matches.map(exactActionableAncestor).filter(Boolean))];
+        const ranked = exactAncestors
+          .map((element) => ({ element, affinity: sectionAffinity(element), primaryExact: primaryLine(element) === normalize(exactName) }))
+          .sort((a, b) => b.affinity - a.affinity || Number(b.primaryExact) - Number(a.primaryExact));
+        const winner = ranked[0] || null;
+        const runnerUp = ranked[1] || null;
+        const uniquelyGrounded = winner && (
+          (winner.affinity > 0 && (!runnerUp || winner.affinity > runnerUp.affinity))
+          || (winner.primaryExact && (!runnerUp || !runnerUp.primaryExact))
+        );
+        if (uniquelyGrounded) {
+          const actionable = winner.element;
+          actionable.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+          const r = actionable.getBoundingClientRect();
+          return {
+            ok: true,
+            x: offsetX + r.left + r.width / 2,
+            y: offsetY + r.top + r.height / 2,
+            observedName: normalize(exactName),
+            resultSection: sectionLabel(actionable),
+            disambiguatedBy: winner.affinity > 0 ? 'objective_result_section' : 'exact_actionable_primary_line',
+          };
+        }
+        return { ok: false, reason: 'selector_ambiguous', matchCount: matches.length, exactActionableCount: exactAncestors.length };
+      }
       const direct = matches[0] || null;
       if (direct && (!exactName || label(direct) === normalize(exactName) || containsUniqueExactIdentity(direct))) {
         direct.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
@@ -254,7 +312,52 @@ export class CdpController {
       ])
 
       const inventory = await this.inventory(target, navigationSignals)
-      const grounding = await this.resolvePoint(target, action)
+      let grounding = await this.resolvePoint(target, action)
+      const revealSelector = action.content_insertion?.stage === 'select_bound_content'
+        ? String(action.content_insertion?.reveal_selector || '').trim()
+        : ''
+      if (!grounding.point && revealSelector) {
+        const revealAction: ExecutableAction = {
+          ...action,
+          target_selector: revealSelector,
+          description: 'Reveal the previously observed content-insertion options',
+          grounding: {
+            source: 'dom_snapshot',
+            selector_id: null,
+            frame_id: action.grounding?.frame_id || 'top',
+            accessibility_name: null,
+            role: null,
+            semantic_kind: 'content_insertion_trigger',
+            expected_url_path: action.grounding?.expected_url_path || null,
+            screenshot_verified: false,
+            screenshot_hash: null,
+            bounding_box: null,
+          },
+        }
+        const revealGrounding = await this.resolvePoint(target, revealAction)
+        if (revealGrounding.point) {
+          await this.dispatch(target, revealAction, revealGrounding.point)
+          await new Promise((resolve) => setTimeout(resolve, 160))
+          const revealedTarget = await this.resolvePoint(target, action)
+          grounding = {
+            ...revealedTarget,
+            attempts: [
+              ...grounding.attempts,
+              'content_insertion_reveal:selected_verified_trigger',
+              ...revealedTarget.attempts,
+            ],
+            fallbackReason: grounding.fallbackReason || revealedTarget.fallbackReason,
+          }
+        } else {
+          grounding = {
+            ...grounding,
+            attempts: [
+              ...grounding.attempts,
+              ...revealGrounding.attempts.map((attempt) => `content_insertion_reveal:${attempt}`),
+            ],
+          }
+        }
+      }
       if (!grounding.point) {
         return this.result(action, false, 'CDP could not ground the requested target without changing its identity.', inventory, null, grounding.screenshotHash, startedAt, grounding.attempts, grounding.fallbackReason)
       }
@@ -292,7 +395,11 @@ export class CdpController {
     }
     if (action.target_selector) {
       const evaluated = await send(target, 'Runtime.evaluate', {
-        expression: runtimeGroundingExpression(action.target_selector, action.grounding?.accessibility_name?.trim() || null),
+        expression: runtimeGroundingExpression(
+          action.target_selector,
+          action.grounding?.accessibility_name?.trim() || null,
+          action.description || null,
+        ),
         returnByValue: true,
         awaitPromise: false,
       }).catch(() => ({} as ProtocolResult))

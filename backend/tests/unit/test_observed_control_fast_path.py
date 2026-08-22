@@ -143,6 +143,59 @@ def test_whatsapp_affirmative_attachment_task_does_not_finish_after_chat_open() 
     )
 
 
+def test_verified_cdp_menu_click_advances_to_new_content_kind_control() -> None:
+    task = "Open the exact chat named Rahul, then attach the approved file synthetic-day5.txt."
+    page = _page(
+        "https://web.whatsapp.com/",
+        [
+            InteractiveElement(
+                type="div",
+                selector='[data-testid="conversation-compose-box-input"]',
+                text="",
+                visible=True,
+                role="textbox",
+                accessibility_name="Type a message to Rahul",
+            ),
+            InteractiveElement(
+                type="button",
+                selector='button[aria-label="Attach"]',
+                text="",
+                visible=True,
+                accessibility_name="Attach",
+            ),
+            InteractiveElement(
+                type="button",
+                selector='button[aria-label="Document"]',
+                text="",
+                visible=True,
+                accessibility_name="Document",
+            ),
+        ],
+    )
+    opened_menu = PriorStep(
+        action_type="click",
+        description="Activate the observed content-insertion control",
+        target_selector='button[aria-label="Attach"]',
+        value=None,
+        execution_result="CDP click dispatched via stable_selector grounding.",
+    )
+
+    control = _deterministic_observed_control_response(
+        session_id="advance-after-cdp",
+        task=task,
+        page_context=page,
+        prior_steps=[opened_menu],
+    )
+
+    assert control is not None
+    action = control.suggested_actions[0]
+    assert action.target_selector == 'button[aria-label="Document"]'
+    assert action.content_insertion is not None
+    assert action.content_insertion["stage"] == "select_bound_content"
+    assert action.content_insertion["opens_native_chooser"] is True
+    assert action.content_insertion["reveal_selector"] == 'button[aria-label="Attach"]'
+
+
 def test_whatsapp_open_only_task_converges_from_trusted_exact_click_evidence() -> None:
     task = (
         "Open WhatsApp and open the exact direct chat named Teja Spc. "

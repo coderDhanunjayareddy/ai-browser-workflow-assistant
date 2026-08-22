@@ -2327,6 +2327,7 @@ def _deterministic_observed_control_response(
             "success",
             "filled field",
             "clicked target",
+            "cdp click dispatched",
             "selected option",
             "selected visible option",
             "waited ",
@@ -2727,7 +2728,7 @@ def _deterministic_observed_control_response(
                 "image": ("photo", "photos", "image", "images", "media", "attach"),
                 "video": ("video", "videos", "media", "attach"),
                 "audio": ("audio", "sound", "voice", "attach"),
-                "local_file": ("attach", "attachment", "file", "upload", "add"),
+                "local_file": ("document", "attach", "attachment", "file", "upload", "add"),
             }
             requested_terms = tuple(dict.fromkeys(
                 term
@@ -2751,8 +2752,12 @@ def _deterministic_observed_control_response(
             if generic_selector in completed_clicks:
                 generic_control = None
 
+            remaining_insertion_controls = [
+                element for element in elements
+                if str(element.get("selector") or "") not in completed_clicks
+            ]
             attach_control = generic_control or _find_observed_control(
-                elements,
+                remaining_insertion_controls,
                 exact_labels=requested_terms,
                 label_terms=requested_terms,
                 selector_terms=("attach", "attachment", "upload", "file", "paperclip"),
@@ -2773,6 +2778,14 @@ def _deterministic_observed_control_response(
                 if selected_specific_kind:
                     content_insertion["stage"] = "select_bound_content"
                     content_insertion["opens_native_chooser"] = True
+                    # Content menus are commonly transient: the option can be
+                    # observed, then disappear while the next action contract
+                    # is planned. Preserve the already verified menu trigger so
+                    # the single executor can reveal the same observed option
+                    # and dispatch it atomically without inventing a new target
+                    # or opening a second native chooser.
+                    if generic_selector and generic_selector in completed_clicks:
+                        content_insertion["reveal_selector"] = generic_selector
                 description = (
                     "Activate the observed content-insertion control for the broker-bound approved "
                     f"{requested_kind} content"

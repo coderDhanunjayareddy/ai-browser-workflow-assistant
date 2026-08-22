@@ -15,6 +15,7 @@ export interface FileTransferAction {
     destination_entity: string
     stage: string
     opens_native_chooser: boolean
+    reveal_selector?: string | null
   } | null
 }
 

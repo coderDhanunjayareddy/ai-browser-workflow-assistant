@@ -89,6 +89,21 @@ def test_safe_action_is_allowed_immediately_before_execution(engine: LivePolicyE
     assert decision.origin == "https://example.com"
 
 
+def test_observational_wait_does_not_inherit_upload_confirmation_from_description(engine: LivePolicyEngine):
+    observe = request(action(
+        action_id="wait-upload-control",
+        action_type="wait",
+        selector="",
+        value="500",
+        description="Observe the current destination for a safe upload control",
+    ))
+    decision = engine.enforce(observe)
+    assert decision.allowed is True
+    assert decision.policy_decision == "allow"
+    assert decision.risk_level == "safe"
+    assert decision.decision_reason == "typed_observational_wait"
+
+
 def test_confirmation_receipt_is_narrow_one_time_and_action_bound(engine: LivePolicyEngine):
     pay = request(action(action_id="pay-1", description="Click Pay Invoice", safety_level="caution"))
     first = engine.enforce(pay)

@@ -73,6 +73,7 @@ export interface ContentInsertionDeclaration {
   destination_entity: string
   stage: 'open_insertion_menu' | 'select_bound_content'
   opens_native_chooser: boolean
+  reveal_selector?: string | null
 }
 
 export interface ConsequentialSubmissionDeclaration {

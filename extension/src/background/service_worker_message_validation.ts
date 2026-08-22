@@ -29,6 +29,7 @@ export type ExecutableAction = {
     destination_entity: string
     stage: string
     opens_native_chooser: boolean
+    reveal_selector?: string | null
   } | null
   consequential_submission?: {
     schema_version: 'consequential_submission.v1'
@@ -139,6 +140,7 @@ function validateContentInsertionDeclaration(value: unknown): boolean {
     && isBoundedString(value.destination_entity, 500)
     && ['open_insertion_menu', 'select_bound_content'].includes(String(value.stage))
     && typeof value.opens_native_chooser === 'boolean'
+    && (value.reveal_selector === undefined || value.reveal_selector === null || isBoundedString(value.reveal_selector, 2000))
 }
 
 function validateConsequentialSubmission(value: unknown): boolean {

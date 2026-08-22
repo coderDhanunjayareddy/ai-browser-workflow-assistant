@@ -33,6 +33,7 @@ const {
   chooseExactAccessibilityBackendNode,
   countFrames,
   keyboardDispatchParameters,
+  runtimeGroundingExpression,
   shouldAttemptCdpFallback,
   visionHitCompatible,
 } = require(path.join(outDir, 'background', 'cdp_control.js'))
@@ -130,6 +131,79 @@ test('stable selector grounding scrolls an exact offscreen target into the viewp
   assert.match(source, /direct\.scrollIntoView\(\{ block: 'center', inline: 'center', behavior: 'instant' \}\)/)
 })
 
+test('ambiguous exact text fragments resolve only through one exact actionable primary line', () => {
+  const style = () => ({ display: 'block', visibility: 'visible' })
+  const makeRow = (innerText, left) => ({
+    innerText,
+    textContent: innerText,
+    getAttribute: () => null,
+    getBoundingClientRect: () => ({ left, top: 20, width: 240, height: 60 }),
+    querySelectorAll: () => [],
+    scrollIntoView: () => undefined,
+  })
+  const exactRow = makeRow('Rahul\n1:56 PM\nRecent message', 10)
+  const prefixRow = makeRow('Rahul Computers', 300)
+  const makeSpan = (row) => ({
+    tagName: 'SPAN',
+    textContent: 'Rahul',
+    innerText: 'Rahul',
+    getAttribute: (name) => name === 'title' ? 'Rahul' : null,
+    getBoundingClientRect: () => ({ left: 20, top: 30, width: 40, height: 20 }),
+    querySelectorAll: () => [],
+    closest: () => row,
+  })
+  const spans = [makeSpan(exactRow), makeSpan(prefixRow)]
+  const document = { querySelectorAll: (selector) => selector === '*' ? [] : spans }
+  const expression = runtimeGroundingExpression('span[title="Rahul"]', 'Rahul')
+  const result = Function('document', 'getComputedStyle', `return ${expression}`)(document, style)
+
+  assert.equal(result.ok, true)
+  assert.equal(result.disambiguatedBy, 'exact_actionable_primary_line')
+  assert.equal(result.observedName, 'rahul')
+  assert.deepEqual({ x: result.x, y: result.y }, { x: 130, y: 50 })
+})
+
+test('duplicate exact identities bind to the result section matching the objective', () => {
+  const style = () => ({ display: 'block', visibility: 'visible' })
+  const heading = (text) => ({ innerText: text, textContent: text, getAttribute: () => null })
+  const sectionRow = (text) => ({
+    previousElementSibling: null,
+    matches: () => false,
+    querySelector: () => heading(text),
+  })
+  const makeRow = (innerText, left, previousElementSibling) => ({
+    innerText,
+    textContent: innerText,
+    previousElementSibling,
+    matches: () => false,
+    querySelector: () => null,
+    getAttribute: () => null,
+    getBoundingClientRect: () => ({ left, top: 20, width: 240, height: 60 }),
+    querySelectorAll: () => [],
+    scrollIntoView: () => undefined,
+  })
+  const chatRow = makeRow('BR\nRahul\n1:56 PM\nRecent message', 10, sectionRow('Chats'))
+  const messageRow = makeRow('Rahul\n7/24/2026\nMatched message', 300, sectionRow('Messages'))
+  const makeSpan = (row) => ({
+    tagName: 'SPAN',
+    textContent: 'Rahul',
+    innerText: 'Rahul',
+    getAttribute: (name) => name === 'title' ? 'Rahul' : null,
+    getBoundingClientRect: () => ({ left: 20, top: 30, width: 40, height: 20 }),
+    querySelectorAll: () => [],
+    closest: () => row,
+  })
+  const spans = [makeSpan(chatRow), makeSpan(messageRow)]
+  const document = { querySelectorAll: (selector) => selector === '*' ? [] : spans }
+  const expression = runtimeGroundingExpression('span[title="Rahul"]', 'Rahul', 'Open the exact chat named Rahul')
+  const result = Function('document', 'getComputedStyle', `return ${expression}`)(document, style)
+
+  assert.equal(result.ok, true)
+  assert.equal(result.disambiguatedBy, 'objective_result_section')
+  assert.equal(result.resultSection, 'chats')
+  assert.deepEqual({ x: result.x, y: result.y }, { x: 130, y: 50 })
+})
+
 test('vision coordinates require a current compatible hit target', () => {
   const exact = action({ grounding: { source: 'vision_region', accessibility_name: 'Open details', role: 'button' } })
   assert.equal(visionHitCompatible({ tag: 'button', role: 'button', name: 'Open details', selectorMatched: false }, exact), true)
@@ -168,4 +242,43 @@ test('controller detaches when grounding fails', async () => {
   assert.equal(result.success, false)
   assert.match(result.message, /could not ground/i)
   assert.equal(calls.at(-1)[0], 'detach')
+})
+
+test('transient content option is revealed and grounded inside one trusted dispatch', async () => {
+  let targetAttempts = 0
+  const calls = installChromeMock((method, params) => {
+    if (method === 'Target.getTargets') return { targetInfos: [{ targetId: 'page' }] }
+    if (method === 'Page.getFrameTree') return { frameTree: { frame: { id: 'root' } } }
+    if (method === 'Runtime.evaluate') {
+      const expression = String(params?.expression || '')
+      if (expression.includes('button[aria-label=\\"Attach\\"]')) {
+        return { result: { value: { ok: true, x: 20, y: 30 } } }
+      }
+      targetAttempts += 1
+      return targetAttempts === 1
+        ? { result: { value: { ok: false, reason: 'selector_not_found' } } }
+        : { result: { value: { ok: true, x: 60, y: 70 } } }
+    }
+    if (method === 'Accessibility.getFullAXTree') return { nodes: [] }
+    return {}
+  })
+  const result = await new CdpController().execute(9, action({
+    target_selector: 'button[aria-label="Document"]',
+    grounding: { source: 'dom_snapshot', accessibility_name: 'Document', role: 'menuitem' },
+    content_insertion: {
+      schema_version: 'content_insertion_request.v1',
+      request_id: 'content-1',
+      kind: 'local_file',
+      expected_effect: 'preview_then_send',
+      requires_bound_file: true,
+      destination_entity: 'Recipient',
+      stage: 'select_bound_content',
+      opens_native_chooser: true,
+      reveal_selector: 'button[aria-label="Attach"]',
+    },
+  }))
+  assert.equal(result.success, true)
+  assert.equal(targetAttempts, 2)
+  assert.equal(calls.filter((item) => item[0] === 'command' && item[1] === 'Input.dispatchMouseEvent' && item[2].type === 'mousePressed').length, 2)
+  assert.match(String(result.adapter_trace.cdp_grounding_attempts), /content_insertion_reveal:selected_verified_trigger/)
 })
