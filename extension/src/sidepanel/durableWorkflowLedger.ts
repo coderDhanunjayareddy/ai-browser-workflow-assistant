@@ -1,5 +1,10 @@
 import type { ExecutionResult, SuggestedAction } from '../types'
 import type { WorkflowState } from './hooks/useWorkflow'
+import {
+  sanitizeHumanInterventionCheckpoint,
+  type HumanInterventionCheckpoint,
+  type HumanInterventionResumeEvidence,
+} from './humanIntervention'
 
 export const DURABLE_WORKFLOW_LEDGER_KEY = 'phase3_durable_workflow_ledger'
 export const DURABLE_LEDGER_SCHEMA_VERSION = 1
@@ -33,6 +38,10 @@ export interface DurableWorkflowLedger {
     updatedAt: number
   }
   executions: Record<string, DurableExecutionRecord>
+  intervention: {
+    checkpoint: HumanInterventionCheckpoint
+    resumeEvidence: HumanInterventionResumeEvidence | null
+  } | null
 }
 
 const REVERSIBLE_ACTIONS = new Set([
@@ -79,6 +88,47 @@ export function createDurableLedger(state: WorkflowState, now = Date.now()): Dur
     workflow: state,
     approval: { status: approvalStatusForState(state), actionId: pendingActionId(state), updatedAt: now },
     executions: {},
+    intervention: null,
+  }
+}
+
+export function checkpointHumanIntervention(
+  ledger: DurableWorkflowLedger,
+  checkpoint: HumanInterventionCheckpoint,
+  now = Date.now(),
+): DurableWorkflowLedger {
+  if (checkpoint.missionId !== ledger.sessionId) {
+    throw new Error('Intervention mission identity does not match the durable workflow session.')
+  }
+  return {
+    ...ledger,
+    revision: ledger.revision + 1,
+    updatedAt: now,
+    intervention: { checkpoint: { ...checkpoint, updatedAt: now }, resumeEvidence: null },
+  }
+}
+
+export function completeHumanInterventionResume(
+  ledger: DurableWorkflowLedger,
+  evidence: HumanInterventionResumeEvidence,
+  now = Date.now(),
+): DurableWorkflowLedger {
+  const current = ledger.intervention
+  if (!current) throw new Error('No human-intervention checkpoint is awaiting resume.')
+  if (current.resumeEvidence || current.checkpoint.state === 'resumed') {
+    throw new Error('Human intervention has already resumed and cannot be applied twice.')
+  }
+  if (evidence.requestId !== current.checkpoint.requestId || evidence.missionId !== ledger.sessionId) {
+    throw new Error('Resume evidence identity does not match the durable checkpoint.')
+  }
+  return {
+    ...ledger,
+    revision: ledger.revision + 1,
+    updatedAt: now,
+    intervention: {
+      checkpoint: { ...current.checkpoint, state: 'resumed', updatedAt: now },
+      resumeEvidence: evidence,
+    },
   }
 }
 
@@ -262,5 +312,11 @@ function sanitizeLedgerForStorage(ledger: DurableWorkflowLedger): DurableWorkflo
           : input
       ),
     },
+    intervention: ledger.intervention
+      ? {
+          ...ledger.intervention,
+          checkpoint: sanitizeHumanInterventionCheckpoint(ledger.intervention.checkpoint),
+        }
+      : null,
   }
 }

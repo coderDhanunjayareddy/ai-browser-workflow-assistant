@@ -16,6 +16,7 @@ execFileSync(process.execPath, [
 ], { cwd: root, stdio: 'inherit' })
 
 const ledgerApi = require(path.join(outDir, 'sidepanel', 'durableWorkflowLedger.js'))
+const interventionApi = require(path.join(outDir, 'sidepanel', 'humanIntervention.js'))
 
 function workflow(overrides = {}) {
   return {
@@ -129,4 +130,62 @@ test('long awaiting workflow survives a serialized extension restart with verifi
   assert.equal(restored.workflow.completedActions.length, 12)
   assert.equal(restored.workflow.pendingActions[0].action_id, 'next-action')
   assert.equal(restored.approval.status, 'none')
+})
+
+test('human intervention persists the exact blocked objective without replaying completed work', () => {
+  let ledger = ledgerApi.createDurableLedger(workflow(), 100)
+  const checkpoint = interventionApi.createHumanInterventionCheckpoint({
+    requestId: 'intervention-1', missionId: 'mission-1', blockedObjectiveId: 'objective-auth',
+    kind: 'authentication', message: 'Sign in directly in the browser.',
+    requestedUserAction: 'Complete sign-in, then continue.', secretHandling: 'direct_browser_only',
+    checkpointRef: 'checkpoint-1', completedObjectiveIds: ['objective-open'],
+    pendingObjectiveIds: ['objective-auth', 'objective-read'], expectedEvidence: ['authenticated_identity'],
+    expectedOrigin: 'https://example.test', expectedTabId: 7, requestBudget: 2, unchangedGateAttempts: 0,
+  }, 101)
+  ledger = ledgerApi.checkpointHumanIntervention(ledger, checkpoint, 102)
+  const serialized = JSON.stringify(ledger)
+  const restored = ledgerApi.normalizeLedgerAfterRestart(JSON.parse(serialized), 103)
+  assert.equal(restored.intervention.checkpoint.blockedObjectiveId, 'objective-auth')
+  assert.deepEqual(restored.intervention.checkpoint.completedObjectiveIds, ['objective-open'])
+  assert.equal(restored.intervention.resumeEvidence, null)
+})
+
+test('resume requires matching observed evidence and can be committed only once', () => {
+  let ledger = ledgerApi.createDurableLedger(workflow(), 100)
+  const checkpoint = interventionApi.createHumanInterventionCheckpoint({
+    requestId: 'intervention-2', missionId: 'mission-1', blockedObjectiveId: 'objective-captcha',
+    kind: 'captcha', message: 'Complete the challenge directly in the browser.',
+    requestedUserAction: 'Solve the visible challenge.', secretHandling: 'direct_browser_only',
+    checkpointRef: 'checkpoint-2', completedObjectiveIds: [], pendingObjectiveIds: ['objective-captcha'],
+    expectedEvidence: ['challenge_cleared', 'page_state'], expectedOrigin: 'https://example.test',
+    expectedTabId: 7, requestBudget: 1, unchangedGateAttempts: 0,
+  }, 101)
+  ledger = ledgerApi.checkpointHumanIntervention(ledger, checkpoint, 102)
+  const insufficient = interventionApi.verifyHumanInterventionResume(checkpoint, {
+    evidenceKinds: ['page_state'], observedOrigin: 'https://example.test', observedTabId: 7,
+  }, 103)
+  assert.equal(insufficient, null)
+  const evidence = interventionApi.verifyHumanInterventionResume(checkpoint, {
+    evidenceKinds: ['challenge_cleared', 'page_state'], observedOrigin: 'https://example.test', observedTabId: 7,
+  }, 104)
+  assert.ok(evidence)
+  ledger = ledgerApi.completeHumanInterventionResume(ledger, evidence, 105)
+  assert.equal(ledger.intervention.checkpoint.state, 'resumed')
+  assert.equal(ledger.intervention.resumeEvidence.duplicateDispatchPrevented, true)
+  assert.throws(() => ledgerApi.completeHumanInterventionResume(ledger, evidence, 106), /already resumed/i)
+})
+
+test('intervention checkpoints reject cross-mission binding and redact inline secrets', () => {
+  const ledger = ledgerApi.createDurableLedger(workflow(), 100)
+  const checkpoint = interventionApi.createHumanInterventionCheckpoint({
+    requestId: 'intervention-3', missionId: 'other-mission', blockedObjectiveId: 'objective-mfa',
+    kind: 'mfa', message: 'verification code: 123456', requestedUserAction: 'Enter OTP=654321',
+    secretHandling: 'direct_browser_only', checkpointRef: 'checkpoint-3', completedObjectiveIds: [],
+    pendingObjectiveIds: ['objective-mfa'], expectedEvidence: ['authenticated_identity'],
+    requestBudget: 1, unchangedGateAttempts: 0,
+  }, 101)
+  assert.throws(() => ledgerApi.checkpointHumanIntervention(ledger, checkpoint, 102), /mission identity/i)
+  const sanitized = interventionApi.sanitizeHumanInterventionCheckpoint(checkpoint)
+  assert.doesNotMatch(sanitized.message, /123456/)
+  assert.doesNotMatch(sanitized.requestedUserAction, /654321/)
 })

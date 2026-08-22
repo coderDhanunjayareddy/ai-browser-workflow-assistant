@@ -14,6 +14,8 @@ from app.mission_result.models import MissionResult
 from app.schemas.intent import IntentDTO, IntentEvidence, IntentUpdateResponse
 from app.schemas.request import PageContext
 from app.schemas.response import AnalyzeResponse
+from app.contracts.intervention import HumanInterventionRequest, HumanInterventionResume
+from app.contracts.generic_capability import DurableObjective, GenericCapabilityRequest, GenericCapabilityResult
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,11 @@ CONTRACTS: list[ContractDescriptor] = [
     ContractDescriptor("extension_api.intent_evidence", "extension_api.intent_evidence.v1", IntentEvidence, "Extension API"),
     ContractDescriptor("extension_api.intent_update_response", "extension_api.intent_update_response.v1", IntentUpdateResponse, "Extension API"),
     ContractDescriptor("provider_registry.execution_evidence", "provider_registry.execution_evidence.v1", IntentExecutionEvidence, "Provider Registry"),
+    ContractDescriptor("generic_kernel.human_intervention_request", "human_intervention.request.v1", HumanInterventionRequest, "Generic Capability Kernel"),
+    ContractDescriptor("generic_kernel.human_intervention_resume", "human_intervention.resume.v1", HumanInterventionResume, "Generic Capability Kernel"),
+    ContractDescriptor("generic_kernel.durable_objective", "durable_objective.v1", DurableObjective, "Generic Capability Kernel"),
+    ContractDescriptor("generic_kernel.capability_request", "generic_capability.request.v1", GenericCapabilityRequest, "Generic Capability Kernel"),
+    ContractDescriptor("generic_kernel.capability_result", "generic_capability.result.v1", GenericCapabilityResult, "Generic Capability Kernel"),
 ]
 
 

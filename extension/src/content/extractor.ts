@@ -260,6 +260,20 @@ export function extractPageContext(): PageContext {
     if (role === 'textbox' || role === 'searchbox' || role === 'combobox') score += 50
     if (el.getAttribute('contenteditable') === 'true') score += 45
     if (tag === 'button' || role === 'button') score += 25
+    // Composer insertion controls are typically near the end of large dynamic
+    // DOMs. Give their own concise accessible identity enough priority to stay
+    // inside the bounded observation instead of being displaced by chat/feed
+    // rows whose descendant prose happens to mention a file or document.
+    const ownAccessibleIdentity = sanitizeText([
+      el.getAttribute('aria-label') || '',
+      el.getAttribute('title') || '',
+      el.getAttribute('data-placeholder') || '',
+    ].join(' ').replace(/\s+/g, ' ').trim()).toLowerCase()
+    if (
+      ownAccessibleIdentity.length > 0 &&
+      ownAccessibleIdentity.length <= 80 &&
+      /^(attach|attachment|upload(?: file)?|add attachment|document|file|photos?(?: & videos)?|images?|videos?|audio)$/.test(ownAccessibleIdentity)
+    ) score += 120
     if (/(to|recipient|subject|body|message|compose|send|search|title|name|email|link|url|apply|save)/i.test(`${text} ${attrs}`)) score += 35
     if (/(cart|buy|add|product|item|checkout|shop|price|view|select|review|rating|star|booking|reserve)/i.test(`${text} ${attrs}`)) score += 50
     if (/(add to cart|add-to-cart|buy now|add to basket)/i.test(text)) score += 100

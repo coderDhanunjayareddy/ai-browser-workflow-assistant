@@ -168,10 +168,15 @@ def test_attachment_grounding_ignores_existing_message_status_content() -> None:
                 accessibility_name="Type a message to Ramesh Spc",
             ),
             InteractiveElement(
-                type="span",
-                selector='[data-testid="last-msg-status"]',
+                type="div",
+                selector='[data-testid="list-item-24"]',
                 text="Existing attached document synthetic-day5.txt",
                 visible=True,
+                role="row",
+                accessibility_name=(
+                    "Ramesh Spc Yesterday Existing attached document synthetic-day5.txt "
+                    "Download file and view document"
+                ),
             ),
             InteractiveElement(
                 type="button",
@@ -192,6 +197,9 @@ def test_attachment_grounding_ignores_existing_message_status_content() -> None:
 
     assert control is not None
     assert control.suggested_actions[0].target_selector == 'button[aria-label="Attach"]'
+    assert control.suggested_actions[0].grounding is not None
+    assert control.suggested_actions[0].grounding["accessibility_name"] == "Attach"
+    assert control.suggested_actions[0].grounding["role"] == "button"
 
 
 def test_verified_cdp_menu_click_advances_to_new_content_kind_control() -> None:

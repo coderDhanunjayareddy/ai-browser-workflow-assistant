@@ -1,0 +1,90 @@
+{
+  "schema_version": "generic_authority_map.v1",
+  "status": "migration_in_progress",
+  "rule": "Each runtime stage has exactly one current authority and one declared target authority. Competing components are shadow, leaf strategies, test-only, or migration sources; they cannot become new dispatch entry points.",
+  "stages": [
+    {
+      "stage": "task_ingress",
+      "current_authority": "extension/src/sidepanel/hooks/useWorkflow.ts",
+      "target_authority": "extension/src/sidepanel/hooks/useWorkflow.ts",
+      "entrypoint": "POST /analyze",
+      "migration_state": "retain"
+    },
+    {
+      "stage": "backend_orchestration",
+      "current_authority": "backend/app/orchestrator/workflow_orchestrator.py",
+      "target_authority": "backend/app/semantic_execution_kernel/engine.py",
+      "entrypoint": "WorkflowOrchestrator.orchestrate_analysis",
+      "migration_state": "replace_application_branches",
+      "competing_components": [
+        "backend/app/execution_orchestrator/engine.py",
+        "backend/app/execution_continuity/engine.py",
+        "backend/app/execution_gateway/engine.py"
+      ]
+    },
+    {
+      "stage": "contract_registry",
+      "current_authority": "backend/app/contracts/registry.py",
+      "target_authority": "backend/app/contracts/registry.py",
+      "entrypoint": "contract_registry",
+      "migration_state": "retain"
+    },
+    {
+      "stage": "policy_decision",
+      "current_authority": "backend/app/policy/live_engine.py",
+      "target_authority": "backend/app/policy/live_engine.py",
+      "entrypoint": "live policy decision",
+      "migration_state": "consolidate_callers"
+    },
+    {
+      "stage": "browser_dispatch_gateway",
+      "current_authority": "extension/src/background/service-worker.ts",
+      "target_authority": "extension/src/background/service-worker.ts",
+      "entrypoint": "handleExecuteAction",
+      "migration_state": "consolidate_leaf_strategies",
+      "leaf_strategies": [
+        "extension/src/background/tab_control.ts",
+        "extension/src/background/cdp_control.ts",
+        "extension/src/content/executor.ts",
+        "extension/src/content/executor_v2.ts",
+        "extension/src/content/file_transfer.ts"
+      ]
+    },
+    {
+      "stage": "trusted_input",
+      "current_authority": "extension/src/background/cdp_control.ts",
+      "target_authority": "extension/src/background/cdp_control.ts",
+      "entrypoint": "CDPController.execute",
+      "migration_state": "retain"
+    },
+    {
+      "stage": "effect_verification",
+      "current_authority": "extension/src/content/action_verification.ts",
+      "target_authority": "extension/src/content/action_verification.ts",
+      "entrypoint": "verify action effect",
+      "migration_state": "generalize_postconditions"
+    },
+    {
+      "stage": "extension_durable_state",
+      "current_authority": "extension/src/sidepanel/durableWorkflowLedger.ts",
+      "target_authority": "extension/src/sidepanel/durableWorkflowLedger.ts",
+      "entrypoint": "checkpointDurableLedger",
+      "migration_state": "retain"
+    },
+    {
+      "stage": "human_intervention",
+      "current_authority": "extension/src/sidepanel/humanIntervention.ts",
+      "target_authority": "extension/src/sidepanel/humanIntervention.ts",
+      "entrypoint": "createHumanInterventionCheckpoint",
+      "migration_state": "wire_runtime"
+    }
+  ],
+  "forbidden_new_authority_patterns": [
+    "named application workflow in a core orchestrator",
+    "direct browser mutation outside browser_dispatch_gateway",
+    "adapter-owned mission state",
+    "adapter-owned retry loop",
+    "planner-generated selector accepted without live grounding",
+    "raw exception used as a terminal user outcome"
+  ]
+}

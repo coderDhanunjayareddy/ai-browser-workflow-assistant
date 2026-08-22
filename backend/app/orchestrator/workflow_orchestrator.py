@@ -2725,6 +2725,10 @@ def _deterministic_observed_control_response(
             action_type = "click"
             value = ""
             description = "Activate the observed file input for the broker-bound approved content"
+            target_grounding = {
+                "accessibility_name": str(control.get("accessibility_name") or control.get("aria_label") or "").strip() or None,
+                "role": str(control.get("role") or control.get("type") or "").strip() or None,
+            }
             content_insertion["stage"] = "select_bound_content"
             content_insertion["opens_native_chooser"] = True
         else:
@@ -2774,6 +2778,16 @@ def _deterministic_observed_control_response(
             if attach_control is not None and str(attach_control.get("selector") or "") not in completed_clicks:
                 selector = str(attach_control.get("selector") or "")
                 action_type = "click"
+                target_grounding = {
+                    "accessibility_name": str(
+                        attach_control.get("accessibility_name")
+                        or attach_control.get("aria_label")
+                        or attach_control.get("title")
+                        or attach_control.get("text")
+                        or ""
+                    ).strip() or None,
+                    "role": str(attach_control.get("role") or attach_control.get("type") or "").strip() or None,
+                }
                 observed_label = " ".join(
                     str(attach_control.get(key) or "")
                     for key in ("text", "aria_label", "accessibility_name", "title")
@@ -2901,6 +2915,7 @@ def _deterministic_observed_control_response(
         grounding={
             "source": "dom_snapshot",
             "selector_id": selector,
+            **(target_grounding or {}),
             "semantic_kind": "content_insertion_trigger",
         } if content_insertion else ({
             "source": "dom_snapshot",
@@ -3177,21 +3192,30 @@ def _is_viable_content_insertion_control(element: dict[str, Any]) -> bool:
     accessible_identity = " ".join(
         str(element.get(key) or "")
         for key in ("aria_label", "accessibility_name", "title")
-    ).casefold()
-    return any(
-        term in accessible_identity
-        for term in (
-            "attach",
-            "attachment",
-            "upload",
-            "document",
-            "file",
-            "photo",
-            "image",
-            "video",
-            "audio",
-        )
     )
+    accessible_identity = " ".join(accessible_identity.split()).casefold()
+    # A row's computed accessibility name can contain its entire descendant
+    # message. Never accept insertion vocabulary embedded in that prose.
+    if not accessible_identity or len(accessible_identity) > 80:
+        return False
+    exact_identities = {
+        "attach",
+        "attachment",
+        "upload",
+        "upload file",
+        "add attachment",
+        "document",
+        "file",
+        "photo",
+        "photos",
+        "photos & videos",
+        "image",
+        "images",
+        "video",
+        "videos",
+        "audio",
+    }
+    return accessible_identity in exact_identities
 
 
 def _find_exact_recipient_control(
