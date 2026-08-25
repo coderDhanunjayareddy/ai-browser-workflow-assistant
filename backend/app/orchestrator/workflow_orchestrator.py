@@ -3081,6 +3081,27 @@ def _deterministic_observed_report_response(
     affirmative_text = affirmative_task_text(task)
     current_url = str(getattr(page_context, "url", "") or "").lower()
     visible_text = " ".join(str(getattr(page_context, "visible_text", "") or "").split())
+    visible_marker_match = re.search(
+        r"\b(?:visible\s+(?:marker|text)|page\s+marker)\b\s*(?:is|:)?\s*[`\"']([^`\"']{1,300})[`\"']",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    )
+    if visible_marker_match and re.search(r"\b(report|verify|confirm)\b", affirmative_text):
+        requested_marker = " ".join(visible_marker_match.group(1).split())
+        if requested_marker and requested_marker.casefold() in visible_text.casefold():
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis="The exact user-requested marker is present in the current visible page evidence.",
+                outcome_kind="report",
+                report=ReportOutcome(
+                    answer=f'Verified the visible marker "{requested_marker}".',
+                    claim=f'The current page visibly contains the exact marker "{requested_marker}".',
+                ),
+                suggested_actions=[],
+                sgv_verified=True,
+                goal_convergence=True,
+                backend_authoritative_report=True,
+            )
     for step in reversed(list(prior_steps or [])):
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
         evidence = dict(data.get("browser_evidence") or {})

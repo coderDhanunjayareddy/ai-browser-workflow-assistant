@@ -178,6 +178,41 @@ def test_mfa_and_captcha_are_classified_before_general_authentication() -> None:
     assert captcha_response.human_intervention["kind"] == "captcha"
 
 
+def test_exact_visible_marker_report_is_generic_and_evidence_backed() -> None:
+    page = _page("https://workspace.example.test/ready", [])
+    page.title = "Workspace ready"
+    page.visible_text = "Automation may resume. fixture_state=authenticated"
+
+    response = _deterministic_observed_report_response(
+        session_id="generic-visible-marker",
+        task=(
+            'After authentication, report the exact visible marker '
+            '"fixture_state=authenticated". Do not click or submit anything.'
+        ),
+        page_context=page,
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.backend_authoritative_report is True
+    assert response.suggested_actions == []
+    assert "fixture_state=authenticated" in response.report.answer
+
+
+def test_visible_marker_report_does_not_claim_an_unobserved_marker() -> None:
+    page = _page("https://workspace.example.test/ready", [])
+    page.visible_text = "Workspace is still loading"
+
+    response = _deterministic_observed_report_response(
+        session_id="generic-visible-marker-missing",
+        task='Report the exact visible marker "fixture_state=authenticated".',
+        page_context=page,
+    )
+
+    assert response is None
+
+
 def test_whatsapp_open_only_task_reports_after_exact_chat_is_observed() -> None:
     task = (
         "Open WhatsApp and open the exact direct chat named Teja Spc. "

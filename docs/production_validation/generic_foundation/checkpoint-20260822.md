@@ -78,3 +78,16 @@ No live browser mutation, submission, upload, or message was performed by this u
 ## Warning debt
 
 The backend checkpoint emitted 564 deprecation warnings, primarily timezone-naive `datetime.utcnow()` usage. They did not fail this checkpoint but must be handled as reliability debt rather than ignored indefinitely.
+
+## Repeated live intervention certification — 2026-08-25
+
+The generic human-intervention flow was repeated from a clean New Tab against a local synthetic authentication fixture. This run used canonical runtime `v0.4.0`, commit identity `c0bc935-dirty`, build `stabilization-20260825T074200Z`, backend PID `21124`, and session `120e031b-f8c6-4c33-a72c-395b7ef23838`.
+
+- The first observation produced exactly one typed `authentication` intervention and no browser action.
+- The human-only gate was cleared in the same tab and origin; the visible postcondition was `fixture_state=authenticated`.
+- Resume produced one fresh observation and one backend-authoritative `observed_report.completed_without_planner` result.
+- The report claim matched the exact visible marker requested by the user.
+- Both `/analyze` requests returned HTTP 200; no provider retry or fallback was used.
+- Audit result: `mutation_count=0`, intervention requests `1`, observations `2`, duplicate dispatches `0`, uploads `0`, submissions `0`, messages `0`, and external side effects `0`.
+
+**Result:** PASS for the synthetic checkpoint → human gate → same-tab verification → exactly-once resume → evidence-backed report workflow. This certifies the generic intervention bridge and restart-safe resume behavior; it does not by itself certify every external website or the paused Day 5 consequential-send gate.
