@@ -990,6 +990,23 @@ class WorkflowOrchestrator:
             prior_steps=planner_prior_steps,
         )
         if observed_control is not None:
+            self._route_legacy_browser_actions_through_mission_ledger(
+                result=observed_control,
+                task=task,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+                runtime_state_snapshot=runtime_state_snapshot,
+                browser_intelligence_artifact=browser_intelligence_artifact,
+                knowledge_snapshot=knowledge_snapshot,
+                mission_completion_snapshot=mission_completion_snapshot,
+                orchestrator_snapshot=orchestrator_snapshot,
+                kernel_snapshot=None,
+            )
+            observed_control = _enforce_authoritative_semantic_grounding(
+                session_id=self.session_id,
+                result=observed_control,
+                page_context=page_context,
+            )
             observed_action = observed_control.suggested_actions[0] if observed_control.suggested_actions else None
             self._record_v3_event(
                 "observed_control.selected_without_planner",
@@ -1193,6 +1210,10 @@ class WorkflowOrchestrator:
                             reasoning=str(browser_payload.get("reasoning") or result.intent_dispatch.reason),
                             confidence=float(browser_payload.get("confidence") or 0.8),
                             safety_level=str(browser_payload.get("safety_level") or "safe"),  # type: ignore[arg-type]
+                            provenance=list(browser_payload.get("provenance") or []),
+                            grounding=dict(browser_payload.get("grounding") or {}),
+                            content_insertion=browser_payload.get("content_insertion"),
+                            consequential_submission=browser_payload.get("consequential_submission"),
                         )
                     ]
                 runtime_state_snapshot = execution_context.runtime_state or runtime_state_snapshot
@@ -1239,6 +1260,11 @@ class WorkflowOrchestrator:
                 mission_completion_snapshot=mission_completion_snapshot,
                 orchestrator_snapshot=orchestrator_snapshot,
                 kernel_snapshot=kernel_snapshot,
+            )
+            result = _enforce_authoritative_semantic_grounding(
+                session_id=self.session_id,
+                result=result,
+                page_context=page_context,
             )
             self._record_v3_event(
                 "planner.responded",
@@ -1593,6 +1619,10 @@ class WorkflowOrchestrator:
                 reasoning=str(browser_payload.get("reasoning") or directives[0].reason),
                 confidence=float(browser_payload.get("confidence") or 0.8),
                 safety_level=str(browser_payload.get("safety_level") or "safe"),  # type: ignore[arg-type]
+                provenance=list(browser_payload.get("provenance") or []),
+                grounding=dict(browser_payload.get("grounding") or {}),
+                content_insertion=browser_payload.get("content_insertion"),
+                consequential_submission=browser_payload.get("consequential_submission"),
             )
         ]
         self._record_v3_event(
@@ -2414,6 +2444,74 @@ def _deterministic_human_intervention_response(
         suggested_actions=[],
         human_intervention=intervention.model_dump(mode="json"),
     )
+
+
+def _enforce_authoritative_semantic_grounding(
+    *,
+    session_id: str,
+    result: AnalyzeResponse,
+    page_context: Any,
+) -> AnalyzeResponse:
+    """Bind every selector mutation to one target in the current observation.
+
+    This is the production authority boundary, not telemetry. Navigation, waits,
+    and browser-global shortcuts have no DOM target and pass through unchanged.
+    A stale selector, disabled control, non-editable field, or ambiguous identity
+    is converted into a meaningful ask outcome before it can reach the browser.
+    """
+    actions = list(getattr(result, "suggested_actions", []) or [])
+    if not actions:
+        return result
+    target_actions = {"click", "hover", "fill", "select_option", "choose_date"}
+    graph = _semantic_graph_cache.get_or_build(page_context).graph
+    for action in actions:
+        if str(action.action_type or "").lower() not in target_actions:
+            continue
+        grounding = _grounding_resolver.resolve(
+            run_id=session_id,
+            action=action,
+            graph=graph,
+        )
+        if grounding.status != "resolved" or not grounding.selected_selector:
+            requested_identity = str(dict(action.grounding or {}).get("accessibility_name") or "").strip()
+            identity_note = f' for "{requested_identity}"' if requested_identity else ""
+            if grounding.status == "ambiguous":
+                explanation = (
+                    f"Multiple actionable controls remain plausible{identity_note}. "
+                    "No browser mutation was dispatched."
+                )
+                question = (
+                    f"Which visible control{identity_note} should I use? "
+                    "Please provide one distinguishing label or location."
+                )
+            else:
+                explanation = (
+                    f"The requested control{identity_note} is not an actionable target in the current observation. "
+                    "It may be stale, hidden, disabled, read-only, or in a different frame. No browser mutation was dispatched."
+                )
+                question = "Please expose or enable the intended control, then ask me to verify and resume."
+            result.outcome_kind = "ask"
+            result.analysis = explanation
+            result.clarification_question = question
+            result.suggested_actions = []
+            return result
+
+        selected = next(
+            (candidate for candidate in grounding.candidates if candidate.target_id == grounding.semantic_target_id),
+            None,
+        )
+        binding = dict(selected.binding if selected is not None else {})
+        action.target_selector = grounding.selected_selector
+        action.grounding = {
+            **dict(action.grounding or {}),
+            **binding,
+            "source": "semantic_page_graph",
+            "graph_id": graph.graph_id,
+            "observation_id": graph.observation_id,
+            "semantic_target_id": grounding.semantic_target_id,
+            "grounding_confidence": grounding.confidence,
+        }
+    return result
 
 
 def _deterministic_observed_control_response(

@@ -20,6 +20,7 @@ class GroundingCandidate(BaseModel):
     locator_candidates: list[str] = Field(default_factory=list)
     confidence: float
     match_reasons: list[str] = Field(default_factory=list)
+    binding: dict[str, Any] = Field(default_factory=dict)
 
 
 class GroundingResult(BaseModel):

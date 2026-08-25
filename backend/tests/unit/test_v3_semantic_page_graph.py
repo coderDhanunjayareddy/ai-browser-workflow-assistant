@@ -62,7 +62,7 @@ def test_semantic_graph_snapshot_shape():
     graph = SemanticPageGraphBuilder().build(sample_page())
 
     assert graph.schema_version == "semantic_page_graph.v1"
-    assert graph.builder_version == "v1"
+    assert graph.builder_version == "v2"
     assert graph.page_type == "search_results"
     assert [node.node_type for node in graph.nodes] == [
         "page",
@@ -105,7 +105,7 @@ def test_semantic_graph_cache_is_versioned_bounded_and_reports_hits():
     assert second.cache_hit is True
     assert third.cache_hit is False
     assert cache.size() == 1
-    assert cache.cache_key(sample_page()).startswith("semantic_page_graph.v1:v1:")
+    assert cache.cache_key(sample_page()).startswith("semantic_page_graph.v1:v2:")
 
 
 def test_semantic_graph_feature_flag_default_and_off(monkeypatch):

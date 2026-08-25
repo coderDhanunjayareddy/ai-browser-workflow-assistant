@@ -26,7 +26,7 @@ class GroundingResolver:
         *,
         confidence_threshold: float = 0.55,
         ambiguity_margin: float = 0.05,
-        legacy_fallback: bool = True,
+        legacy_fallback: bool = False,
     ):
         self.confidence_threshold = confidence_threshold
         self.ambiguity_margin = ambiguity_margin
@@ -47,7 +47,7 @@ class GroundingResolver:
             (
                 _score_target(action, intent, target)
                 for target in graph.targets
-                if target.locator_candidates
+                if target.locator_candidates and _target_is_eligible(action, target)
             ),
             key=lambda item: (-item.confidence, item.target_id),
         )
@@ -114,11 +114,15 @@ class GroundingResolver:
 
 
 def planner_intent(action: SuggestedAction) -> str:
+    grounding = dict(action.grounding or {})
     parts = [
         action.action_type,
         action.description,
         action.reasoning,
         action.value or "",
+        str(grounding.get("accessibility_name") or ""),
+        str(grounding.get("role") or ""),
+        str(grounding.get("semantic_kind") or ""),
     ]
     return " ".join(part.strip() for part in parts if part and part.strip())
 
@@ -132,9 +136,14 @@ def _score_target(
     target_text = f"{target.label} {target.semantic_role} {target.target_type}"
     target_tokens = set(_tokens(target_text))
     overlap = intent_tokens & target_tokens
+    requested_name = _normalized_identity(dict(action.grounding or {}).get("accessibility_name"))
+    target_name = _normalized_identity(target.label)
 
     confidence = 0.0
     reasons: list[str] = []
+    if requested_name and requested_name == target_name:
+        confidence += 0.55
+        reasons.append("exact_accessible_identity")
     if overlap:
         confidence += min(0.45, len(overlap) / max(len(intent_tokens), 1))
         reasons.append("intent_label_overlap")
@@ -157,14 +166,31 @@ def _score_target(
         locator_candidates=list(target.locator_candidates),
         confidence=round(min(confidence, 1.0), 4),
         match_reasons=reasons,
+        binding={
+            key: target.metadata.get(key)
+            for key in (
+                "tab_id", "window_id", "frame_id", "origin", "bounding_box",
+                "element_id", "selector_id", "semantic_kind", "editable",
+            )
+            if target.metadata.get(key) is not None
+        },
     )
+
+
+def _target_is_eligible(action: SuggestedAction, target: SemanticTarget) -> bool:
+    if target.metadata.get("actionable") is False or target.metadata.get("visible") is False:
+        return False
+    if action.action_type in {"fill", "select_option", "choose_date"} and target.metadata.get("editable") is False:
+        return False
+    return _compatibility(action.action_type, target) > 0
 
 
 def _compatibility(action_type: str, target: SemanticTarget) -> float:
     role = target.semantic_role
     target_type = (target.target_type or "").lower()
     if action_type in {"click", "hover"} and (
-        "control" in role or "link" in role or target_type in {"button", "a"}
+        "control" in role or "link" in role or "upload" in role
+        or target_type in {"button", "a", "input"}
     ):
         return 0.2
     if action_type in {"fill", "keyboard_shortcut"} and (
@@ -189,7 +215,15 @@ def _is_ambiguous(
     second: GroundingCandidate,
     margin: float,
 ) -> bool:
+    if "legacy_selector_match" in first.match_reasons and "legacy_selector_match" not in second.match_reasons:
+        return False
+    if "exact_accessible_identity" in first.match_reasons and "exact_accessible_identity" not in second.match_reasons:
+        return False
     return abs(first.confidence - second.confidence) <= margin
+
+
+def _normalized_identity(value: Any) -> str:
+    return " ".join(str(value or "").split()).casefold()
 
 
 def _replay_metadata(

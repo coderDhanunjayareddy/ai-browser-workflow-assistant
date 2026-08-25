@@ -147,7 +147,7 @@ def test_grounding_uses_legacy_selector_fallback_when_semantic_target_missing():
         safety_level="safe",
     )
 
-    result = GroundingResolver().resolve(
+    result = GroundingResolver(legacy_fallback=True).resolve(
         run_id="run-1",
         action=action,
         graph=graph,

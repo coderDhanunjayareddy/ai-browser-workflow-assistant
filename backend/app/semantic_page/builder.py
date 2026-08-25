@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlparse
 
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext
 from app.semantic_page.classifiers import (
@@ -19,7 +20,7 @@ from app.semantic_page.graph import (
 from app.semantic_page.serializers import stable_hash
 
 
-BUILDER_VERSION = "v1"
+BUILDER_VERSION = "v2"
 
 
 class SemanticPageGraphBuilder:
@@ -82,11 +83,15 @@ class SemanticPageGraphBuilder:
             if not element.visible:
                 continue
             node = _element_node(element, index)
-            target = _element_target(element, node.node_id, index)
             nodes.append(node)
-            targets.append(target)
             edges.append(_edge("contains", page_node_id, node.node_id, index))
-            edges.append(_edge("represents", node.node_id, target.target_id, index))
+            # Visibility and actionability are deliberately different. Keep a
+            # disabled/zero-area control in the semantic graph as observed page
+            # evidence, but never publish it as a mutation target.
+            if _is_actionable(element):
+                target = _element_target(element, node.node_id, index, page_context)
+                targets.append(target)
+                edges.append(_edge("represents", node.node_id, target.target_id, index))
 
         for index, (key, value) in enumerate(sorted(page_context.metadata.items())):
             if not value:
@@ -109,6 +114,10 @@ class SemanticPageGraphBuilder:
             "edge_count": len(edges),
             "fact_count": len(facts),
             "target_count": len(targets),
+            "tab_id": page_context.tab_id,
+            "window_id": page_context.window_id,
+            "frame_id": page_context.frame_id,
+            "origin": _origin(page_context.url),
         }
         graph_seed = {
             "schema_version": "semantic_page_graph.v1",
@@ -139,6 +148,9 @@ def observation_hash(page_context: PageContext) -> str:
         {
             "url": page_context.url,
             "title": page_context.title,
+            "tab_id": page_context.tab_id,
+            "window_id": page_context.window_id,
+            "frame_id": page_context.frame_id,
             "metadata": dict(sorted(page_context.metadata.items())),
             "headings": page_context.headings,
             "visible_text": normalize_text(page_context.visible_text, max_length=2000),
@@ -158,6 +170,11 @@ def observation_hash(page_context: PageContext) -> str:
                     "aria_label": normalize_text(element.aria_label),
                     "accessibility_name": normalize_text(element.accessibility_name),
                     "state": element.state,
+                    "bounding_box": element.bounding_box,
+                    "element_id": element.element_id,
+                    "href": element.href,
+                    "semantic_kind": element.semantic_kind,
+                    "selector_id": element.selector_id,
                 }
                 for element in page_context.interactive_elements
             ],
@@ -192,11 +209,24 @@ def _element_node(element: InteractiveElement, index: int) -> SemanticNode:
             "role": element.role,
             "input_type": element.input_type,
             "state": element.state,
+            "visible": element.visible,
+            "actionable": _is_actionable(element),
+            "editable": _is_editable(element),
+            "bounding_box": element.bounding_box,
+            "element_id": element.element_id,
+            "href": element.href,
+            "semantic_kind": element.semantic_kind,
+            "selector_id": element.selector_id,
         },
     )
 
 
-def _element_target(element: InteractiveElement, node_id: str, index: int) -> SemanticTarget:
+def _element_target(
+    element: InteractiveElement,
+    node_id: str,
+    index: int,
+    page_context: PageContext,
+) -> SemanticTarget:
     role = classify_target_role(element)
     label = normalize_text(
         element.accessibility_name or element.aria_label or element.text or element.placeholder,
@@ -210,7 +240,53 @@ def _element_target(element: InteractiveElement, node_id: str, index: int) -> Se
         entity_ref=node_id,
         locator_candidates=[element.selector] if element.selector else [],
         confidence=0.85 if label else 0.65,
+        metadata={
+            "visible": True,
+            "actionable": True,
+            "editable": _is_editable(element),
+            "state": element.state,
+            "bounding_box": element.bounding_box,
+            "element_id": element.element_id,
+            "href": element.href,
+            "semantic_kind": element.semantic_kind,
+            "selector_id": element.selector_id or element.selector,
+            "tab_id": page_context.tab_id,
+            "window_id": page_context.window_id,
+            "frame_id": page_context.frame_id,
+            "origin": _origin(page_context.url),
+        },
     )
+
+
+def _is_actionable(element: InteractiveElement) -> bool:
+    state = {str(key).lower(): value for key, value in dict(element.state or {}).items()}
+    if state.get("disabled") is True or state.get("aria_disabled") is True:
+        return False
+    if not str(element.selector or "").strip():
+        return False
+    box = dict(element.bounding_box or {})
+    if box and (float(box.get("width") or 0) <= 0 or float(box.get("height") or 0) <= 0):
+        return False
+    return True
+
+
+def _is_editable(element: InteractiveElement) -> bool:
+    state = {str(key).lower(): value for key, value in dict(element.state or {}).items()}
+    if state.get("readonly") is True or state.get("disabled") is True or state.get("aria_disabled") is True:
+        return False
+    element_type = str(element.type or "").lower()
+    role = str(element.role or "").lower()
+    input_type = str(element.input_type or "").lower()
+    return (
+        element_type in {"input", "textarea", "select"}
+        or role in {"textbox", "searchbox", "combobox", "listbox"}
+        or input_type in {"text", "email", "password", "search", "number", "file"}
+    )
+
+
+def _origin(url: str) -> str:
+    parsed = urlparse(str(url or ""))
+    return f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else ""
 
 
 def _edge(edge_type: str, source_id: str, target_id: str, index: int) -> SemanticEdge:
