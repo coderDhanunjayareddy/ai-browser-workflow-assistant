@@ -131,29 +131,34 @@ Canonical runtime after rebuild: app `v0.4.0`, commit identity `b7f0693-dirty`, 
 
 ## Real extension-side-panel grounding run — 2026-09-04
 
-The unfamiliar semantic-control scenario was rerun through the actual built extension side panel from `chrome://newtab/`; a direct fixture click was not accepted as end-to-end evidence.
+The unfamiliar semantic-control scenario was run through the actual built extension side panel from `chrome://newtab/`; a direct fixture click was not accepted as end-to-end evidence.
 
-Final certified run `GF-D56-LIVE-R8` used runtime `v0.4.0`, commit identity `b7f0693-dirty`, build `stabilization-20260904T080937Z`, and backend PID `21652`.
+Run `GF-D56-LIVE-R8` was the first complete pass, but it was not accepted as final certification after the immediate repeat (`R9`) exposed nondeterministic termination. `R9` clicked the correct control exactly once and reached `fixture_state=continued_exactly_once`, then performed an unnecessary wait and asked for information. A subsequent clean-runtime attempt (`R10-01`) exposed a second gap: an unfamiliar site's explicitly named control still fell through to the remote planning provider, so provider HTTP 503 stopped the workflow before the click.
 
-- The side panel navigated from New Tab to the explicit synthetic origin.
-- It grounded the requested exact enabled `Continue` control to `#exact-control` while rejecting the disabled same-name decoy, the partial-name control, hidden content, and unrelated prose.
-- Trusted CDP input dispatched one click through `stable_selector` grounding.
-- Current-page evidence changed from `fixture_state=ready` to `fixture_state=continued_exactly_once`.
-- The workflow produced a backend-authoritative verified report and stopped.
-- Audit totals were exactly two approved actions and two executed actions: `navigate, click`. Both succeeded. There were zero retries, duplicate clicks, uploads, submissions, messages, account changes, or external side effects.
-- Full-run latency was 37.0 seconds; the click itself was 259 ms.
+Both root causes were fixed generically:
 
-Live failures before the passing run were retained as diagnostic evidence and not counted as passes. They exposed and led to fixes for: capability verbs misclassified as research; navigation incorrectly satisfying a mutation objective; a duplicate app-oriented semantic repair classifier; unresolved/redundant current-tab focus; waits taking precedence over an already-observed exact control; invalid targetless tab intents; and failure to terminate from a verified mutation plus its requested visible postcondition.
+- The postcondition gate now recognizes the canonical persisted execution result `success` as a successful non-navigation mutation, while still requiring matching current-page evidence before reporting completion.
+- An explicitly named browser control is resolved locally from current DOM evidence when exactly one visible, enabled, editable candidate has the exact accessible identity. Multiple enabled exact matches pause for clarification. Disabled, read-only, hidden, partial-name, prose-only, and selectorless candidates cannot be selected.
+- The solution contains no fixture URL, service name, recipient name, or application-specific target rule.
+
+Final consecutive runs `GF-D56-LIVE-R11-01` and `GF-D56-LIVE-R11-02` used runtime `v0.4.0`, commit identity `5ea7012-dirty`, build `stabilization-20260904T091711Z`, and backend PID `28092`.
+
+| Run | Result | Actions | Final page evidence | Full latency |
+|---|---:|---|---|---:|
+| `GF-D56-LIVE-R11-01` | PASS | `navigate`, `click` | `fixture_state=continued_exactly_once` | 35.9 s |
+| `GF-D56-LIVE-R11-02` | PASS | `navigate`, `click` | `fixture_state=continued_exactly_once` | 29.7 s |
+
+For each run, the durable audit contains exactly two approved and two executed events. The click selector was `#exact-control`, both executions returned `success`, the side panel displayed `2 of 2 steps succeeded`, and no wait, retry, duplicate click, upload, submission, message, account change, or external side effect occurred.
 
 Post-fix validation:
 
 | Suite | Result | Measured runtime |
 |---|---:|---:|
-| Backend focused orchestration, completion, semantic-kernel, and observed-control suites | 121/121 passed | 1.25 s |
-| Extension complete Node test suite | 224/224 passed | 14.08 s |
-| Extension production build | passed, 71 modules | 1.12 s |
-| Real extension-side-panel unfamiliar-control workflow | PASS, 2/2 actions | 37.0 s |
+| Backend focused orchestration, completion, semantic-kernel, harness, and observed-control suites | 127/127 passed | 1.46 s |
+| Extension complete Node test suite | 224/224 passed | 14.08 s (prior unchanged-extension run) |
+| Extension production build | passed, 71 modules | 1.27 s |
+| Consecutive real side-panel unfamiliar-control workflows | 2/2 passed, 2/2 actions each | 35.9 s; 29.7 s |
 
-Evidence files: `docs/production_validation/live_sidepanel/live_sidepanel_first10_latest.json`, `docs/production_validation/live_sidepanel/gf-d56-live-r8.png`, and `docs/production_validation/live_sidepanel/gf-d56-live-r8-target.png`.
+Evidence files: `docs/production_validation/live_sidepanel/live_sidepanel_first10_latest.json`, `docs/production_validation/live_sidepanel/gf-d56-live-r11-01.png`, `docs/production_validation/live_sidepanel/gf-d56-live-r11-01-target.png`, `docs/production_validation/live_sidepanel/gf-d56-live-r11-02.png`, and `docs/production_validation/live_sidepanel/gf-d56-live-r11-02-target.png`.
 
-**Status:** the real side-panel semantic grounding and exact-once postcondition scenario passes. This closes the current Days 5–6 generic grounding checkpoint only; it does not certify arbitrary external sites or resume consequential-send testing by itself.
+**Status:** the real side-panel semantic grounding and exact-once postcondition checkpoint passes two consecutive clean runs. This closes the current Days 5–6 generic grounding checkpoint only; it does not certify arbitrary external sites or resume consequential-send testing by itself.

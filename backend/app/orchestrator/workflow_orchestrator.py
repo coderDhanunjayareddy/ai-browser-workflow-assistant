@@ -2804,6 +2804,79 @@ def _deterministic_observed_control_response(
             suggested_actions=[],
         )
 
+    # Domain-neutral fast path for an explicitly named browser control. This
+    # must not depend on a remote planner: the user supplied the identity and
+    # the current DOM observation supplies the authoritative candidates.
+    named_control_match = re.search(
+        r"\b(?:control|button|link|option|menu\s+item|tab)\s+"
+        r"(?:named|labelled|labeled)\s+[`\"'\u201c\u201d]?([^.;\n]{1,160})",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    )
+    named_control = ""
+    if named_control_match:
+        named_control = re.sub(
+            r"\s+(?:exactly\s+)?once\s*$",
+            "",
+            named_control_match.group(1).strip(" `\"'\u201c\u201d"),
+            flags=re.IGNORECASE,
+        ).strip()
+    if not action_type and named_control:
+        requested_identity = " ".join(named_control.split()).casefold()
+
+        def observed_identity(element: dict[str, Any]) -> str:
+            for key in ("accessibility_name", "aria_label", "text", "title", "placeholder", "name"):
+                candidate = " ".join(str(element.get(key) or "").split()).strip()
+                if candidate:
+                    return candidate
+            return ""
+
+        viable_matches: list[dict[str, Any]] = []
+        for element in elements:
+            state = dict(element.get("state") or {})
+            if any(bool(state.get(key)) for key in ("disabled", "aria_disabled", "readonly", "hidden")):
+                continue
+            if observed_identity(element).casefold() != requested_identity:
+                continue
+            if not str(element.get("selector") or "").strip():
+                continue
+            viable_matches.append(element)
+        unique_matches = {
+            str(element.get("selector") or "").strip(): element
+            for element in viable_matches
+        }
+        remaining_matches = [
+            element for selector_id, element in unique_matches.items()
+            if selector_id not in completed_clicks
+        ]
+        if len(remaining_matches) == 1:
+            control = remaining_matches[0]
+            selector = str(control.get("selector") or "").strip()
+            action_type = "click"
+            value = named_control
+            description = f"Activate the grounded exact control: {named_control}"
+            target_grounding = {
+                "source": "dom_snapshot",
+                "selector_id": selector,
+                "accessibility_name": observed_identity(control),
+                "role": str(control.get("role") or control.get("type") or "").strip() or None,
+                "semantic_kind": "explicitly_named_control",
+            }
+        elif len(remaining_matches) > 1:
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    f'Multiple enabled observed controls have the exact identity "{named_control}". '
+                    "Selecting one without additional identity evidence could mutate the wrong target."
+                ),
+                outcome_kind="ask",
+                clarification_question=(
+                    f'I found multiple enabled controls named "{named_control}". '
+                    "Which surrounding section or position should I use?"
+                ),
+                suggested_actions=[],
+            )
+
     if action_type:
         pass
     elif messaging_surface and requested_destination and message_control is None:

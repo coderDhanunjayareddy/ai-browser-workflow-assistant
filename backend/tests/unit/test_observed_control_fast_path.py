@@ -277,6 +277,73 @@ def test_generic_postcondition_accepts_canonical_persisted_success_result() -> N
     assert response.suggested_actions == []
 
 
+def test_explicit_named_control_uses_unique_enabled_observed_target_without_planner() -> None:
+    page = _page(
+        "https://unfamiliar.example.test/workspace",
+        [
+            InteractiveElement(
+                type="button",
+                selector="#disabled-control",
+                text="Continue",
+                accessibility_name="Continue",
+                visible=True,
+                state={"disabled": True},
+            ),
+            InteractiveElement(
+                type="button",
+                selector="#exact-control",
+                text="Continue",
+                accessibility_name="Continue",
+                visible=True,
+                state={},
+            ),
+            InteractiveElement(
+                type="button",
+                selector="#continue-later",
+                text="Continue later",
+                accessibility_name="Continue later",
+                visible=True,
+                state={},
+            ),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="generic-explicit-control",
+        task="Activate the exact enabled control named Continue once.",
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "act"
+    assert len(response.suggested_actions) == 1
+    assert response.suggested_actions[0].target_selector == "#exact-control"
+    assert response.suggested_actions[0].grounding["semantic_kind"] == "explicitly_named_control"
+
+
+def test_explicit_named_control_pauses_when_multiple_enabled_exact_targets_exist() -> None:
+    page = _page(
+        "https://unfamiliar.example.test/workspace",
+        [
+            InteractiveElement(type="button", selector="#continue-a", text="Continue", visible=True),
+            InteractiveElement(type="button", selector="#continue-b", text="Continue", visible=True),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="generic-ambiguous-control",
+        task='Click the button named "Continue".',
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "ask"
+    assert response.suggested_actions == []
+    assert "multiple enabled controls" in response.clarification_question.lower()
+
+
 def test_whatsapp_open_only_task_reports_after_exact_chat_is_observed() -> None:
     task = (
         "Open WhatsApp and open the exact direct chat named Teja Spc. "
