@@ -14,7 +14,7 @@ from app.semantic_execution_kernel.entity_registry import build_entity_registry
 from app.semantic_execution_kernel.grounding import apply_grounding_to_action, ground_semantic_action
 from app.semantic_execution_kernel.loop_prevention import loop_prevention_status
 from app.semantic_execution_kernel.mission_state import build_mission_state
-from app.semantic_execution_kernel.models import KernelSnapshot, RecoveryDecision
+from app.semantic_execution_kernel.models import KernelSnapshot, RecoveryDecision, SemanticActionProposal
 from app.semantic_execution_kernel.observability import telemetry_summary
 from app.semantic_execution_kernel.planner_constraints import legal_action_prompt, proposal_from_planner_action
 from app.semantic_execution_kernel.progress_ledger import build_progress_ledger
@@ -227,6 +227,10 @@ class SemanticExecutionKernel:
                     "proposal": snapshot.proposal.to_dict() if snapshot.proposal else None,
                 },
             )
+        redundant_focus_repair = _repair_redundant_focus_to_current_interaction(result, snapshot)
+        if redundant_focus_repair is not None:
+            tracer.clear_failures(session_id)
+            return redundant_focus_repair
         if snapshot.proposal and snapshot.proposal.action_type == "SEARCH_WEB":
             tracer.clear_failures(session_id)
             _debug_v494_kernel(
@@ -616,6 +620,8 @@ def _best_interactive_entity(snapshot: KernelSnapshot):
         selector = entity.browser_bindings.selector
         if not selector:
             continue
+        if not _entity_is_actionable(entity):
+            continue
         if proposal.action_type == "FILL_FORM" and entity.semantic_type not in {"form", "message"}:
             continue
         if proposal.action_type == "CLICK_ENTITY" and entity.semantic_type not in {"button", "link", "message", "document"}:
@@ -627,6 +633,96 @@ def _best_interactive_entity(snapshot: KernelSnapshot):
         return None
     scored.sort(key=lambda item: (-item[0], -item[1].confidence, item[1].title))
     return scored[0][1]
+
+
+def _entity_is_actionable(entity: Any) -> bool:
+    metadata = getattr(entity, "metadata", {}) or {}
+    if not isinstance(metadata, dict):
+        return True
+    state = str(metadata.get("state") or "").casefold()
+    if re.search(r"\b(?:disabled|readonly|hidden)\b[^a-z0-9]{0,8}(?:true|1)", state):
+        return False
+    return True
+
+
+def _repair_redundant_focus_to_current_interaction(
+    result: AnalyzeResponse,
+    snapshot: KernelSnapshot,
+) -> AnalyzeResponse | None:
+    proposal = snapshot.proposal
+    if proposal is None or proposal.action_type not in {"FOCUS_TAB", "WAIT_FOR_STATE"}:
+        return None
+    task = snapshot.mission_state.mission
+    if not re.search(r"\b(?:activate|click|press|toggle|enable|disable)\b", task, flags=re.IGNORECASE):
+        return None
+    current_url = snapshot.browser_context.current_url.rstrip("/")
+    if not current_url or not _looks_like_interactive_browser_task(task):
+        return None
+    if proposal.action_type == "FOCUS_TAB" and snapshot.grounding and snapshot.grounding.grounded:
+        target = str(snapshot.grounding.value or proposal.parameters.get("value") or "")
+        if target.startswith("url:"):
+            target = target[4:]
+        if target.rstrip("/") != current_url:
+            return None
+
+    click_proposal = SemanticActionProposal(
+        action_type="CLICK_ENTITY",
+        entity_id=None,
+        parameters={
+            "value": "",
+            "selector": "",
+            "description": task,
+            "session_id": snapshot.session_id,
+        },
+        source_action_type="click",
+        source_description=task,
+    )
+    candidate_snapshot = KernelSnapshot(
+        schema_version=snapshot.schema_version,
+        session_id=snapshot.session_id,
+        mission_state=snapshot.mission_state,
+        entities=snapshot.entities,
+        browser_context=snapshot.browser_context,
+        legal_actions=snapshot.legal_actions,
+        proposal=click_proposal,
+        eligibility=snapshot.eligibility,
+        grounding=snapshot.grounding,
+        ledger=snapshot.ledger,
+        loop_prevention=snapshot.loop_prevention,
+        recovery=snapshot.recovery,
+        telemetry=snapshot.telemetry,
+        replay=snapshot.replay,
+    )
+    entity = _best_interactive_entity(candidate_snapshot)
+    selector = entity.browser_bindings.selector if entity else ""
+    if not selector:
+        return None
+
+    original = result.suggested_actions[0]
+    return AnalyzeResponse(
+        session_id=result.session_id,
+        analysis=(
+            f"{result.analysis}\n\nSemantic Execution Kernel skipped an unresolved redundant tab focus "
+            "because the requested exact control is grounded on the already-current page."
+        ),
+        outcome_kind="act",
+        clarification_question=None,
+        report=None,
+        replan=None,
+        suggested_actions=[SuggestedAction(
+            action_id=f"{original.action_id or 'current'}_exact_control",
+            action_type="click",
+            target_selector=selector,
+            value=entity.title,
+            description=f"Activate the grounded exact control: {entity.title}",
+            reasoning=(
+                "The target page is already current; exact accessible identity was resolved "
+                "from the observed actionable semantic graph."
+            ),
+            confidence=max(float(original.confidence or 0.0), min(0.92, entity.confidence)),
+            safety_level=original.safety_level,
+        )],
+    )
 
 
 def _interactive_entity_score(entity: Any, task: str, proposal: Any) -> float:
@@ -642,6 +738,17 @@ def _interactive_entity_score(entity: Any, task: str, proposal: Any) -> float:
         score += 0.25
     if proposal.action_type == "CLICK_ENTITY" and entity.semantic_type in {"button", "link"}:
         score += 0.22
+    normalized_title = " ".join(str(getattr(entity, "title", "") or "").casefold().split())
+    normalized_goal = " ".join(combined_goal.casefold().split())
+    if (
+        normalized_title
+        and normalized_title not in {"button", "link", "control", "item"}
+        and re.search(rf"(?<![a-z0-9]){re.escape(normalized_title)}(?![a-z0-9])", normalized_goal)
+    ):
+        # Exact accessible identity is stronger than incidental token overlap.
+        # Disabled entities remain penalized below, so an enabled exact match
+        # wins over a same-name disabled decoy without site-specific selectors.
+        score += 0.32
     if any(term in text for term in ("search", "find", "contact", "name", "to", "recipient", "start new chat")):
         if any(term in combined_goal for term in ("rahul", "contact", "friend", "search")):
             score += 0.33
@@ -772,32 +879,16 @@ def _entity_refresh_wait_count(prior_steps: list[Any]) -> int:
 
 
 def _looks_like_interactive_browser_task(task: str) -> bool:
-    text = str(task or "").lower()
-    action_or_app = any(
-        term in text
-        for term in (
-            "send",
-            "message",
-            "whatsapp",
-            "gmail",
-            "mail",
-            "chat",
-            "profile",
-            "setting",
-            "dashboard",
-            "create",
-            "update",
-            "save",
-            "play",
-            "listen",
-            "music",
-            "song",
-            "video",
-            "youtube",
-        )
-    )
-    browser_goal = any(term in text for term in ("open", "go to", "navigate", "use", "login", "sign in", "play", "listen"))
-    return action_or_app and browser_goal
+    # Keep the kernel aligned with the canonical capability classifier.  A
+    # semantic repair must not depend on a second list of known websites/apps.
+    from app.execution_orchestrator.phase_state_machine import workflow_category
+
+    return workflow_category(task) in {
+        "interactive_browser_task",
+        "form_filling",
+        "saas_signup",
+        "file_upload",
+    }
 
 
 def _repair_page_evidenced_open_url(

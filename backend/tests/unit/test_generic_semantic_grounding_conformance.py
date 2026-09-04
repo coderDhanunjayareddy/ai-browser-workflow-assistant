@@ -78,6 +78,22 @@ def test_visible_disabled_and_zero_area_controls_are_evidence_not_targets():
     assert GroundingResolver().resolve(run_id="disabled", action=_click("Publish"), graph=graph).status == "not_found"
 
 
+def test_unrelated_descendant_prose_does_not_become_generic_container_identity():
+    container = InteractiveElement(
+        type="div",
+        role="row",
+        text="Quarterly report contains Publish and Delete prose but this row has no accessible name",
+        accessibility_name="",
+        selector="#row",
+        visible=True,
+        bounding_box={"x": 1, "y": 1, "width": 300, "height": 80},
+    )
+    graph = SemanticPageGraphBuilder().build(_page([container]))
+    assert graph.targets[0].label == ""
+    result = GroundingResolver().resolve(run_id="descendant", action=_click("Delete"), graph=graph)
+    assert result.status == "not_found"
+
+
 def test_readonly_field_cannot_be_selected_for_fill():
     field = InteractiveElement(
         type="input",

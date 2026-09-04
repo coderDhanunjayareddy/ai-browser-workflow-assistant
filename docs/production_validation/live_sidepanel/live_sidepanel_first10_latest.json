@@ -1,18 +1,59 @@
 {
   "mode": "extension_sidepanel_playwright",
   "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
-  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_day3_cert_final_20260820",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_generic_grounding_chromium_r9_20260904",
   "results": [
     {
-      "task_id": "DAY4-APP-OWNED-SMOKE",
-      "status": "failed",
-      "duration_s": 59.5,
-      "phase": "failed",
-      "error": "The destination for \u201cOpen the resolved destination for Open WhatsApp\u201d returned a browser error page. I stopped after one attempt and did not repeat the navigation.",
-      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 6d60a58-dirty \u00b7 stabilization-20260822T060706Z \u00b7 pid 14196\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nThe destination for \u201cOpen the resolved destination for Open WhatsApp\u201d returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\nResume safely\n\nAI ANALYSIS\n\nResolve WhatsApp through the trusted application registry.\n\nThe destination for \u201cOpen the resolved destination for Open WhatsApp\u201d returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\n\u2717\nStep 1\nNAVIGATE\nOpen the resolved destination for Open WhatsApp\nNew Tab\nchrome://newtab/\nCould not verify page progress after navigate: Extraction failed: Error: Error: Frame with ID 0 is showing error page\nCould not verify page progress after navigate: Extraction failed: Error: Error: Frame with ID 0 is showing error page",
-      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\day4-app-owned-smoke.png",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\day4-app-owned-smoke-target.png",
-      "target_controls": [],
+      "task_id": "GF-D56-LIVE-R9",
+      "status": "needs_info",
+      "duration_s": 37.3,
+      "phase": "Waiting for info",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 b7f0693-dirty \u00b7 stabilization-20260904T080937Z \u00b7 pid 21652\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for info\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nThe requested control is not an actionable target in the current observation. It may be stale, hidden, disabled, read-only, or in a different frame. No browser mutation was dispatched.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open http://127.0.0.1:8765/semantic-grounding-fixture.html\nUnfamiliar Semantic Workspace\nhttp://127.0.0.1:8765/semantic-grounding-fixture.html\nVerification: verified\nTime: 1.6s\nNavigating to: http://127.0.0.1:8765/semantic-grounding-fixture.html\n\u26a1\nStep 2\nCLICK\nActivate the grounded exact control: Continue\nUnfamiliar Semantic Workspace\nhttp://127.0.0.1:8765/semantic-grounding-fixture.html\nVerification: verified\nTime: 234ms\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 3\nWAIT\nwait\nUnfamiliar Semantic Workspace\nhttp://127.0.0.1:8765/semantic-grounding-fixture.html\nVerification: verified\nTime: 2.0s\nWaited 2000ms.\n\nNEED INFORMATION\n\nPlease expose or enable the intended control, then ask me to verify and resume.\n\nContinue",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d56-live-r9.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d56-live-r9-target.png",
+      "target_controls": [
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Cancel",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Continue later",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Continue",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Continue",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Continue",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
       "initial_url": "chrome://newtab/",
       "browser_pages": [
         {
@@ -23,17 +64,17 @@
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\day4-app-owned-smoke-page-1.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d56-live-r9-page-1.png"
         },
         {
           "index": 2,
-          "url": "chrome-error://chromewebdata/",
-          "title": "web.whatsapp.com",
-          "body_text": "Your Internet access is blocked\n\nFirewall or antivirus software may have blocked the connection.\n\nTry:\n\nChecking the connection\nChecking firewall and antivirus configurations\nRunning Windows Network Diagnostics\nERR_NETWORK_ACCESS_DENIED\nDetails",
+          "url": "http://127.0.0.1:8765/semantic-grounding-fixture.html",
+          "title": "Unfamiliar Semantic Workspace",
+          "body_text": "Unfamiliar Semantic Workspace\n\nfixture_state=continued_exactly_once\n\nCancel\nContinue later\nContinue\nQuarterly prose mentions Continue, Delete, and Publish but is not a named control.\nContinue",
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\day4-app-owned-smoke-page-2.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d56-live-r9-page-2.png"
         }
       ]
     }

@@ -24,3 +24,8 @@ def test_approved_file_and_no_send_report_is_not_misclassified_as_pending_approv
 def test_explicit_send_approval_prompt_remains_critical() -> None:
     text = "This WhatsApp message requires approval before send."
     assert MODULE._looks_like_critical_approval(text.lower()) is True
+
+
+def test_terminal_status_fills_missing_presentation_phase() -> None:
+    assert MODULE._reported_phase("✓ Done — 2 of 2 steps succeeded", "completed") == "completed"
+    assert MODULE._reported_phase("No phase label", "failed") == "failed"

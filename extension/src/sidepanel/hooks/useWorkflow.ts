@@ -1597,6 +1597,13 @@ function actionFromIntent(intent: IntentDTO): SuggestedAction {
   }
 }
 
+export function missionIntentHasRequiredExecutionTarget(action: SuggestedAction): boolean {
+  const actionType = String(action.action_type || '').toLowerCase()
+  if (actionType !== 'focus_existing_tab' && actionType !== 'switch_tab') return true
+  const reference = String(action.value || '').trim()
+  return /^(?:id|tab|ordinal|url|title|purpose):\S+/i.test(reference)
+}
+
 export function useWorkflow() {
   const [state, setState] = useState<WorkflowState>({
     sessionId: crypto.randomUUID(),
@@ -2259,15 +2266,17 @@ export function useWorkflow() {
 
     if (nextIntent) {
       const nextAction = actionFromIntent(nextIntent)
-      setState((s) => ({
-        ...s,
-        phase: 'awaiting_execution',
-        activeAction: null,
-        pendingActions: [nextAction],
-        completedActions: newCompleted,
-        error: null,
-      }))
-      return
+      if (missionIntentHasRequiredExecutionTarget(nextAction)) {
+        setState((s) => ({
+          ...s,
+          phase: 'awaiting_execution',
+          activeAction: null,
+          pendingActions: [nextAction],
+          completedActions: newCompleted,
+          error: null,
+        }))
+        return
+      }
     }
 
     const missionResult = await withTimeout(

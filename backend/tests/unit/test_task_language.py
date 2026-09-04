@@ -35,3 +35,12 @@ def test_affirmative_attachment_still_creates_upload_blueprint_and_target() -> N
 
 def test_media_playback_is_an_interactive_browser_workflow() -> None:
     assert workflow_category("Play Telugu music on YouTube") == "interactive_browser_task"
+
+
+def test_unfamiliar_control_mutation_is_an_interactive_browser_workflow() -> None:
+    task = (
+        "Open http://127.0.0.1:8765/semantic-grounding-fixture.html and "
+        "activate the exact enabled control named Continue once."
+    )
+
+    assert workflow_category(task) == "interactive_browser_task"

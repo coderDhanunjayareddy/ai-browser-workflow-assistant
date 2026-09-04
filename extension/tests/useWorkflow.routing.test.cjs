@@ -51,6 +51,7 @@ const {
   createMissionSnapshot,
   createFreshWorkflowSessionId,
   meaningfulWorkflowFailure,
+  missionIntentHasRequiredExecutionTarget,
   createMultiTabWorkspace,
   createTaskWorkspace,
   phaseContinuationActions,
@@ -278,6 +279,25 @@ test('raw workflow failures become meaningful bounded user outcomes', () => {
   assert.equal(errorPage.category, 'network')
   assert.equal(errorPage.retryable, false)
   assert.match(errorPage.userMessage, /after one attempt/i)
+})
+
+test('mission tab intents require an explicit browser-resolvable target', () => {
+  assert.equal(missionIntentHasRequiredExecutionTarget(action({
+    action_type: 'focus_existing_tab',
+    value: null,
+  })), false)
+  assert.equal(missionIntentHasRequiredExecutionTarget(action({
+    action_type: 'switch_tab',
+    value: 'logical_tab_missing',
+  })), false)
+  assert.equal(missionIntentHasRequiredExecutionTarget(action({
+    action_type: 'focus_existing_tab',
+    value: 'url:https://unknown.example/workspace',
+  })), true)
+  assert.equal(missionIntentHasRequiredExecutionTarget(action({
+    action_type: 'click',
+    value: null,
+  })), true)
 })
 
 test('semantic recovery is bounded and never replans consequential or uncertain actions', () => {

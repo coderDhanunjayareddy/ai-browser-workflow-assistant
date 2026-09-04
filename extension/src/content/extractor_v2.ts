@@ -137,11 +137,39 @@ export function extractPageContextV2(): PageContext {
     const placeholder = el.getAttribute('placeholder')
     if (placeholder) return placeholder
 
-    return (el.textContent || '').trim()
+    const labelledBy = el.getAttribute('aria-labelledby')
+    if (labelledBy) {
+      const labelledText = labelledBy
+        .split(/\s+/)
+        .map((id) => document.getElementById(id)?.textContent || '')
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (labelledText) return labelledText.slice(0, 160)
+    }
+
+    // Descendant prose is not automatically an interactive identity. Only
+    // roles whose accessible-name algorithm legitimately derives from content
+    // may use concise rendered text as a fallback.
+    const tag = el.tagName.toLowerCase()
+    const role = (el.getAttribute('role') || '').toLowerCase()
+    const nameFromContent = new Set([
+      'button', 'a', 'summary', 'option',
+      'link', 'menuitem', 'tab',
+    ])
+    if (nameFromContent.has(tag) || nameFromContent.has(role)) {
+      const text = (el.textContent || '').replace(/\s+/g, ' ').trim()
+      if (text.length <= 160) return text
+    }
+    return ''
   }
 
   function getAccessibilityState(el: Element): Record<string, string | boolean> {
     const state: Record<string, string | boolean> = {}
+    if (el.getAttribute('aria-disabled') === 'true') state['aria_disabled'] = true
+    if ('disabled' in el && Boolean((el as HTMLButtonElement | HTMLInputElement | HTMLSelectElement).disabled)) {
+      state['disabled'] = true
+    }
     if (el.getAttribute('aria-expanded')) {
       state['expanded'] = el.getAttribute('aria-expanded') === 'true'
     }

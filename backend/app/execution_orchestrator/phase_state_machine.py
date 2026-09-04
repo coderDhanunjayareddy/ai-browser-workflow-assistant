@@ -75,6 +75,16 @@ def _is_interactive_browser_task(text: str) -> bool:
     if any(term in text for term in multi_source_terms):
         return False
     action_terms = (
+        # Generic interaction verbs belong here.  Classification must follow
+        # the requested capability, not a registry of known applications.
+        "activate",
+        "click",
+        "press",
+        "select",
+        "choose",
+        "toggle",
+        "enable",
+        "disable",
         "send",
         "message",
         "whatsapp",
@@ -101,7 +111,25 @@ def _is_interactive_browser_task(text: str) -> bool:
         "song",
         "video",
     )
-    browser_goal_terms = ("open", "go to", "navigate", "use", "login", "sign in", "search", "play", "listen")
+    browser_goal_terms = (
+        "open",
+        "go to",
+        "navigate",
+        "use",
+        "login",
+        "sign in",
+        "search",
+        "play",
+        "listen",
+        "activate",
+        "click",
+        "press",
+        "select",
+        "choose",
+        "toggle",
+        "enable",
+        "disable",
+    )
     return any(term in text for term in action_terms) and any(term in text for term in browser_goal_terms)
 
 

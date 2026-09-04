@@ -260,6 +260,53 @@ def test_prepositioned_fixture_pages_advance_to_interaction_phase(monkeypatch):
         assert expected_action in snapshot.active_phase.allowed_actions
 
 
+def test_unfamiliar_control_task_requires_verified_mutation_after_navigation(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    task = (
+        "Open http://127.0.0.1:8765/semantic-grounding-fixture.html and "
+        "activate the exact enabled control named Continue once."
+    )
+    opened = PriorStep(
+        action_type="navigate",
+        description="Open the explicitly requested destination",
+        target_selector="",
+        value="http://127.0.0.1:8765/semantic-grounding-fixture.html",
+        execution_result="Navigating to fixture\n\nVerification: verified",
+        page_url="http://127.0.0.1:8765/semantic-grounding-fixture.html",
+        page_title="Unfamiliar Semantic Workspace",
+    )
+
+    before_click = engine.build_snapshot(
+        session_id="generic-control-before-click",
+        task=task,
+        page_context=_page("http://127.0.0.1:8765/semantic-grounding-fixture.html"),
+        prior_steps=[opened],
+    )
+
+    assert before_click.workflow_category == "interactive_browser_task"
+    assert before_click.active_phase.name == "VALIDATE"
+    assert "click" in before_click.active_phase.allowed_actions
+
+    verified_click = PriorStep(
+        action_type="click",
+        description="Activate the exact enabled control named Continue",
+        target_selector='button[aria-label="Continue"]',
+        value="",
+        execution_result="Clicked target\n\nVerification: verified",
+        page_url="http://127.0.0.1:8765/semantic-grounding-fixture.html",
+        page_title="Unfamiliar Semantic Workspace",
+    )
+    after_click = engine.build_snapshot(
+        session_id="generic-control-after-click",
+        task=task,
+        page_context=_page("http://127.0.0.1:8765/semantic-grounding-fixture.html"),
+        prior_steps=[opened, verified_click],
+    )
+
+    assert after_click.active_phase.name == "REPORT"
+
+
 def test_prepositioned_single_page_extraction_advances_to_read() -> None:
     url = "https://github.com/torvalds/linux/pull/1"
     snapshot = ExecutionOrchestrator().build_snapshot(

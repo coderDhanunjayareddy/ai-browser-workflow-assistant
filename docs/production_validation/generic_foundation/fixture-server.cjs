@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const fixturePath = path.join(__dirname, 'intervention-auth-fixture.html');
+const semanticFixturePath = path.join(__dirname, 'semantic-grounding-fixture.html');
 const server = http.createServer((request, response) => {
   if (request.url === '/health') {
     response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -12,6 +13,11 @@ const server = http.createServer((request, response) => {
   if (request.url?.startsWith('/intervention-auth-fixture.html')) {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     fs.createReadStream(fixturePath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/semantic-grounding-fixture.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(semanticFixturePath).pipe(response);
     return;
   }
   response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });

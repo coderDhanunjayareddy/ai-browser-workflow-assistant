@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Unfamiliar Semantic Workspace</title>
+  <style>
+    body { font: 16px system-ui; margin: 40px; }
+    #controls { display: flex; gap: 12px; align-items: center; }
+    [hidden] { display: none !important; }
+    button { padding: 10px 16px; }
+  </style>
+</head>
+<body>
+  <h1>Unfamiliar Semantic Workspace</h1>
+  <p id="status" aria-live="polite">fixture_state=ready</p>
+  <div id="controls"></div>
+  <div role="row" tabindex="0" id="prose-row">
+    Quarterly prose mentions Continue, Delete, and Publish but is not a named control.
+  </div>
+  <button aria-label="Continue" id="hidden-decoy" hidden>Continue</button>
+  <button aria-label="Continue" id="disabled-decoy" disabled>Continue</button>
+  <script>
+    const controls = [
+      ['Cancel', 'cancel-control'],
+      ['Continue later', 'later-control'],
+      ['Continue', 'exact-control'],
+    ].sort(() => Math.random() - 0.5)
+    for (const [name, id] of controls) {
+      const button = document.createElement('button')
+      button.id = id
+      button.setAttribute('aria-label', name)
+      button.textContent = name
+      if (id === 'exact-control') {
+        button.addEventListener('click', () => {
+          document.querySelector('#status').textContent = 'fixture_state=continued_exactly_once'
+          button.disabled = true
+        }, { once: true })
+      }
+      document.querySelector('#controls').append(button)
+    }
+  </script>
+</body>
+</html>

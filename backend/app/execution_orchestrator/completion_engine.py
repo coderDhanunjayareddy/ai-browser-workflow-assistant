@@ -8,6 +8,28 @@ from app.execution_orchestrator.models import ArtifactRegistry, ProgressLedger
 from app.task_language import affirmative_task_text
 
 
+GENERIC_BROWSER_MUTATION_TERMS = (
+    "activate",
+    "click",
+    "press",
+    "select",
+    "choose",
+    "toggle",
+    "enable",
+    "disable",
+)
+
+GENERIC_BROWSER_MUTATION_ACTIONS = {
+    "click",
+    "fill",
+    "select_option",
+    "choose_date",
+    "hover",
+    "keyboard_shortcut",
+    "media_control",
+}
+
+
 def build_progress_ledger(
     task: str,
     artifacts: ArtifactRegistry,
@@ -156,7 +178,7 @@ def _read_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any
 def _is_current_page_interaction(text: str) -> bool:
     return _is_simple_search_interaction(text) or any(
         term in text
-        for term in (
+        for term in GENERIC_BROWSER_MUTATION_TERMS + (
             "log in",
             "login",
             "sign in",
@@ -218,7 +240,7 @@ def _is_simple_search_interaction(text: str) -> bool:
 def _is_interactive_task(text: str) -> bool:
     return any(
         term in text
-        for term in (
+        for term in GENERIC_BROWSER_MUTATION_TERMS + (
             "send",
             "message",
             "whatsapp",
@@ -258,6 +280,12 @@ def _target_state_reached(prior_steps: list[Any]) -> bool:
         description = str(data.get("description") or "").lower()
         evidence = str(data.get("page_analysis") or "").lower()
         combined = " ".join((result, description, evidence))
+        action_type = str(data.get("action_type") or "").lower()
+        if (
+            action_type in GENERIC_BROWSER_MUTATION_ACTIONS
+            and "verification: verified" in result
+        ):
+            return True
         if any(
             marker in combined
             for marker in (

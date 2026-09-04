@@ -333,7 +333,7 @@ def test_active_kernel_grounds_registered_entity_url(monkeypatch):
     assert "Semantic Execution Kernel grounded" in grounded.suggested_actions[0].reasoning
 
 
-def test_active_kernel_rejects_unregistered_entity_before_browser_execution(monkeypatch):
+def test_active_kernel_replaces_unregistered_selector_with_observed_exact_identity(monkeypatch):
     monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
     engine = SemanticExecutionKernel()
     response = _response("click", selector="#invented")
@@ -346,11 +346,167 @@ def test_active_kernel_rejects_unregistered_entity_before_browser_execution(monk
         prior_steps=[],
     )
 
-    assert result.outcome_kind == "replan"
-    assert result.suggested_actions == []
-    assert result.replan is not None
-    assert "ENTITY_PIPELINE_FAILURE stage=SemanticKernel" in result.replan.reason
-    assert "entity lookup failed" in result.replan.reason
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].target_selector == "#save"
+    assert result.suggested_actions[0].target_selector != "#invented"
+
+
+def test_unfamiliar_click_is_repaired_to_enabled_exact_accessible_identity(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    page = PageContext(
+        url="http://127.0.0.1:8765/semantic-grounding-fixture.html",
+        title="Unfamiliar Semantic Workspace",
+        metadata={},
+        interactive_elements=[
+            InteractiveElement(
+                type="button",
+                selector="#continue-later",
+                text="Continue later",
+                aria_label="Continue later",
+                accessibility_name="Continue later",
+                visible=True,
+            ),
+            InteractiveElement(
+                type="button",
+                selector="#continue-disabled",
+                text="Continue",
+                aria_label="Continue",
+                accessibility_name="Continue",
+                visible=True,
+                state={"disabled": True},
+            ),
+            InteractiveElement(
+                type="button",
+                selector="#continue-enabled",
+                text="Continue",
+                aria_label="Continue",
+                accessibility_name="Continue",
+                visible=True,
+            ),
+        ],
+        content_blocks=[],
+        headings=["Unfamiliar Semantic Workspace"],
+        selected_text="",
+        visible_text="Continue later Continue",
+        images=[],
+    )
+    response = AnalyzeResponse(
+        session_id="kernel-generic-exact-control",
+        analysis="Activate the requested control.",
+        outcome_kind="act",
+        suggested_actions=[SuggestedAction(
+            action_id="generic-click",
+            action_type="click",
+            target_selector="#invented-selector",
+            value="Continue",
+            description="Activate the exact enabled control named Continue",
+            reasoning="Planner proposal.",
+            confidence=0.8,
+            safety_level="safe",
+        )],
+    )
+
+    result = SemanticExecutionKernel().postprocess_response(
+        result=response,
+        session_id="kernel-generic-exact-control",
+        task=(
+            "Open http://127.0.0.1:8765/semantic-grounding-fixture.html and "
+            "activate the exact enabled control named Continue once."
+        ),
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].target_selector == "#continue-enabled"
+
+
+def test_unresolved_redundant_focus_continues_with_exact_current_page_control(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    page = PageContext(
+        url="http://127.0.0.1:8765/semantic-grounding-fixture.html",
+        title="Unfamiliar Semantic Workspace",
+        metadata={},
+        interactive_elements=[
+            InteractiveElement(
+                type="button",
+                selector="#continue-later",
+                text="Continue later",
+                accessibility_name="Continue later",
+                visible=True,
+            ),
+            InteractiveElement(
+                type="button",
+                selector="#continue-disabled",
+                text="Continue",
+                accessibility_name="Continue",
+                visible=True,
+                state={"disabled": True},
+            ),
+            InteractiveElement(
+                type="button",
+                selector="#continue-enabled",
+                text="Continue",
+                accessibility_name="Continue",
+                visible=True,
+            ),
+        ],
+        content_blocks=[],
+        headings=["Unfamiliar Semantic Workspace"],
+        selected_text="",
+        visible_text="Continue later Continue",
+        images=[],
+    )
+    response = _response("focus_existing_tab", value="logical_tab_missing")
+
+    result = SemanticExecutionKernel().postprocess_response(
+        result=response,
+        session_id="kernel-current-page-focus-repair",
+        task=(
+            "Open http://127.0.0.1:8765/semantic-grounding-fixture.html and "
+            "activate the exact enabled control named Continue once."
+        ),
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "click"
+    assert result.suggested_actions[0].target_selector == "#continue-enabled"
+
+
+def test_wait_is_replaced_when_exact_requested_control_is_already_observed(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    page = PageContext(
+        url="https://unknown.example/workspace",
+        title="Unknown Workspace",
+        metadata={},
+        interactive_elements=[InteractiveElement(
+            type="button",
+            selector="#proceed",
+            text="Proceed",
+            accessibility_name="Proceed",
+            visible=True,
+        )],
+        content_blocks=[],
+        headings=["Unknown Workspace"],
+        selected_text="",
+        visible_text="Proceed",
+        images=[],
+    )
+    response = _response("wait", value="1000")
+
+    result = SemanticExecutionKernel().postprocess_response(
+        result=response,
+        session_id="kernel-observed-control-over-wait",
+        task="Open https://unknown.example/workspace and press the exact control named Proceed.",
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "click"
+    assert result.suggested_actions[0].target_selector == "#proceed"
 
 
 def test_interactive_missing_entity_requests_refresh_wait(monkeypatch):

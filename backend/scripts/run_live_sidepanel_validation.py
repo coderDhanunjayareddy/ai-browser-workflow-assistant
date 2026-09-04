@@ -563,13 +563,10 @@ def _run_task(
             break
         time.sleep(1)
 
-    phase = "unknown"
     text = _sidepanel_text(sidepanel)
     if file_chooser_events:
         text = f"{text}\n\nFILE CHOOSER EVIDENCE\n" + "\n".join(file_chooser_events)
-    for candidate in ["Reading page", "Thinking", "Executing", "Waiting for info", "completed", "failed"]:
-        if candidate.lower() in text.lower():
-            phase = candidate
+    phase = _reported_phase(text, terminal_status)
     screenshot = REPORT_DIR / f"{safe_id}.png"
     try:
         sidepanel.screenshot(path=str(screenshot), full_page=True, timeout=10_000)
@@ -627,6 +624,16 @@ def _extract_error(text: str) -> str:
         if idx >= 0:
             return text[idx : idx + 500]
     return ""
+
+
+def _reported_phase(text: str, terminal_status: str) -> str:
+    phase = "unknown"
+    for candidate in ["Reading page", "Thinking", "Executing", "Waiting for info", "completed", "failed"]:
+        if candidate.lower() in text.lower():
+            phase = candidate
+    if phase == "unknown" and terminal_status in {"completed", "failed", "needs_info", "needs_approval", "timeout"}:
+        return terminal_status
+    return phase
 
 
 def _write_report(extension_id: str, profile_dir: Path, results: list[TaskRun]) -> None:

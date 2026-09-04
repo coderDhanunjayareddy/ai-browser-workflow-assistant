@@ -3200,6 +3200,65 @@ def _deterministic_observed_report_response(
                 goal_convergence=True,
                 backend_authoritative_report=True,
             )
+    state_expectation = re.search(
+        r"\b(?:verify|confirm)\b(?:\s+that)?\s+(?:the\s+)?(?:state|status|page)\s+"
+        r"(?:becomes|is|shows|contains)\s+([^.;]{1,240})",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    )
+    if state_expectation:
+        expected_state = " ".join(state_expectation.group(1).split()).strip(" `\"'")
+        expected_identity = re.sub(r"[^a-z0-9]+", " ", expected_state.casefold()).strip()
+        visible_identity = re.sub(r"[^a-z0-9]+", " ", visible_text.casefold()).strip()
+        def successful_mutation(step: Any) -> bool:
+            data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+            if str(data.get("action_type") or "").lower() not in {
+                "click",
+                "fill",
+                "select_option",
+                "choose_date",
+                "keyboard_shortcut",
+                "media_control",
+            }:
+                return False
+            result = str(data.get("execution_result") or "").strip().casefold()
+            if any(term in result for term in ("failed", "failure", "no_effect", "no effect", "error:")):
+                return False
+            # The browser executor persists the canonical result as ``success``;
+            # richer clients may additionally retain their verification text.
+            # Current-page postcondition evidence remains mandatory below, so a
+            # successful mutation alone can never produce a completion claim.
+            return result.startswith((
+                "success",
+                "filled field",
+                "clicked target",
+                "cdp click dispatched",
+                "selected option",
+                "selected visible option",
+                "intent execution queue completed",
+            )) or "verification: verified" in result
+
+        verified_mutation = any(successful_mutation(step) for step in list(prior_steps or []))
+        if expected_identity and verified_mutation and expected_identity in visible_identity:
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    "A verified browser mutation was followed by current-page evidence matching "
+                    "the requested state; no further browser action is required."
+                ),
+                outcome_kind="report",
+                report=ReportOutcome(
+                    answer=f'Verified that the requested state became "{expected_state}".',
+                    claim=(
+                        f'The last requested mutation was verified and the current page contains '
+                        f'the normalized state identity "{expected_state}".'
+                    ),
+                ),
+                suggested_actions=[],
+                sgv_verified=True,
+                goal_convergence=True,
+                backend_authoritative_report=True,
+            )
     for step in reversed(list(prior_steps or [])):
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
         evidence = dict(data.get("browser_evidence") or {})

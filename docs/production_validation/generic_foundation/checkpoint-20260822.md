@@ -91,3 +91,69 @@ The generic human-intervention flow was repeated from a clean New Tab against a 
 - Audit result: `mutation_count=0`, intervention requests `1`, observations `2`, duplicate dispatches `0`, uploads `0`, submissions `0`, messages `0`, and external side effects `0`.
 
 **Result:** PASS for the synthetic checkpoint → human gate → same-tab verification → exactly-once resume → evidence-backed report workflow. This certifies the generic intervention bridge and restart-safe resume behavior; it does not by itself certify every external website or the paused Day 5 consequential-send gate.
+
+## Semantic observation and authoritative grounding checkpoint — 2026-08-25
+
+This checkpoint closes the production authority gap where semantic graph construction and intent grounding were telemetry-only while deterministic observed-control actions could return before either boundary.
+
+Implemented and verified:
+
+- Every selector-based click, hover, fill, selection, or date mutation is now re-grounded against one current semantic observation before browser handoff.
+- The graph keeps visibility, actionability, editability, geometry, tab, window, frame, and origin as separate evidence.
+- Hidden elements are omitted; visible disabled and zero-area controls remain observation nodes but cannot become action targets; read-only fields cannot be fill targets.
+- Stable selector identity ranks first. A stale selector can rebind only through one exact accessible identity; duplicate exact identities fail closed with a meaningful clarification.
+- Legacy selector fallback is disabled at the authoritative boundary.
+- Raw descendant prose from generic containers no longer becomes a control identity. Only native or ARIA roles whose accessible name legitimately derives from content may use concise rendered text.
+- Compatibility reconstruction now preserves provenance, grounding, content-insertion, and consequential-submission contracts.
+
+Validation results:
+
+| Suite | Result | Measured runtime |
+|---|---:|---:|
+| Semantic graph, grounding, randomized conformance, observed controls, generic messaging/intervention, integration orchestrator | 108/108 passed | 9.56 s |
+| Extension TypeScript check | passed | included in 30.0 s command window |
+| Extension complete Node test suite | 223/223 passed | 10.83 s |
+| Canonical extension production build | passed, 71 modules | 3.85 s |
+
+The randomized conformance suite runs 40 DOM orders on an unfamiliar synthetic origin and covers exact accessible identity, duplicate ambiguity, hidden/disabled/zero-area controls, read-only fields, unrelated descendant prose, stale selectors, and tab/window/frame/origin/geometry binding.
+
+Live synthetic browser evidence:
+
+- Page: `http://127.0.0.1:8765/semantic-grounding-fixture.html` (`Unfamiliar Semantic Workspace`).
+- The visible DOM contained one enabled exact-name `Continue` control, one enabled `Continue later` control, one enabled `Cancel` control, an unrelated prose row containing action words, one visible disabled `Continue` decoy, and no visible hidden decoy.
+- Candidate actionability inspection returned exactly two exact-name candidates: one enabled/visible and one disabled/visible.
+- One safe click on the enabled exact control changed the postcondition from `fixture_state=ready` to `fixture_state=continued_exactly_once`; the selected control then became disabled. No retry, upload, submission, message, account change, or external side effect occurred.
+- A viewport screenshot of the verified terminal state was captured as `semantic-grounding-live-20260825.png`. The first full-page screenshot attempt timed out; it was not counted as evidence and the viewport capture succeeded on the next bounded attempt.
+
+Canonical runtime after rebuild: app `v0.4.0`, commit identity `b7f0693-dirty`, build `stabilization-20260825T094251Z`, backend PID `7696`, URL `http://localhost:8000`.
+
+**Status:** semantic observation/grounding implementation and synthetic exit scenarios pass. This is not yet a cross-domain release certification. Real-service validation, complete frame-tree extraction, and the Days 7–8 single executor/effect-verifier migration remain required before the original consequential-send gate resumes.
+
+## Real extension-side-panel grounding run — 2026-09-04
+
+The unfamiliar semantic-control scenario was rerun through the actual built extension side panel from `chrome://newtab/`; a direct fixture click was not accepted as end-to-end evidence.
+
+Final certified run `GF-D56-LIVE-R8` used runtime `v0.4.0`, commit identity `b7f0693-dirty`, build `stabilization-20260904T080937Z`, and backend PID `21652`.
+
+- The side panel navigated from New Tab to the explicit synthetic origin.
+- It grounded the requested exact enabled `Continue` control to `#exact-control` while rejecting the disabled same-name decoy, the partial-name control, hidden content, and unrelated prose.
+- Trusted CDP input dispatched one click through `stable_selector` grounding.
+- Current-page evidence changed from `fixture_state=ready` to `fixture_state=continued_exactly_once`.
+- The workflow produced a backend-authoritative verified report and stopped.
+- Audit totals were exactly two approved actions and two executed actions: `navigate, click`. Both succeeded. There were zero retries, duplicate clicks, uploads, submissions, messages, account changes, or external side effects.
+- Full-run latency was 37.0 seconds; the click itself was 259 ms.
+
+Live failures before the passing run were retained as diagnostic evidence and not counted as passes. They exposed and led to fixes for: capability verbs misclassified as research; navigation incorrectly satisfying a mutation objective; a duplicate app-oriented semantic repair classifier; unresolved/redundant current-tab focus; waits taking precedence over an already-observed exact control; invalid targetless tab intents; and failure to terminate from a verified mutation plus its requested visible postcondition.
+
+Post-fix validation:
+
+| Suite | Result | Measured runtime |
+|---|---:|---:|
+| Backend focused orchestration, completion, semantic-kernel, and observed-control suites | 121/121 passed | 1.25 s |
+| Extension complete Node test suite | 224/224 passed | 14.08 s |
+| Extension production build | passed, 71 modules | 1.12 s |
+| Real extension-side-panel unfamiliar-control workflow | PASS, 2/2 actions | 37.0 s |
+
+Evidence files: `docs/production_validation/live_sidepanel/live_sidepanel_first10_latest.json`, `docs/production_validation/live_sidepanel/gf-d56-live-r8.png`, and `docs/production_validation/live_sidepanel/gf-d56-live-r8-target.png`.
+
+**Status:** the real side-panel semantic grounding and exact-once postcondition scenario passes. This closes the current Days 5–6 generic grounding checkpoint only; it does not certify arbitrary external sites or resume consequential-send testing by itself.

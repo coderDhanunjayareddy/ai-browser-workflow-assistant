@@ -194,10 +194,7 @@ def _content_block_node(block: ContentBlock, index: int) -> SemanticNode:
 
 
 def _element_node(element: InteractiveElement, index: int) -> SemanticNode:
-    label = normalize_text(
-        element.accessibility_name or element.aria_label or element.text or element.placeholder,
-        max_length=120,
-    )
+    label = _element_label(element)
     return SemanticNode(
         node_id=f"node.element.{index + 1}",
         node_type=classify_element_node_type(element),
@@ -228,10 +225,7 @@ def _element_target(
     page_context: PageContext,
 ) -> SemanticTarget:
     role = classify_target_role(element)
-    label = normalize_text(
-        element.accessibility_name or element.aria_label or element.text or element.placeholder,
-        max_length=120,
-    )
+    label = _element_label(element)
     return SemanticTarget(
         target_id=f"target.{role}.{index + 1}",
         target_type=element.type or "element",
@@ -268,6 +262,21 @@ def _is_actionable(element: InteractiveElement) -> bool:
     if box and (float(box.get("width") or 0) <= 0 or float(box.get("height") or 0) <= 0):
         return False
     return True
+
+
+def _element_label(element: InteractiveElement) -> str:
+    explicit = element.accessibility_name or element.aria_label or element.placeholder
+    if explicit:
+        return normalize_text(explicit, max_length=120)
+    # Raw descendant text is page content, not automatically target identity.
+    # Native/name-from-content controls are the bounded exception.
+    element_type = str(element.type or "").lower()
+    role = str(element.role or "").lower()
+    if element_type in {"button", "a", "summary", "option"} or role in {
+        "button", "link", "menuitem", "option", "tab",
+    }:
+        return normalize_text(element.text, max_length=120)
+    return ""
 
 
 def _is_editable(element: InteractiveElement) -> bool:

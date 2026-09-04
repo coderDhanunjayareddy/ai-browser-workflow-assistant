@@ -22,3 +22,16 @@ for (const relativePath of [
     assert.ok(sliceIndex > visibilityIndex, 'visibility filtering must happen before the heading limit')
   })
 }
+
+test('extractor_v2 does not treat arbitrary descendant prose as a control identity', () => {
+  const source = fs.readFileSync(path.join(root, 'src/content/extractor_v2.ts'), 'utf8')
+  assert.match(source, /Descendant prose is not automatically an interactive identity/)
+  assert.match(source, /if \(nameFromContent\.has\(tag\) \|\| nameFromContent\.has\(role\)\)/)
+  assert.match(source, /return ''/)
+})
+
+test('extractor_v2 records generic ARIA and native disabled state', () => {
+  const source = fs.readFileSync(path.join(root, 'src/content/extractor_v2.ts'), 'utf8')
+  assert.match(source, /aria-disabled[^\n]+state\['aria_disabled'\] = true/)
+  assert.match(source, /state\['disabled'\] = true/)
+})

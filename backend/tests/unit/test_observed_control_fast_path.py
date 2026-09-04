@@ -213,6 +213,70 @@ def test_visible_marker_report_does_not_claim_an_unobserved_marker() -> None:
     assert response is None
 
 
+def test_verified_generic_mutation_reports_only_after_requested_state_is_observed() -> None:
+    page = _page("http://127.0.0.1:8765/semantic-grounding-fixture.html", [])
+    page.visible_text = "fixture_state=continued_exactly_once"
+    task = (
+        "Open the unfamiliar workspace and activate the exact enabled control named Continue once. "
+        "Verify the state becomes continued exactly once."
+    )
+    verified_click = PriorStep(
+        action_type="click",
+        description="Activate the grounded exact control: Continue",
+        target_selector="#exact-control",
+        value="Continue",
+        execution_result="Clicked target\n\nExecution: success\nVerification: verified",
+        page_url=page.url,
+        page_title=page.title,
+    )
+
+    response = _deterministic_observed_report_response(
+        session_id="generic-state-postcondition",
+        task=task,
+        page_context=page,
+        prior_steps=[verified_click],
+    )
+    without_mutation = _deterministic_observed_report_response(
+        session_id="generic-state-no-mutation",
+        task=task,
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.suggested_actions == []
+    assert without_mutation is None
+
+
+def test_generic_postcondition_accepts_canonical_persisted_success_result() -> None:
+    page = _page("https://unfamiliar.example.test/workspace", [])
+    page.visible_text = "fixture_state=continued_exactly_once"
+    task = "Activate Continue once. Verify the state becomes continued exactly once."
+    persisted_click = PriorStep(
+        action_type="click",
+        description="Activate the grounded exact control: Continue",
+        target_selector="#exact-control",
+        value="Continue",
+        execution_result="success",
+        page_url=page.url,
+        page_title=page.title,
+    )
+
+    response = _deterministic_observed_report_response(
+        session_id="generic-canonical-success-postcondition",
+        task=task,
+        page_context=page,
+        prior_steps=[persisted_click],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.suggested_actions == []
+
+
 def test_whatsapp_open_only_task_reports_after_exact_chat_is_observed() -> None:
     task = (
         "Open WhatsApp and open the exact direct chat named Teja Spc. "
