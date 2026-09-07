@@ -213,6 +213,22 @@ def test_visible_marker_report_does_not_claim_an_unobserved_marker() -> None:
     assert response is None
 
 
+def test_exact_visible_text_marker_phrase_reports_without_planner() -> None:
+    page = _page("https://unfamiliar.example.test/", [])
+    page.visible_text = "Example Domain\nThis is a neutral public page."
+
+    response = _deterministic_observed_report_response(
+        session_id="exact-visible-text-marker",
+        task="Open the page and verify the exact visible text marker 'Example Domain'.",
+        page_context=page,
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.report.answer == 'Verified the visible marker "Example Domain".'
+
+
 def test_verified_generic_mutation_reports_only_after_requested_state_is_observed() -> None:
     page = _page("http://127.0.0.1:8765/semantic-grounding-fixture.html", [])
     page.visible_text = "fixture_state=continued_exactly_once"
@@ -376,6 +392,75 @@ def test_explicit_named_control_uses_unique_enabled_observed_target_without_plan
     assert len(response.suggested_actions) == 1
     assert response.suggested_actions[0].target_selector == "#exact-control"
     assert response.suggested_actions[0].grounding["semantic_kind"] == "explicitly_named_control"
+
+
+def test_natural_field_assignment_then_exact_control_advances_without_planner() -> None:
+    page = _page(
+        "https://unfamiliar.example.test/",
+        [
+            InteractiveElement(
+                type="input",
+                role="searchbox",
+                selector="#query",
+                text="",
+                accessibility_name="Search",
+                placeholder="Search",
+                visible=True,
+            ),
+            InteractiveElement(
+                type="button",
+                selector="#run-search",
+                accessibility_name="Search",
+                text="Search",
+                visible=True,
+            ),
+        ],
+    )
+    task = (
+        "In the visible search field enter 'Browser automation', "
+        "then activate the exact enabled Search control once."
+    )
+
+    fill_response = _deterministic_observed_control_response(
+        session_id="natural-field-assignment",
+        task=task,
+        page_context=page,
+        prior_steps=[],
+    )
+    assert fill_response is not None
+    assert fill_response.suggested_actions[0].action_type == "fill"
+    assert fill_response.suggested_actions[0].target_selector == "#query"
+    assert fill_response.suggested_actions[0].value == "Browser automation"
+
+    # A dynamically rendered text-entry control may share the submit control's
+    # accessible name. Activation semantics must still prefer the unique button.
+    page.interactive_elements.append(InteractiveElement(
+        type="input",
+        role="textbox",
+        selector="#suggestion-filter",
+        text="",
+        accessibility_name="Search",
+        visible=True,
+    ))
+
+    click_response = _deterministic_observed_control_response(
+        session_id="natural-field-assignment",
+        task=task,
+        page_context=page,
+        prior_steps=[PriorStep(
+            action_type="fill",
+            description="Fill the uniquely observed search field",
+            target_selector="#query",
+            value="Browser automation",
+            execution_result="success",
+            page_url=page.url,
+            page_title=page.title,
+        )],
+    )
+    assert click_response is not None
+    assert click_response.suggested_actions[0].action_type == "click"
+    assert click_response.suggested_actions[0].target_selector == "#run-search"
+    assert click_response.suggested_actions[0].value == "Search"
 
 
 def test_explicit_named_control_pauses_when_multiple_enabled_exact_targets_exist() -> None:

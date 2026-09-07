@@ -2749,6 +2749,65 @@ def _deterministic_observed_control_response(
             suggested_actions=[],
         )
 
+    # Domain-neutral natural-language field assignment. The task supplies both
+    # the semantic field identity and the value; the current observation must
+    # supply exactly one visible, enabled text-entry control with that identity.
+    field_assignment = re.search(
+        r"\b(?:in|into)\s+(?:the\s+)?(?:visible\s+)?"
+        r"([a-z][a-z0-9 _-]{0,60}?)\s+(?:field|textbox|input)\s+"
+        r"(?:enter|type|fill(?:\s+in)?)\s+[`\"']([^`\"']{1,500})[`\"']",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    )
+    if not action_type and field_assignment:
+        requested_field = " ".join(field_assignment.group(1).split()).casefold()
+        requested_value = field_assignment.group(2)
+        candidates: dict[str, dict[str, Any]] = {}
+        for element in elements:
+            element_type = str(element.get("type") or "").casefold()
+            role = str(element.get("role") or "").casefold()
+            if element_type not in {"input", "textarea"} and role not in {"textbox", "searchbox"}:
+                continue
+            state = dict(element.get("state") or {})
+            if any(bool(state.get(key)) for key in ("disabled", "aria_disabled", "readonly", "hidden")):
+                continue
+            identity = " ".join(
+                str(element.get(key) or "")
+                for key in ("aria_label", "accessibility_name", "placeholder", "name", "text", "selector")
+            ).casefold()
+            selector_id = str(element.get("selector") or "").strip()
+            if requested_field in identity and selector_id:
+                candidates[selector_id] = element
+        remaining = [item for selector_id, item in candidates.items() if selector_id not in completed_fills]
+        if len(remaining) == 1:
+            control = remaining[0]
+            selector = str(control.get("selector") or "").strip()
+            action_type = "fill"
+            value = requested_value
+            description = f"Fill the uniquely observed {requested_field} field with the explicitly supplied value"
+            target_grounding = {
+                "source": "dom_snapshot",
+                "selector_id": selector,
+                "accessibility_name": str(
+                    control.get("accessibility_name") or control.get("aria_label") or control.get("placeholder") or ""
+                ).strip() or None,
+                "role": str(control.get("role") or control.get("type") or "").strip() or None,
+                "semantic_kind": "explicitly_named_field",
+            }
+        elif len(remaining) > 1:
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    f'Multiple enabled text-entry controls match the requested field identity "{requested_field}". '
+                    "No value was entered because the target is ambiguous."
+                ),
+                outcome_kind="ask",
+                clarification_question=(
+                    f'I found multiple fields matching "{requested_field}". Which surrounding section should I use?'
+                ),
+                suggested_actions=[],
+            )
+
     # Domain-neutral fast path for an explicitly named browser control. This
     # must not depend on a remote planner: the user supplied the identity and
     # the current DOM observation supplies the authoritative candidates.
@@ -2758,6 +2817,13 @@ def _deterministic_observed_control_response(
         str(task or ""),
         flags=re.IGNORECASE,
     )
+    named_control_matches.extend(re.findall(
+        r"\b(?:activate|click|press|choose|select)\s+(?:the\s+)?(?:exact\s+)?(?:enabled\s+)?"
+        r"[`\"'\u201c\u201d]?([^,.;\n]{1,80}?)[`\"'\u201c\u201d]?\s+"
+        r"(?:control|button|link|option|menu\s+item|tab)(?:\s+(?:exactly\s+)?once)?\b",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    ))
     named_controls = []
     for matched_name in named_control_matches:
         named_control = re.sub(
@@ -2792,11 +2858,31 @@ def _deterministic_observed_control_response(
                 state = dict(element.get("state") or {})
                 if any(bool(state.get(key)) for key in ("disabled", "aria_disabled", "readonly", "hidden")):
                     continue
+                candidate_selector = str(element.get("selector") or "").strip()
+                candidate_role = str(element.get("role") or "").casefold()
+                candidate_type = str(element.get("type") or "").casefold()
+                # After a text-entry objective has been verified, an input that
+                # shares the submit control's accessible name is not a second
+                # activation candidate. This is semantic workflow evidence,
+                # not a site selector or positional guess.
+                if (
+                    candidate_selector in completed_fills
+                    and (candidate_role in {"textbox", "searchbox"} or candidate_type in {"input", "textarea"})
+                ):
+                    continue
                 if observed_identity(element).casefold() != requested_identity:
                     continue
-                if not str(element.get("selector") or "").strip():
+                if not candidate_selector:
                     continue
                 viable_matches.append(element)
+            activation_matches = [
+                element for element in viable_matches
+                if str(element.get("role") or "").casefold() in {"button", "link", "menuitem", "option", "tab"}
+                or str(element.get("type") or "").casefold() in {"button", "a", "option"}
+                or str(element.get("input_type") or "").casefold() in {"button", "submit", "reset"}
+            ]
+            if activation_matches:
+                viable_matches = activation_matches
             unique_matches = {
                 str(element.get("selector") or "").strip(): element
                 for element in viable_matches
@@ -3213,7 +3299,8 @@ def _deterministic_observed_report_response(
     current_url = str(getattr(page_context, "url", "") or "").lower()
     visible_text = " ".join(str(getattr(page_context, "visible_text", "") or "").split())
     visible_marker_match = re.search(
-        r"\b(?:visible\s+(?:marker|text)|page\s+marker)\b\s*(?:is|:)?\s*[`\"']([^`\"']{1,300})[`\"']",
+        r"\b(?:(?:exact\s+)?visible\s+(?:(?:text\s+)?marker|text)|page\s+marker)\b"
+        r"\s*(?:is|:)?\s*[`\"']([^`\"']{1,300})[`\"']",
         str(task or ""),
         flags=re.IGNORECASE,
     )
