@@ -25,11 +25,7 @@ KNOWN_ACTION_TYPES = {
     "codemirror_edit", "shadow_fill", "clipboard", "drag_drop",
     "virtual_list_find", "shadow_click", "infinite_scroll", "advanced_keyboard",
     "canvas_action", "svg_action", "pdf_viewer", "chart_action", "map_action",
-    "media_control", "file_preview", "visual_region", "google_workspace_adapter",
-    "microsoft365_adapter", "github_advanced_adapter", "jira_adapter",
-    "confluence_adapter", "slack_adapter", "notion_adapter", "figma_adapter",
-    "canva_adapter", "salesforce_adapter", "sso_auth", "mfa_otp_handoff",
-    "enterprise_file_workflow", "site_optimize",
+    "media_control", "file_preview", "visual_region",
 }
 
 ORIGIN_GRANT_ACTION_TYPES = {

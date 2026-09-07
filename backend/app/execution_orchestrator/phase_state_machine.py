@@ -46,7 +46,7 @@ def workflow_category(task: str) -> str:
     text = affirmative_task_text(task)
     if any(term in text for term in ("navigate to page", "page 2", "next page", "paged list", "pagination")):
         return "interactive_browser_task"
-    if any(term in text for term in ("job", "career", "opening", "linkedin")):
+    if any(term in text for term in ("job", "career", "opening", "hiring")):
         return "job_search"
     if any(term in text for term in ("upload", "attach", "file accepted", "share link")):
         return "file_upload"
@@ -87,8 +87,6 @@ def _is_interactive_browser_task(text: str) -> bool:
         "disable",
         "send",
         "message",
-        "whatsapp",
-        "gmail",
         "mail",
         "chat",
         "profile",

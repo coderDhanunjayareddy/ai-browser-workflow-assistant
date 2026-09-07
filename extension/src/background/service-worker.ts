@@ -21,7 +21,6 @@ import {
 import { executeRichTextAction } from '../content/rich_text'
 import { executeWave2CoreAction, isWave2CoreAction } from '../content/wave2_core'
 import { executeWave3VisualAction, isWave3VisualAction } from '../content/wave3_visual'
-import { executeWave4EnterpriseAction, isWave4EnterpriseAction } from '../content/wave4_enterprise'
 import {
   verifyExactOpenedTarget,
   type ExactTargetVerificationResult,
@@ -574,7 +573,6 @@ type CanonicalExecutorStrategy =
   | 'rich_text'
   | 'wave2'
   | 'wave3'
-  | 'wave4'
   | 'unsupported'
 
 const TRUSTED_CDP_ACTIONS = new Set([
@@ -601,7 +599,6 @@ function canonicalExecutorStrategy(actionType: string): CanonicalExecutorStrateg
   if (RICH_TEXT_ACTIONS.has(actionType)) return 'rich_text'
   if (isWave2CoreAction(actionType)) return 'wave2'
   if (isWave3VisualAction(actionType)) return 'wave3'
-  if (isWave4EnterpriseAction(actionType)) return 'wave4'
   return 'unsupported'
 }
 
@@ -1014,9 +1011,7 @@ async function executeBrowserActionOnce(
       ? executeWave2CoreAction
       : strategy === 'wave3'
         ? executeWave3VisualAction
-        : strategy === 'wave4'
-          ? executeWave4EnterpriseAction
-          : null
+        : null
   if (!leaf) {
     return {
       success: false,
@@ -1251,8 +1246,8 @@ async function handleWaitForDomSettle(sendResponse: (response: unknown) => void)
  */
 function waitForDomSettle(): Promise<void> {
   return new Promise((resolve) => {
-    // 1500ms quiet period — long enough for debounced search results (WhatsApp,
-    // Gmail, etc.) to arrive over the network and render before we re-analyze.
+    // 1500ms quiet period — long enough for debounced remote results to arrive
+    // over the network and render before we re-analyze.
     const QUIET_MS = 2000
     const MAX_MS   = 12_000 // Never wait more than 12s regardless
     const HIGH_ACTIVITY_MS = 4000

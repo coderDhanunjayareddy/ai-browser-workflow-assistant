@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import time
 from pathlib import Path
-from urllib.request import Request, urlopen
+from urllib.parse import urlparse
 
 
 CASES = (
@@ -19,15 +20,22 @@ CASES = (
 )
 
 
-def post(base_url: str, path: str, payload: dict) -> dict:
-    request = Request(
-        f"{base_url.rstrip('/')}{path}",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urlopen(request, timeout=10) as response:
-        return json.loads(response.read().decode("utf-8"))
+class LiveClient:
+    def __init__(self, base_url: str) -> None:
+        parsed = urlparse(base_url)
+        self.connection = http.client.HTTPConnection(parsed.hostname, parsed.port or 80, timeout=10)
+
+    def request(self, method: str, path: str, payload: dict | None = None) -> dict:
+        body = json.dumps(payload).encode("utf-8") if payload is not None else None
+        self.connection.request(method, path, body=body, headers={"Content-Type": "application/json"})
+        response = self.connection.getresponse()
+        data = response.read()
+        if response.status >= 400:
+            raise RuntimeError(f"{method} {path} failed with HTTP {response.status}: {data.decode('utf-8', 'replace')}")
+        return json.loads(data.decode("utf-8"))
+
+    def close(self) -> None:
+        self.connection.close()
 
 
 def policy_request(operation: str, verification_mode: str, url: str) -> dict:
@@ -93,15 +101,16 @@ def main() -> int:
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    client = LiveClient(args.base_url)
     health_started = time.perf_counter()
-    with urlopen(f"{args.base_url.rstrip('/')}/health", timeout=10) as response:
-        health = json.loads(response.read().decode("utf-8"))
+    health = client.request("GET", "/health")
+    health_latency_ms = round((time.perf_counter() - health_started) * 1000, 2)
     results = []
     for operation, verification_mode, url in CASES:
         request = policy_request(operation, verification_mode, url)
         started = time.perf_counter()
-        evaluation = post(args.base_url, "/policy/evaluate", request)
-        confirmation = post(args.base_url, "/policy/confirm", {
+        evaluation = client.request("POST", "/policy/evaluate", request)
+        confirmation = client.request("POST", "/policy/confirm", {
             "request": request,
             "ttl_seconds": 120,
             "confirmation_source": "human_sidepanel_certification",
@@ -112,11 +121,11 @@ def main() -> int:
         drifted["action"]["consequential_submission"]["content_identity"] += " DRIFTED"
         drifted["execution_contract"]["action"] = drifted["action"]
         drifted["confirmation_receipt_id"] = receipt_id
-        drift_rejection = post(args.base_url, "/policy/enforce", drifted)
+        drift_rejection = client.request("POST", "/policy/enforce", drifted)
 
         confirmed = {**request, "confirmation_receipt_id": receipt_id}
-        first_enforcement = post(args.base_url, "/policy/enforce", confirmed)
-        replay_enforcement = post(args.base_url, "/policy/enforce", confirmed)
+        first_enforcement = client.request("POST", "/policy/enforce", confirmed)
+        replay_enforcement = client.request("POST", "/policy/enforce", confirmed)
         passed = all((
             evaluation["allowed"] is False,
             evaluation["policy_decision"] == "allow_with_confirmation",
@@ -138,7 +147,7 @@ def main() -> int:
     report = {
         "schema_version": "day10_confirmation_matrix.v1",
         "runtime": health.get("runtime"),
-        "health_latency_ms": round((time.perf_counter() - health_started) * 1000, 2),
+        "health_latency_ms": health_latency_ms,
         "no_browser_mutation_dispatched": True,
         "passed": all(item["passed"] for item in results),
         "results": results,
@@ -148,6 +157,7 @@ def main() -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered + "\n", encoding="utf-8")
     print(rendered)
+    client.close()
     return 0 if report["passed"] else 1
 
 

@@ -2261,7 +2261,7 @@ export function useWorkflow() {
 
     const exactOpenCompletion = exactOpenOnlyCompletion(task, action, result)
     if (exactOpenCompletion) {
-      const label = exactOpenCompletion.targetKind === 'chat' ? 'WhatsApp chat' : exactOpenCompletion.targetKind
+      const label = exactOpenCompletion.targetKind
       setState((s) => ({
         ...s,
         phase: 'completed',

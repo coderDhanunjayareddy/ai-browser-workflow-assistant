@@ -47,15 +47,15 @@
         "extension/src/background/cdp_control.ts",
         "extension/src/content/rich_text.ts",
         "extension/src/content/wave2_core.ts",
-        "extension/src/content/wave3_visual.ts",
-        "extension/src/content/wave4_enterprise.ts"
+        "extension/src/content/wave3_visual.ts"
       ],
       "disabled_competing_paths": [
         "extension/src/content/executor.ts",
         "extension/src/content/executor_v2.ts",
         "extension/src/content/file_transfer.ts",
         "extension/src/content/widget_adapters.ts",
-        "extension/src/content/selector_recovery.ts"
+        "extension/src/content/selector_recovery.ts",
+        "extension/src/content/wave4_enterprise.ts"
       ]
     },
     {

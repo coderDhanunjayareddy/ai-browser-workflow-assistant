@@ -215,6 +215,8 @@ Resume sequence:
 
 **Exit:** All consequential classes pause correctly across unrelated domains.
 
+**Completed 2026-09-07:** PASS for the generic confirmation boundary. The typed operation contract now covers send, share, submit, post, publish, delete, purchase, and account changes; the side panel pauses every typed consequence even when surrounding text is neutral; confirmation is bound to exact action/origin/destination/content-or-change/idempotency identity; and uncertain dispatch remains non-retriable. The extension suite passed 231/231, the focused backend suite passed 103/103, and the live no-browser-mutation matrix passed 6/6 unrelated synthetic origins with identity drift and duplicate receipt reuse blocked. See `docs/production_validation/generic_foundation/day10-policy-confirmation-report.md` and `docs/production_validation/generic_foundation/day10-live-confirmation-matrix.json`.
+
 ### Days 11–12 — Adapter isolation and migration
 
 - Move remaining application knowledge behind the declarative adapter interface.

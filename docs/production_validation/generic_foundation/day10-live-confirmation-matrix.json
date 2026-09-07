@@ -1,0 +1,76 @@
+{
+  "schema_version": "day10_confirmation_matrix.v1",
+  "runtime": {
+    "service": "ai-browser-assist-backend",
+    "app_version": "0.4.0",
+    "build_commit": "4e0cc48-dirty",
+    "build_id": "stabilization-20260907T123429Z",
+    "canonical_backend_url": "http://localhost:8000",
+    "process_id": 5556
+  },
+  "health_latency_ms": 2090.14,
+  "no_browser_mutation_dispatched": true,
+  "passed": true,
+  "results": [
+    {
+      "operation": "send",
+      "origin": "http://mail.synthetic.test",
+      "initial_pause": "allow_with_confirmation",
+      "identity_drift_blocked": true,
+      "confirmed_once": true,
+      "duplicate_blocked": true,
+      "latency_ms": 133.66,
+      "passed": true
+    },
+    {
+      "operation": "share",
+      "origin": "http://drive.synthetic.test",
+      "initial_pause": "allow_with_confirmation",
+      "identity_drift_blocked": true,
+      "confirmed_once": true,
+      "duplicate_blocked": true,
+      "latency_ms": 94.19,
+      "passed": true
+    },
+    {
+      "operation": "submit",
+      "origin": "http://forms.synthetic.test",
+      "initial_pause": "allow_with_confirmation",
+      "identity_drift_blocked": true,
+      "confirmed_once": true,
+      "duplicate_blocked": true,
+      "latency_ms": 91.33,
+      "passed": true
+    },
+    {
+      "operation": "delete",
+      "origin": "http://storage.synthetic.test",
+      "initial_pause": "allow_with_confirmation",
+      "identity_drift_blocked": true,
+      "confirmed_once": true,
+      "duplicate_blocked": true,
+      "latency_ms": 85.93,
+      "passed": true
+    },
+    {
+      "operation": "purchase",
+      "origin": "http://shop.synthetic.test",
+      "initial_pause": "allow_with_confirmation",
+      "identity_drift_blocked": true,
+      "confirmed_once": true,
+      "duplicate_blocked": true,
+      "latency_ms": 99.22,
+      "passed": true
+    },
+    {
+      "operation": "account_change",
+      "origin": "http://identity.synthetic.test",
+      "initial_pause": "allow_with_confirmation",
+      "identity_drift_blocked": true,
+      "confirmed_once": true,
+      "duplicate_blocked": true,
+      "latency_ms": 92.47,
+      "passed": true
+    }
+  ]
+}

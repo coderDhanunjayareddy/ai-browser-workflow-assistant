@@ -243,8 +243,6 @@ def _is_interactive_task(text: str) -> bool:
         for term in GENERIC_BROWSER_MUTATION_TERMS + (
             "send",
             "message",
-            "whatsapp",
-            "gmail",
             "mail",
             "chat",
             "profile",

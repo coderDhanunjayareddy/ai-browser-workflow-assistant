@@ -519,24 +519,6 @@ export function verifyActionEffect(
       signals.wave3_result_verified = verified
       break
 
-    case 'google_workspace_adapter':
-    case 'microsoft365_adapter':
-    case 'github_advanced_adapter':
-    case 'jira_adapter':
-    case 'confluence_adapter':
-    case 'slack_adapter':
-    case 'notion_adapter':
-    case 'figma_adapter':
-    case 'canva_adapter':
-    case 'salesforce_adapter':
-    case 'sso_auth':
-    case 'mfa_otp_handoff':
-    case 'enterprise_file_workflow':
-    case 'site_optimize':
-      verified = executionResult.wave4_validated === true || executionResult.success === true
-      signals.wave4_result_verified = verified
-      break
-
     case 'select_option':
       verified = Boolean(signals.target_selected_changed || targetMatchesActionValue(after, action.value))
       break
