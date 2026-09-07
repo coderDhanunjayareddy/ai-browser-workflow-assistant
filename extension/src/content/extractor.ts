@@ -47,18 +47,18 @@ export function extractPageContext(): PageContext {
     'input:not([type="hidden"])',
     'select',
     'textarea',
-    '[contenteditable="true"]',        // WhatsApp, Gmail, Notion, etc.
+    '[contenteditable="true"]',        // Generic rich-text and messaging surfaces
     '[role="textbox"]',                // ARIA text inputs
     '[role="searchbox"]',              // ARIA search inputs
     '[role="button"]:not(button)',     // Non-button elements acting as buttons
-    '[role="listitem"]',               // WhatsApp contacts, chat rows in search results
+    '[role="listitem"]',               // Contacts, conversations, and result rows
     '[role="option"]',                 // Dropdown / combobox options
     '[role="menuitem"]',               // Context / action menu items
-    '[role="row"]',                    // Gmail threads, table-based list rows
+    '[role="row"]',                    // Threads and table-based list rows
     '[role="tab"]',                    // Tab panels
-    'span[title]:not([title=""])',     // WhatsApp contact name spans (title="Rahul")
+    'span[title]:not([title=""])',     // Titled identity spans
   ].join(', ')
-  const MAX_ELEMENTS = 120             // Keep prompt size manageable for Gemini
+  const MAX_ELEMENTS = 120             // Keep the bounded observation payload manageable
   const MAX_CONTENT_BLOCKS = 36
   const MAX_HEADINGS = 5
   const MAX_TEXT_LENGTH = 1000        // Visible text is rarely needed beyond a snippet
@@ -86,14 +86,6 @@ export function extractPageContext(): PageContext {
     if (el.tagName.toLowerCase() === 'a') {
       const href = el.getAttribute('href')
       if (href && !href.startsWith('javascript:')) {
-        const amznMatch = href.match(/(?:\/dp\/|\/gp\/product\/)([A-Z0-9]{10})/i)
-        if (amznMatch) {
-          return `a[href*="${amznMatch[1]}"]`
-        }
-        const fkMatch = href.match(/[?&]pid=([A-Z0-9]{16})/i)
-        if (fkMatch) {
-          return `a[href*="${fkMatch[1]}"]`
-        }
         if (href.length < 120) {
           return `a[href="${href}"]`
         }
@@ -217,23 +209,19 @@ export function extractPageContext(): PageContext {
     if (author) metadata.author = author
     if (articleAuthor) metadata.article_author = articleAuthor
 
-    if (location.hostname.includes('youtube.com') && location.pathname === '/watch') {
-      const videoTitle = firstText([
-        'h1 yt-formatted-string',
-        'h1.title',
+    if (document.querySelector('video, audio')) {
+      const mediaTitle = firstText([
         'h1',
-      ]) || ogTitle || document.title.replace(/\s+-\s+YouTube$/, '')
+      ]) || ogTitle || document.title
 
-      const channelName = firstText([
-        'ytd-video-owner-renderer #channel-name a',
-        '#owner #channel-name a',
-        '#upload-info #channel-name a',
-        'ytd-channel-name a',
-      ])
+      const mediaAuthor = firstText([
+        '[rel="author"]',
+        '[data-author]',
+      ]) || author || articleAuthor
 
-      if (videoTitle) metadata.video_title = videoTitle
-      if (channelName) metadata.channel_name = channelName
-      metadata.video_url = canonicalUrl || ogUrl || location.href
+      if (mediaTitle) metadata.media_title = mediaTitle
+      if (mediaAuthor) metadata.media_author = mediaAuthor
+      metadata.media_url = canonicalUrl || ogUrl || location.href
     }
 
     return metadata
@@ -357,68 +345,6 @@ export function extractPageContext(): PageContext {
       }))
   }
 
-  function collectGoogleOrganicResults(): { text: string; selector: string; href: string }[] {
-    if (!location.hostname.endsWith('google.com') || !location.pathname.startsWith('/search')) {
-      return []
-    }
-
-    const blockedHosts = new Set([
-      'google.com',
-      'www.google.com',
-      'accounts.google.com',
-      'maps.google.com',
-      'news.google.com',
-      'shopping.google.com',
-      'support.google.com',
-      'policies.google.com',
-      'translate.google.com',
-      'youtube.com',
-      'www.youtube.com',
-    ])
-    const excludedText = /(ai overview|ai mode|people also ask|sponsored|shopping|videos|images|news|maps|related searches)/i
-    const seen = new Set<string>()
-    const results: { text: string; selector: string; href: string }[] = []
-
-    const anchors = Array.from(document.querySelectorAll('#search a[href], #rso a[href], div[data-sokoban-container] a[href]'))
-    for (const anchor of anchors) {
-      if (!(anchor instanceof HTMLAnchorElement)) continue
-      if (!isVisible(anchor)) continue
-      const h3 = anchor.querySelector('h3')
-      const title = sanitizeText(((h3?.textContent || anchor.textContent || '')).replace(/\s+/g, ' ').trim())
-      if (!title || title.length < 3 || excludedText.test(title)) continue
-      if (anchor.closest('[aria-label*="Ads"], [data-text-ad], g-section-with-header, block-component')) {
-        const sectionText = sanitizeText((anchor.closest('div')?.textContent || '').slice(0, 300))
-        if (excludedText.test(sectionText)) continue
-      }
-
-      let href = anchor.href
-      try {
-        const parsed = new URL(href, location.href)
-        if (parsed.hostname.endsWith('google.com') && parsed.pathname === '/url') {
-          href = parsed.searchParams.get('q') || href
-        }
-        const finalUrl = new URL(href, location.href)
-        const host = finalUrl.hostname.replace(/^www\./, '')
-        if (blockedHosts.has(host) || blockedHosts.has(finalUrl.hostname)) continue
-        if (!/^https?:$/.test(finalUrl.protocol)) continue
-        href = finalUrl.href
-      } catch {
-        continue
-      }
-      if (seen.has(href)) continue
-      seen.add(href)
-
-      results.push({
-        text: title,
-        selector: buildSelector(anchor),
-        href,
-      })
-      if (results.length >= 10) break
-    }
-
-    return results
-  }
-
   function collectImages(): string[] {
     const images: { src: string; area: number }[] = []
     const seen = new Set<string>()
@@ -496,8 +422,6 @@ export function extractPageContext(): PageContext {
 
   // ── Extraction ────────────────────────────────────────────────────────────
 
-  const googleOrganicResults = collectGoogleOrganicResults()
-
   const interactiveElements: InteractiveElement[] = Array.from(
     document.querySelectorAll(INTERACTIVE_SELECTOR)
   )
@@ -523,22 +447,6 @@ export function extractPageContext(): PageContext {
       return base
     })
 
-  const organicInteractiveElements: InteractiveElement[] = googleOrganicResults.map((result) => ({
-    type: 'a',
-    text: result.text,
-    selector: result.selector,
-    visible: true,
-    href: result.href,
-    semantic_kind: 'search_result',
-  }))
-
-  const mergedInteractiveElements = [
-    ...organicInteractiveElements,
-    ...interactiveElements.filter((element) => (
-      !organicInteractiveElements.some((organic) => organic.href && organic.href === element.href)
-    )),
-  ].slice(0, MAX_ELEMENTS)
-
   const headings = Array.from(document.querySelectorAll('h1, h2, h3'))
     .filter((heading) => isVisible(heading))
     .slice(0, MAX_HEADINGS)
@@ -552,15 +460,8 @@ export function extractPageContext(): PageContext {
     url: window.location.href,
     title: document.title,
     metadata: collectMetadata(),
-    interactive_elements: mergedInteractiveElements,
-    content_blocks: [
-      ...googleOrganicResults.map((result) => ({
-        text: result.text,
-        selector: result.selector,
-        href: result.href,
-      })),
-      ...collectContentBlocks(),
-    ].slice(0, MAX_CONTENT_BLOCKS),
+    interactive_elements: interactiveElements,
+    content_blocks: collectContentBlocks(),
     headings,
     selected_text: selectedText,
     visible_text: visibleText,

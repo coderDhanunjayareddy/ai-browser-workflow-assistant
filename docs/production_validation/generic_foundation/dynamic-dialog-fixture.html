@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Dynamic Neutral Workspace</title>
+  <style>
+    body { font: 16px system-ui; margin: 40px; }
+    button { margin: 6px; padding: 10px 16px; }
+    dialog { min-width: 320px; padding: 24px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <h1>Dynamic Neutral Workspace</h1>
+  <p id="status" aria-live="polite">fixture_state=loading</p>
+  <section id="dynamic-region" aria-label="Dynamic controls"></section>
+  <button id="hidden-decoy" aria-label="Open review" hidden>Open review</button>
+  <button id="disabled-decoy" aria-label="Open review" disabled>Open review</button>
+  <div role="row">Quarterly prose mentions Open review and Continue but is not a control.</div>
+  <dialog id="review-dialog" aria-labelledby="dialog-title">
+    <h2 id="dialog-title">Synthetic review</h2>
+    <button aria-label="Continue later">Continue later</button>
+    <button id="dialog-continue" aria-label="Continue">Continue</button>
+  </dialog>
+  <script>
+    let completed = 0
+    window.setTimeout(() => {
+      const button = document.createElement('button')
+      button.id = 'open-review-initial'
+      button.setAttribute('aria-label', 'Open review')
+      button.textContent = 'Open review'
+      button.addEventListener('click', () => {
+        document.querySelector('#review-dialog').showModal()
+        document.querySelector('#status').textContent = 'fixture_state=dialog_open'
+      }, { once: true })
+      document.querySelector('#dynamic-region').append(button)
+      document.querySelector('#status').textContent = 'fixture_state=ready'
+
+      // Replace the node while preserving its semantic identity. Any cached DOM
+      // handle or selector must be re-grounded from the current observation.
+      window.setTimeout(() => {
+        const current = document.querySelector('#open-review-initial')
+        if (!current || document.querySelector('#review-dialog').open) return
+        const replacement = current.cloneNode(true)
+        replacement.id = 'open-review-current'
+        replacement.addEventListener('click', () => {
+          document.querySelector('#review-dialog').showModal()
+          document.querySelector('#status').textContent = 'fixture_state=dialog_open'
+        }, { once: true })
+        current.replaceWith(replacement)
+      }, 1200)
+    }, 900)
+
+    document.querySelector('#dialog-continue').addEventListener('click', () => {
+      completed += 1
+      document.querySelector('#review-dialog').close()
+      document.querySelector('#status').textContent = completed === 1
+        ? 'fixture_state=dynamic_dialog_completed_exactly_once'
+        : 'fixture_state=duplicate_effect_detected'
+    }, { once: true })
+  </script>
+</body>
+</html>

@@ -370,6 +370,40 @@ def test_explicit_named_control_pauses_when_multiple_enabled_exact_targets_exist
     assert "multiple enabled controls" in response.clarification_question.lower()
 
 
+def test_compound_named_controls_advance_in_order_after_verified_prior_click() -> None:
+    task = (
+        "Activate the exact enabled control named Open review, then activate "
+        "the exact enabled control named Continue."
+    )
+    prior = PriorStep(
+        action_type="click",
+        description="Activate the grounded exact control: Open review",
+        target_selector="#open-review",
+        value="Open review",
+        execution_result="CDP click dispatched\n\nExecution: success\nVerification: verified",
+        page_url="https://unfamiliar.example.test/workspace",
+        page_title="Fixture",
+    )
+    page = _page(
+        "https://unfamiliar.example.test/workspace",
+        [
+            InteractiveElement(type="button", selector="#open-review", text="Open review", visible=True),
+            InteractiveElement(type="button", selector="#continue", text="Continue", visible=True),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="generic-control-sequence",
+        task=task,
+        page_context=page,
+        prior_steps=[prior],
+    )
+
+    assert response is not None
+    assert response.suggested_actions[0].target_selector == "#continue"
+    assert response.suggested_actions[0].value == "Continue"
+
+
 def test_whatsapp_open_only_task_reports_after_exact_chat_is_observed() -> None:
     task = (
         "Open WhatsApp and open the exact direct chat named Teja Spc. "

@@ -651,8 +651,8 @@ def _extract_urls(text: str) -> list[str]:
 
 
 class AdapterRegistry:
-    def __init__(self) -> None:
-        self.adapters: list[SiteAdapter] = [
+    def __init__(self, *, include_specialized: bool = True) -> None:
+        specialized: list[SiteAdapter] = [
             GoogleSearchAdapter(),
             BingSearchAdapter(),
             DuckDuckGoSearchAdapter(),
@@ -667,8 +667,11 @@ class AdapterRegistry:
             DataTableAdapter(),
             DashboardAdapter(),
             ReactSpaAdapter(),
-            SiteAdapter(),
         ]
+        # The generic adapter is always present and is sufficient for semantic
+        # extraction. Specialized adapters are optional observation enrichers;
+        # disabling them cannot remove the core capability path.
+        self.adapters = [*specialized, SiteAdapter()] if include_specialized else [SiteAdapter()]
 
     def select(self, page_context: Any) -> SiteAdapter:
         return next(adapter for adapter in self.adapters if adapter.matches(page_context))

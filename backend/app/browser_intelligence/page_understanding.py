@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from app.browser_intelligence.adapters import AdapterRegistry
 from app.browser_intelligence.models import (
@@ -72,12 +72,11 @@ def classify_page(page_context: Any) -> PageClassification:
     text = f"{title}\n{visible}".lower()
     evidence: list[str] = []
 
-    if parsed.netloc.endswith("google.com") and parsed.path.startswith("/search"):
-        return PageClassification("search_engine", 0.96, ("google_search_url",))
-    if parsed.netloc.endswith("bing.com") and parsed.path.startswith("/search"):
-        return PageClassification("search_engine", 0.9, ("bing_search_url",))
-    if "linkedin.com" in parsed.netloc and "/jobs" in parsed.path:
-        return PageClassification("jobs", 0.92, ("linkedin_jobs_url",))
+    query_keys = {item.casefold() for item in parse_qs(parsed.query)}
+    if parsed.path.casefold().startswith(("/search", "/web")) and query_keys & {"q", "query", "search"}:
+        return PageClassification("search_engine", 0.88, ("search_route_and_query",))
+    if "/jobs" in parsed.path.casefold() or any(term in text for term in ("job search", "open positions", "career opportunities")):
+        return PageClassification("jobs", 0.82, ("job_route_or_content",))
     if any(term in text for term in ("sign in", "log in", "password")):
         evidence.append("auth_terms")
         return PageClassification("login", 0.82, tuple(evidence))

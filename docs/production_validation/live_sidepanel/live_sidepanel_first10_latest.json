@@ -1,22 +1,38 @@
 {
   "mode": "extension_sidepanel_playwright",
   "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
-  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_1788783839164",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\playwright-profile-d1314-dynamic-fresh3",
   "results": [
     {
-      "task_id": "GF-D78-FINAL-01",
-      "status": "completed",
-      "duration_s": 31.1,
-      "phase": "completed",
-      "error": "",
-      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 4e0cc48-dirty \u00b7 stabilization-20260907T122217Z \u00b7 pid 28972\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nA verified browser mutation was followed by current-page evidence matching the requested state; no further browser action is required.\n\nReport answer: Verified that the requested state became \"continued_exactly_once\".\n\nReport claim: The last requested mutation was verified and the current page contains the normalized state identity \"continued_exactly_once\".\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open http://127.0.0.1:8765/semantic-grounding-fixture.html\nUnfamiliar Semantic Workspace\nhttp://127.0.0.1:8765/semantic-grounding-fixture.html\nVerification: verified\nTime: 1.6s\nNavigating to: http://127.0.0.1:8765/semantic-grounding-fixture.html\n\u26a1\nStep 2\nCLICK\nActivate the grounded exact control: Continue\nUnfamiliar Semantic Workspace\nhttp://127.0.0.1:8765/semantic-grounding-fixture.html\nVerification: verified\nTime: 227ms\nCDP click dispatched via stable_selector grounding.\n\u2713 Done \u2014 2 of 2 steps succeeded",
-      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d78-final-01.png",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d78-final-01-target.png",
+      "task_id": "GF-D1314-DYNAMIC-03",
+      "status": "failed",
+      "duration_s": 43.2,
+      "phase": "failed",
+      "error": "The destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 04f7e76-dirty \u00b7 stabilization-20260907T131258Z \u00b7 pid 26820\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nThe destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\nResume safely\n\nAI ANALYSIS\n\nThe destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open http://127.0.0.1:8765/dynamic-dialog-fixture.html. Wait for\nDynamic Neutral Workspace\nhttp://127.0.0.1:8765/dynamic-dialog-fixture.html\nVerification: verified\nTime: 1.6s\nNavigating to: http://127.0.0.1:8765/dynamic-dialog-fixture.html\n\u26a1\nStep 2\nOPEN_NEW_TAB\nSearch for the official destination of review\nDynamic Neutral Workspace\nhttp://127.0.0.1:8765/dynamic-dialog-fixture.html\nVerification: verified\nTime: 5.3s\nOpened tab: 488693868\nTab switch: verified\nOpened new tab: https://www.google.com/search?q=review+official+website",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-dynamic-03.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-dynamic-03-target.png",
       "target_controls": [
         {
           "tag": "button",
           "role": "",
-          "aria_label": "Cancel",
+          "aria_label": "Open review",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Open review",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Open review",
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
@@ -36,177 +52,56 @@
           "placeholder": "",
           "contenteditable": "",
           "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Continue",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Continue",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
         }
       ],
       "canonical_adapter_traces": [
         {
-          "action_id": "observed_control_ba4e082714a2",
-          "action_type": "click",
+          "action_id": "destination-befa44cbb3e60987",
+          "action_type": "open_new_tab",
           "canonical_contract": true,
-          "cdp_duration_ms": 202,
-          "cdp_fallback_reason": null,
-          "cdp_frame_count": 1,
-          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
-          "cdp_grounding_source": "stable_selector",
-          "cdp_navigation_signal_count": 5,
-          "cdp_target_count": 0,
-          "dispatch_id": "observed_control_ba4e082714a2:1788783862963",
-          "dispatch_path": "service_worker>policy>canonical_cdp_click",
-          "execution_adapter": "cdp",
-          "expected_effect": "target_state_change",
+          "dispatch_id": "destination-befa44cbb3e60987:1788786841468",
+          "dispatch_path": "service_worker>policy>canonical_tab_control",
+          "execution_adapter": "dom",
+          "expected_effect": "tab_state_change",
           "frame_id": "top",
-          "idempotency_key": "b05c6f22-9038-4a2c-95de-b458149d597b:1154594314:intent_56cf6387ed484f1a8af030f8e51c17c7",
+          "idempotency_key": "68a4f31e-f9e7-48cf-ac02-20eb9f0691fe:488693866:intent_acf321ca62b1465b9ee09804a0c60caf",
           "reason": "verified",
           "safety_class": "safe",
-          "target_name": "Continue",
+          "target_name": null,
           "target_selector_preserved": true,
-          "timestamp": "2026-09-07T12:24:23.209Z",
+          "timestamp": "2026-09-07T13:14:06.808Z",
           "verified": true
         }
       ],
       "durable_executions": [
         {
-          "key": "b05c6f22-9038-4a2c-95de-b458149d597b:1154594314:intent_56cf6387ed484f1a8af030f8e51c17c7",
-          "actionId": "observed_control_ba4e082714a2",
-          "actionType": "click",
-          "status": "succeeded",
-          "attempts": 1,
-          "retryable": false,
-          "result": {
-            "success": true,
-            "message": "CDP click dispatched via stable_selector grounding.",
-            "dispatch_id": "observed_control_ba4e082714a2:1788783862963",
-            "dispatch_path": "service_worker>policy>canonical_cdp_click",
-            "contract_schema_version": "1.0",
-            "contract_idempotency_key": "b05c6f22-9038-4a2c-95de-b458149d597b:1154594314:intent_56cf6387ed484f1a8af030f8e51c17c7",
-            "verification": {
-              "after_state": {
-                "activeElementSignature": "body|Unfamiliar Semantic Workspace fixture_state=continued_exactly_once CancelContinu",
-                "checkboxStates": [],
-                "dialogCount": 0,
-                "domSignature": "http://127.0.0.1:8765/semantic-grounding-fixture.html|Unfamiliar Semantic Workspace|189|5|0|0|||{\"exists\":true,\"selector\":\"#exact-control\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
-                "expandedStates": [],
-                "interactiveCount": 5,
-                "modalCount": 0,
-                "scrollX": 0,
-                "scrollY": 0,
-                "target": {
-                  "ariaExpanded": null,
-                  "exists": true,
-                  "selector": "#exact-control",
-                  "tagName": "button",
-                  "visible": true
-                },
-                "title": "Unfamiliar Semantic Workspace",
-                "url": "http://127.0.0.1:8765/semantic-grounding-fixture.html",
-                "visibleTextLength": 189
-              },
-              "before_state": {
-                "activeElementSignature": "body|Unfamiliar Semantic Workspace fixture_state=ready CancelContinue laterContinue Q",
-                "checkboxStates": [],
-                "dialogCount": 0,
-                "domSignature": "http://127.0.0.1:8765/semantic-grounding-fixture.html|Unfamiliar Semantic Workspace|172|5|0|0|||{\"exists\":true,\"selector\":\"#exact-control\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
-                "expandedStates": [],
-                "interactiveCount": 5,
-                "modalCount": 0,
-                "scrollX": 0,
-                "scrollY": 0,
-                "target": {
-                  "ariaExpanded": null,
-                  "exists": true,
-                  "selector": "#exact-control",
-                  "tagName": "button",
-                  "visible": true
-                },
-                "title": "Unfamiliar Semantic Workspace",
-                "url": "http://127.0.0.1:8765/semantic-grounding-fixture.html",
-                "visibleTextLength": 172
-              },
-              "reason": "verified",
-              "signals": {
-                "action_type": "click",
-                "cdp_navigation_signal_count": 5,
-                "checkbox_state_changed": false,
-                "dialog_count_changed": false,
-                "dom_changed": true,
-                "download_completed": null,
-                "download_detected": null,
-                "execution_duration_ms": 227,
-                "execution_success": true,
-                "expanded_state_changed": false,
-                "expected_effect_description": "Activate the grounded exact control: Continue",
-                "expected_effect_kind": "target_state_change",
-                "expected_url_path": null,
-                "expected_url_path_matched": null,
-                "focus_changed": true,
-                "interactive_count_changed": false,
-                "modal_count_changed": false,
-                "rich_text_validated": null,
-                "scroll_position_changed": false,
-                "tab_switch_verified": null,
-                "target_checked_changed": false,
-                "target_exists_after": true,
-                "target_expanded_changed": false,
-                "target_filled_after": null,
-                "target_selected_changed": false,
-                "target_value_changed": false,
-                "url_changed": false,
-                "visible_text_length_changed": true,
-                "wave2_capability": null,
-                "wave2_validated": null,
-                "wave3_capability": null,
-                "wave3_validated": null,
-                "wave4_capability": null,
-                "wave4_validated": null
-              },
-              "verified": true
-            }
-          }
-        },
-        {
-          "key": "b05c6f22-9038-4a2c-95de-b458149d597b:1154594314:intent_747d850b479e4c0bb65afde48e9ee298",
-          "actionId": "destination-8daa1c36a32b5654",
+          "key": "68a4f31e-f9e7-48cf-ac02-20eb9f0691fe:488693866:intent_0941285cea074383bcb2937cd5777a26",
+          "actionId": "destination-7debfa7a028bdedb",
           "actionType": "navigate",
           "status": "succeeded",
           "attempts": 1,
           "retryable": false,
           "result": {
             "success": true,
-            "message": "Navigating to: http://127.0.0.1:8765/semantic-grounding-fixture.html",
-            "dispatch_id": "destination-8daa1c36a32b5654:1788783854565",
+            "message": "Navigating to: http://127.0.0.1:8765/dynamic-dialog-fixture.html",
+            "dispatch_id": "destination-7debfa7a028bdedb:1788786832479",
             "dispatch_path": "service_worker>policy>chrome.tabs.update",
             "contract_schema_version": "1.0",
-            "contract_idempotency_key": "b05c6f22-9038-4a2c-95de-b458149d597b:1154594314:intent_747d850b479e4c0bb65afde48e9ee298",
+            "contract_idempotency_key": "68a4f31e-f9e7-48cf-ac02-20eb9f0691fe:488693866:intent_0941285cea074383bcb2937cd5777a26",
             "verification": {
               "after_state": {
-                "activeElementSignature": "body|Unfamiliar Semantic Workspace fixture_state=ready CancelContinue laterContinue Q",
+                "activeElementSignature": "body|Dynamic Neutral Workspace fixture_state=ready Open review Open review Open revie",
                 "checkboxStates": [],
                 "dialogCount": 0,
-                "domSignature": "http://127.0.0.1:8765/semantic-grounding-fixture.html|Unfamiliar Semantic Workspace|172|5|0|0|||",
+                "domSignature": "http://127.0.0.1:8765/dynamic-dialog-fixture.html|Dynamic Neutral Workspace|141|5|0|0|||",
                 "expandedStates": [],
                 "interactiveCount": 5,
                 "modalCount": 0,
                 "scrollX": 0,
                 "scrollY": 0,
-                "title": "Unfamiliar Semantic Workspace",
-                "url": "http://127.0.0.1:8765/semantic-grounding-fixture.html",
-                "visibleTextLength": 172
+                "title": "Dynamic Neutral Workspace",
+                "url": "http://127.0.0.1:8765/dynamic-dialog-fixture.html",
+                "visibleTextLength": 141
               },
               "before_state": {
                 "activeElementSignature": null,
@@ -231,10 +126,10 @@
                 "dom_changed": true,
                 "download_completed": null,
                 "download_detected": null,
-                "execution_duration_ms": 1605,
+                "execution_duration_ms": 1619,
                 "execution_success": true,
                 "expanded_state_changed": false,
-                "expected_effect_description": "Open the resolved destination for Open http://127.0.0.1:8765/semantic-grounding-fixture.html",
+                "expected_effect_description": "Open the resolved destination for Open http://127.0.0.1:8765/dynamic-dialog-fixture.html. Wait for",
                 "expected_effect_kind": "url_change",
                 "expected_url_path": null,
                 "expected_url_path_matched": null,
@@ -262,281 +157,80 @@
               "verified": true
             }
           }
-        }
-      ],
-      "initial_url": "chrome://newtab/",
-      "browser_pages": [
-        {
-          "index": 1,
-          "url": "about:blank",
-          "title": "",
-          "body_text": "",
-          "video": {
-            "exists": false
-          },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d78-final-01-page-1.png"
         },
         {
-          "index": 2,
-          "url": "http://127.0.0.1:8765/semantic-grounding-fixture.html",
-          "title": "Unfamiliar Semantic Workspace",
-          "body_text": "Unfamiliar Semantic Workspace\n\nfixture_state=continued_exactly_once\n\nCancel\nContinue later\nContinue\nQuarterly prose mentions Continue, Delete, and Publish but is not a named control.\nContinue",
-          "video": {
-            "exists": false
-          },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d78-final-01-page-2.png"
-        }
-      ]
-    },
-    {
-      "task_id": "GF-D78-FINAL-02",
-      "status": "completed",
-      "duration_s": 26.3,
-      "phase": "completed",
-      "error": "",
-      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 4e0cc48-dirty \u00b7 stabilization-20260907T122217Z \u00b7 pid 28972\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nA verified browser mutation was followed by current-page evidence matching the requested state; no further browser action is required.\n\nReport answer: Verified that the requested state became \"continued_exactly_once\".\n\nReport claim: The last requested mutation was verified and the current page contains the normalized state identity \"continued_exactly_once\".\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open http://127.0.0.1:8765/semantic-grounding-fixture.html\nUnfamiliar Semantic Workspace\nhttp://127.0.0.1:8765/semantic-grounding-fixture.html\nVerification: verified\nTime: 1.6s\nNavigating to: http://127.0.0.1:8765/semantic-grounding-fixture.html\n\u26a1\nStep 2\nCLICK\nActivate the grounded exact control: Continue\nUnfamiliar Semantic Workspace\nhttp://127.0.0.1:8765/semantic-grounding-fixture.html\nVerification: verified\nTime: 231ms\nCDP click dispatched via stable_selector grounding.\n\u2713 Done \u2014 2 of 2 steps succeeded",
-      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d78-final-02.png",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d78-final-02-target.png",
-      "target_controls": [
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Continue later",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Cancel",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Continue",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Continue",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        },
-        {
-          "tag": "button",
-          "role": "",
-          "aria_label": "Continue",
-          "placeholder": "",
-          "contenteditable": "",
-          "testid": ""
-        }
-      ],
-      "canonical_adapter_traces": [
-        {
-          "action_id": "observed_control_ba4e082714a2",
-          "action_type": "click",
-          "canonical_contract": true,
-          "cdp_duration_ms": 201,
-          "cdp_fallback_reason": null,
-          "cdp_frame_count": 1,
-          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
-          "cdp_grounding_source": "stable_selector",
-          "cdp_navigation_signal_count": 5,
-          "cdp_target_count": 0,
-          "dispatch_id": "observed_control_ba4e082714a2:1788783890468",
-          "dispatch_path": "service_worker>policy>canonical_cdp_click",
-          "execution_adapter": "cdp",
-          "expected_effect": "target_state_change",
-          "frame_id": "top",
-          "idempotency_key": "89680274-b7ec-4a13-8cb2-c1ecb0c8b654:1154594314:intent_6143a0ed607a42d497ce9fad1c59ddb1",
-          "reason": "verified",
-          "safety_class": "safe",
-          "target_name": "Continue",
-          "target_selector_preserved": true,
-          "timestamp": "2026-09-07T12:24:50.723Z",
-          "verified": true
-        }
-      ],
-      "durable_executions": [
-        {
-          "key": "89680274-b7ec-4a13-8cb2-c1ecb0c8b654:1154594314:intent_6143a0ed607a42d497ce9fad1c59ddb1",
-          "actionId": "observed_control_ba4e082714a2",
-          "actionType": "click",
+          "key": "68a4f31e-f9e7-48cf-ac02-20eb9f0691fe:488693866:intent_acf321ca62b1465b9ee09804a0c60caf",
+          "actionId": "destination-befa44cbb3e60987",
+          "actionType": "open_new_tab",
           "status": "succeeded",
           "attempts": 1,
           "retryable": false,
           "result": {
             "success": true,
-            "message": "CDP click dispatched via stable_selector grounding.",
-            "dispatch_id": "observed_control_ba4e082714a2:1788783890468",
-            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "message": "Opened new tab: https://www.google.com/search?q=review+official+website",
+            "dispatch_id": "destination-befa44cbb3e60987:1788786841468",
+            "dispatch_path": "service_worker>policy>canonical_tab_control",
             "contract_schema_version": "1.0",
-            "contract_idempotency_key": "89680274-b7ec-4a13-8cb2-c1ecb0c8b654:1154594314:intent_6143a0ed607a42d497ce9fad1c59ddb1",
+            "contract_idempotency_key": "68a4f31e-f9e7-48cf-ac02-20eb9f0691fe:488693866:intent_acf321ca62b1465b9ee09804a0c60caf",
             "verification": {
               "after_state": {
-                "activeElementSignature": "body|Unfamiliar Semantic Workspace fixture_state=continued_exactly_once Continue late",
+                "activeElementSignature": "body|Dynamic Neutral Workspace fixture_state=ready Open review Open review Open revie",
                 "checkboxStates": [],
                 "dialogCount": 0,
-                "domSignature": "http://127.0.0.1:8765/semantic-grounding-fixture.html|Unfamiliar Semantic Workspace|189|5|0|0|||{\"exists\":true,\"selector\":\"#exact-control\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "domSignature": "http://127.0.0.1:8765/dynamic-dialog-fixture.html|Dynamic Neutral Workspace|141|5|0|0|||",
                 "expandedStates": [],
                 "interactiveCount": 5,
                 "modalCount": 0,
                 "scrollX": 0,
                 "scrollY": 0,
-                "target": {
-                  "ariaExpanded": null,
-                  "exists": true,
-                  "selector": "#exact-control",
-                  "tagName": "button",
-                  "visible": true
-                },
-                "title": "Unfamiliar Semantic Workspace",
-                "url": "http://127.0.0.1:8765/semantic-grounding-fixture.html",
-                "visibleTextLength": 189
+                "title": "Dynamic Neutral Workspace",
+                "url": "http://127.0.0.1:8765/dynamic-dialog-fixture.html",
+                "visibleTextLength": 141
               },
               "before_state": {
-                "activeElementSignature": "body|Unfamiliar Semantic Workspace fixture_state=ready Continue laterCancelContinue Q",
+                "activeElementSignature": "body|Dynamic Neutral Workspace fixture_state=ready Open review Open review Open revie",
                 "checkboxStates": [],
                 "dialogCount": 0,
-                "domSignature": "http://127.0.0.1:8765/semantic-grounding-fixture.html|Unfamiliar Semantic Workspace|172|5|0|0|||{\"exists\":true,\"selector\":\"#exact-control\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "domSignature": "http://127.0.0.1:8765/dynamic-dialog-fixture.html|Dynamic Neutral Workspace|141|5|0|0|||",
                 "expandedStates": [],
                 "interactiveCount": 5,
                 "modalCount": 0,
                 "scrollX": 0,
                 "scrollY": 0,
-                "target": {
-                  "ariaExpanded": null,
-                  "exists": true,
-                  "selector": "#exact-control",
-                  "tagName": "button",
-                  "visible": true
-                },
-                "title": "Unfamiliar Semantic Workspace",
-                "url": "http://127.0.0.1:8765/semantic-grounding-fixture.html",
-                "visibleTextLength": 172
+                "title": "Dynamic Neutral Workspace",
+                "url": "http://127.0.0.1:8765/dynamic-dialog-fixture.html",
+                "visibleTextLength": 141
               },
               "reason": "verified",
               "signals": {
-                "action_type": "click",
-                "cdp_navigation_signal_count": 5,
+                "action_type": "open_new_tab",
+                "cdp_navigation_signal_count": 0,
                 "checkbox_state_changed": false,
                 "dialog_count_changed": false,
-                "dom_changed": true,
+                "dom_changed": false,
                 "download_completed": null,
                 "download_detected": null,
-                "execution_duration_ms": 231,
+                "execution_duration_ms": 5280,
                 "execution_success": true,
                 "expanded_state_changed": false,
-                "expected_effect_description": "Activate the grounded exact control: Continue",
-                "expected_effect_kind": "target_state_change",
+                "expected_effect_description": "Search for the official destination of review",
+                "expected_effect_kind": "tab_state_change",
                 "expected_url_path": null,
                 "expected_url_path_matched": null,
-                "focus_changed": true,
+                "focus_changed": false,
                 "interactive_count_changed": false,
                 "modal_count_changed": false,
                 "rich_text_validated": null,
                 "scroll_position_changed": false,
-                "tab_switch_verified": null,
-                "target_checked_changed": false,
-                "target_exists_after": true,
-                "target_expanded_changed": false,
-                "target_filled_after": null,
-                "target_selected_changed": false,
-                "target_value_changed": false,
-                "url_changed": false,
-                "visible_text_length_changed": true,
-                "wave2_capability": null,
-                "wave2_validated": null,
-                "wave3_capability": null,
-                "wave3_validated": null,
-                "wave4_capability": null,
-                "wave4_validated": null
-              },
-              "verified": true
-            }
-          }
-        },
-        {
-          "key": "89680274-b7ec-4a13-8cb2-c1ecb0c8b654:1154594314:intent_f04c528bf501405cbf8bbd785736e68d",
-          "actionId": "destination-f0fa1e542f4dcf3a",
-          "actionType": "navigate",
-          "status": "succeeded",
-          "attempts": 1,
-          "retryable": false,
-          "result": {
-            "success": true,
-            "message": "Navigating to: http://127.0.0.1:8765/semantic-grounding-fixture.html",
-            "dispatch_id": "destination-f0fa1e542f4dcf3a:1788783882092",
-            "dispatch_path": "service_worker>policy>chrome.tabs.update",
-            "contract_schema_version": "1.0",
-            "contract_idempotency_key": "89680274-b7ec-4a13-8cb2-c1ecb0c8b654:1154594314:intent_f04c528bf501405cbf8bbd785736e68d",
-            "verification": {
-              "after_state": {
-                "activeElementSignature": "body|Unfamiliar Semantic Workspace fixture_state=ready Continue laterCancelContinue Q",
-                "checkboxStates": [],
-                "dialogCount": 0,
-                "domSignature": "http://127.0.0.1:8765/semantic-grounding-fixture.html|Unfamiliar Semantic Workspace|172|5|0|0|||",
-                "expandedStates": [],
-                "interactiveCount": 5,
-                "modalCount": 0,
-                "scrollX": 0,
-                "scrollY": 0,
-                "title": "Unfamiliar Semantic Workspace",
-                "url": "http://127.0.0.1:8765/semantic-grounding-fixture.html",
-                "visibleTextLength": 172
-              },
-              "before_state": {
-                "activeElementSignature": null,
-                "checkboxStates": [],
-                "dialogCount": 0,
-                "domSignature": "chrome://newtab/|New Tab",
-                "expandedStates": [],
-                "interactiveCount": 0,
-                "modalCount": 0,
-                "scrollX": 0,
-                "scrollY": 0,
-                "title": "New Tab",
-                "url": "chrome://newtab/",
-                "visibleTextLength": 0
-              },
-              "reason": "verified",
-              "signals": {
-                "action_type": "navigate",
-                "cdp_navigation_signal_count": 0,
-                "checkbox_state_changed": false,
-                "dialog_count_changed": false,
-                "dom_changed": true,
-                "download_completed": null,
-                "download_detected": null,
-                "execution_duration_ms": 1625,
-                "execution_success": true,
-                "expanded_state_changed": false,
-                "expected_effect_description": "Open the resolved destination for Open http://127.0.0.1:8765/semantic-grounding-fixture.html",
-                "expected_effect_kind": "url_change",
-                "expected_url_path": null,
-                "expected_url_path_matched": null,
-                "focus_changed": true,
-                "interactive_count_changed": true,
-                "modal_count_changed": false,
-                "rich_text_validated": null,
-                "scroll_position_changed": false,
-                "tab_switch_verified": null,
+                "tab_switch_verified": true,
                 "target_checked_changed": false,
                 "target_exists_after": null,
                 "target_expanded_changed": false,
                 "target_filled_after": null,
                 "target_selected_changed": false,
                 "target_value_changed": false,
-                "url_changed": true,
-                "visible_text_length_changed": true,
+                "url_changed": false,
+                "visible_text_length_changed": false,
                 "wave2_capability": null,
                 "wave2_validated": null,
                 "wave3_capability": null,
@@ -559,17 +253,27 @@
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d78-final-02-page-1.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-dynamic-03-page-1.png"
         },
         {
           "index": 2,
-          "url": "http://127.0.0.1:8765/semantic-grounding-fixture.html",
-          "title": "Unfamiliar Semantic Workspace",
-          "body_text": "Unfamiliar Semantic Workspace\n\nfixture_state=continued_exactly_once\n\nContinue later\nCancel\nContinue\nQuarterly prose mentions Continue, Delete, and Publish but is not a named control.\nContinue",
+          "url": "http://127.0.0.1:8765/dynamic-dialog-fixture.html",
+          "title": "Dynamic Neutral Workspace",
+          "body_text": "Dynamic Neutral Workspace\n\nfixture_state=ready\n\nOpen review\nOpen review\nQuarterly prose mentions Open review and Continue but is not a control.",
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d78-final-02-page-2.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-dynamic-03-page-2.png"
+        },
+        {
+          "index": 3,
+          "url": "chrome-error://chromewebdata/",
+          "title": "www.google.com",
+          "body_text": "Your Internet access is blocked\n\nFirewall or antivirus software may have blocked the connection.\n\nTry:\n\nChecking the connection\nChecking firewall and antivirus configurations\nRunning Windows Network Diagnostics\nERR_NETWORK_ACCESS_DENIED\nDetails",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-dynamic-03-page-3.png"
         }
       ]
     }

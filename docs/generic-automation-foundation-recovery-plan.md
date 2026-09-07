@@ -226,6 +226,8 @@ Resume sequence:
 
 **Exit:** Removing all adapters still leaves the synthetic and unseen-site capability suite functional.
 
+**Completed 2026-09-07:** PASS for the adapter-isolation boundary. Specialized adapters are now optional observation enrichers; removing them leaves the generic semantic page model operational. Named adapter action types cannot enter the production mutation gateway, policy mutation taxonomy, or verifier. The fallback extractor and active guarded core use domain-neutral observation/classification. The extension type-check and production build passed, the full extension suite passed 231/231, the focused backend suite passed 134/134, and an unseen-page live side-panel run from New Tab reached `continued_exactly_once` through one navigation and one canonical trusted click in 32.1 seconds with zero retries or duplicate effects. See `docs/production_validation/generic_foundation/days11-12-adapter-isolation-report.md` and `docs/production_validation/generic_foundation/days11-12-adapter-isolation-live-evidence.json`.
+
 ### Days 13–14 — Cross-domain conformance and robustness
 
 - For every capability, run:
