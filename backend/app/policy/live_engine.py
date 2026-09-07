@@ -311,14 +311,22 @@ class LivePolicyEngine:
             return "execution_contract_idempotency_missing"
         submission = action.consequential_submission or {}
         if submission:
-            required_submission = {
-                "schema_version": "consequential_submission.v1",
-                "preview_required": True,
-                "verification_mode": "delivered_content_and_destination",
-            }
-            if any(submission.get(key) != value for key, value in required_submission.items()):
+            if submission.get("schema_version") != "consequential_submission.v1":
                 return "execution_contract_submission_invalid"
-            if submission.get("operation") not in {"send", "share", "submit", "post", "publish"}:
+            if submission.get("operation") not in {
+                "send", "share", "submit", "post", "publish",
+                "delete", "purchase", "account_change",
+            }:
+                return "execution_contract_submission_invalid"
+            expected_verification = (
+                "delivered_content_and_destination"
+                if submission.get("operation") in {"send", "share", "submit", "post", "publish"}
+                else "effect_and_destination"
+            )
+            if (
+                submission.get("preview_required") is not True
+                or submission.get("verification_mode") != expected_verification
+            ):
                 return "execution_contract_submission_invalid"
             if any(not str(submission.get(key) or "").strip() for key in (
                 "submission_id", "destination_entity", "content_identity",

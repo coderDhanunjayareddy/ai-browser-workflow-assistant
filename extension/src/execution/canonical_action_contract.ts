@@ -6,7 +6,7 @@ import type {
   SuggestedAction,
 } from '../types'
 
-function expectedEffectKind(action: SuggestedAction): ExpectedEffectKind {
+export function expectedEffectKind(action: SuggestedAction): ExpectedEffectKind {
   const actionType = action.action_type
   if (actionType === 'navigate') return 'url_change'
   if (actionType === 'click' && action.grounding?.expected_url_path) return 'url_change'
@@ -126,7 +126,15 @@ export function requiresExactOpenedTargetVerification(contract: CanonicalActionC
   // being activated (for example, "Attach"), not a newly opened resource.
   // Destination identity is preserved separately by the broker declaration
   // and was verified by the preceding open/select action.
-  return Boolean(contract.target_identity.exact_name?.trim())
+  const openedResourceKinds = new Set([
+    'chat', 'conversation', 'recipient', 'contact',
+    'thread', 'mail_thread', 'discussion',
+    'document', 'doc', 'page',
+    'drive_item', 'file', 'folder', 'resource',
+  ])
+  return contract.action.action_type === 'click'
+    && openedResourceKinds.has(String(contract.target_identity.semantic_kind || '').trim().toLowerCase())
+    && Boolean(contract.target_identity.exact_name?.trim())
     && !contract.action.content_insertion
     && !contract.action.consequential_submission
 }

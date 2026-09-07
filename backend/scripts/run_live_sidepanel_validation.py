@@ -150,6 +150,8 @@ class TaskRun:
     screenshot: str
     target_screenshot: str
     target_controls: list[dict[str, str]]
+    canonical_adapter_traces: list[dict[str, object]]
+    durable_executions: list[dict[str, object]]
     initial_url: str
     browser_pages: list[dict[str, object]]
 
@@ -277,6 +279,45 @@ def _sidepanel_text(page) -> str:
         return page.locator("body").inner_text(timeout=3000)
     except Exception as exc:
         return f"[body read failed: {exc}]"
+
+
+def _execution_evidence(sidepanel) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Read bounded canonical evidence from extension-owned durable storage."""
+    try:
+        evidence = sidepanel.evaluate(
+            """async () => {
+                const stored = await chrome.storage.local.get([
+                    'phase2_adapter_traces',
+                    'phase3_durable_workflow_ledger',
+                ]);
+                const traces = Array.isArray(stored.phase2_adapter_traces)
+                    ? stored.phase2_adapter_traces.slice(-20)
+                    : [];
+                const executions = Object.values(
+                    stored.phase3_durable_workflow_ledger?.executions || {},
+                ).slice(-20).map((record) => ({
+                    key: record.key,
+                    actionId: record.actionId,
+                    actionType: record.actionType,
+                    status: record.status,
+                    attempts: record.attempts,
+                    retryable: record.retryable,
+                    result: record.result ? {
+                        success: record.result.success,
+                        message: record.result.message,
+                        dispatch_id: record.result.dispatch_id,
+                        dispatch_path: record.result.dispatch_path,
+                        contract_schema_version: record.result.contract_schema_version,
+                        contract_idempotency_key: record.result.contract_idempotency_key,
+                        verification: record.result.verification,
+                    } : null,
+                }));
+                return { traces, executions };
+            }"""
+        )
+        return list(evidence.get("traces") or []), list(evidence.get("executions") or [])
+    except Exception:
+        return [], []
 
 
 def _ensure_auto_mode(sidepanel) -> None:
@@ -483,6 +524,7 @@ def _run_task(
     target.bring_to_front()
     _open_workflow_panel(sidepanel)
     textarea = _reset_and_wait_for_prompt(sidepanel)
+    trace_count_before = len(_execution_evidence(sidepanel)[0])
     approved_file = Path(file_path).resolve() if file_path else None
     file_chooser_events: list[str] = []
 
@@ -596,6 +638,8 @@ def _run_task(
     except Exception:
         target_controls = []
     browser_pages = _capture_browser_pages(context, sidepanel, safe_id)
+    all_traces, durable_executions = _execution_evidence(sidepanel)
+    canonical_adapter_traces = all_traces[trace_count_before:]
     workflow_error_text = ""
     try:
         workflow_error = sidepanel.locator('[data-testid="workflow-error"]')
@@ -613,6 +657,8 @@ def _run_task(
         screenshot=str(screenshot),
         target_screenshot=str(target_screenshot),
         target_controls=target_controls,
+        canonical_adapter_traces=canonical_adapter_traces,
+        durable_executions=durable_executions,
         initial_url=initial_url,
         browser_pages=browser_pages,
     )
@@ -802,6 +848,8 @@ def main() -> int:
                     screenshot="",
                     target_screenshot=str(target_screenshot),
                     target_controls=[],
+                    canonical_adapter_traces=[],
+                    durable_executions=[],
                     initial_url=initial_url,
                     browser_pages=[],
                 )

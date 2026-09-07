@@ -182,6 +182,80 @@ def test_consequential_submission_requires_one_time_confirmation_and_binds_ident
     assert engine.enforce(pending.model_copy(update={"execution_contract": changed_contract})).decision_reason == "execution_contract_action_mismatch"
 
 
+@pytest.mark.parametrize(
+    ("operation", "verification_mode", "origin"),
+    [
+        ("send", "delivered_content_and_destination", "https://mail.synthetic.test/compose"),
+        ("share", "delivered_content_and_destination", "https://drive.synthetic.test/item/7"),
+        ("submit", "delivered_content_and_destination", "https://forms.synthetic.test/review"),
+        ("delete", "effect_and_destination", "https://storage.synthetic.test/trash"),
+        ("purchase", "effect_and_destination", "https://shop.synthetic.test/review"),
+        ("account_change", "effect_and_destination", "https://identity.synthetic.test/settings"),
+    ],
+)
+def test_typed_consequential_matrix_requires_narrow_one_time_confirmation_across_origins(
+    engine: LivePolicyEngine,
+    operation: str,
+    verification_mode: str,
+    origin: str,
+):
+    mutation = action(
+        action_id=f"{operation}-action",
+        description="Activate the exact reviewed consequential control",
+        safety_level="danger",
+    )
+    mutation["consequential_submission"] = {
+        "schema_version": "consequential_submission.v1",
+        "submission_id": f"{operation}-subject-7",
+        "operation": operation,
+        "destination_entity": f"{operation} destination",
+        "content_identity": f"{operation} content or change",
+        "preview_required": True,
+        "verification_mode": verification_mode,
+    }
+    pending = request(mutation)
+    normalized_origin = origin.split('/', 3)[:3]
+    normalized_origin = '/'.join(normalized_origin)
+    scoped_contract = dict(pending.execution_contract)
+    scoped_contract["origin"] = {
+        "origin": normalized_origin,
+        "observed_url": origin,
+        "target_url": None,
+    }
+    scoped_contract["resource_identity"] = {"url": origin, "title": "Synthetic review"}
+    pending = pending.model_copy(update={"origin": origin, "execution_contract": scoped_contract})
+
+    denied = engine.enforce(pending)
+    assert denied.allowed is False
+    assert denied.policy_decision == "allow_with_confirmation"
+    assert denied.decision_reason == "valid_confirmation_receipt_required"
+
+    receipt = engine.issue_confirmation(pending)
+    confirmed = pending.model_copy(update={"confirmation_receipt_id": receipt.receipt_id})
+    assert engine.enforce(confirmed).allowed is True
+    assert engine.enforce(confirmed).decision_reason == "valid_confirmation_receipt_required"
+
+    other_origin = pending.model_copy(update={
+        "origin": "https://other.synthetic.test/review",
+        "confirmation_receipt_id": receipt.receipt_id,
+    })
+    assert engine.enforce(other_origin).allowed is False
+
+
+def test_typed_consequential_operation_requires_operation_specific_verification(engine: LivePolicyEngine):
+    mutation = action(action_id="delete-action", description="Delete reviewed item", safety_level="danger")
+    mutation["consequential_submission"] = {
+        "schema_version": "consequential_submission.v1",
+        "submission_id": "delete-subject-8",
+        "operation": "delete",
+        "destination_entity": "Synthetic workspace",
+        "content_identity": "Synthetic document",
+        "preview_required": True,
+        "verification_mode": "delivered_content_and_destination",
+    }
+    assert engine.enforce(request(mutation)).decision_reason == "execution_contract_submission_invalid"
+
+
 def test_confirmation_receipt_is_bound_to_observation_geometry(engine: LivePolicyEngine):
     original_action = action(action_id="coordinate-1", description="Place order", safety_level="caution")
     original_action["grounding"] = {

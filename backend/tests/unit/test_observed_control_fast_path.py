@@ -277,6 +277,32 @@ def test_generic_postcondition_accepts_canonical_persisted_success_result() -> N
     assert response.suggested_actions == []
 
 
+def test_generic_postcondition_accepts_identifier_named_state_clause() -> None:
+    page = _page("https://unfamiliar.example.test/workspace", [])
+    page.visible_text = "fixture_state=continued_exactly_once"
+    persisted_click = PriorStep(
+        action_type="click",
+        description="Activate the grounded exact control: Continue",
+        target_selector="#exact-control",
+        value="Continue",
+        execution_result="success",
+        page_url=page.url,
+        page_title=page.title,
+    )
+
+    response = _deterministic_observed_report_response(
+        session_id="generic-identifier-state-postcondition",
+        task="Activate Continue. Verify fixture_state becomes continued_exactly_once.",
+        page_context=page,
+        prior_steps=[persisted_click],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.report.answer == 'Verified that the requested state became "continued_exactly_once".'
+
+
 def test_explicit_named_control_uses_unique_enabled_observed_target_without_planner() -> None:
     page = _page(
         "https://unfamiliar.example.test/workspace",

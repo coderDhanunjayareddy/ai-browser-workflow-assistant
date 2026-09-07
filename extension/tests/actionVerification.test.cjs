@@ -205,3 +205,34 @@ test('wait is verified when execution succeeds', () => {
   assert.equal(verification.reason, 'verified')
   assert.equal(verification.signals.wait_completed, true)
 })
+
+test('typed expected effect is authoritative over unrelated DOM changes', () => {
+  const verification = verifyActionEffect(
+    action('fill', 'Ada'),
+    result('fill'),
+    state({ target: { exists: true, selector: '#target', tagName: 'input', inputType: 'text', value: '' } }),
+    state({
+      domSignature: 'unrelated-dom-change',
+      target: { exists: true, selector: '#target', tagName: 'input', inputType: 'text', value: '' },
+    }),
+    18,
+    { kind: 'value_change', description: 'Exact field value must change', url_path: null },
+  )
+  assert.equal(verification.verified, false)
+  assert.equal(verification.reason, 'no_effect')
+  assert.equal(verification.signals.expected_effect_kind, 'value_change')
+})
+
+test('typed no-mutation effect verifies wait without inventing a page change', () => {
+  const before = state()
+  const verification = verifyActionEffect(
+    action('wait', '250'),
+    result('wait'),
+    before,
+    state(),
+    251,
+    { kind: 'no_mutation', description: 'Observe without mutation', url_path: null },
+  )
+  assert.equal(verification.verified, true)
+  assert.equal(verification.signals.no_mutation_action_completed, true)
+})

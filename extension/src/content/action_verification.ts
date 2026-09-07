@@ -9,6 +9,20 @@ export interface VerifiableAction {
   grounding?: { expected_url_path?: string | null }
 }
 
+export interface ExpectedEffectContract {
+  kind:
+    | 'url_change'
+    | 'target_state_change'
+    | 'value_change'
+    | 'selection_change'
+    | 'viewport_change'
+    | 'tab_state_change'
+    | 'page_state_change'
+    | 'no_mutation'
+  description: string
+  url_path?: string | null
+}
+
 export interface BasicExecutionResult {
   success: boolean
   message: string
@@ -71,6 +85,14 @@ export interface BasicExecutionResult {
   delivered_content_identity?: string | null
   delivered_destination_entity?: string | null
   dispatch_uncertain?: boolean
+  rich_text_validated?: boolean
+  download_detected?: boolean
+  download_completed?: boolean
+  opened_tab_id?: number | null
+  previous_tab_id?: number | null
+  active_tab_id?: number | null
+  closed_tab_id?: number | null
+  tab_switch_verified?: boolean
 }
 
 export interface ActionVerificationTargetState {
@@ -326,6 +348,7 @@ export function verifyActionEffect(
   before: ActionVerificationState,
   after: ActionVerificationState,
   executionDurationMs = 0,
+  expectedEffect?: ExpectedEffectContract,
 ): ActionVerification {
   const signals: Record<string, boolean | number | string | null> = {
     action_type: action.action_type,
@@ -357,10 +380,16 @@ export function verifyActionEffect(
     cdp_navigation_signal_count: Number(executionResult.adapter_trace?.cdp_navigation_signal_count || 0),
     expected_url_path: action.grounding?.expected_url_path || null,
     expected_url_path_matched: (() => {
-      const expectedPath = action.grounding?.expected_url_path?.trim()
+      const expectedPath = expectedEffect?.url_path?.trim() || action.grounding?.expected_url_path?.trim()
       if (!expectedPath) return null
       try { return new URL(after.url).pathname === expectedPath } catch { return false }
     })(),
+    expected_effect_kind: expectedEffect?.kind ?? null,
+    expected_effect_description: expectedEffect?.description ?? null,
+    rich_text_validated: executionResult.rich_text_validated ?? null,
+    download_detected: executionResult.download_detected ?? null,
+    download_completed: executionResult.download_completed ?? null,
+    tab_switch_verified: executionResult.tab_switch_verified ?? null,
   }
 
   if (!executionResult.success) {
@@ -369,6 +398,72 @@ export function verifyActionEffect(
 
   let verified = false
   let reason: VerificationReason = 'no_effect'
+
+  if (expectedEffect) {
+    switch (expectedEffect.kind) {
+      case 'url_change':
+        verified = Boolean(signals.url_changed)
+          && (expectedEffect.url_path ? signals.expected_url_path_matched === true : true)
+        break
+      case 'target_state_change':
+        verified = Boolean(
+          signals.url_changed ||
+          signals.dom_changed ||
+          signals.focus_changed ||
+          signals.modal_count_changed ||
+          signals.dialog_count_changed ||
+          signals.expanded_state_changed ||
+          signals.checkbox_state_changed ||
+          signals.target_checked_changed ||
+          signals.target_expanded_changed ||
+          signals.visible_text_length_changed ||
+          signals.interactive_count_changed ||
+          Number(signals.cdp_navigation_signal_count || 0) > 0 ||
+          executionResult.preview_identity_observed === true ||
+          executionResult.delivery_verified === true
+        )
+        break
+      case 'value_change':
+        verified = verifyFill(action, before, after) || executionResult.rich_text_validated === true
+        break
+      case 'selection_change':
+        verified = Boolean(signals.target_selected_changed || targetMatchesActionValue(after, action.value))
+        break
+      case 'viewport_change':
+        verified = Boolean(signals.scroll_position_changed)
+        break
+      case 'tab_state_change':
+        verified = executionResult.tab_switch_verified === true
+          || typeof executionResult.opened_tab_id === 'number'
+          || typeof executionResult.closed_tab_id === 'number'
+        break
+      case 'page_state_change':
+        verified = Boolean(
+          signals.url_changed ||
+          signals.dom_changed ||
+          signals.focus_changed ||
+          signals.visible_text_length_changed ||
+          signals.interactive_count_changed ||
+          signals.modal_count_changed ||
+          signals.dialog_count_changed ||
+          signals.expanded_state_changed ||
+          signals.checkbox_state_changed ||
+          executionResult.wave2_validated === true ||
+          executionResult.wave3_validated === true ||
+          executionResult.wave4_validated === true ||
+          executionResult.rich_text_validated === true ||
+          executionResult.preview_identity_observed === true ||
+          executionResult.download_completed === true
+        )
+        break
+      case 'no_mutation':
+        verified = action.action_type === 'wait'
+        signals.no_mutation_action_completed = verified
+        break
+    }
+    if (verified) reason = 'verified'
+    return { verified, reason, before_state: before, after_state: after, signals }
+  }
 
   switch (action.action_type) {
     case 'click':

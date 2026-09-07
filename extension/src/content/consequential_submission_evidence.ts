@@ -5,6 +5,7 @@ export type SubmissionPageEvidence = {
   content_observed: boolean
   preview_observed: boolean
   delivered_observed: boolean
+  effect_observed: boolean
   content_match_count: number
   evidence_source: 'explicit_adapter' | 'semantic_dom'
 }
@@ -36,8 +37,10 @@ export function inspectConsequentialSubmission(
     .filter((node) => visible(node) && normalized(node.getAttribute('data-content-identity')) === content)
   const explicitDelivered = explicitContent.some((node) => {
     const state = normalized(node.getAttribute('data-delivery-state'))
-    return state === 'delivered' || state === 'sent' || state === 'submitted' || state === 'published'
+    return ['delivered', 'sent', 'shared', 'submitted', 'posted', 'published'].includes(state)
   })
+  const explicitEffect = Array.from(document.querySelectorAll('[data-consequential-state]'))
+    .some((node) => visible(node) && normalized(node.getAttribute('data-consequential-state')) === normalized(declaration.operation))
   const text = normalized(document.body?.innerText)
   const destinationObserved = explicitDestination || (Boolean(destination) && text.includes(destination))
   const candidates = Array.from(document.querySelectorAll('body *')).filter((node) => {
@@ -57,6 +60,7 @@ export function inspectConsequentialSubmission(
     content_observed: explicitContent.length > 0 || candidates.length > 0,
     preview_observed: previewObserved,
     delivered_observed: explicitDelivered,
+    effect_observed: explicitEffect,
     content_match_count: Math.max(explicitContent.length, candidates.length),
     evidence_source: explicitDestination || explicitContent.length > 0 ? 'explicit_adapter' : 'semantic_dom',
   }
@@ -67,6 +71,7 @@ export function verifyConsequentialDelivery(
   after: SubmissionPageEvidence,
 ): boolean {
   if (!after.destination_observed || !after.content_observed) return false
+  if (after.effect_observed) return true
   if (after.delivered_observed) return true
   return before.preview_observed
     && !after.preview_observed

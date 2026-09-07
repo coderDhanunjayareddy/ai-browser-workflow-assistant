@@ -352,6 +352,35 @@ test('auto mode pauses for critical action classes even when marked safe', () =>
   assert.equal(shouldAutoExecuteAction(accountSetting, 'auto'), false)
 })
 
+test('auto mode pauses for every typed consequential operation even with neutral text', () => {
+  const operations = ['send', 'share', 'submit', 'post', 'publish', 'delete', 'purchase', 'account_change']
+  for (const operation of operations) {
+    const action = {
+      action_id: `typed-${operation}`,
+      action_type: 'click',
+      target_selector: '#final-action',
+      value: null,
+      description: 'Activate the reviewed control',
+      reasoning: 'The user selected the reviewed operation',
+      confidence: 0.99,
+      safety_level: 'safe',
+      consequential_submission: {
+        schema_version: 'consequential_submission.v1',
+        submission_id: `subject-${operation}`,
+        operation,
+        destination_entity: 'Synthetic destination',
+        content_identity: 'Synthetic content or change',
+        preview_required: true,
+        verification_mode: ['delete', 'purchase', 'account_change'].includes(operation)
+          ? 'effect_and_destination'
+          : 'delivered_content_and_destination',
+      },
+    }
+    assert.equal(actionRequiresExplicitApproval(action), true)
+    assert.equal(shouldAutoExecuteAction(action, 'auto'), false)
+  }
+})
+
 test('routes act outcomes through the existing action path', () => {
   const routed = route(response({
     outcome_kind: 'act',

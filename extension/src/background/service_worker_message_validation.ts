@@ -35,11 +35,11 @@ export type ExecutableAction = {
   consequential_submission?: {
     schema_version: 'consequential_submission.v1'
     submission_id: string
-    operation: 'send' | 'share' | 'submit' | 'post' | 'publish'
+    operation: 'send' | 'share' | 'submit' | 'post' | 'publish' | 'delete' | 'purchase' | 'account_change'
     destination_entity: string
     content_identity: string
     preview_required: boolean
-    verification_mode: 'delivered_content_and_destination'
+    verification_mode: 'delivered_content_and_destination' | 'effect_and_destination'
   } | null
 }
 
@@ -153,13 +153,13 @@ function validateConsequentialSubmission(value: unknown): boolean {
   if (!isRecord(value) || value.schema_version !== 'consequential_submission.v1') return false
   return isBoundedString(value.submission_id, 300)
     && Boolean(String(value.submission_id).trim())
-    && ['send', 'share', 'submit', 'post', 'publish'].includes(String(value.operation))
+    && ['send', 'share', 'submit', 'post', 'publish', 'delete', 'purchase', 'account_change'].includes(String(value.operation))
     && isBoundedString(value.destination_entity, 500)
     && Boolean(String(value.destination_entity).trim())
     && isBoundedString(value.content_identity, 1000)
     && Boolean(String(value.content_identity).trim())
     && value.preview_required === true
-    && value.verification_mode === 'delivered_content_and_destination'
+    && ['delivered_content_and_destination', 'effect_and_destination'].includes(String(value.verification_mode))
 }
 
 function validateGrounding(value: unknown): boolean {

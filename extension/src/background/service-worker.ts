@@ -1,8 +1,6 @@
 import { extractPageContext, mergeInteractiveElementLists } from '../content/extractor'
 import { APP_VERSION, BACKEND_URL, BUILD_COMMIT, BUILD_ID } from '../config'
-import { executeAction } from '../content/executor'
 import { extractPageContextV2 } from '../content/extractor_v2'
-import { executeActionV2 } from '../content/executor_v2'
 import {
   captureVerificationState,
   createFallbackVerificationState,
@@ -11,12 +9,6 @@ import {
   type BasicExecutionResult,
   type VerifiedExecutionResult,
 } from '../content/action_verification'
-import {
-  findRecoverySelector,
-  shouldAttemptSelectorRecovery,
-} from '../content/selector_recovery'
-import { executeWidgetAdapter } from '../content/widget_adapters'
-import { executeUploadHandler } from '../content/file_transfer'
 import {
   inspectContentInsertionSelection,
   prepareContentInsertionSelectionInspection,
@@ -27,17 +19,13 @@ import {
   type SubmissionPageEvidence,
 } from '../content/consequential_submission_evidence'
 import { executeRichTextAction } from '../content/rich_text'
-import { executeWave2CoreAction } from '../content/wave2_core'
-import { executeWave3VisualAction } from '../content/wave3_visual'
-import { executeWave4EnterpriseAction } from '../content/wave4_enterprise'
+import { executeWave2CoreAction, isWave2CoreAction } from '../content/wave2_core'
+import { executeWave3VisualAction, isWave3VisualAction } from '../content/wave3_visual'
+import { executeWave4EnterpriseAction, isWave4EnterpriseAction } from '../content/wave4_enterprise'
 import {
   verifyExactOpenedTarget,
   type ExactTargetVerificationResult,
 } from '../content/exact_target_verification'
-import {
-  downloadMetadata,
-  type FileTransferMetadata,
-} from './file_transfer_metadata'
 import {
   canCloseTab,
   findTabEntryByReference,
@@ -57,7 +45,7 @@ import {
   requiresExactOpenedTargetVerification,
 } from '../execution/canonical_action_contract'
 import { enforceLivePolicy } from './live_policy_client'
-import { advancedControlEnabled, CdpController, shouldAttemptCdpFallback } from './cdp_control'
+import { CdpController } from './cdp_control'
 import {
   activateTab,
   createMultiTabWorkspace,
@@ -578,6 +566,45 @@ async function extractContextWithRetry(tabId?: number) {
 
 // ── Action execution ──────────────────────────────────────────────────────────
 
+type CanonicalExecutorStrategy =
+  | 'navigation'
+  | 'trusted_cdp'
+  | 'tab_control'
+  | 'wait'
+  | 'rich_text'
+  | 'wave2'
+  | 'wave3'
+  | 'wave4'
+  | 'unsupported'
+
+const TRUSTED_CDP_ACTIONS = new Set([
+  'click',
+  'fill',
+  'select_option',
+  'choose_date',
+  'hover',
+  'scroll',
+  'keyboard_shortcut',
+  'navigate_next_page',
+  'visual_region',
+  'canvas_action',
+  'svg_action',
+])
+
+const RICH_TEXT_ACTIONS = new Set(['rich_text', 'insert_rich_text', 'edit_rich_text'])
+
+function canonicalExecutorStrategy(actionType: string): CanonicalExecutorStrategy {
+  if (actionType === 'navigate') return 'navigation'
+  if (TRUSTED_CDP_ACTIONS.has(actionType)) return 'trusted_cdp'
+  if (['open_new_tab', 'switch_tab', 'focus_existing_tab', 'close_tab'].includes(actionType)) return 'tab_control'
+  if (actionType === 'wait') return 'wait'
+  if (RICH_TEXT_ACTIONS.has(actionType)) return 'rich_text'
+  if (isWave2CoreAction(actionType)) return 'wave2'
+  if (isWave3VisualAction(actionType)) return 'wave3'
+  if (isWave4EnterpriseAction(actionType)) return 'wave4'
+  return 'unsupported'
+}
+
 async function handleExecuteAction(
   contract: CanonicalActionContract,
   policyContext: PolicyExecutionContext,
@@ -585,6 +612,11 @@ async function handleExecuteAction(
 ) {
   try {
     const action = contract.action
+    const executorStrategy = canonicalExecutorStrategy(action.action_type)
+    if (executorStrategy === 'unsupported') {
+      sendResponse({ error: `Browser action rejected: no canonical executor is registered for ${action.action_type}.` })
+      return
+    }
     const observedTabId = contract.browser_binding.tab_id
     if (!Number.isInteger(observedTabId)) {
       sendResponse({ error: 'Browser action rejected: no observed tab binding was provided.' })
@@ -642,7 +674,7 @@ async function handleExecuteAction(
       }
       await chrome.tabs.update(tab.id, { url })
       await waitForTabNavigationSettle(tab.id, tabUrl)
-      const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, {
+       const verifiedResult = await createVerifiedExecutionResult(tab.id, contract, beforeState, {
         success: true,
         message: `Navigating to: ${url}`,
         action_id: action.action_id,
@@ -669,7 +701,7 @@ async function handleExecuteAction(
           || !submissionBefore.content_observed
           || (action.consequential_submission.preview_required && !submissionBefore.preview_observed)
         ) {
-          sendResponse({ error: 'Submission rejected: exact destination and attachment preview were not both observable immediately before dispatch.' })
+          sendResponse({ error: 'Consequential action rejected: its exact destination, exact content or change, and review state were not all observable immediately before dispatch.' })
           return
         }
         const reservation = await reserveConsequentialSubmission(contract, action)
@@ -792,7 +824,7 @@ async function handleExecuteAction(
           }
         }
       }
-      const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, executionWithContentEvidence, startedAt)
+       const verifiedResult = await createVerifiedExecutionResult(tab.id, contract, beforeState, executionWithContentEvidence, startedAt)
       const exactPostcondition = requiresExactOpenedTargetVerification(contract)
         ? await verifyExactPostconditionWithRetry(tab.id, contract)
         : null
@@ -813,7 +845,7 @@ async function handleExecuteAction(
         return
       }
       const cdpExecution = await cdpController.execute(tab.id, action)
-      const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, cdpExecution, startedAt)
+      const verifiedResult = await createVerifiedExecutionResult(tab.id, contract, beforeState, cdpExecution, startedAt)
       const exactPostcondition = requiresExactOpenedTargetVerification(contract)
         ? await verifyExactPostconditionWithRetry(tab.id, contract)
         : null
@@ -828,34 +860,35 @@ async function handleExecuteAction(
       return
     }
 
-    const result = await executeBrowserActionOnce(tab.id, action)
-    if (!result) { sendResponse({ error: 'Executor returned empty result.' }); return }
-    const verifiedResult = await createVerifiedExecutionResult(tab.id, action, beforeState, {
-      ...result,
-      execution_adapter: 'dom',
-    }, startedAt)
-    // Preserve the original grounded selector for trusted input. Running broad
-    // selector recovery first can replace an exact target with a merely related
-    // control, after which CDP faithfully clicks the wrong element. Advanced
-    // control is already restricted to safe actions and verified no-effect
-    // outcomes, so give the exact target one trusted attempt before recovery.
-    const trustedOriginalResult = await executeCdpFallbackIfEligible(tab.id, action, verifiedResult)
-    if (trustedOriginalResult.verification?.verified) {
-      sendResponse({ result: trustedOriginalResult })
+    if (executorStrategy === 'trusted_cdp') {
+      if (contract.browser_binding.frame_id !== 'top') {
+        sendResponse({ error: 'Browser action rejected: exact child-frame dispatch is not yet supported by the canonical trusted-input executor.' })
+        return
+      }
+      const cdpExecution = await cdpController.execute(tab.id, action)
+      const verifiedResult = await createVerifiedExecutionResult(tab.id, contract, beforeState, cdpExecution, startedAt)
+      const completed = attachCanonicalContractEvidence(
+        verifiedResult,
+        contract,
+        `service_worker>policy>canonical_${executorStrategy}`,
+      )
+      await persistAdapterTrace(action, completed)
+      sendResponse({ result: completed })
       return
     }
-    const domResult = await recoverSelectorOnceIfEligible(tab.id, action, verifiedResult)
-    const cdpAlreadyAttempted = trustedOriginalResult.adapter_trace?.cdp_attempted === true
-    const finalResult = cdpAlreadyAttempted
-      ? {
-          ...domResult,
-          adapter_trace: {
-            ...(domResult.adapter_trace || {}),
-            ...(trustedOriginalResult.adapter_trace || {}),
-          },
-        }
-      : await executeCdpFallbackIfEligible(tab.id, action, domResult)
-    sendResponse({ result: attachCanonicalContractEvidence(finalResult, contract, 'service_worker>policy>canonical_action_router') })
+
+    const result = await executeBrowserActionOnce(tab.id, action, executorStrategy)
+    if (!result) { sendResponse({ error: 'Executor returned empty result.' }); return }
+    const verifiedResult = await createVerifiedExecutionResult(tab.id, contract, beforeState, {
+      ...result,
+    }, startedAt)
+    const completed = attachCanonicalContractEvidence(
+      verifiedResult,
+      contract,
+      `service_worker>policy>canonical_${executorStrategy}`,
+    )
+    await persistAdapterTrace(action, completed)
+    sendResponse({ result: completed })
   } catch (err) {
     const msg = String(err)
     if (msg.includes('Cannot access') || msg.includes('not allowed')) {
@@ -929,63 +962,6 @@ function applyExactPostcondition(
   }
 }
 
-async function executeCdpFallbackIfEligible(
-  tabId: number,
-  action: ExecutableAction,
-  domResult: VerifiedExecutionResult,
-): Promise<VerifiedExecutionResult> {
-  const enabled = await advancedControlEnabled().catch(() => false)
-  if (!enabled || !shouldAttemptCdpFallback(action, domResult)) {
-    const completed = {
-      ...domResult,
-      execution_adapter: domResult.execution_adapter ?? 'dom',
-      adapter_trace: {
-        ...(domResult.adapter_trace || {}),
-        dom_verified: domResult.verification?.verified ?? false,
-        dom_reason: domResult.verification?.reason ?? null,
-        cdp_enabled: enabled,
-        cdp_attempted: false,
-      },
-    } as VerifiedExecutionResult
-    await persistAdapterTrace(action, completed)
-    return completed
-  }
-
-  const fallbackAction: ExecutableAction = domResult.recovery_selector
-    ? { ...action, target_selector: domResult.recovery_selector }
-    : action
-  const cdpStartedAt = performance.now()
-  const cdpBeforeState = await captureActionVerificationState(tabId, fallbackAction)
-  const cdpExecution = await cdpController.execute(tabId, fallbackAction)
-  const cdpVerified = await createVerifiedExecutionResult(tabId, fallbackAction, cdpBeforeState, cdpExecution, cdpStartedAt)
-  const completed = {
-    ...cdpVerified,
-    recovery_attempted: domResult.recovery_attempted,
-    recovery_selector: domResult.recovery_selector,
-    recovery_source: domResult.recovery_source,
-    recovery_verified: domResult.recovery_verified,
-    recovery_reason: domResult.recovery_reason,
-    adapter_trace: {
-      ...(cdpExecution.adapter_trace || {}),
-      dom_success: domResult.success,
-      dom_verified: domResult.verification?.verified ?? false,
-      dom_reason: domResult.verification?.reason ?? null,
-      dom_duration_ms: domResult.execution_duration_ms ?? null,
-      cdp_enabled: true,
-      cdp_attempted: true,
-      cdp_success: cdpExecution.success,
-      cdp_verified: cdpVerified.verification?.verified ?? false,
-      cdp_reason: cdpVerified.verification?.reason ?? null,
-    },
-  } as VerifiedExecutionResult
-  await persistAdapterTrace(action, completed)
-  return completed.verification?.verified ? completed : {
-    ...completed,
-    success: false,
-    message: `${domResult.message} CDP fallback did not produce a verified effect: ${completed.message}`,
-  }
-}
-
 async function persistAdapterTrace(action: ExecutableAction, result: VerifiedExecutionResult): Promise<void> {
   const stored: Record<string, any> = await chrome.storage.local.get('phase2_adapter_traces').catch(() => ({}))
   const existing = Array.isArray(stored.phase2_adapter_traces) ? stored.phase2_adapter_traces : []
@@ -1025,82 +1001,39 @@ async function syncTabWorkspaceSnapshot() {
 async function executeBrowserActionOnce(
   tabId: number,
   action: ExecutableAction,
+  strategy: CanonicalExecutorStrategy,
 ): Promise<BasicExecutionResult | null> {
-  const tabControlResult = await executeTabControlAction(action)
-  if (tabControlResult) return tabControlResult
-
-  const widgetAttempt = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: executeWidgetAdapter,
-    args: [action],
-  }).catch(() => null)
-  const widgetResult = widgetAttempt?.[0]?.result
-  if (widgetResult) return widgetResult
-
-  const wave2Attempt = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: executeWave2CoreAction,
-    args: [action],
-  }).catch(() => null)
-  const wave2Result = wave2Attempt?.[0]?.result
-  if (wave2Result) return wave2Result
-
-  const wave3Attempt = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: executeWave3VisualAction,
-    args: [action],
-  }).catch(() => null)
-  const wave3Result = wave3Attempt?.[0]?.result
-  if (wave3Result) return wave3Result
-
-  const wave4Attempt = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: executeWave4EnterpriseAction,
-    args: [action],
-  }).catch(() => null)
-  const wave4Result = wave4Attempt?.[0]?.result
-  if (wave4Result) return wave4Result
-
-  const richTextAttempt = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: executeRichTextAction,
-    args: [action],
-  }).catch(() => null)
-  const richTextResult = richTextAttempt?.[0]?.result
-  if (richTextResult) return richTextResult
-
-  const uploadAttempt = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: executeUploadHandler,
-    args: [action],
-  }).catch(() => null)
-  const uploadResult = uploadAttempt?.[0]?.result
-  if (uploadResult) return uploadResult
-
-  const downloadWatch = shouldWatchDownload(action) ? watchNextDownload() : null
-  if (action.action_type === 'click') {
-    return { success: false, message: 'Click rejected outside the canonical CDP dispatch path.', action_id: action.action_id }
+  if (strategy === 'tab_control') return await executeTabControlAction(action)
+  if (strategy === 'wait') {
+    return { success: true, message: 'Canonical no-mutation wait completed.', action_id: action.action_id }
   }
 
-  const v2OnlyActions = new Set(['select_option', 'choose_date', 'hover', 'keyboard_shortcut'])
-  const primaryExecutor = v2OnlyActions.has(action.action_type) ? executeActionV2 : executeAction
-  const fallbackExecutor = v2OnlyActions.has(action.action_type) ? executeAction : executeActionV2
+  const leaf = strategy === 'rich_text'
+    ? executeRichTextAction
+    : strategy === 'wave2'
+      ? executeWave2CoreAction
+      : strategy === 'wave3'
+        ? executeWave3VisualAction
+        : strategy === 'wave4'
+          ? executeWave4EnterpriseAction
+          : null
+  if (!leaf) {
+    return {
+      success: false,
+      message: `No canonical leaf strategy was selected for ${action.action_type}.`,
+      action_id: action.action_id,
+    }
+  }
 
-  try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: primaryExecutor,
-      args: [action],
-    })
-    return attachDownloadMetadata(results[0]?.result ?? null, await settleDownloadWatch(downloadWatch))
-  } catch (primaryError) {
-    console.warn('Primary execution failed, trying fallback executor:', primaryError)
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: fallbackExecutor,
-      args: [action],
-    })
-    return attachDownloadMetadata(results[0]?.result ?? null, await settleDownloadWatch(downloadWatch))
+  const attempt = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: leaf,
+    args: [action],
+  }).catch(() => null)
+  return attempt?.[0]?.result ?? {
+    success: false,
+    message: `Canonical ${strategy} strategy did not accept ${action.action_type}.`,
+    action_id: action.action_id,
   }
 }
 
@@ -1202,65 +1135,6 @@ async function executeTabControlAction(action: ExecutableAction): Promise<(Basic
   return null
 }
 
-function shouldWatchDownload(action: ExecutableAction): boolean {
-  if (action.action_type !== 'click') return false
-  const text = `${action.description || ''} ${action.value || ''}`.toLowerCase()
-  return /\b(download|export|save file|save as|pdf|csv|xlsx|receipt|invoice)\b/.test(text)
-}
-
-function attachDownloadMetadata<T extends BasicExecutionResult | null>(
-  result: T,
-  metadata: FileTransferMetadata | null,
-): T {
-  if (!result || !metadata) return result
-  return { ...result, ...metadata } as T
-}
-
-async function settleDownloadWatch(watch: Promise<FileTransferMetadata | null> | null): Promise<FileTransferMetadata | null> {
-  return watch ? await watch : null
-}
-
-function watchNextDownload(): Promise<FileTransferMetadata | null> {
-  const downloads = chrome.downloads
-  if (!downloads?.onCreated || !downloads?.onChanged) return Promise.resolve(null)
-
-  return new Promise((resolve) => {
-    let downloadId: number | null = null
-    let itemSnapshot: chrome.downloads.DownloadItem | null = null
-    const timer = setTimeout(() => {
-      cleanup()
-      resolve(downloadId === null ? null : downloadMetadata(itemSnapshot, false))
-    }, 3000)
-
-    function cleanup() {
-      clearTimeout(timer)
-      downloads.onCreated.removeListener(onCreated)
-      downloads.onChanged.removeListener(onChanged)
-    }
-
-    function onCreated(item: chrome.downloads.DownloadItem) {
-      if (downloadId !== null) return
-      downloadId = item.id
-      itemSnapshot = item
-    }
-
-    function onChanged(delta: chrome.downloads.DownloadDelta) {
-      if (downloadId === null || delta.id !== downloadId) return
-      if (delta.state?.current === 'complete' || delta.state?.current === 'interrupted') {
-        downloads.search({ id: downloadId }, (items) => {
-          cleanup()
-          itemSnapshot = items[0] ?? itemSnapshot
-          resolve(downloadMetadata(itemSnapshot, delta.state?.current === 'complete'))
-        })
-      }
-    }
-
-    downloads.onCreated.addListener(onCreated)
-    downloads.onChanged.addListener(onChanged)
-  })
-}
-
-
 async function captureActionVerificationState(
   tabId: number,
   action: ExecutableAction,
@@ -1283,74 +1157,34 @@ async function captureActionVerificationState(
 
 async function createVerifiedExecutionResult(
   tabId: number,
-  action: ExecutableAction,
+  contract: CanonicalActionContract,
   beforeState: ActionVerificationState,
   result: BasicExecutionResult,
   startedAt: number,
 ): Promise<VerifiedExecutionResult> {
+  const action = contract.action
   const tab = await chrome.tabs.get(tabId).catch(() => undefined)
   const afterState = await captureActionVerificationState(tabId, action, tab)
   const executionDurationMs = performance.now() - startedAt
-  const verification = verifyActionEffect(action, result, beforeState, afterState, executionDurationMs)
+  const verification = verifyActionEffect(
+    action,
+    result,
+    beforeState,
+    afterState,
+    executionDurationMs,
+    contract.expected_effect,
+  )
+  const canonicalSuccess = result.success && verification.verified
   return {
     ...result,
+    success: canonicalSuccess,
+    message: canonicalSuccess
+      ? result.message
+      : result.success
+        ? `${result.message} Canonical effect verification reported ${verification.reason}.`
+        : result.message,
     verification,
     execution_duration_ms: Math.max(0, Math.round(executionDurationMs)),
-  }
-}
-
-async function recoverSelectorOnceIfEligible(
-  tabId: number,
-  action: ExecutableAction,
-  initialResult: VerifiedExecutionResult,
-): Promise<VerifiedExecutionResult> {
-  if (!shouldAttemptSelectorRecovery(action, initialResult, initialResult.verification, Boolean(initialResult.recovery_attempted))) {
-    return initialResult
-  }
-
-  const [choiceResult] = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: findRecoverySelector,
-    args: [action],
-  })
-  const choice = choiceResult?.result
-  if (!choice?.selector) {
-    return {
-      ...initialResult,
-      recovery_attempted: false,
-      recovery_selector: null,
-      recovery_source: null,
-      recovery_verified: false,
-      recovery_reason: 'no_recovery_selector',
-    }
-  }
-
-  const recoveredAction: ExecutableAction = {
-    ...action,
-    target_selector: choice.selector,
-  }
-  const recoveryStartedAt = performance.now()
-  const recoveryBeforeState = await captureActionVerificationState(tabId, recoveredAction)
-  const recoveryExecutionResult = await executeBrowserActionOnce(tabId, recoveredAction) ?? {
-    success: false,
-    message: 'Recovered selector executor returned empty result.',
-    action_id: action.action_id,
-  }
-  const recoveredResult = await createVerifiedExecutionResult(
-    tabId,
-    recoveredAction,
-    recoveryBeforeState,
-    recoveryExecutionResult,
-    recoveryStartedAt,
-  )
-
-  return {
-    ...recoveredResult,
-    recovery_attempted: true,
-    recovery_selector: choice.selector,
-    recovery_source: choice.source,
-    recovery_verified: recoveredResult.verification?.verified ?? false,
-    recovery_reason: recoveredResult.verification?.reason ?? choice.reason,
   }
 }
 

@@ -79,11 +79,11 @@ export interface ContentInsertionDeclaration {
 export interface ConsequentialSubmissionDeclaration {
   schema_version: 'consequential_submission.v1'
   submission_id: string
-  operation: 'send' | 'share' | 'submit' | 'post' | 'publish'
+  operation: 'send' | 'share' | 'submit' | 'post' | 'publish' | 'delete' | 'purchase' | 'account_change'
   destination_entity: string
   content_identity: string
   preview_required: boolean
-  verification_mode: 'delivered_content_and_destination'
+  verification_mode: 'delivered_content_and_destination' | 'effect_and_destination'
 }
 
 export interface ActionGrounding {

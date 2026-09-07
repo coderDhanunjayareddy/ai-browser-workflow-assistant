@@ -94,6 +94,7 @@ test('consequential submission identity survives regenerated planner action ids 
 test('automatic retries are bounded and limited to low-risk reversible actions', () => {
   assert.equal(ledgerApi.isLowRiskReversibleAction(action()), true)
   assert.equal(ledgerApi.isLowRiskReversibleAction(action({ action_type: 'click' })), false)
+  assert.equal(ledgerApi.isLowRiskReversibleAction(action({ action_type: 'wait' })), false)
   assert.equal(ledgerApi.isLowRiskReversibleAction(action({ safety_level: 'caution' })), false)
 
   let ledger = ledgerApi.createDurableLedger(workflow(), 100)

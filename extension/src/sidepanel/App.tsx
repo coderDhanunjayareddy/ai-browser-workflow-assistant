@@ -1206,7 +1206,7 @@ function ActionCard({ action, stepNumber, autoMode, onApprove, onReject }: Actio
         <div style={{ ...s.value, border: '1px solid #f59e0b', borderRadius: 6, padding: 8 }}>
           <div><strong>External action:</strong> {action.consequential_submission.operation}</div>
           <div><strong>Exact destination:</strong> {action.consequential_submission.destination_entity}</div>
-          <div><strong>Exact content:</strong> {action.consequential_submission.content_identity}</div>
+          <div><strong>Exact content or change:</strong> {action.consequential_submission.content_identity}</div>
           <div>This confirmation is valid once and only for these displayed identities.</div>
         </div>
       )}

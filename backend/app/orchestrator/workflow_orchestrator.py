@@ -3274,7 +3274,8 @@ def _deterministic_observed_report_response(
                 backend_authoritative_report=True,
             )
     state_expectation = re.search(
-        r"\b(?:verify|confirm)\b(?:\s+that)?\s+(?:the\s+)?(?:state|status|page)\s+"
+        r"\b(?:verify|confirm)\b(?:\s+that)?\s+"
+        r"(?:(?:the\s+)?(?:state|status|page)\s+|[a-z][a-z0-9_-]{1,80}\s+)"
         r"(?:becomes|is|shows|contains)\s+([^.;]{1,240})",
         str(task or ""),
         flags=re.IGNORECASE,

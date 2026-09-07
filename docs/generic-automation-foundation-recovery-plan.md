@@ -194,6 +194,8 @@ Resume sequence:
 
 **Exit:** One observable dispatch path and one verification path for every mutation.
 
+**Completed 2026-09-07:** PASS. The production extension now has one canonical mutation gateway, one selected strategy per action, authoritative typed-effect verification, and effect/safety-bounded retries. The full extension suite passed 229/229, the focused backend foundation/integration suite passed 161/161, and two consecutive real side-panel runs from New Tab passed with one navigation and one trusted exact click per run, zero retries or duplicate effects, and the exact terminal state observed. See `docs/production_validation/generic_foundation/days7-8-one-executor-report.md` and `docs/production_validation/generic_foundation/days7-8-final-live-evidence.json`.
+
 ### Day 9 — Human intervention and resumability
 
 - Implement the intervention checkpoint contract and side-panel UI.

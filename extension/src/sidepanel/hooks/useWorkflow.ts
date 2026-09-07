@@ -366,6 +366,9 @@ const CRITICAL_ACTION_PATTERNS = [
 
 export function actionRequiresExplicitApproval(action: SuggestedAction | null | undefined): boolean {
   if (!action) return false
+  // The typed declaration is authoritative. Text patterns below remain only a
+  // conservative fail-safe for older planner output.
+  if (action.consequential_submission) return true
   if (action.safety_level === 'danger') return true
 
   const searchableText = [
@@ -2106,6 +2109,9 @@ export function useWorkflow() {
         }
       }
 
+      const canonicalVerificationAuthoritative = result.contract_schema_version === '1.0'
+        && result.verification?.verified === true
+
       if (result.success && actionNeedsObservableProgress(action)) {
         try {
           const isNavigation = action.action_type === 'navigate' || action.action_type === 'navigate_next_page'
@@ -2135,37 +2141,47 @@ export function useWorkflow() {
             }
           }
           if (bestContext) {
-            const progressError = validateObservableProgress(action, pageContext, bestContext, result)
-            const semanticMismatch = detectExecutionSemanticMismatch(action, pageContext, bestContext)
             pageContextAfterAction = bestContext
             setPageContext(bestContext)
-            if (semanticMismatch) {
-              result = {
-                ...result,
-                ...semanticMismatch,
+            // Canonical v1 results have already been checked against their typed
+            // expected effect inside the mutation gateway. Keep this observation
+            // for the next planning turn, but do not let a second verifier
+            // reinterpret or reverse the authoritative result.
+            if (!canonicalVerificationAuthoritative) {
+              const progressError = validateObservableProgress(action, pageContext, bestContext, result)
+              const semanticMismatch = detectExecutionSemanticMismatch(action, pageContext, bestContext)
+              if (semanticMismatch) {
+                result = {
+                  ...result,
+                  ...semanticMismatch,
+                }
               }
-            }
-            if (progressError) {
-              result = {
-                success: false,
-                message: progressError,
-                action_id: action.action_id,
+              if (progressError) {
+                result = {
+                  success: false,
+                  message: progressError,
+                  action_id: action.action_id,
+                }
               }
             }
           } else {
             postActionObservationAvailable = false
-            result = {
-              success: false,
-              message: `Could not verify page progress after ${action.action_type}: ${extractionError || 'page read failed'}`,
-              action_id: action.action_id,
+            if (!canonicalVerificationAuthoritative) {
+              result = {
+                success: false,
+                message: `Could not verify page progress after ${action.action_type}: ${extractionError || 'page read failed'}`,
+                action_id: action.action_id,
+              }
             }
           }
         } catch (err) {
           postActionObservationAvailable = false
-          result = {
-            success: false,
-            message: `Could not verify page progress after ${action.action_type}: ${errMsg(err)}`,
-            action_id: action.action_id,
+          if (!canonicalVerificationAuthoritative) {
+            result = {
+              success: false,
+              message: `Could not verify page progress after ${action.action_type}: ${errMsg(err)}`,
+              action_id: action.action_id,
+            }
           }
         }
       }

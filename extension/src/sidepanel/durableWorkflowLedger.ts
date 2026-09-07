@@ -1,4 +1,5 @@
 import type { ExecutionResult, SuggestedAction } from '../types'
+import { expectedEffectKind } from '../execution/canonical_action_contract'
 import type { WorkflowState } from './hooks/useWorkflow'
 import {
   sanitizeHumanInterventionCheckpoint,
@@ -45,7 +46,11 @@ export interface DurableWorkflowLedger {
 }
 
 const REVERSIBLE_ACTIONS = new Set([
-  'fill', 'hover', 'scroll', 'select_option', 'wait',
+  'fill', 'hover', 'scroll', 'select_option', 'choose_date',
+])
+
+const RETRYABLE_EFFECTS = new Set([
+  'value_change', 'selection_change', 'viewport_change', 'page_state_change',
 ])
 
 const SAFE_AUTONOMOUS_NAVIGATION = new Set([
@@ -53,7 +58,9 @@ const SAFE_AUTONOMOUS_NAVIGATION = new Set([
 ])
 
 export function isLowRiskReversibleAction(action: SuggestedAction): boolean {
-  return action.safety_level === 'safe' && REVERSIBLE_ACTIONS.has(action.action_type)
+  return action.safety_level === 'safe'
+    && REVERSIBLE_ACTIONS.has(action.action_type)
+    && RETRYABLE_EFFECTS.has(expectedEffectKind(action))
 }
 
 export function isSafeAutonomousNavigation(action: SuggestedAction): boolean {

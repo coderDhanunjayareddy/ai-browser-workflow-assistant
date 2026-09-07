@@ -166,7 +166,35 @@ test('production service worker has one click mutation route and no selector-rec
   const clickBranch = worker.match(/if \(action\.action_type === 'click'\) \{[\s\S]*?\n    \}/)?.[0] || ''
   assert.match(clickBranch, /cdpController\.execute/)
   assert.doesNotMatch(clickBranch, /executeAction|executeActionV2|findRecoverySelector|\.click\(/)
-  assert.match(worker, /Click rejected outside the canonical CDP dispatch path/)
+  assert.match(worker, /canonicalExecutorStrategy/)
+  assert.match(worker, /no canonical executor is registered/)
+})
+
+test('production gateway does not import competing legacy mutation pipelines', () => {
+  const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
+  assert.doesNotMatch(worker, /from ['"]\.\.\/content\/executor['"]/)
+  assert.doesNotMatch(worker, /from ['"]\.\.\/content\/executor_v2['"]/)
+  assert.doesNotMatch(worker, /executeWidgetAdapter|executeUploadHandler|findRecoverySelector/)
+  const leafDispatch = worker.match(/async function executeBrowserActionOnce\([\s\S]*?\n\}/)?.[0] || ''
+  assert.equal((leafDispatch.match(/chrome\.scripting\.executeScript/g) || []).length, 1)
+})
+
+test('side panel treats canonical typed verification as the sole effect authority', () => {
+  const workflow = fs.readFileSync(path.join(root, 'src', 'sidepanel', 'hooks', 'useWorkflow.ts'), 'utf8')
+  assert.match(workflow, /canonicalVerificationAuthoritative/)
+  assert.match(workflow, /if \(!canonicalVerificationAuthoritative\) \{\s*const progressError/)
+})
+
+test('opened-resource identity verification does not reinterpret ordinary named controls', () => {
+  const namedControl = buildCanonicalActionContract(clickAction({
+    grounding: {
+      source: 'dom_snapshot',
+      accessibility_name: 'Continue',
+      role: 'button',
+      semantic_kind: 'explicitly_named_control',
+    },
+  }), context, 'control-key')
+  assert.equal(requiresExactOpenedTargetVerification(namedControl), false)
 })
 
 test('content selection evidence is armed before trusted input and remains within the action timeout', () => {
@@ -193,9 +221,21 @@ test('consequential submission reserves once before trusted input and settles de
 test('confirmation UI displays exact consequential destination and content immediately before approval', () => {
   const app = fs.readFileSync(path.join(root, 'src', 'sidepanel', 'App.tsx'), 'utf8')
   assert.match(app, /Exact destination:/)
-  assert.match(app, /Exact content:/)
+  assert.match(app, /Exact content or change:/)
   assert.match(app, /confirmation is valid once/)
   assert.match(app, /Confirm &/)
+})
+
+test('generic consequential contract covers communication, destructive, commercial, and account mutations', () => {
+  const types = fs.readFileSync(path.join(root, 'src', 'types', 'index.ts'), 'utf8')
+  const validator = fs.readFileSync(path.join(root, 'src', 'background', 'service_worker_message_validation.ts'), 'utf8')
+  const operations = ['send', 'share', 'submit', 'post', 'publish', 'delete', 'purchase', 'account_change']
+  for (const operation of operations) {
+    assert.match(types, new RegExp(`'${operation}'`))
+    assert.match(validator, new RegExp(`'${operation}'`))
+  }
+  assert.match(types, /effect_and_destination/)
+  assert.match(validator, /effect_and_destination/)
 })
 
 test('production service worker dispatches keyboard shortcuts through trusted CDP input', () => {
