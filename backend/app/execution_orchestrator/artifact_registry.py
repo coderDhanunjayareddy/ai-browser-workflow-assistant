@@ -4,6 +4,7 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
+from app.destination_resolution.search_providers import is_search_surface_url as registry_is_search_surface_url
 from app.execution_orchestrator.models import ArtifactRegistry
 from app.runtime_state_manager.execution_result import is_successful_execution_result
 
@@ -122,20 +123,4 @@ def _evidence_url(evidence: dict[str, Any]) -> str | None:
 
 
 def _is_search_surface_url(url: str) -> bool:
-    parsed = urlparse(url)
-    host = (parsed.netloc or "").lower()
-    path = (parsed.path or "").lower()
-    if host.startswith("www."):
-        host = host[4:]
-    search_hosts = {
-        "google.com",
-        "bing.com",
-        "duckduckgo.com",
-        "search.yahoo.com",
-        "yahoo.com",
-        "perplexity.ai",
-        "copilot.microsoft.com",
-    }
-    if host in search_hosts or any(host.endswith(f".{domain}") for domain in search_hosts):
-        return path in {"", "/", "/search"} or "search" in path or "sorry" in path
-    return False
+    return registry_is_search_surface_url(url)

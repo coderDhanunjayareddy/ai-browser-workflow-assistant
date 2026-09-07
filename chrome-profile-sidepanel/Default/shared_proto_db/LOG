@@ -1,2 +1,3 @@
-2026/08/07-14:59:26.218 1b30 Creating DB C:\Work\AI_Browser_Assist\chrome-profile-sidepanel\Default\shared_proto_db since it was missing.
-2026/08/07-14:59:26.226 1b30 Reusing MANIFEST C:\Work\AI_Browser_Assist\chrome-profile-sidepanel\Default\shared_proto_db/MANIFEST-000001
+2026/09/07-22:21:59.269 2e8c Reusing MANIFEST C:\Work\AI_Browser_Assist\chrome-profile-sidepanel\Default\shared_proto_db/MANIFEST-000001
+2026/09/07-22:21:59.269 2e8c Recovering log #3
+2026/09/07-22:21:59.271 2e8c Reusing old log C:\Work\AI_Browser_Assist\chrome-profile-sidepanel\Default\shared_proto_db/000003.log 

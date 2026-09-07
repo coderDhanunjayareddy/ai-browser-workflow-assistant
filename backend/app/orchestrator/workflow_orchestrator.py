@@ -23,6 +23,14 @@ from app.budget_engine import BudgetManager
 from app.budget_engine.budget_enforcer import enforce_budget
 from app.budget_engine.budget_models import BudgetCheckpoint
 from app.context_compression import ContextCompressor
+from app.destination_resolution.search_providers import (
+    alternate_search_urls,
+    is_search_challenge,
+    is_search_provider_url,
+    is_search_results_url as registry_is_search_results_url,
+    provider_display_name,
+    provider_id_for_url,
+)
 from app.services.analytics_service import record_planner_call
 from app.run_ledger import RunLedgerWriter
 from app.observability.tracing import record_structured_trace
@@ -2077,21 +2085,22 @@ def _search_challenge_recovery_action(
     page_context: Any,
     prior_steps: list,
 ) -> Any | None:
-    from urllib.parse import quote_plus, urlparse
+    from urllib.parse import urlparse
 
     url = str(getattr(page_context, "url", "") or "")
     parsed = urlparse(url)
-    host = parsed.netloc.lower().removeprefix("www.")
+    current_provider_id = provider_id_for_url(url)
     if not _is_search_challenge_page(page_context):
         return None
     query = _search_query_from_task(task)
     if not query:
         return None
 
-    provider_urls = [
-        ("bing", f"https://www.bing.com/search?q={quote_plus(query)}"),
-        ("duckduckgo", f"https://duckduckgo.com/?q={quote_plus(query)}"),
-    ]
+    provider_urls = alternate_search_urls(
+        query,
+        after_provider_id=current_provider_id,
+        exclude_provider_ids={current_provider_id},
+    )
     attempted = {_normalize_attempted_search_url(url)}
     for step in prior_steps:
         attempted.add(_normalize_attempted_search_url(str(getattr(step, "value", "") or "")))
@@ -2100,8 +2109,6 @@ def _search_challenge_recovery_action(
     provider_name = ""
     recovery_url = ""
     for candidate_name, candidate_url in provider_urls:
-        if candidate_name == host:
-            continue
         if _normalize_attempted_search_url(candidate_url) in attempted:
             continue
         provider_name = candidate_name
@@ -2118,7 +2125,7 @@ def _search_challenge_recovery_action(
         action_type="navigate",
         target_selector="",
         value=recovery_url,
-        description=f"Recover search by opening {provider_name.title()} results for: {query}",
+        description=f"Recover search by opening {provider_display_name(provider_name)} results for: {query}",
         reasoning=(
             "The current search provider returned a challenge/no-results surface. "
             "Switch to an alternate public search provider so organic result collection can continue."
@@ -2129,12 +2136,7 @@ def _search_challenge_recovery_action(
 
 
 def _is_search_challenge_page(page_context: Any) -> bool:
-    from urllib.parse import urlparse
-
     url = str(getattr(page_context, "url", "") or "")
-    parsed = urlparse(url)
-    host = parsed.netloc.lower().removeprefix("www.")
-    path = parsed.path.lower()
     text = " ".join(
         str(value or "")
         for value in (
@@ -2143,20 +2145,7 @@ def _is_search_challenge_page(page_context: Any) -> bool:
             getattr(page_context, "selected_text", ""),
         )
     ).lower()
-    if host == "google.com" and path.startswith(("/sorry", "/challenge", "/consent")):
-        return True
-    challenge_markers = (
-        "one last step",
-        "please solve the challenge",
-        "captcha",
-        "recaptcha",
-        "hcaptcha",
-        "verify you are human",
-        "not a robot",
-        "unusual traffic",
-        "automated queries",
-    )
-    return host in {"google.com", "bing.com", "duckduckgo.com"} and any(marker in text for marker in challenge_markers)
+    return is_search_challenge(url, text)
 
 
 def _normalize_attempted_search_url(url: str) -> str:
@@ -2727,50 +2716,6 @@ def _deterministic_observed_control_response(
                 ),
                 suggested_actions=[],
             )
-    is_public_browser_test_form = (
-        "selenium.dev/selenium/web/web-form.html" in current_url.lower()
-        and "test data" in task_text
-        and "submit" in task_text
-    )
-    if is_public_browser_test_form:
-        text_control = next(
-            (
-                element
-                for element in elements
-                if str(element.get("input_type") or "").lower() == "text"
-                and str(element.get("selector") or "") == "#my-text-id"
-            ),
-            None,
-        )
-        textarea_control = next(
-            (element for element in elements if str(element.get("type") or "").lower() == "textarea"),
-            None,
-        )
-        select_control = next(
-            (element for element in elements if str(element.get("type") or "").lower() == "select"),
-            None,
-        )
-        submit_control = _find_observed_control(elements, exact_labels=("submit",), label_terms=("submit",))
-        if text_control is not None and str(text_control.get("selector") or "") not in completed_fills:
-            selector = str(text_control.get("selector") or "")
-            action_type = "fill"
-            value = "Test User 8472"
-            description = "Fill the observed public browser-test text field with clearly fake test data"
-        elif textarea_control is not None and str(textarea_control.get("selector") or "") not in completed_fills:
-            selector = str(textarea_control.get("selector") or "")
-            action_type = "fill"
-            value = "Synthetic browser validation entry; not a real person or request."
-            description = "Fill the observed public browser-test textarea with clearly fake test data"
-        elif select_control is not None and str(select_control.get("selector") or "") not in completed_selects:
-            selector = str(select_control.get("selector") or "")
-            action_type = "select_option"
-            value = "One"
-            description = "Choose an observed non-sensitive option in the public browser-test form"
-        elif submit_control is not None and str(submit_control.get("selector") or "") not in completed_clicks:
-            selector = str(submit_control.get("selector") or "")
-            action_type = "click"
-            description = "Submit the form only after confirming it is Selenium's public browser-test form"
-
     password_control = _find_observed_control(
         elements,
         label_terms=("password",),
@@ -3288,6 +3233,12 @@ def _deterministic_observed_report_response(
                 goal_convergence=True,
                 backend_authoritative_report=True,
             )
+    state_assignment = re.search(
+        r"\b(?:verify|confirm)\b(?:\s+that)?\s+"
+        r"([a-z][a-z0-9_-]{1,80}\s*=\s*[a-z0-9][a-z0-9_-]{0,160})",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    )
     state_expectation = re.search(
         r"\b(?:verify|confirm)\b(?:\s+that)?\s+"
         r"(?:(?:the\s+)?(?:state|status|page)\s+|[a-z][a-z0-9_-]{1,80}\s+)"
@@ -3295,8 +3246,10 @@ def _deterministic_observed_report_response(
         str(task or ""),
         flags=re.IGNORECASE,
     )
-    if state_expectation:
-        expected_state = " ".join(state_expectation.group(1).split()).strip(" `\"'")
+    if state_assignment or state_expectation:
+        expected_state = " ".join(
+            (state_assignment.group(1) if state_assignment else state_expectation.group(1)).split()
+        ).strip(" `\"'")
         expected_identity = re.sub(r"[^a-z0-9]+", " ", expected_state.casefold()).strip()
         visible_identity = re.sub(r"[^a-z0-9]+", " ", visible_text.casefold()).strip()
         def successful_mutation(step: Any) -> bool:
@@ -3488,28 +3441,6 @@ def _deterministic_observed_report_response(
                 goal_convergence=True,
                 backend_authoritative_report=True,
             )
-    if (
-        "selenium.dev/selenium/web/submitted-form.html" in current_url
-        and "submit" in task_text
-        and "validation" in task_text
-        and re.search(r"\b(received|submitted|success)\b", visible_text, flags=re.IGNORECASE)
-    ):
-        return AnalyzeResponse(
-            session_id=session_id,
-            analysis="The observed Selenium test-form confirmation page states that the form was received.",
-            outcome_kind="report",
-            report=ReportOutcome(
-                answer=(
-                    "Submission succeeded: Selenium's public browser-test form displayed its received confirmation. "
-                    "No required-field validation error was shown for the non-sensitive fake test values used."
-                ),
-                claim="The public test form was submitted and the confirmation page was observed.",
-            ),
-            suggested_actions=[],
-            sgv_verified=True,
-            goal_convergence=True,
-            backend_authoritative_report=True,
-        )
     if "invoice" not in task_text or "total" not in task_text:
         return None
     match = re.search(
@@ -3849,11 +3780,7 @@ def _distinct_non_search_opened_source_count(orchestrator_snapshot: Any) -> int:
 
 
 def _is_search_provider_or_results_url(url: str) -> bool:
-    parsed = urlparse(str(url or ""))
-    host = parsed.netloc.lower().removeprefix("www.")
-    if host in {"google.com", "bing.com", "duckduckgo.com"}:
-        return True
-    return _is_search_results_url(url)
+    return is_search_provider_url(url) or _is_search_results_url(url)
 
 
 def _deterministic_open_phase_response(
@@ -4200,13 +4127,7 @@ def _normalize_url_for_read(url: str) -> str:
 
 
 def _is_search_results_url(url: str) -> bool:
-    parsed = urlparse(str(url or ""))
-    host = parsed.netloc.lower().removeprefix("www.")
-    if host in {"google.com", "bing.com"} and parsed.path.startswith("/search"):
-        return True
-    if host == "duckduckgo.com" and parsed.query:
-        return True
-    return False
+    return registry_is_search_results_url(url)
 
 
 def _blueprint_node_completed(db: Session, *, mission_id: str, node_id: str) -> bool:
@@ -4229,7 +4150,7 @@ def _search_query_from_task(task: str) -> str:
         r"search\s+for:\s*['\"]([^'\"]+)['\"]",
         r"search\s+for\s+`([^`]+)`",
         r"search\s+for\s+(.+?)(?:\.|\n|$)",
-        r"use\s+google\s+search\s+and\s+official\s+websites\s+to\s+research:\s*`([^`]+)`",
+        r"use\s+(?:web\s+)?search\s+and\s+official\s+websites\s+to\s+research:\s*`([^`]+)`",
     )
     for pattern in patterns:
         match = re.search(pattern, text, flags=re.IGNORECASE)

@@ -50,6 +50,8 @@ def test_active_core_boundaries_contain_no_named_application_or_service_literals
     guarded_files = [
         "backend/app/orchestrator/workflow_orchestrator.py",
         "backend/app/execution_orchestrator/engine.py",
+        "backend/app/execution_orchestrator/artifact_registry.py",
+        "backend/app/destination_resolution/resolver.py",
         "backend/app/execution_orchestrator/phase_state_machine.py",
         "backend/app/execution_orchestrator/completion_engine.py",
         "backend/app/policy/live_engine.py",
@@ -62,7 +64,8 @@ def test_active_core_boundaries_contain_no_named_application_or_service_literals
         "extension/src/execution/exact_open_completion.ts",
     ]
     forbidden = re.compile(
-        r"\b(whatsapp|gmail|youtube|linkedin|instagram|amazon|makemytrip)\b",
+        r"\b(whatsapp|gmail|youtube|linkedin|instagram|amazon|makemytrip|selenium|"
+        r"google|bing|duckduckgo|yahoo|perplexity|copilot)\b",
         flags=re.IGNORECASE,
     )
     violations = {}

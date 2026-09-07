@@ -6,8 +6,18 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
-from urllib.parse import parse_qs, quote_plus, urlparse
+from urllib.parse import parse_qs, urlparse
 
+from app.destination_resolution.search_providers import (
+    alternate_search_urls,
+    configured_provider_ids,
+    is_search_challenge,
+    is_search_provider_url,
+    is_search_results_url,
+    provider_display_name,
+    provider_id_for_url,
+    unwrap_search_result_url,
+)
 from app.schemas.response import AnalyzeResponse, ReportOutcome, SuggestedAction
 
 
@@ -87,9 +97,9 @@ def _load_destination_registry() -> tuple[AppDestination, ...]:
 APP_DESTINATIONS = _load_destination_registry()
 
 _APP_BY_ID = {app.app_id: app for app in APP_DESTINATIONS}
-_SEARCH_HOSTS = {"google.com", "www.google.com", "bing.com", "www.bing.com"}
 _UNSAFE_SCHEMES = {"javascript", "data", "file", "chrome", "chrome-extension", "about"}
 _ACCOUNT_PATH_TERMS = ("login", "signin", "sign-in", "account", "student", "portal", "exam")
+_MAX_DISCOVERY_PROVIDER_ATTEMPTS = 2
 _TERMINAL_FAILURE_TERMS = (
     "fail", "error", "no_effect", "no effect", "timeout", "timed out",
     "policy", "confirmation", "approval", "sign-in", "signin",
@@ -182,7 +192,8 @@ def _is_complex_mission(task: str) -> bool:
 
 def _unknown_entity(text: str) -> str | None:
     match = re.search(
-        r"\b(?:open|visit|navigate to|go to)\s+(?:the\s+)?(.+?)(?:\s+(?:website|site))?$",
+        r"^\s*(?:(?:please|kindly)\s+)?(?:(?:can|could|would)\s+you\s+)?"
+        r"(?:open|visit|navigate to|go to)\s+(?:the\s+)?(.+?)(?:\s+(?:website|site))?$",
         str(text or ""),
         flags=re.IGNORECASE,
     )
@@ -322,28 +333,20 @@ def _query_for(objective: DestinationObjective) -> str:
 
 
 def _is_search_page(url: str) -> bool:
-    parsed = urlparse(url)
-    host = (parsed.hostname or "").lower()
-    return host in _SEARCH_HOSTS and parsed.path.rstrip("/") in {"/search", "/search/"}
+    return is_search_results_url(url)
 
 
 def _blocked_search_provider(url: str) -> str | None:
-    parsed = urlparse(url)
-    host = (parsed.hostname or "").lower()
-    path = parsed.path.lower()
-    if host not in _SEARCH_HOSTS:
-        return None
-    if path.startswith("/sorry/") or "captcha" in path or path.startswith("/turing/"):
-        return "bing" if "bing.com" in host else "google"
-    return None
+    provider_id = provider_id_for_url(url)
+    return provider_id if provider_id and is_search_challenge(url, "") else None
 
 
 def _search_provider_attempted(provider: str, prior_steps: list[Any]) -> bool:
-    expected_host = "bing.com" if provider == "bing" else "google.com"
     for step in prior_steps:
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
         value = _safe_http_url(str(data.get("value") or ""))
-        if value and (urlparse(value).hostname or "").lower().endswith(expected_host):
+        page_url = _safe_http_url(str(data.get("page_url") or ""))
+        if provider in {provider_id_for_url(value or ""), provider_id_for_url(page_url or "")}:
             return True
     return False
 
@@ -352,11 +355,7 @@ def _unwrap_search_url(href: str) -> str | None:
     safe = _safe_http_url(href)
     if not safe:
         return None
-    parsed = urlparse(safe)
-    if (parsed.hostname or "").lower() in _SEARCH_HOSTS and parsed.path == "/url":
-        values = parse_qs(parsed.query).get("q") or parse_qs(parsed.query).get("url")
-        return _safe_http_url(values[0]) if values else None
-    return safe
+    return _safe_http_url(unwrap_search_result_url(safe))
 
 
 def _candidate_rows(page_context: Any) -> list[tuple[str, str]]:
@@ -377,7 +376,7 @@ def _candidate_rows(page_context: Any) -> list[tuple[str, str]]:
 def _candidate_score(objective: DestinationObjective, title: str, url: str) -> DestinationCandidate | None:
     parsed = urlparse(url)
     host = (parsed.hostname or "").lower().removeprefix("www.")
-    if not host or host in _SEARCH_HOSTS:
+    if not host or is_search_provider_url(url):
         return None
     entity = _normalize(objective.entity_name or objective.text)
     tokens = [token for token in entity.split() if len(token) > 2 and token not in {"college", "portal", "official"}]
@@ -574,11 +573,22 @@ def _decision(task: str, page_context: Any, prior_steps: list[Any], user_context
 
     blocked_provider = _blocked_search_provider(current_url)
     if blocked_provider:
-        if blocked_provider == "google" and not _search_provider_attempted("bing", prior_steps):
-            query = _query_for(pending)
+        query = _query_for(pending)
+        attempted = {
+            provider_id
+            for provider_id in configured_provider_ids()
+            if _search_provider_attempted(provider_id, prior_steps)
+        }
+        alternatives = [] if len(attempted | {blocked_provider}) >= _MAX_DISCOVERY_PROVIDER_ATTEMPTS else alternate_search_urls(
+            query,
+            after_provider_id=blocked_provider,
+            exclude_provider_ids=attempted | {blocked_provider},
+        )
+        if alternatives:
+            _, provider_url = alternatives[0]
             return DestinationDecision(
-                "search", pending, f"https://www.bing.com/search?q={quote_plus(query)}",
-                "Google blocked the bounded discovery attempt; use one different trusted search provider without opening a candidate.",
+                "search", pending, provider_url,
+                f"{provider_display_name(blocked_provider)} blocked the bounded discovery attempt; use one different trusted search provider without opening a candidate.",
             )
         return DestinationDecision(
             "report", pending,
@@ -591,8 +601,15 @@ def _decision(task: str, page_context: Any, prior_steps: list[Any], user_context
 
     if not _is_search_page(current_url):
         query = _query_for(pending)
+        providers = alternate_search_urls(query)
+        if not providers:
+            return DestinationDecision(
+                "report", pending,
+                message="No trusted search provider is configured for destination discovery. No navigation was attempted.",
+                report_category="discovery_unavailable",
+            )
         return DestinationDecision(
-            "search", pending, f"https://www.google.com/search?q={quote_plus(query)}",
+            "search", pending, providers[0][1],
             f"Discover an evidence-backed destination for {pending.entity_name}.",
         )
 

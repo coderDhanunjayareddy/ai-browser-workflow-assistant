@@ -303,6 +303,36 @@ def test_generic_postcondition_accepts_identifier_named_state_clause() -> None:
     assert response.report.answer == 'Verified that the requested state became "continued_exactly_once".'
 
 
+def test_generic_postcondition_accepts_compact_state_assignment_without_planner() -> None:
+    page = _page("https://unfamiliar.example.test/workspace", [])
+    page.visible_text = "fixture_state=dynamic_dialog_completed_exactly_once"
+    persisted_click = PriorStep(
+        action_type="click",
+        description="Activate the grounded exact control: Continue",
+        target_selector="#exact-control",
+        value="Continue",
+        execution_result="success",
+        page_url=page.url,
+        page_title=page.title,
+    )
+
+    response = _deterministic_observed_report_response(
+        session_id="generic-assignment-postcondition",
+        task="Activate Continue once. Verify fixture_state=dynamic_dialog_completed_exactly_once and stop.",
+        page_context=page,
+        prior_steps=[persisted_click],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.suggested_actions == []
+    assert response.report.answer == (
+        'Verified that the requested state became '
+        '"fixture_state=dynamic_dialog_completed_exactly_once".'
+    )
+
+
 def test_explicit_named_control_uses_unique_enabled_observed_target_without_planner() -> None:
     page = _page(
         "https://unfamiliar.example.test/workspace",
@@ -1469,7 +1499,7 @@ def test_registration_with_missing_credentials_asks_instead_of_fabricating_value
     assert "email address and password" in response.clarification_question
 
 
-def test_public_selenium_test_form_uses_non_sensitive_fake_data_then_submits() -> None:
+def test_public_form_does_not_receive_a_site_specific_core_procedure() -> None:
     task = (
         "Fill the form with clearly fake test data, check validation errors, and submit only if it is "
         "a genuine test or sandbox form."
@@ -1484,37 +1514,19 @@ def test_public_selenium_test_form_uses_non_sensitive_fake_data_then_submits() -
         ],
     )
 
-    first = _deterministic_observed_control_response(session_id="form", task=task, page_context=page, prior_steps=[])
-    assert first is not None
-    assert (first.suggested_actions[0].action_type, first.suggested_actions[0].target_selector) == ("fill", "#my-text-id")
-
-    steps = [PriorStep(action_type="fill", description="fake name", target_selector="#my-text-id", value="", execution_result="success")]
-    second = _deterministic_observed_control_response(session_id="form", task=task, page_context=page, prior_steps=steps)
-    assert second is not None
-    assert (second.suggested_actions[0].action_type, second.suggested_actions[0].target_selector) == ("fill", "textarea")
-
-    steps.append(PriorStep(action_type="fill", description="fake note", target_selector="textarea", value="", execution_result="success"))
-    third = _deterministic_observed_control_response(session_id="form", task=task, page_context=page, prior_steps=steps)
-    assert third is not None
-    assert (third.suggested_actions[0].action_type, third.suggested_actions[0].target_selector, third.suggested_actions[0].value) == ("select_option", "select", "One")
-
-    steps.append(PriorStep(action_type="select_option", description="choice", target_selector="select", value="One", execution_result="success"))
-    fourth = _deterministic_observed_control_response(session_id="form", task=task, page_context=page, prior_steps=steps)
-    assert fourth is not None
-    assert (fourth.suggested_actions[0].action_type, fourth.suggested_actions[0].target_selector) == ("click", "button")
+    assert _deterministic_observed_control_response(
+        session_id="form", task=task, page_context=page, prior_steps=[]
+    ) is None
 
 
-def test_public_selenium_test_form_reports_only_from_confirmation_page() -> None:
+def test_site_specific_confirmation_page_does_not_create_a_core_report() -> None:
     task = "Fill with test data, check validation errors, submit, and report whether submission succeeded."
     page = _page("https://www.selenium.dev/selenium/web/submitted-form.html", [])
     page = page.model_copy(update={"visible_text": "Form submitted Received!"})
 
     report = _deterministic_observed_report_response(session_id="form", task=task, page_context=page)
 
-    assert report is not None
-    assert report.outcome_kind == "report"
-    assert report.report is not None
-    assert "Submission succeeded" in report.report.answer
+    assert report is None
 
 
 def test_invoice_total_is_reported_from_visible_evidence() -> None:

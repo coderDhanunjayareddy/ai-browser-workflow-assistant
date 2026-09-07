@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 
 from app.grounding import GroundingResolver
+from app.destination_resolution.resolver import decompose_destination_objectives
 from app.orchestrator.workflow_orchestrator import _enforce_authoritative_semantic_grounding
 from app.schemas.request import InteractiveElement, PageContext
 from app.schemas.response import AnalyzeResponse, SuggestedAction
@@ -187,3 +188,13 @@ def test_observation_identity_changes_with_frame_geometry_and_state():
 
     hashes = {observation_hash(item) for item in (baseline, moved, framed, disabled)}
     assert len(hashes) == 4
+
+
+def test_page_local_control_label_is_not_reinterpreted_as_a_web_destination():
+    objectives = decompose_destination_objectives(
+        "Open https://unseen.synthetic.test/workspace, then activate the exact enabled "
+        "control named Open review, then activate the control named Continue."
+    )
+
+    assert len(objectives) == 1
+    assert objectives[0].explicit_url == "https://unseen.synthetic.test/workspace"

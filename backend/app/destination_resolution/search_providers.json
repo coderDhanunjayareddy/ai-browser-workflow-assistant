@@ -1,0 +1,53 @@
+[
+  {
+    "provider_id": "provider-a",
+    "display_name": "Google",
+    "hosts": ["google.com"],
+    "search_url_template": "https://www.google.com/search?q={query}",
+    "fallback_provider_ids": ["provider-b", "provider-c"],
+    "result_path_prefixes": ["/search"],
+    "redirect_paths": ["/url"],
+    "redirect_query_keys": ["q", "url"],
+    "challenge_path_prefixes": ["/sorry", "/challenge", "/consent"]
+  },
+  {
+    "provider_id": "provider-b",
+    "display_name": "Bing",
+    "hosts": ["bing.com"],
+    "search_url_template": "https://www.bing.com/search?q={query}",
+    "fallback_provider_ids": ["provider-c", "provider-a"],
+    "result_path_prefixes": ["/search"],
+    "challenge_path_prefixes": ["/challenge", "/turing"]
+  },
+  {
+    "provider_id": "provider-c",
+    "display_name": "DuckDuckGo",
+    "hosts": ["duckduckgo.com"],
+    "search_url_template": "https://duckduckgo.com/?q={query}",
+    "fallback_provider_ids": ["provider-b", "provider-a"],
+    "result_path_prefixes": ["/"],
+    "result_requires_query": true,
+    "challenge_path_prefixes": []
+  },
+  {
+    "provider_id": "provider-d",
+    "display_name": "Yahoo Search",
+    "hosts": ["search.yahoo.com", "yahoo.com"],
+    "result_path_prefixes": ["/search"],
+    "challenge_path_prefixes": []
+  },
+  {
+    "provider_id": "provider-e",
+    "display_name": "Perplexity",
+    "hosts": ["perplexity.ai"],
+    "result_path_prefixes": ["/", "/search"],
+    "challenge_path_prefixes": []
+  },
+  {
+    "provider_id": "provider-f",
+    "display_name": "Copilot",
+    "hosts": ["copilot.microsoft.com"],
+    "result_path_prefixes": ["/", "/search"],
+    "challenge_path_prefixes": []
+  }
+]

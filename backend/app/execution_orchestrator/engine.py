@@ -6,6 +6,13 @@ from typing import Any
 from urllib.parse import urlparse
 
 from app.browser_url_policy import is_openable_browser_url
+from app.destination_resolution.search_providers import (
+    alternate_search_urls,
+    is_search_challenge,
+    is_search_provider_url as registry_is_search_provider_url,
+    is_search_results_url as registry_is_search_results_url,
+    provider_id_for_url,
+)
 from app.execution_orchestrator.artifact_registry import build_artifacts
 from app.execution_orchestrator.budgets import build_budgets
 from app.execution_orchestrator.completion_engine import build_progress_ledger
@@ -502,23 +509,11 @@ def _collect_partial_open_response(
 
 
 def _is_search_results_url(url: str) -> bool:
-    from urllib.parse import urlsplit
-
-    parsed = urlsplit(str(url or ""))
-    host = parsed.netloc.lower().removeprefix("www.")
-    if host in {"google.com", "bing.com"} and parsed.path.startswith("/search"):
-        return True
-    if host == "duckduckgo.com" and parsed.query:
-        return True
-    return False
+    return registry_is_search_results_url(url)
 
 
 def _is_search_provider_url(url: str) -> bool:
-    from urllib.parse import urlsplit
-
-    parsed = urlsplit(str(url or ""))
-    host = parsed.netloc.lower().removeprefix("www.")
-    return parsed.scheme in {"http", "https"} and host in {"google.com", "bing.com", "duckduckgo.com"}
+    return registry_is_search_provider_url(url)
 
 
 def _reroute_challenged_search_navigation_response(
@@ -535,9 +530,9 @@ def _reroute_challenged_search_navigation_response(
     ])) or str(action.value or "")
     if not _is_search_results_url(target_url):
         return None
-    challenged_hosts = _challenged_search_hosts(snapshot.artifacts.visited_urls)
-    target_host = _search_host(target_url)
-    if not target_host or target_host not in challenged_hosts:
+    challenged_providers = _challenged_search_hosts(snapshot.artifacts.visited_urls)
+    target_provider = provider_id_for_url(target_url)
+    if not target_provider or target_provider not in challenged_providers:
         return None
     query = _query_from_search_url(target_url)
     if not query:
@@ -574,12 +569,12 @@ def _reroute_challenged_search_navigation_response(
             replan=result.replan,
             suggested_actions=[action],
         )
-    for provider_url in (
-        f"https://duckduckgo.com/?q={query}",
-        f"https://www.bing.com/search?q={query}",
+    for provider_id, provider_url in alternate_search_urls(
+        query,
+        after_provider_id=target_provider,
+        exclude_provider_ids=challenged_providers,
     ):
-        host = _search_host(provider_url)
-        if host and host not in challenged_hosts and _canonical_opened_url(provider_url) != _canonical_opened_url(target_url):
+        if provider_id and _canonical_opened_url(provider_url) != _canonical_opened_url(target_url):
             action.value = provider_url
             action.description = f"Recover search by avoiding challenged provider: {query}"
             action.reasoning = (
@@ -602,29 +597,24 @@ def _reroute_challenged_search_navigation_response(
 
 
 def _challenged_search_hosts(urls: list[str]) -> set[str]:
-    from urllib.parse import urlsplit
-
     challenged: set[str] = set()
     for url in urls:
-        parsed = urlsplit(str(url or ""))
-        host = parsed.netloc.lower().removeprefix("www.")
-        path = parsed.path.lower()
-        if host == "google.com" and path.startswith(("/sorry", "/challenge", "/consent")):
-            challenged.add(host)
+        if is_search_challenge(url, ""):
+            provider_id = provider_id_for_url(url)
+            if provider_id:
+                challenged.add(provider_id)
     return challenged
 
 
 def _search_host(url: str) -> str:
-    from urllib.parse import urlsplit
-
-    return urlsplit(str(url or "")).netloc.lower().removeprefix("www.")
+    return provider_id_for_url(url)
 
 
 def _query_from_search_url(url: str) -> str:
-    from urllib.parse import parse_qs, quote_plus, urlsplit
+    from urllib.parse import parse_qs, urlsplit
 
     raw = parse_qs(urlsplit(str(url or "")).query).get("q", [""])[0]
-    return quote_plus(raw)
+    return raw
 
 
 def _is_safe_http_url(url: str) -> bool:

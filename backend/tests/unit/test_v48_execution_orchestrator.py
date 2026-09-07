@@ -978,7 +978,7 @@ def test_search_navigation_avoids_provider_that_already_challenged(monkeypatch):
 
     assert result.outcome_kind == "act"
     assert result.suggested_actions[0].action_type == "navigate"
-    assert result.suggested_actions[0].value == "https://duckduckgo.com/?q=best+AI+browser+automation+tools+2026"
+    assert result.suggested_actions[0].value == "https://www.bing.com/search?q=best+AI+browser+automation+tools+2026"
     assert "rerouted" in result.suggested_actions[0].reasoning.lower()
 
 
