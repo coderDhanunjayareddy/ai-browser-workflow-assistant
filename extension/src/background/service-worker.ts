@@ -1,4 +1,4 @@
-import { extractPageContext, mergeInteractiveElementLists } from '../content/extractor'
+import { extractPageContext, mergeInteractiveElementLists, resolveObservedSelectorAliases } from '../content/extractor'
 import { APP_VERSION, BACKEND_URL, BUILD_COMMIT, BUILD_ID } from '../config'
 import { extractPageContextV2 } from '../content/extractor_v2'
 import {
@@ -520,6 +520,11 @@ async function extractContextWithRetry(tabId?: number) {
         const v2Context = v2Results[0]?.result
         const v1Context = v1Results[0]?.result
         if (v2Context && v1Context) {
+          const aliases = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: resolveObservedSelectorAliases,
+            args: [[...v1Context.interactive_elements, ...v2Context.interactive_elements].map(item => item.selector)],
+          })
           logExtractionDiagnostics('EXTRACT_CONTEXT_V1', v1Context)
           logExtractionDiagnostics('EXTRACT_CONTEXT_V2', v2Context)
           const merged = {
@@ -530,6 +535,7 @@ async function extractContextWithRetry(tabId?: number) {
               v1Context.interactive_elements,
               v2Context.interactive_elements,
               150,
+              aliases[0]?.result || {},
             ),
             content_blocks: v1Context.content_blocks,
             images: v1Context.images,

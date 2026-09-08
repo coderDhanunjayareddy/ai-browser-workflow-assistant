@@ -945,6 +945,25 @@ class WorkflowOrchestrator:
                 },
             )
             return read_continuation
+        # A satisfied, explicitly requested postcondition is terminal even when
+        # the destination also exposes an optional account link.  Evaluate it
+        # before gate detection so a harmless "Log in" header control cannot
+        # turn a completed public workflow into a human-intervention loop.
+        observed_report = _deterministic_observed_report_response(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+        )
+        if observed_report is not None:
+            self._record_v3_event(
+                "observed_report.completed_without_planner",
+                {
+                    "page_url": str(getattr(page_context, "url", "") or ""),
+                    "claim": observed_report.report.claim if observed_report.report else "",
+                },
+            )
+            return observed_report
         human_intervention = _deterministic_human_intervention_response(
             session_id=self.session_id,
             task=task,
@@ -976,21 +995,6 @@ class WorkflowOrchestrator:
                 },
             )
             return interactive_state
-        observed_report = _deterministic_observed_report_response(
-            session_id=self.session_id,
-            task=task,
-            page_context=page_context,
-            prior_steps=planner_prior_steps,
-        )
-        if observed_report is not None:
-            self._record_v3_event(
-                "observed_report.completed_without_planner",
-                {
-                    "page_url": str(getattr(page_context, "url", "") or ""),
-                    "claim": observed_report.report.claim if observed_report.report else "",
-                },
-            )
-            return observed_report
         observed_control = _deterministic_observed_control_response(
             session_id=self.session_id,
             task=task,
@@ -2343,10 +2347,9 @@ def _authentication_gate_observed(page_context: Any) -> bool:
         *[str(item or "") for item in list(getattr(page_context, "headings", []) or [])[:10]],
     ]).casefold()
     visible = " ".join(str(getattr(page_context, "visible_text", "") or "").split()).casefold()
-    if re.search(r"\b(sign[ -]?in|log[ -]?in|authentication required|verify your identity)\b", prominent):
-        return True
-    if re.search(r"\b(scan (?:the )?qr|qr code|link a device)\b", visible):
-        return True
+    auth_control_observed = False
+    credential_field_observed = False
+    qr_control_observed = False
     for element in list(getattr(page_context, "interactive_elements", []) or []):
         data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
         if data.get("visible") is False:
@@ -2358,18 +2361,32 @@ def _authentication_gate_observed(page_context: Any) -> bool:
         input_type = str(data.get("input_type") or data.get("type") or "").casefold()
         if input_type == "password":
             return True
+        role = str(data.get("role") or "").casefold()
+        element_type = str(data.get("type") or "").casefold()
+        if (
+            role in {"textbox", "searchbox", "combobox"}
+            or element_type in {"input", "textarea"}
+        ) and re.search(r"\b(email|e-mail|username|user name|phone|account id|member id)\b", identity):
+            credential_field_observed = True
         if re.search(r"\b(sign[ -]?in|log[ -]?in|continue with|verify identity)\b", identity):
-            return True
-    return False
+            auth_control_observed = True
+        if re.search(r"\b(scan (?:the )?qr|qr code|link (?:a |this )?device|link with phone)\b", identity):
+            qr_control_observed = True
+    # A global navigation link offering optional login is not a blocking gate.
+    # Passwordless authentication remains detectable through the combination
+    # of a credential field and an authentication control.
+    qr_instruction_observed = bool(re.search(r"\b(scan (?:the )?qr|qr code|link a device)\b", visible))
+    required_auth_heading = bool(re.search(
+        r"\b(?:sign[ -]?in|log[ -]?in|authentication)\s+(?:is\s+)?required\b"
+        r"|\bverify your identity\b",
+        prominent,
+    ))
+    return (auth_control_observed and credential_field_observed) or (
+        qr_instruction_observed and qr_control_observed
+    ) or (required_auth_heading and auth_control_observed)
 
 
 def _mfa_gate_observed(page_context: Any) -> bool:
-    prominent = " ".join([
-        str(getattr(page_context, "title", "") or ""),
-        *[str(item or "") for item in list(getattr(page_context, "headings", []) or [])[:10]],
-    ]).casefold()
-    if re.search(r"\b(two[- ]factor|multi[- ]factor|verification code|one[- ]time (?:code|password)|enter (?:the )?otp)\b", prominent):
-        return True
     for element in list(getattr(page_context, "interactive_elements", []) or []):
         data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
         if data.get("visible") is False:
@@ -2384,9 +2401,9 @@ def _mfa_gate_observed(page_context: Any) -> bool:
 
 
 def _captcha_gate_observed(page_context: Any) -> bool:
-    visible = " ".join(str(getattr(page_context, "visible_text", "") or "").split()).casefold()
-    if re.search(r"\b(captcha|recaptcha|hcaptcha|verify you are human|security challenge)\b", visible):
-        return True
+    # Ordinary articles and user-controlled page prose may discuss CAPTCHA or
+    # even place those words in headings. Require an observed challenge control
+    # (typically an iframe or checkbox) before suspending the workflow.
     for element in list(getattr(page_context, "interactive_elements", []) or []):
         data = element.model_dump() if hasattr(element, "model_dump") else dict(element)
         if data.get("visible") is False:
@@ -2540,6 +2557,9 @@ def _deterministic_observed_control_response(
             "filled field",
             "clicked target",
             "cdp click dispatched",
+            "cdp fill dispatched",
+            "cdp select_option dispatched",
+            "cdp choose_date dispatched",
             "selected option",
             "selected visible option",
             "waited ",
@@ -2778,7 +2798,14 @@ def _deterministic_observed_control_response(
             selector_id = str(element.get("selector") or "").strip()
             if requested_field in identity and selector_id:
                 candidates[selector_id] = element
-        remaining = [item for selector_id, item in candidates.items() if selector_id not in completed_fills]
+        assignment_completed = any(
+            (step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") in candidates
+            and (step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") == "fill"
+            and (step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") == requested_value
+            and prior_step_succeeded(step)
+            for step in prior_steps
+        )
+        remaining = [] if assignment_completed else list(candidates.values())
         if len(remaining) == 1:
             control = remaining[0]
             selector = str(control.get("selector") or "").strip()
@@ -2807,6 +2834,101 @@ def _deterministic_observed_control_response(
                 ),
                 suggested_actions=[],
             )
+
+    # Domain-neutral selection assignments. Preserve their textual order and
+    # bind each requested value to one currently observed compatible control.
+    # This covers native and accessibility-exposed custom selectors without a
+    # site procedure or selector template.
+    ordered_selections: list[tuple[int, str, str, str]] = []
+    for match in re.finditer(
+        r"\bselect\s+[`\"']([^`\"']{1,200})[`\"']\s+(?:in|from)\s+(?:the\s+)?"
+        r"(?:exact\s+)?(?:enabled\s+)?(?:control|select|dropdown|combobox)\s+"
+        r"(?:named|labelled|labeled)\s+[`\"']?([^,.;\n`\"']{1,120})",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    ):
+        ordered_selections.append((match.start(), "select_option", match.group(2).strip(), match.group(1)))
+    for match in re.finditer(
+        r"\b(?:choose|select|set)\s+(?:the\s+)?date\s+[`\"']([^`\"']{1,80})[`\"']\s+"
+        r"(?:in|from|on)\s+(?:the\s+)?(?:exact\s+)?(?:enabled\s+)?"
+        r"(?:control|input|date\s+picker)\s+(?:named|labelled|labeled)\s+"
+        r"[`\"']?([^,.;\n`\"']{1,120})",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    ):
+        ordered_selections.append((match.start(), "choose_date", match.group(2).strip(), match.group(1)))
+    if not action_type and ordered_selections:
+        for _position, requested_action, requested_name, requested_value in sorted(ordered_selections):
+            requested_identity = " ".join(requested_name.split()).casefold()
+            candidates: dict[str, dict[str, Any]] = {}
+            for element in elements:
+                state = dict(element.get("state") or {})
+                if any(bool(state.get(key)) for key in ("disabled", "aria_disabled", "readonly", "hidden")):
+                    continue
+                element_type = str(element.get("type") or "").casefold()
+                input_type = str(element.get("input_type") or "").casefold()
+                role = str(element.get("role") or "").casefold()
+                compatible = (
+                    requested_action == "select_option"
+                    and (element_type in {"select", "option"} or role in {"combobox", "listbox"})
+                ) or (
+                    requested_action == "choose_date"
+                    and (input_type in {"date", "datetime-local"} or role in {"date", "datepicker"})
+                )
+                if not compatible:
+                    continue
+                identity = " ".join(
+                    str(element.get(key) or "")
+                    for key in ("aria_label", "accessibility_name", "placeholder", "name", "text", "selector")
+                ).casefold()
+                selector_id = str(element.get("selector") or "").strip()
+                if requested_identity in identity and selector_id:
+                    candidates[selector_id] = element
+            assignment_completed = any(
+                str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").casefold()
+                == requested_action
+                and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "")
+                in candidates
+                and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or "")
+                == requested_value
+                and prior_step_succeeded(step)
+                for step in prior_steps
+            )
+            if assignment_completed:
+                continue
+            if len(candidates) > 1:
+                return AnalyzeResponse(
+                    session_id=session_id,
+                    analysis=(
+                        f'Multiple enabled compatible controls match "{requested_name}". '
+                        "No selection was made because the target is ambiguous."
+                    ),
+                    outcome_kind="ask",
+                    clarification_question=(
+                        f'I found multiple controls matching "{requested_name}". Which surrounding section should I use?'
+                    ),
+                    suggested_actions=[],
+                )
+            if len(candidates) == 1:
+                control = next(iter(candidates.values()))
+                selector = str(control.get("selector") or "").strip()
+                action_type = requested_action
+                value = requested_value
+                description = (
+                    f'Select the explicitly requested value in the uniquely observed {requested_name} control'
+                    if requested_action == "select_option"
+                    else f'Choose the explicitly requested date in the uniquely observed {requested_name} control'
+                )
+                target_grounding = {
+                    "source": "dom_snapshot",
+                    "selector_id": selector,
+                    "accessibility_name": str(
+                        control.get("accessibility_name") or control.get("aria_label") or control.get("placeholder") or ""
+                    ).strip() or None,
+                    "role": str(control.get("role") or control.get("type") or "").strip() or None,
+                    "semantic_kind": "explicitly_named_selection",
+                }
+                break
 
     # Domain-neutral fast path for an explicitly named browser control. This
     # must not depend on a remote planner: the user supplied the identity and

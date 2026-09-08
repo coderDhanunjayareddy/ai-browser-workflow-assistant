@@ -1,0 +1,616 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_1788805239745",
+  "results": [
+    {
+      "task_id": "gf-d1314-public-search-06",
+      "status": "timeout",
+      "duration_s": 195.0,
+      "phase": "completed",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 c86ccc8-dirty \u00b7 stabilization-20260907T174929Z \u00b7 pid 11340\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for you\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nThe current objective is blocked by an observed authentication gate. Completed work is checkpointed and no browser action was dispatched.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open https://www.wikipedia.org/. In the visible search field enter 'Browser automation', activate the exact enabled Search control once\nWikipedia\nhttps://www.wikipedia.org/\nVerification: verified\nTime: 3.5s\nNavigating to: https://www.wikipedia.org/\n\u26a1\nStep 2\nFILL\nFill the uniquely observed search field with the explicitly supplied value\nWikipedia\nhttps://www.wikipedia.org/\nVerification: verified\nTime: 291ms\nCDP fill dispatched via stable_selector grounding.\n\u26a1\nStep 3\nCLICK\nActivate the grounded exact control: Search\nHeadless browser - Wikipedia\nhttps://en.wikipedia.org/wiki/Headless_browser\nVerification: verified\nTime: 253ms\nCDP click dispatched via stable_selector grounding.\n\nHUMAN STEP REQUIRED\n\nAuthentication is required before this objective can continue.\n\nComplete the visible sign-in step directly in this browser tab, then ask the assistant to verify and resume.\n\nEnter passwords, codes, or other secrets only on the website. The assistant will not request or store them.\n\nI completed it \u2014 verify and resume",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-public-search-06.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-public-search-06-target.png",
+      "target_controls": [
+        {
+          "tag": "input",
+          "role": "button",
+          "aria_label": "Main menu",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Move Main menu to sidebar",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Hide Main menu",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "Search Wikipedia",
+          "placeholder": "Search Wikipedia",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "button",
+          "aria_label": "Appearance",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "button",
+          "aria_label": "Personal tools",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Move Contents to sidebar",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Hide Contents",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "button",
+          "aria_label": "Toggle the table of contents",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "button",
+          "aria_label": "8 languages",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "button",
+          "aria_label": "Change language variant",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "button",
+          "aria_label": "Tools",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Move Tools to sidebar",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Hide Tools",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Move Appearance to sidebar",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Hide Appearance",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "Search Wikipedia",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "button",
+          "aria_label": "Toggle the table of contents",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "canonical_adapter_traces": [
+        {
+          "action_id": "observed_control_1fc78fb23b0b",
+          "action_type": "fill",
+          "canonical_contract": true,
+          "cdp_duration_ms": 244,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 5,
+          "cdp_target_count": 0,
+          "dispatch_id": "observed_control_1fc78fb23b0b:1788805263997",
+          "dispatch_path": "service_worker>policy>canonical_trusted_cdp",
+          "execution_adapter": "cdp",
+          "expected_effect": "value_change",
+          "frame_id": "top",
+          "idempotency_key": "65b3b6d7-2b87-44e8-916e-d122b9df5d7b:1023736009:intent_31004c39c0d64952b6e4c4d479b5ca4b",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": null,
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-07T18:21:04.319Z",
+          "verified": true
+        },
+        {
+          "action_id": "observed_control_685720b2da90",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 215,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 5,
+          "cdp_target_count": 0,
+          "dispatch_id": "observed_control_685720b2da90:1788805267846",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "65b3b6d7-2b87-44e8-916e-d122b9df5d7b:1023736009:intent_bc8ab50575c34fb0b48be5198f4a7f9b",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": "Search",
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-07T18:21:08.123Z",
+          "verified": true
+        }
+      ],
+      "durable_executions": [
+        {
+          "key": "65b3b6d7-2b87-44e8-916e-d122b9df5d7b:1023736009:intent_31004c39c0d64952b6e4c4d479b5ca4b",
+          "actionId": "observed_control_1fc78fb23b0b",
+          "actionType": "fill",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": true,
+          "result": {
+            "success": true,
+            "message": "CDP fill dispatched via stable_selector grounding.",
+            "dispatch_id": "observed_control_1fc78fb23b0b:1788805263997",
+            "dispatch_path": "service_worker>policy>canonical_trusted_cdp",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "65b3b6d7-2b87-44e8-916e-d122b9df5d7b:1023736009:intent_31004c39c0d64952b6e4c4d479b5ca4b",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "input|searchInput|search",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.wikipedia.org/|Wikipedia|1992|385|0|0|button|js-lang-list-button|Read Wikipedia in your language=false||{\"exists\":true,\"selector\":\"#searchInput\",\"tagName\":\"input\",\"ariaExpanded\":null,\"visible\":true,\"inputType\":\"search\",\"checked\":null,\"filled\":true,\"value\":\"Browser automation\"}",
+                "expandedStates": [
+                  "button|js-lang-list-button|Read Wikipedia in your language=false"
+                ],
+                "interactiveCount": 385,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 19.200000762939453,
+                "target": {
+                  "ariaExpanded": null,
+                  "checked": null,
+                  "exists": true,
+                  "filled": true,
+                  "inputType": "search",
+                  "selector": "#searchInput",
+                  "tagName": "input",
+                  "value": "Browser automation",
+                  "visible": true
+                },
+                "title": "Wikipedia",
+                "url": "https://www.wikipedia.org/",
+                "visibleTextLength": 1992
+              },
+              "before_state": {
+                "activeElementSignature": "input|searchInput|search",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.wikipedia.org/|Wikipedia|1992|385|0|0|button|js-lang-list-button|Read Wikipedia in your language=false||{\"exists\":true,\"selector\":\"#searchInput\",\"tagName\":\"input\",\"ariaExpanded\":null,\"visible\":true,\"inputType\":\"search\",\"checked\":null,\"filled\":false,\"value\":\"\"}",
+                "expandedStates": [
+                  "button|js-lang-list-button|Read Wikipedia in your language=false"
+                ],
+                "interactiveCount": 385,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "checked": null,
+                  "exists": true,
+                  "filled": false,
+                  "inputType": "search",
+                  "selector": "#searchInput",
+                  "tagName": "input",
+                  "value": "",
+                  "visible": true
+                },
+                "title": "Wikipedia",
+                "url": "https://www.wikipedia.org/",
+                "visibleTextLength": 1992
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "fill",
+                "cdp_navigation_signal_count": 5,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 291,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Fill the uniquely observed search field with the explicitly supplied value",
+                "expected_effect_kind": "value_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": false,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": true,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": true,
+                "target_expanded_changed": false,
+                "target_filled_after": true,
+                "target_selected_changed": false,
+                "target_value_changed": true,
+                "url_changed": false,
+                "visible_text_length_changed": false,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "65b3b6d7-2b87-44e8-916e-d122b9df5d7b:1023736009:intent_bc8ab50575c34fb0b48be5198f4a7f9b",
+          "actionId": "observed_control_685720b2da90",
+          "actionType": "click",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "CDP click dispatched via stable_selector grounding.",
+            "dispatch_id": "observed_control_685720b2da90:1788805267846",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "65b3b6d7-2b87-44e8-916e-d122b9df5d7b:1023736009:intent_bc8ab50575c34fb0b48be5198f4a7f9b",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "button|Search",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.wikipedia.org/|Wikipedia|2056|386|0|0|button|js-lang-list-button|Read Wikipedia in your language=false||{\"exists\":true,\"selector\":\"#search-form > fieldset > button\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [
+                  "button|js-lang-list-button|Read Wikipedia in your language=false"
+                ],
+                "interactiveCount": 386,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 19.200000762939453,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "#search-form > fieldset > button",
+                  "tagName": "button",
+                  "visible": true
+                },
+                "title": "Wikipedia",
+                "url": "https://www.wikipedia.org/",
+                "visibleTextLength": 2056
+              },
+              "before_state": {
+                "activeElementSignature": "input|searchInput|search",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.wikipedia.org/|Wikipedia|2056|386|0|0|button|js-lang-list-button|Read Wikipedia in your language=false||{\"exists\":true,\"selector\":\"#search-form > fieldset > button\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [
+                  "button|js-lang-list-button|Read Wikipedia in your language=false"
+                ],
+                "interactiveCount": 386,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 19.200000762939453,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "#search-form > fieldset > button",
+                  "tagName": "button",
+                  "visible": true
+                },
+                "title": "Wikipedia",
+                "url": "https://www.wikipedia.org/",
+                "visibleTextLength": 2056
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 5,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": false,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 253,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Activate the grounded exact control: Search",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": true,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": false,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "65b3b6d7-2b87-44e8-916e-d122b9df5d7b:1023736009:intent_d518ceb65d79416abd3b0fc2600bb29a",
+          "actionId": "destination-62926af26bb437d7",
+          "actionType": "navigate",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Navigating to: https://www.wikipedia.org/",
+            "dispatch_id": "destination-62926af26bb437d7:1788805257663",
+            "dispatch_path": "service_worker>policy>chrome.tabs.update",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "65b3b6d7-2b87-44e8-916e-d122b9df5d7b:1023736009:intent_d518ceb65d79416abd3b0fc2600bb29a",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "input|searchInput|search",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.wikipedia.org/|Wikipedia|1992|385|0|0|button|js-lang-list-button|Read Wikipedia in your language=false||",
+                "expandedStates": [
+                  "button|js-lang-list-button|Read Wikipedia in your language=false"
+                ],
+                "interactiveCount": 385,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "Wikipedia",
+                "url": "https://www.wikipedia.org/",
+                "visibleTextLength": 1992
+              },
+              "before_state": {
+                "activeElementSignature": null,
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "chrome://newtab/|New Tab",
+                "expandedStates": [],
+                "interactiveCount": 0,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "New Tab",
+                "url": "chrome://newtab/",
+                "visibleTextLength": 0
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "navigate",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 3480,
+                "execution_success": true,
+                "expanded_state_changed": true,
+                "expected_effect_description": "Open the resolved destination for Open https://www.wikipedia.org/. In the visible search field enter 'Browser automation', activate the exact enabled Search control once",
+                "expected_effect_kind": "url_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": null,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": true,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-public-search-06-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "https://en.wikipedia.org/wiki/Headless_browser",
+          "title": "Headless browser - Wikipedia",
+          "body_text": "es\nHeadless browser\n8 languages\nArticle\nTalk\nRead\nEdit\nView history\nTools\nAppearance hide\nText\nSmall\nStandard\nLarge\nWidth\nStandard\nWide\nColor\nAutomatic\nLight\nDark\nFrom Wikipedia, the free encyclopedia\n(Redirected from Browser automation)\nNot to be confused with Text-based web browser.\n\nA headless browser is a web browser without a graphical user interface.\n\nHeadless browsers provide automated control of a web page in an environment similar to popular web browsers, but they are executed via a command-line interface or using network communication. They are particularly useful for testing web pages as they are able to render and understand HTML the same way a browser would, including styling elements such as page layout, color, font selection and execution of JavaScript and Ajax which are usually not available when using other testing methods.[1]\n\nSince version 59 of Google Chrome[2][3] and version 56[4] of Firefox,[5] there is native support for remote control of the browser. This made earlier efforts obsolete, notably PhantomJS.[6]\n\nUse casesedit\n\nThe main use cases for headless browsers are:\n\nTest automation in modern web applications (web testing)\nTaking screenshots of web pages.\nRunning automated tests for JavaScript libraries.\nAutomating interaction of web pages.\nOther usesedit\n\nHeadless browsers are also useful for web scraping. Google stated in 2009 that using a headless browser could help their search engine index content from websites that use Ajax.[7]\n\nHeadless browsers have also been misused in various ways:\n\nPerform DDoS attacks on web sites.[8]\nIncrease advertisement impressions.[9]\nAutomate web sites in unintended ways[10] e.g. for credential stuffing.[11]\n\nHowever, a study of browser traffic in 2018 found no preference by malicious actors for headless browsers.[3] There is no indication that headless browsers are used more frequently than non-headless browsers for malicious purposes, like DDoS attacks, SQL injections or cross-site scripting attacks.\n\nUsageedit\n\nAs several major browsers natively support headless mode through APIs, some software exists to perform browser automation through a unified interface. These include:\n\nSelenium WebDriver \u2013 a W3C compliant implementation of WebDriver[12]\nPlaywright \u2013 a Node.js library to automate Chromium, Firefox and WebKit[13]\nPuppeteer \u2013 a Node.js library to automate Chrome or Firefox[14][15]\nTest automationedit\n\nSome test automation software and frameworks include headless browsers as part of their testing apparatus.[3]\n\nCapybara uses headless browsing, either via WebKit or Headless Chrome to mimic user behavior in its testing protocols.[16]\nJasmine uses Selenium by default, but can use WebKit or Headless Chrome, to run browser tests.[17]\nCypress, a frontend testing framework\nQF-Test, a software tool for automated testing of programs via the graphical user interface where a headless browser can also be used for testing.\nAlternativesedit\n\nAnother approach is to use software that provides browser APIs. For example, Deno provides browser APIs as part of its design. For Node.js, jsdom[18] is the most complete provider. While most are able to support common browser features (HTML parsing, cookies, XHR, some JavaScript, etc.), they do not render the DOM and have limited support for DOM events. They usually perform faster than full browsers, but are unable to correctly interpret many popular websites.[19][20][21]\n\nAnother is HtmlUnit, a headless browser written in Java. HtmlUnit uses the Rhino engine to provide JavaScript and Ajax support as well as partial rendering capability.[22][23]\n\nList of headless browsersedit\n\nThese are various software that provide headless browser APIs.\n\nDotNetBrowser is a proprietary .NET Chromium-based library that provides the off-screen rendering mode and can be used without embedding or displaying windows.[24][25]\nLightpanda is an open-source headless browser written in Zig. Unlike Chromium-based headless browsers, it was developed for headless operation and supports the Chrome DevTools Protocol (CDP), DOM access, and JavaScript execution, but not graphical rendering.[26][27]\nSimpleBrowser is a headless web browser written in C# supporting .NET Standard 2.0[28]\nSplash is a headless web browser written in Python using the WebKit layout engine via Qt. It has an HTTP API, Lua scripting support and a built-in IPython (Jupyter)-based IDE. Development started at ScrapingHub in 2013; it is partially funded by DARPA.[29][30]\nZombie.js is a simulated browser environment for Node.js.[31]\n\nAn earlier effort (2008) was envjs from John Resig, which was a simulated browser environment written in JavaScript for the Rhino engine.[32]\n\nSee alsoedit\nHeadless computer\nReferencesedit\n \"What is a headless browser?\". arhg.net. 7 October 2009.\n \"Getting Started with Headless Chrome\". developers.google.com. 27 April 2017.\nJump up to:\n Bekerman, Dima (2018-11-28). \"Headless Chrome: DevOps Love It, So Do Hackers, Here's Why | Imperva\". Blog. Retrieved 2021-02-22.\n \"Firefox 56 release notes\". developer.mozilla.org. 26 February 2023.\n \"Headless mode - browser support\". developer.mozilla.org. Archived from the original on 2018-06-03. Retrieved 2017-08-31.\n \"Quick Start\". phantomjs.org.\n Mueller, John (2009-10-07). \"Official Google Webmaster Central Blog: A proposal for making AJAX crawlable\". Official Google Webmaster Central Blog.\n Rawlings, Matt (2013-11-20). \"Headless Browser Botnet Used in 150 hour DDoS attack\". Business 2 Community.\n Mello Jr., John P. (2014-03-25). \"Headless Web Traffic Threatens Internet Economy\". ecommercetimes.com.\n Raywood, Dan (2014-04-01). \"Headless browsers: legitimate software that enables attack\". ITProPortal.\n Mueller, Neal. \"Credential stuffing\". owasp.org.\n Sheth, Himanshu (2020-11-17). \"Selenium 4 Is Now W3C Compliant: All You Need To Know\".\n \"GitHub - Playwright\". GitHub. Retrieved 2021-04-11.\n \"Github - Puppeteer\". GitHub. Retrieved 2021-04-11.\n \"WebDriver BiDi support | Puppeteer\". pptr.dev. Retrieved 2025-10-24.\n Silva, Francisco (2019-05-29). \"From capybara-webkit to Headless Chrome and ChromeDriver\". Blog | Imaginary Cloud. Retrieved 2021-02-22.\n Bintz, John. \"jasmine-headless-webkit -- The fastest way to run your Jasmine specs!\". johnbintz.github.io. Retrieved 2021-02-22.\n \"JSDOM at GitHub - Pretending to be a visual browser\". GitHub. Retrieved 2021-04-18.\n \"assaf/zombie\". GitHub.\n \"\u30d8\u30eb\u30da\u30b9\u304c\u53e3\u3084\u76ee\u304b\u3089\u3046\u3064\u308b\uff1f\u611f\u67d3\u3057\u305f\u6642\u306e\u75c7\u72b6\u3068\u75c5\u9662\u306e\u6cbb\u7642\u65b9\u6cd5\u3068\u306f\". www.envjs.com. Archived from the original on 2015-02-23. Retrieved 2015-03-13.\n \"JavaScriptMVC - EnvJS\". javascriptmvc.com. Archived from the original on 2015-05-23. Retrieved 2015-03-13.\n Mike Bowler. \"HtmlUnit \u2013 Welcome to HtmlUnit\". sourceforge.net.\n \"Platform (Vaadin 7.3.4 API)\". vaadin.com. 6 November 2014.\n DotNetBrowser Examples, TeamDev, 2021-03-12, retrieved 2021-03-12\n \"DotNetBrowser\". TeamDev. 2021-05-05.\n \"Lightpanda: the headless browser designed for AI and automation\". GitHub. lightpanda-io. Retrieved 2026-02-12.\n Krukowski, Ilya (2026-04-23). \"Lightpanda: The Headless Browser Built for AI Agents and Scalable Automation\". ScrapingBee. Retrieved 2026-05-23.\n SimpleBrowserDotNet/SimpleBrowser, SimpleBrowserDotNet, 2021-02-10, retrieved 2021-02-22\n \"scrapinghub/splash\". GitHub. 20 December 2021.\n \"DARPA - Open Catalog\". Archived from the original on 2015-05-28. Retrieved 2015-05-28.\n \"Zombie\". labnotes.org.\n Resig, John (2008-10-12). \"env-js: A pure-JavaScript browser environment\" \u2013 via GitHub.\nCategory: Web browsers\nThis page was last edited on 6 September 2026, at 13:46\u00a0(UTC). Page was rendered with Parsoid.\nText is available under the Creative Commons Attribution-ShareAlike 4.0 License; additional terms may apply. By using this site, you agree to the Terms of Use and Privacy Policy. Wikipedia\u00ae is a registered trademark of the Wikimedia Foundation, Inc., a non-profit organization.\nPrivacy policy\nAbout Wikipedia\nDisclaimers\nContact Wikipedia\nLegal & safety contacts\nCode of Conduct\nDevelopers\nStatistics\nCookie statement\nMobile view",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-public-search-06-page-2.png"
+        }
+      ]
+    }
+  ]
+}

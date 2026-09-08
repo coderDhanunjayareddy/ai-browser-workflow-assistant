@@ -48,8 +48,12 @@ class SchemaValidator:
                         SchemaComparison("column", object_name, "MISSING", SchemaSeverity.ERROR, "ORM column is missing from database")
                     )
                     continue
-                orm_type = _type_name(orm_column)
-                db_type = str(db_column["type"]).lower()
+                orm_type = _type_name(orm_column, self.engine.dialect)
+                # ``str(TIMESTAMP(timezone=True))`` discards PostgreSQL's
+                # timezone flag and produces the misleading value
+                # ``TIMESTAMP``. Compile both sides with the same dialect so
+                # timestamp-with-zone drift is measured rather than invented.
+                db_type = _compiled_type_name(db_column["type"], self.engine.dialect)
                 if not _types_compatible(orm_type, db_type):
                     comparisons.append(
                         SchemaComparison(
@@ -159,8 +163,12 @@ class SchemaValidator:
         return current, head
 
 
-def _type_name(column: Column) -> str:
-    return column.type.compile(dialect=default_engine.dialect).lower()
+def _type_name(column: Column, dialect=None) -> str:
+    return _compiled_type_name(column.type, dialect or default_engine.dialect)
+
+
+def _compiled_type_name(column_type, dialect) -> str:
+    return str(column_type.compile(dialect=dialect)).lower()
 
 
 def _types_compatible(orm_type: str, db_type: str) -> bool:

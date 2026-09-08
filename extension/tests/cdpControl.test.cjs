@@ -33,6 +33,8 @@ const {
   chooseExactAccessibilityBackendNode,
   countFrames,
   keyboardDispatchParameters,
+  nativeDateAssignmentExpression,
+  textKeyDispatchParameters,
   runtimeGroundingExpression,
   shouldAttemptCdpFallback,
   visionHitCompatible,
@@ -92,6 +94,27 @@ test('special keys include the CDP code and virtual-key fields required by Chrom
     text: '\r',
     unmodifiedText: '\r',
   })
+})
+
+test('text keys include trusted key identity for native type-to-select controls', () => {
+  assert.deepEqual(textKeyDispatchParameters('H'), {
+    key: 'H',
+    code: 'KeyH',
+    windowsVirtualKeyCode: 72,
+    nativeVirtualKeyCode: 72,
+    modifiers: 0,
+    text: 'H',
+    unmodifiedText: 'H',
+  })
+})
+
+test('native date assignment is selector-unique and emits observable input and change events', () => {
+  const expression = nativeDateAssignmentExpression('#due-date', '2026-09-30')
+  assert.match(expression, /nodes\.length !== 1/)
+  assert.match(expression, /instanceof HTMLInputElement/)
+  assert.match(expression, /input\.dispatchEvent\(new Event\('input'/)
+  assert.match(expression, /input\.dispatchEvent\(new Event\('change'/)
+  assert.match(expression, /2026-09-30/)
 })
 
 test('frame inventory recursively counts nested frames', () => {

@@ -1,11 +1,20 @@
 from __future__ import annotations
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import DateTime, create_engine, text
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.pool import StaticPool
 
 import app.mission_result.persistence  # noqa: F401
 from app.core.database import Base
 from app.schema_validation import SchemaValidator
+from app.schema_validation.validator import _compiled_type_name
+
+
+def test_postgresql_timestamp_compilation_preserves_timezone_identity():
+    dialect = postgresql.dialect()
+
+    assert _compiled_type_name(DateTime(timezone=True), dialect) == "timestamp with time zone"
+    assert _compiled_type_name(DateTime(timezone=False), dialect) == "timestamp without time zone"
 
 
 def test_schema_validator_detects_type_mismatch():

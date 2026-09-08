@@ -64,6 +64,10 @@ def test_whatsapp_login_page_pauses_without_selecting_login_controls() -> None:
                 text="Stay logged in on this browser",
                 visible=True,
             ),
+            InteractiveElement(
+                type="button", selector="#phone-link", text="Link with phone number",
+                visible=True, role="button",
+            ),
         ],
     )
     page.visible_text = "Scan to log in Scan the QR code Stay logged in on this browser"
@@ -109,6 +113,26 @@ def test_generic_authentication_gate_is_not_bound_to_a_named_provider() -> None:
     assert not any(name in str(response.human_intervention).casefold() for name in ("whatsapp", "gmail", "linkedin"))
 
 
+def test_required_auth_heading_and_human_control_form_a_structural_gate() -> None:
+    page = _page(
+        "https://workspace.example.test/gate",
+        [InteractiveElement(
+            type="button", role="button", selector="#human-auth", text="Complete sign in", visible=True,
+            accessibility_name="Complete sign in",
+        )],
+    )
+    page.title = "Workspace authentication"
+    page.headings = ["Sign in required"]
+    page.visible_text = "Human authentication is required. Complete sign in."
+
+    response = _deterministic_human_intervention_response(
+        session_id="structural-auth", task="Continue to the workspace", page_context=page,
+    )
+
+    assert response is not None
+    assert response.human_intervention["kind"] == "authentication"
+
+
 def test_login_words_in_page_prose_do_not_create_a_false_intervention() -> None:
     page = _page(
         "https://docs.example.test/article",
@@ -120,6 +144,51 @@ def test_login_words_in_page_prose_do_not_create_a_false_intervention() -> None:
     assert _deterministic_human_intervention_response(
         session_id="generic-read", task="Summarize this article", page_context=page,
     ) is None
+
+
+def test_optional_login_link_on_public_content_is_not_a_blocking_gate() -> None:
+    page = _page(
+        "https://knowledge.example.test/article",
+        [
+            InteractiveElement(
+                type="a", role="link", selector="#login", text="Log in", visible=True,
+                accessibility_name="Log in",
+            ),
+            InteractiveElement(
+                type="button", role="button", selector="#contents", text="Contents", visible=True,
+            ),
+        ],
+    )
+    page.title = "Public automation article"
+    page.headings = ["Browser automation"]
+    page.visible_text = "Browser automation Contents Log in"
+
+    assert _deterministic_human_intervention_response(
+        session_id="public-optional-login", task="Verify the visible article title", page_context=page,
+    ) is None
+
+
+def test_passwordless_login_form_is_still_a_blocking_gate() -> None:
+    page = _page(
+        "https://accounts.example.test/access",
+        [
+            InteractiveElement(
+                type="input", role="textbox", selector="#email", text="", visible=True,
+                accessibility_name="Email address",
+            ),
+            InteractiveElement(
+                type="button", role="button", selector="#continue", text="Continue with email", visible=True,
+            ),
+        ],
+    )
+    page.title = "Member access"
+
+    response = _deterministic_human_intervention_response(
+        session_id="passwordless-login", task="Continue to the workspace", page_context=page,
+    )
+
+    assert response is not None
+    assert response.human_intervention["kind"] == "authentication"
 
 
 def test_login_prose_does_not_abort_a_grounded_destination_action() -> None:
@@ -178,6 +247,20 @@ def test_mfa_and_captcha_are_classified_before_general_authentication() -> None:
     assert captcha_response.human_intervention["kind"] == "captcha"
 
 
+def test_captcha_words_in_public_prose_do_not_create_a_false_gate() -> None:
+    page = _page(
+        "https://knowledge.example.test/security-article",
+        [InteractiveElement(type="a", role="link", selector="#next", text="Next article", visible=True)],
+    )
+    page.title = "CAPTCHA - encyclopedia article"
+    page.headings = ["CAPTCHA", "Verify you are human interfaces"]
+    page.visible_text = "This article explains CAPTCHA, reCAPTCHA, and how users verify they are human."
+
+    assert _deterministic_human_intervention_response(
+        session_id="captcha-prose", task="Summarize the public article", page_context=page,
+    ) is None
+
+
 def test_exact_visible_marker_report_is_generic_and_evidence_backed() -> None:
     page = _page("https://workspace.example.test/ready", [])
     page.title = "Workspace ready"
@@ -198,6 +281,101 @@ def test_exact_visible_marker_report_is_generic_and_evidence_backed() -> None:
     assert response.backend_authoritative_report is True
     assert response.suggested_actions == []
     assert "fixture_state=authenticated" in response.report.answer
+
+
+def test_named_native_selection_and_date_follow_task_order() -> None:
+    task = (
+        "Select 'High' in the exact enabled control named Priority. "
+        "Choose date '2026-09-30' in the exact enabled control named Due date."
+    )
+    page = _page(
+        "https://forms.example.test/preview",
+        [
+            InteractiveElement(
+                type="select", role="combobox", selector="#priority", text="", visible=True,
+                accessibility_name="Priority",
+            ),
+            InteractiveElement(
+                type="input", input_type="date", selector="#due", text="", visible=True,
+                accessibility_name="Due date",
+            ),
+        ],
+    )
+
+    first = _deterministic_observed_control_response(
+        session_id="generic-selections", task=task, page_context=page, prior_steps=[],
+    )
+    assert first is not None
+    assert first.suggested_actions[0].action_type == "select_option"
+    assert first.suggested_actions[0].target_selector == "#priority"
+    assert first.suggested_actions[0].value == "High"
+
+    second = _deterministic_observed_control_response(
+        session_id="generic-selections",
+        task=task,
+        page_context=page,
+        prior_steps=[PriorStep(
+            action_type="select_option", description="priority", target_selector="#priority",
+            value="High", execution_result="CDP select_option dispatched via stable_selector grounding.",
+        )],
+    )
+    assert second is not None
+    assert second.suggested_actions[0].action_type == "choose_date"
+    assert second.suggested_actions[0].target_selector == "#due"
+    assert second.suggested_actions[0].value == "2026-09-30"
+
+
+def test_ambiguous_named_selection_fails_closed() -> None:
+    page = _page(
+        "https://forms.example.test/preview",
+        [
+            InteractiveElement(type="select", role="combobox", selector="#a", text="", visible=True, accessibility_name="Priority"),
+            InteractiveElement(type="select", role="combobox", selector="#b", text="", visible=True, accessibility_name="Priority"),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="ambiguous-selection",
+        task="Select 'High' in the exact enabled control named Priority.",
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "ask"
+    assert response.suggested_actions == []
+
+
+def test_verified_cdp_fill_is_preserved_when_later_selection_needs_recovery() -> None:
+    page = _page(
+        "https://forms.example.test/preview",
+        [
+            InteractiveElement(type="input", role="textbox", selector="#title", text="", visible=True, accessibility_name="Project title"),
+            InteractiveElement(type="select", role="combobox", selector="#priority", text="", visible=True, accessibility_name="Priority"),
+        ],
+    )
+    task = (
+        "In the visible Project title field enter 'Cross-domain audit'. "
+        "Select 'High' in the exact enabled control named Priority."
+    )
+    prior = [
+        PriorStep(
+            action_type="fill", description="title", target_selector="#title", value="Cross-domain audit",
+            execution_result="CDP fill dispatched via stable_selector grounding.",
+        ),
+        PriorStep(
+            action_type="select_option", description="priority", target_selector="#priority", value="High",
+            execution_result="CDP select_option dispatched via stable_selector grounding. Canonical effect verification reported no_effect.",
+        ),
+    ]
+
+    response = _deterministic_observed_control_response(
+        session_id="preserve-fill", task=task, page_context=page, prior_steps=prior,
+    )
+
+    assert response is not None
+    assert response.suggested_actions[0].action_type == "select_option"
+    assert response.suggested_actions[0].target_selector == "#priority"
 
 
 def test_visible_marker_report_does_not_claim_an_unobserved_marker() -> None:

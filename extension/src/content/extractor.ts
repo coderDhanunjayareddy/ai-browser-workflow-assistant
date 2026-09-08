@@ -1,14 +1,34 @@
 import type { PageContext, InteractiveElement, ContentBlock } from '../types'
 
+// Runs in the observed frame. Only unique selectors resolving to the same live
+// node are aliases; equal labels or overlapping rectangles are insufficient.
+export function resolveObservedSelectorAliases(selectors: string[]): Record<string, string> {
+  const aliases: Record<string, string> = {}
+  const firstSelector = new Map<Element, string>()
+  for (const selector of selectors) {
+    if (!selector) continue
+    try {
+      const matches = document.querySelectorAll(selector)
+      if (matches.length !== 1) continue
+      const node = matches[0]
+      const canonical = firstSelector.get(node)
+      if (canonical) aliases[selector] = canonical
+      else firstSelector.set(node, selector)
+    } catch { /* Invalid or stale selectors cannot establish node identity. */ }
+  }
+  return aliases
+}
+
 export function mergeInteractiveElementLists(
   ranked: InteractiveElement[],
   enriched: InteractiveElement[],
   limit = 150,
+  selectorAliases: Record<string, string> = {},
 ): InteractiveElement[] {
   const merged: InteractiveElement[] = []
   const indexes = new Map<string, number>()
   const keyFor = (element: InteractiveElement) => (
-    element.selector || [element.type, element.text, element.href ?? ''].join('|')
+    selectorAliases[element.selector] || element.selector || [element.type, element.text, element.href ?? ''].join('|')
   )
 
   for (const element of [...ranked, ...enriched]) {

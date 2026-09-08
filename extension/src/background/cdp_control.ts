@@ -80,6 +80,40 @@ export function keyboardDispatchParameters(key: string, modifiers = 0): Record<s
   }
 }
 
+export function textKeyDispatchParameters(character: string): Record<string, unknown> {
+  const value = String(character || '').slice(0, 1)
+  const upper = value.toUpperCase()
+  const virtualKeyCode = upper ? upper.charCodeAt(0) : 0
+  return {
+    key: value,
+    code: /^[a-z]$/i.test(value) ? `Key${upper}` : /^[0-9]$/.test(value) ? `Digit${value}` : value === ' ' ? 'Space' : '',
+    windowsVirtualKeyCode: virtualKeyCode,
+    nativeVirtualKeyCode: virtualKeyCode,
+    modifiers: 0,
+    text: value,
+    unmodifiedText: value,
+  }
+}
+
+export function nativeDateAssignmentExpression(selector: string, value: string): string {
+  return `(() => {
+    let nodes;
+    try { nodes = Array.from(document.querySelectorAll(${JSON.stringify(selector)})); }
+    catch { return { ok: false, reason: 'invalid_selector' }; }
+    if (nodes.length !== 1) return { ok: false, reason: nodes.length ? 'ambiguous_selector' : 'selector_not_found' };
+    const input = nodes[0];
+    if (!(input instanceof HTMLInputElement)) return { ok: false, reason: 'not_input' };
+    const inputType = String(input.type || '').toLowerCase();
+    if (inputType !== 'date' && inputType !== 'datetime-local') return { ok: false, reason: 'not_date_input' };
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    if (!descriptor || typeof descriptor.set !== 'function') return { ok: false, reason: 'value_setter_unavailable' };
+    descriptor.set.call(input, ${JSON.stringify(value)});
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return { ok: input.value === ${JSON.stringify(value)}, value: input.value };
+  })()`
+}
+
 export function shouldAttemptCdpFallback(
   action: ExecutableAction,
   result: { success: boolean; verification?: { verified?: boolean; reason?: string } },
@@ -535,19 +569,41 @@ export class CdpController {
       await mouse('mouseWheel', { deltaX: 0, deltaY })
       return
     }
+    if (action.action_type === 'choose_date') {
+      const assigned = await send(target, 'Runtime.evaluate', {
+        expression: nativeDateAssignmentExpression(action.target_selector || '', String(action.value || '')),
+        returnByValue: true,
+        awaitPromise: false,
+      })
+      if (assigned?.result?.value?.ok !== true) {
+        throw new Error(`native_date_assignment_${String(assigned?.result?.value?.reason || 'failed')}`)
+      }
+      return
+    }
     await mouse('mouseMoved')
     await mouse('mousePressed', { button: 'left', clickCount: 1 })
     await mouse('mouseReleased', { button: 'left', clickCount: 1 })
-    if (['fill', 'choose_date', 'select_option'].includes(action.action_type)) {
+    if (action.action_type === 'select_option') {
+      // Native selects do not accept Input.insertText. Use Chromium's trusted
+      // type-to-select keyboard path and commit the highlighted option once.
+      for (const character of String(action.value || '')) {
+        const key = textKeyDispatchParameters(character)
+        await send(target, 'Input.dispatchKeyEvent', { type: 'keyDown', ...key })
+        await send(target, 'Input.dispatchKeyEvent', {
+          type: 'keyUp', ...key, text: '', unmodifiedText: '',
+        })
+      }
+      const enter = keyboardDispatchParameters('Enter')
+      await send(target, 'Input.dispatchKeyEvent', { type: 'keyDown', ...enter })
+      await send(target, 'Input.dispatchKeyEvent', { type: 'keyUp', ...enter, text: '', unmodifiedText: '' })
+      return
+    }
+    if (action.action_type === 'fill') {
       await send(target, 'Input.dispatchKeyEvent', { type: 'keyDown', key: 'Control', code: 'ControlLeft', modifiers: 2 })
       await send(target, 'Input.dispatchKeyEvent', { type: 'keyDown', key: 'a', code: 'KeyA', modifiers: 2 })
       await send(target, 'Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', modifiers: 2 })
       await send(target, 'Input.dispatchKeyEvent', { type: 'keyUp', key: 'Control', code: 'ControlLeft' })
       await send(target, 'Input.insertText', { text: String(action.value || '') })
-      if (action.action_type === 'select_option') {
-        await send(target, 'Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter' })
-        await send(target, 'Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter' })
-      }
     }
   }
 

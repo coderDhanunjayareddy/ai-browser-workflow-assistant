@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neutral Form Workspace</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color-scheme: light; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #eef3f8; }
+    main { width: min(620px, calc(100% - 40px)); padding: 30px; background: white; border: 1px solid #ccd7e2; border-radius: 16px; }
+    form { display: grid; gap: 18px; }
+    label { display: grid; gap: 6px; font-weight: 650; }
+    input, select, button { font: inherit; padding: 10px; }
+    button { border: 0; border-radius: 8px; background: #165dcc; color: white; font-weight: 700; cursor: pointer; }
+    #state { padding: 10px; background: #f4f7fa; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Neutral form preview</h1>
+    <p id="state" role="status">fixture_state=form_ready</p>
+    <form id="form" novalidate>
+      <label>Project title <input id="project-title" name="project-title" aria-label="Project title"></label>
+      <label>Priority
+        <select id="priority" name="priority" aria-label="Priority">
+          <option value="Low">Low</option>
+          <option value="High">High</option>
+        </select>
+      </label>
+      <label>Due date <input id="due-date" name="due-date" type="date" aria-label="Due date"></label>
+      <button id="preview" type="button" aria-label="Preview">Preview</button>
+    </form>
+  </main>
+  <script>
+    let previewCount = 0;
+    document.querySelector('#preview').addEventListener('click', () => {
+      previewCount += 1;
+      const title = document.querySelector('#project-title').value;
+      const priority = document.querySelector('#priority').value;
+      const dueDate = document.querySelector('#due-date').value;
+      document.querySelector('#state').textContent =
+        title === 'Cross-domain audit' && priority === 'High' && dueDate === '2026-09-30' && previewCount === 1
+          ? 'fixture_state=form_preview_ready_exactly_once'
+          : `fixture_state=form_invalid preview_count=${previewCount}`;
+    });
+    document.querySelector('#form').addEventListener('submit', event => event.preventDefault());
+  </script>
+</body>
+</html>

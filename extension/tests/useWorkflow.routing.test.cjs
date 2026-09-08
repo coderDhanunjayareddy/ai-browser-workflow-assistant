@@ -72,7 +72,7 @@ const {
   shouldAutoExecuteAction,
   shouldRequestSemanticRecovery,
 } = require(path.join(outDir, 'sidepanel/hooks/useWorkflow.js'))
-const { mergeInteractiveElementLists } = require(path.join(outDir, 'content/extractor.js'))
+const { mergeInteractiveElementLists, resolveObservedSelectorAliases } = require(path.join(outDir, 'content/extractor.js'))
 const { isGroundedBrowserTarget, isSelectableBrowserTarget } = require(path.join(outDir, 'background/target_tab.js'))
 
 test.after(() => {
@@ -171,6 +171,27 @@ test('context merge preserves ranked controls and enriches duplicate accessibili
   assert.equal(merged[0].text, 'Search or start new chat')
   assert.equal(merged[0].role, 'textbox')
   assert.equal(merged[0].aria_label, 'Search input textbox')
+})
+
+test('observation merge collapses only proven unique node aliases', () => {
+  const originalDocument = global.document
+  const first = {}, second = {}
+  const nodes = { '#form > button': [first], 'fieldset > button': [first], '#other': [second], 'button': [first, second] }
+  global.document = { querySelectorAll: selector => nodes[selector] || [] }
+  try {
+    const aliases = resolveObservedSelectorAliases(Object.keys(nodes))
+    assert.deepEqual(aliases, { 'fieldset > button': '#form > button' })
+    const base = { type: 'button', text: 'Search', visible: true }
+    const merged = mergeInteractiveElementLists(
+      [{ ...base, selector: '#form > button' }],
+      [{ ...base, selector: 'fieldset > button', role: 'button' }, { ...base, selector: '#other' }],
+      150, aliases,
+    )
+    assert.equal(merged.length, 2)
+    assert.equal(merged[0].selector, '#form > button')
+    assert.equal(merged[0].role, 'button')
+    assert.equal(merged[1].selector, '#other')
+  } finally { global.document = originalDocument }
 })
 
 function action(overrides = {}) {

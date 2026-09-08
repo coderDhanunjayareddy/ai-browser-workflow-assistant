@@ -1,0 +1,137 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_1788861417776",
+  "results": [
+    {
+      "task_id": "gf-d1314-auth-pause-03",
+      "status": "needs_intervention",
+      "duration_s": 33.0,
+      "phase": "completed",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 c86ccc8-dirty \u00b7 stabilization-20260908T095626Z \u00b7 pid 30516\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for you\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nThe current objective is blocked by an observed authentication gate. Completed work is checkpointed and no browser action was dispatched.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open http://127.0.0.1:8765/intervention-auth-fixture.html. If human authentication is required, pause\nSynthetic Workspace Authentication\nhttp://127.0.0.1:8765/intervention-auth-fixture.html\nVerification: verified\nTime: 1.7s\nNavigating to: http://127.0.0.1:8765/intervention-auth-fixture.html\n\nHUMAN STEP REQUIRED\n\nAuthentication is required before this objective can continue.\n\nComplete the visible sign-in step directly in this browser tab, then ask the assistant to verify and resume.\n\nEnter passwords, codes, or other secrets only on the website. The assistant will not request or store them.\n\nI completed it \u2014 verify and resume",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-auth-pause-03.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-auth-pause-03-target.png",
+      "target_controls": [
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Complete synthetic sign in",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "canonical_adapter_traces": [],
+      "durable_executions": [
+        {
+          "key": "4a01a1e6-ce92-4311-add1-3c085c1e0854:1372930151:intent_b1ddb4f021354fc48fef70fe342a8f40",
+          "actionId": "destination-b16526c43397d5a6",
+          "actionType": "navigate",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Navigating to: http://127.0.0.1:8765/intervention-auth-fixture.html",
+            "dispatch_id": "destination-b16526c43397d5a6:1788861430406",
+            "dispatch_path": "service_worker>policy>chrome.tabs.update",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "4a01a1e6-ce92-4311-add1-3c085c1e0854:1372930151:intent_b1ddb4f021354fc48fef70fe342a8f40",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|Sign in required Human authentication is required to continue to the synthetic w",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8765/intervention-auth-fixture.html|Synthetic Workspace Authentication|212|1|0|0|||",
+                "expandedStates": [],
+                "interactiveCount": 1,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "Synthetic Workspace Authentication",
+                "url": "http://127.0.0.1:8765/intervention-auth-fixture.html",
+                "visibleTextLength": 212
+              },
+              "before_state": {
+                "activeElementSignature": null,
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "chrome://newtab/|New Tab",
+                "expandedStates": [],
+                "interactiveCount": 0,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "New Tab",
+                "url": "chrome://newtab/",
+                "visibleTextLength": 0
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "navigate",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 1659,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Open the resolved destination for Open http://127.0.0.1:8765/intervention-auth-fixture.html. If human authentication is required, pause",
+                "expected_effect_kind": "url_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": null,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": true,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-auth-pause-03-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "http://127.0.0.1:8765/intervention-auth-fixture.html",
+          "title": "Synthetic Workspace Authentication",
+          "body_text": "Sign in required\n\nHuman authentication is required to continue to the synthetic workspace.\n\nThis is a local test fixture. It accepts no credentials and makes no network or account change.\n\nComplete synthetic sign in",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-auth-pause-03-page-2.png"
+        }
+      ]
+    }
+  ]
+}

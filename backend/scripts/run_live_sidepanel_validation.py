@@ -597,6 +597,9 @@ def _run_task(
         if "need information" in lowered or "waiting for info" in lowered:
             terminal_status = "needs_info"
             break
+        if "human step required" in lowered or "waiting for you" in lowered:
+            terminal_status = "needs_intervention"
+            break
         if "✓ done" in lowered or "done —" in lowered or "no actions needed" in lowered:
             terminal_status = "completed"
             break
@@ -674,10 +677,12 @@ def _extract_error(text: str) -> str:
 
 def _reported_phase(text: str, terminal_status: str) -> str:
     phase = "unknown"
-    for candidate in ["Reading page", "Thinking", "Executing", "Waiting for info", "completed", "failed"]:
+    for candidate in ["Reading page", "Thinking", "Executing", "Waiting for info", "Waiting for you", "completed", "failed"]:
         if candidate.lower() in text.lower():
             phase = candidate
-    if phase == "unknown" and terminal_status in {"completed", "failed", "needs_info", "needs_approval", "timeout"}:
+    if phase == "unknown" and terminal_status in {
+        "completed", "failed", "needs_info", "needs_approval", "needs_intervention", "timeout",
+    }:
         return terminal_status
     return phase
 
@@ -690,7 +695,17 @@ def _write_report(extension_id: str, profile_dir: Path, results: list[TaskRun]) 
         "results": [asdict(item) for item in results],
     }
     out = REPORT_DIR / "live_sidepanel_first10_latest.json"
-    out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    serialized = json.dumps(report, indent=2)
+    out.write_text(serialized, encoding="utf-8")
+    # Keep a task-scoped evidence record as well as the rolling convenience
+    # report. A later validation run must never erase the only machine-readable
+    # evidence for an earlier result.
+    if results:
+        evidence_id = "--".join(
+            re.sub(r"[^a-z0-9]+", "-", item.task_id.lower()).strip("-") or "unnamed"
+            for item in results
+        )
+        (REPORT_DIR / f"{evidence_id}.json").write_text(serialized, encoding="utf-8")
 
 
 def main() -> int:
