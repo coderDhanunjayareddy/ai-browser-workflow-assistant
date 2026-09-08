@@ -122,7 +122,7 @@ class ExecutionOrchestrator:
             open_collection = _open_phase_search_collection_response(result, snapshot, action)
             if open_collection is not None:
                 return open_collection
-        open_response = _open_phase_entity_response(result, snapshot, action.action_type)
+        open_response = _open_phase_entity_response(result, snapshot, action)
         if open_response is not None:
             return attach_phase_execution_directive(open_response, snapshot)
         if not action_allowed(action.action_type, snapshot.active_phase):
@@ -730,9 +730,16 @@ def _read_phase_backend_response(
 def _open_phase_entity_response(
     result: AnalyzeResponse,
     snapshot: ExecutionOrchestratorSnapshot,
-    action_type: str,
+    action: SuggestedAction,
 ) -> AnalyzeResponse | None:
     if snapshot.active_phase.name != "OPEN":
+        return None
+    action_type = str(action.action_type or "").lower()
+    if (
+        action_type == "click"
+        and snapshot.workflow_category in {"interactive_browser_task", "saas_signup", "file_upload"}
+        and bool(str(action.target_selector or "").strip())
+    ):
         return None
     if str(action_type or "").lower() in {"open_new_tab", "focus_existing_tab", "switch_tab"}:
         return None

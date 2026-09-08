@@ -185,6 +185,43 @@ def test_interactive_open_phase_allows_direct_app_navigation(monkeypatch):
     assert result.suggested_actions[0].value == "https://web.whatsapp.com/"
 
 
+def test_interactive_open_phase_preserves_grounded_in_page_navigation_click(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    task = "Navigate to page 2 of the paged list and verify the page 2 marker."
+    snapshot = engine.build_snapshot(
+        session_id="interactive-pagination",
+        task=task,
+        page_context=_page("https://workspace.example.test/results?page=1"),
+        prior_steps=[],
+    )
+    assert snapshot is not None
+    assert snapshot.workflow_category == "interactive_browser_task"
+    assert snapshot.active_phase.name == "OPEN"
+    assert "click" in snapshot.active_phase.allowed_actions
+    response = AnalyzeResponse(
+        session_id="interactive-pagination",
+        analysis="Use the observed page control.",
+        outcome_kind="act",
+        suggested_actions=[SuggestedAction(
+            action_id="page-2",
+            action_type="click",
+            target_selector='a[aria-label="Page 2"]',
+            value="Page 2",
+            description="Open page 2 using the observed pagination control",
+            reasoning="The target is uniquely grounded on the current interactive surface.",
+            confidence=0.95,
+            safety_level="safe",
+        )],
+    )
+
+    result = engine.postprocess_response(response, snapshot)
+
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "click"
+    assert result.suggested_actions[0].target_selector == 'a[aria-label="Page 2"]'
+
+
 def test_research_open_phase_keeps_direct_navigation_forbidden(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     snapshot = ExecutionOrchestrator().build_snapshot(

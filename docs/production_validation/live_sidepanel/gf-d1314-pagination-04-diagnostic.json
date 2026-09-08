@@ -1,0 +1,616 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_1788865188725",
+  "results": [
+    {
+      "task_id": "gf-d1314-pagination-04-diagnostic",
+      "status": "failed",
+      "duration_s": 43.7,
+      "phase": "completed",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 964c915-dirty \u00b7 stabilization-20260908T105220Z \u00b7 pid 13972\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nnavigate+evidence\n\nSemantic Execution Kernel rejected the proposal before browser execution.\n\nReplan reason: loop_detected. Recovery strategy: skip_entity (proposal repeats previous progress).\n\nGOAL CONVERGENCE\n\nSemantic progress has stalled.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open http://127.0.0.1:8765/pagination-conformance-fixture.html. Navigate to page 2 of the paged results using the observed pagination control. Verify fixture_state=pagination_page_2_exactly_once\nNeutral Paged Workspace\nhttp://127.0.0.1:8765/pagination-conformance-fixture.html\nVerification: verified\nTime: 1.6s\nNavigating to: http://127.0.0.1:8765/pagination-conformance-fixture.html\n\u26a1\nStep 2\nOPEN_NEW_TAB\nOpen collected source: Page 1\nNeutral Paged Workspace\nhttp://127.0.0.1:8765/pagination-conformance-fixture.html?page=1\nVerification: verified\nTime: 1.7s\nOpened tab: 1533683305\nTab switch: verified\nOpened new tab: http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1\n\u26a1\nStep 3\nWAIT\nWait for the page state to become actionable.\nNeutral Paged Workspace\nhttp://127.0.0.1:8765/pagination-conformance-fixture.html?page=1\nVerification: verified\nTime: 29ms\nCanonical no-mutation wait completed.\n\u26a1\nStep 4\nWAIT\nWait for the page state to become actionable.\nNeutral Paged Workspace\nhttp://127.0.0.1:8765/pagination-conformance-fixture.html?page=1\nVerification: verified\nTime: 31ms\nCanonical no-mutation wait completed.\n\nPLANNER REQUESTED REPLAN\n\nloop_detected. Recovery strategy: skip_entity (proposal repeats previous progress).",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-pagination-04-diagnostic.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-pagination-04-diagnostic-target.png",
+      "target_controls": [],
+      "canonical_adapter_traces": [
+        {
+          "action_id": "orchestrator_open_recovery_50682861b093",
+          "action_type": "open_new_tab",
+          "canonical_contract": true,
+          "dispatch_id": "orchestrator_open_recovery_50682861b093:1788865212678",
+          "dispatch_path": "service_worker>policy>canonical_tab_control",
+          "execution_adapter": "dom",
+          "expected_effect": "tab_state_change",
+          "frame_id": "top",
+          "idempotency_key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683303:intent_e48956c5351f429b8490f5c4c13780f2",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": null,
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-08T11:00:14.398Z",
+          "verified": true
+        },
+        {
+          "action_id": "a8d05e1f-4f09-4f51-b294-86b9488a69db",
+          "action_type": "wait",
+          "canonical_contract": true,
+          "dispatch_id": "a8d05e1f-4f09-4f51-b294-86b9488a69db:1788865218578",
+          "dispatch_path": "service_worker>policy>canonical_wait",
+          "execution_adapter": "dom",
+          "expected_effect": "no_mutation",
+          "frame_id": "top",
+          "idempotency_key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683305:intent_9fb5f4bb5d6d458f8c763af1c984c140",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": null,
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-08T11:00:18.627Z",
+          "verified": true
+        },
+        {
+          "action_id": "223d3659-3ab5-4067-81e4-f5368d6ff03a",
+          "action_type": "wait",
+          "canonical_contract": true,
+          "dispatch_id": "223d3659-3ab5-4067-81e4-f5368d6ff03a:1788865223444",
+          "dispatch_path": "service_worker>policy>canonical_wait",
+          "execution_adapter": "dom",
+          "expected_effect": "no_mutation",
+          "frame_id": "top",
+          "idempotency_key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683305:intent_abed37c48469436a876701acc8b407f5",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": null,
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-08T11:00:23.496Z",
+          "verified": true
+        }
+      ],
+      "durable_executions": [
+        {
+          "key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683303:intent_a09b62862ed0406986e3f1b7fe34b4b5",
+          "actionId": "destination-58bcbf5fc4c3c84e",
+          "actionType": "navigate",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Navigating to: http://127.0.0.1:8765/pagination-conformance-fixture.html",
+            "dispatch_id": "destination-58bcbf5fc4c3c84e:1788865202143",
+            "dispatch_path": "service_worker>policy>chrome.tabs.update",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683303:intent_a09b62862ed0406986e3f1b7fe34b4b5",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|Neutral paged results fixture_state=pagination_page_1 Page 1 item: Alpha A long ",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8765/pagination-conformance-fixture.html|Neutral Paged Workspace|191|3|0|0|||",
+                "expandedStates": [],
+                "interactiveCount": 3,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "Neutral Paged Workspace",
+                "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html",
+                "visibleTextLength": 191
+              },
+              "before_state": {
+                "activeElementSignature": null,
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "chrome://newtab/|New Tab",
+                "expandedStates": [],
+                "interactiveCount": 0,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "New Tab",
+                "url": "chrome://newtab/",
+                "visibleTextLength": 0
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "navigate",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 1635,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Open the resolved destination for Open http://127.0.0.1:8765/pagination-conformance-fixture.html. Navigate to page 2 of the paged results using the observed pagination control. Verify fixture_state=pagination_page_2_exactly_once",
+                "expected_effect_kind": "url_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": null,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": true,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683303:intent_e48956c5351f429b8490f5c4c13780f2",
+          "actionId": "orchestrator_open_recovery_50682861b093",
+          "actionType": "open_new_tab",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Opened new tab: http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1",
+            "dispatch_id": "orchestrator_open_recovery_50682861b093:1788865212678",
+            "dispatch_path": "service_worker>policy>canonical_tab_control",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683303:intent_e48956c5351f429b8490f5c4c13780f2",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|Neutral paged results fixture_state=pagination_page_1 Page 1 item: Alpha A long ",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8765/pagination-conformance-fixture.html|Neutral Paged Workspace|191|3|0|0|||",
+                "expandedStates": [],
+                "interactiveCount": 3,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "Neutral Paged Workspace",
+                "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html",
+                "visibleTextLength": 191
+              },
+              "before_state": {
+                "activeElementSignature": "body|Neutral paged results fixture_state=pagination_page_1 Page 1 item: Alpha A long ",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8765/pagination-conformance-fixture.html|Neutral Paged Workspace|191|3|0|0|||",
+                "expandedStates": [],
+                "interactiveCount": 3,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "Neutral Paged Workspace",
+                "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html",
+                "visibleTextLength": 191
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "open_new_tab",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": false,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 1694,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Open collected source: Page 1",
+                "expected_effect_kind": "tab_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": false,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": true,
+                "target_checked_changed": false,
+                "target_exists_after": null,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": false,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683305:intent_9fb5f4bb5d6d458f8c763af1c984c140",
+          "actionId": "a8d05e1f-4f09-4f51-b294-86b9488a69db",
+          "actionType": "wait",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Canonical no-mutation wait completed.",
+            "dispatch_id": "a8d05e1f-4f09-4f51-b294-86b9488a69db:1788865218578",
+            "dispatch_path": "service_worker>policy>canonical_wait",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683305:intent_9fb5f4bb5d6d458f8c763af1c984c140",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|Neutral paged results fixture_state=pagination_page_1 Page 1 item: Alpha A long ",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1|Neutral Paged Workspace|191|3|0|0|||{\"exists\":false,\"selector\":\"window\"}",
+                "expandedStates": [],
+                "interactiveCount": 3,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "exists": false,
+                  "selector": "window"
+                },
+                "title": "Neutral Paged Workspace",
+                "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1",
+                "visibleTextLength": 191
+              },
+              "before_state": {
+                "activeElementSignature": "body|Neutral paged results fixture_state=pagination_page_1 Page 1 item: Alpha A long ",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1|Neutral Paged Workspace|191|3|0|0|||{\"exists\":false,\"selector\":\"window\"}",
+                "expandedStates": [],
+                "interactiveCount": 3,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "exists": false,
+                  "selector": "window"
+                },
+                "title": "Neutral Paged Workspace",
+                "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1",
+                "visibleTextLength": 191
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "wait",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": false,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 29,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Wait for the page state to become actionable.",
+                "expected_effect_kind": "no_mutation",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": false,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "no_mutation_action_completed": true,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": false,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": false,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683305:intent_abed37c48469436a876701acc8b407f5",
+          "actionId": "223d3659-3ab5-4067-81e4-f5368d6ff03a",
+          "actionType": "wait",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Canonical no-mutation wait completed.",
+            "dispatch_id": "223d3659-3ab5-4067-81e4-f5368d6ff03a:1788865223444",
+            "dispatch_path": "service_worker>policy>canonical_wait",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "ef2c6b74-bc54-4eaa-be98-3ea8ec8a0336:1533683305:intent_abed37c48469436a876701acc8b407f5",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|Neutral paged results fixture_state=pagination_page_1 Page 1 item: Alpha A long ",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1|Neutral Paged Workspace|191|3|0|0|||{\"exists\":false,\"selector\":\"window\"}",
+                "expandedStates": [],
+                "interactiveCount": 3,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "exists": false,
+                  "selector": "window"
+                },
+                "title": "Neutral Paged Workspace",
+                "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1",
+                "visibleTextLength": 191
+              },
+              "before_state": {
+                "activeElementSignature": "body|Neutral paged results fixture_state=pagination_page_1 Page 1 item: Alpha A long ",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1|Neutral Paged Workspace|191|3|0|0|||{\"exists\":false,\"selector\":\"window\"}",
+                "expandedStates": [],
+                "interactiveCount": 3,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "exists": false,
+                  "selector": "window"
+                },
+                "title": "Neutral Paged Workspace",
+                "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1",
+                "visibleTextLength": 191
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "wait",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": false,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 31,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Wait for the page state to become actionable.",
+                "expected_effect_kind": "no_mutation",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": false,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "no_mutation_action_completed": true,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": false,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": false,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-pagination-04-diagnostic-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html",
+          "title": "Neutral Paged Workspace",
+          "body_text": "Neutral paged results\n\nfixture_state=pagination_page_1\n\nPage 1 item: Alpha\n\nA long result region requires the pagination control to be grounded even when it begins outside the viewport.\n\nNext\n2\n1",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-pagination-04-diagnostic-page-2.png"
+        },
+        {
+          "index": 3,
+          "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1",
+          "title": "Neutral Paged Workspace",
+          "body_text": "Neutral paged results\n\nfixture_state=pagination_page_1\n\nPage 1 item: Alpha\n\nA long result region requires the pagination control to be grounded even when it begins outside the viewport.\n\n1\nNext\n2",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-pagination-04-diagnostic-page-3.png"
+        }
+      ],
+      "analyze_observations": [
+        {
+          "url": "chrome://newtab/",
+          "title": "New Tab",
+          "visible_text_length": 135,
+          "controls": []
+        },
+        {
+          "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html",
+          "title": "Neutral Paged Workspace",
+          "visible_text_length": 195,
+          "controls": [
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Next page\"]",
+              "text": "Next page",
+              "aria_label": "Next page",
+              "accessibility_name": "Next page",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=2"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Page 2\"]",
+              "text": "Page 2",
+              "aria_label": "Page 2",
+              "accessibility_name": "Page 2",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=2"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Page 1\"]",
+              "text": "Page 1",
+              "aria_label": "Page 1",
+              "accessibility_name": "Page 1",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1"
+            }
+          ]
+        },
+        {
+          "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1",
+          "title": "Neutral Paged Workspace",
+          "visible_text_length": 195,
+          "controls": [
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Page 1\"]",
+              "text": "Page 1",
+              "aria_label": "Page 1",
+              "accessibility_name": "Page 1",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Next page\"]",
+              "text": "Next page",
+              "aria_label": "Next page",
+              "accessibility_name": "Next page",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=2"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Page 2\"]",
+              "text": "Page 2",
+              "aria_label": "Page 2",
+              "accessibility_name": "Page 2",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=2"
+            }
+          ]
+        },
+        {
+          "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1",
+          "title": "Neutral Paged Workspace",
+          "visible_text_length": 195,
+          "controls": [
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Page 1\"]",
+              "text": "Page 1",
+              "aria_label": "Page 1",
+              "accessibility_name": "Page 1",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Next page\"]",
+              "text": "Next page",
+              "aria_label": "Next page",
+              "accessibility_name": "Next page",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=2"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Page 2\"]",
+              "text": "Page 2",
+              "aria_label": "Page 2",
+              "accessibility_name": "Page 2",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=2"
+            }
+          ]
+        },
+        {
+          "url": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1",
+          "title": "Neutral Paged Workspace",
+          "visible_text_length": 195,
+          "controls": [
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Page 1\"]",
+              "text": "Page 1",
+              "aria_label": "Page 1",
+              "accessibility_name": "Page 1",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=1"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Next page\"]",
+              "text": "Next page",
+              "aria_label": "Next page",
+              "accessibility_name": "Next page",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=2"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Page 2\"]",
+              "text": "Page 2",
+              "aria_label": "Page 2",
+              "accessibility_name": "Page 2",
+              "href": "http://127.0.0.1:8765/pagination-conformance-fixture.html?page=2"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

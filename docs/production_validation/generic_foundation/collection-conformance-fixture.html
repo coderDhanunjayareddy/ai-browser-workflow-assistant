@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neutral Incremental Collection</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 20px; }
+    #items { display: grid; gap: 10px; margin: 24px 0; }
+    .item { padding: 14px; border: 1px solid #b7c2d0; border-radius: 8px; }
+    button { min-width: 130px; padding: 10px 18px; }
+    #marker { font: 600 14px ui-monospace, monospace; color: #14532d; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Incremental results</h1>
+    <p id="marker">fixture_state=collection_initial_3</p>
+    <section id="items" aria-label="Results">
+      <article class="item">Result Alpha</article>
+      <article class="item">Result Beta</article>
+      <article class="item">Result Gamma</article>
+    </section>
+    <div id="controls" aria-live="polite"></div>
+  </main>
+  <script>
+    const controls = document.getElementById('controls');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('aria-label', 'Load more');
+    button.textContent = 'Load more';
+    button.addEventListener('click', () => {
+      if (document.querySelectorAll('.item').length !== 3) return;
+      for (const name of ['Delta', 'Epsilon', 'Zeta']) {
+        const item = document.createElement('article');
+        item.className = 'item';
+        item.textContent = `Result ${name}`;
+        document.getElementById('items').appendChild(item);
+      }
+      button.remove();
+      document.getElementById('marker').textContent = 'fixture_state=collection_6_exactly_once';
+    });
+    // The control appears asynchronously; unrelated disabled controls are
+    // inserted in randomized order to prevent position-based targeting.
+    setTimeout(() => {
+      const noise = document.createElement('button');
+      noise.disabled = true;
+      noise.textContent = 'Load archive';
+      Math.random() > 0.5 ? controls.append(noise, button) : controls.append(button, noise);
+    }, 900);
+  </script>
+</body>
+</html>

@@ -5,6 +5,7 @@ from app.orchestrator.workflow_orchestrator import (
     _destination_ordinal_from_task,
     _deterministic_observed_control_response,
     _deterministic_observed_report_response,
+    _find_observed_control,
     _messaging_recipient_from_task,
 )
 from app.schemas.request import InteractiveElement, PageContext, PriorStep
@@ -323,6 +324,41 @@ def test_named_native_selection_and_date_follow_task_order() -> None:
     assert second.suggested_actions[0].action_type == "choose_date"
     assert second.suggested_actions[0].target_selector == "#due"
     assert second.suggested_actions[0].value == "2026-09-30"
+
+
+def test_completed_assignments_are_not_reinterpreted_as_clicks_in_a_compound_form_task() -> None:
+    task = (
+        "Select 'High' in the exact enabled control named Priority. "
+        "Choose date '2026-09-30' in the exact enabled control named Due date. "
+        "Activate the exact enabled Preview control once."
+    )
+    page = _page(
+        "https://forms.example.test/preview",
+        [
+            InteractiveElement(type="select", role="combobox", selector="#priority", text="", visible=True, accessibility_name="Priority"),
+            InteractiveElement(type="input", input_type="date", selector="#due", text="", visible=True, accessibility_name="Due date"),
+            InteractiveElement(type="button", role="button", selector="#preview", text="Preview", visible=True, accessibility_name="Preview"),
+        ],
+    )
+    prior = [
+        PriorStep(
+            action_type="select_option", description="priority", target_selector="#priority",
+            value="High", execution_result="CDP select_option dispatched via stable_selector grounding.",
+        ),
+        PriorStep(
+            action_type="choose_date", description="due date", target_selector="#due",
+            value="2026-09-30", execution_result="CDP choose_date dispatched via stable_selector grounding.",
+        ),
+    ]
+
+    response = _deterministic_observed_control_response(
+        session_id="compound-form", task=task, page_context=page, prior_steps=prior,
+    )
+
+    assert response is not None
+    assert response.suggested_actions[0].action_type == "click"
+    assert response.suggested_actions[0].target_selector == "#preview"
+    assert response.suggested_actions[0].value == "Preview"
 
 
 def test_ambiguous_named_selection_fails_closed() -> None:
@@ -1735,6 +1771,40 @@ def test_load_more_and_quoted_accordion_controls_are_grounded() -> None:
     )
     assert accordion is not None
     assert (accordion.suggested_actions[0].action_type, accordion.suggested_actions[0].target_selector) == ("click", "#q2 > summary")
+
+
+def test_observed_control_uses_unique_accessible_link_identity_without_field_concatenation() -> None:
+    page_two = {
+        "type": "a",
+        "role": "link",
+        "selector": 'a[aria-label="Page 2"]',
+        "text": "Page 2",
+        "aria_label": "Page 2",
+        "accessibility_name": "Page 2",
+        "visible": True,
+    }
+    next_page = {
+        "type": "a",
+        "role": "link",
+        "selector": 'a[aria-label="Next page"]',
+        "text": "Next",
+        "aria_label": "Next page",
+        "accessibility_name": "Next page",
+        "visible": True,
+    }
+
+    assert _find_observed_control(
+        [next_page, page_two], exact_labels=("2", "page 2")
+    ) == page_two
+
+
+def test_observed_control_rejects_ambiguous_exact_accessible_identity() -> None:
+    duplicate_links = [
+        {"type": "a", "role": "link", "selector": "#page-2-top", "text": "Page 2", "visible": True},
+        {"type": "a", "role": "link", "selector": "#page-2-bottom", "aria_label": "Page 2", "visible": True},
+    ]
+
+    assert _find_observed_control(duplicate_links, exact_labels=("page 2",)) is None
 
 
 def test_registration_with_missing_credentials_asks_instead_of_fabricating_values() -> None:

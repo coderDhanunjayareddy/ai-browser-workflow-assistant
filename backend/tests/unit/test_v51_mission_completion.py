@@ -7,7 +7,7 @@ from app.knowledge_extraction.engine import KnowledgeExtractionPipeline
 from app.mission.intelligence.blueprint_builder import MissionBlueprintBuilder
 from app.mission.intelligence.mission_plan import create_mission_plan
 from app.mission_completion.engine import MissionCompletionController
-from app.mission_completion.criteria import evaluate_success_criteria
+from app.mission_completion.criteria import evaluate_success_criteria, infer_objective_type
 from app.mission_completion.models import CompletionDecision, CriterionKind, ObjectiveType
 from app.schemas.request import ContentBlock, PageContext
 from app.schemas.response import AnalyzeResponse, SuggestedAction
@@ -231,6 +231,15 @@ def test_mission_plan_supports_generalized_workflow_criteria():
         assert plan.objective_type == objective_type
         assert expected_kind in kinds
         assert plan.termination_rules
+
+
+def test_conformance_url_is_not_misclassified_as_a_form_workflow():
+    objective = (
+        "Open http://127.0.0.1:8765/pagination-conformance-fixture.html and "
+        "navigate to page 2 using the observed pagination control."
+    )
+
+    assert infer_objective_type(objective) is ObjectiveType.GENERAL
 
 
 def test_directory_collection_blueprint_includes_collection_policy_nodes(monkeypatch):

@@ -520,6 +520,7 @@ export function verifyActionEffect(
       break
 
     case 'select_option':
+    case 'choose_date':
       verified = Boolean(signals.target_selected_changed || targetMatchesActionValue(after, action.value))
       break
 
@@ -570,5 +571,5 @@ function verifyFill(
 
 function targetMatchesActionValue(after: ActionVerificationState, value: string | null): boolean {
   if (!value || !after.target) return false
-  return after.target.selectedValue === value || after.target.selectedText === value
+  return after.target.value === value || after.target.selectedValue === value || after.target.selectedText === value
 }

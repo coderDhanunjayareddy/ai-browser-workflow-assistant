@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neutral Paged Workspace</title>
+  <style>
+    body { font: 16px system-ui; margin: 0; padding: 2rem; }
+    main { max-width: 46rem; margin: auto; }
+    .spacer { min-height: 115vh; background: linear-gradient(#eef4ff, #fff); padding: 1rem; }
+    nav { display: flex; gap: .75rem; align-items: center; padding: 1rem 0; }
+    a { padding: .65rem .9rem; border: 1px solid #456; border-radius: .4rem; }
+    [aria-current="page"] { background: #173d8f; color: white; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Neutral paged results</h1>
+    <p id="state">fixture_state=pagination_page_1</p>
+    <section class="spacer" aria-label="Paged results">
+      <p id="item">Page 1 item: Alpha</p>
+      <p>A long result region requires the pagination control to be grounded even when it begins outside the viewport.</p>
+    </section>
+    <nav aria-label="Pagination" id="pagination">
+      <a href="?page=1" aria-label="Page 1">1</a>
+      <a href="?page=2" aria-label="Page 2">2</a>
+      <a href="?page=2" aria-label="Next page">Next</a>
+    </nav>
+  </main>
+  <script>
+    const page = new URLSearchParams(location.search).get('page') === '2' ? 2 : 1;
+    if (page === 2) {
+      document.querySelector('#state').textContent = 'fixture_state=pagination_page_2_exactly_once';
+      document.querySelector('#item').textContent = 'Page 2 item: Beta';
+    }
+    document.querySelector(`[aria-label="Page ${page}"]`)?.setAttribute('aria-current', 'page');
+    const nav = document.querySelector('#pagination');
+    [...nav.children].sort(() => Math.random() - 0.5).forEach(node => nav.append(node));
+  </script>
+</body>
+</html>

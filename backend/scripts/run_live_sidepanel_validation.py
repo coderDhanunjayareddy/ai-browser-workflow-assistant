@@ -154,6 +154,7 @@ class TaskRun:
     durable_executions: list[dict[str, object]]
     initial_url: str
     browser_pages: list[dict[str, object]]
+    analyze_observations: list[dict[str, object]]
 
 
 def _capture_browser_pages(context, sidepanel, safe_id: str) -> list[dict[str, object]]:
@@ -508,6 +509,7 @@ def _run_task(
     enable_advanced_control: bool = False,
     initial_url: str = "about:blank",
     legacy_harness_file_selection: bool = False,
+    capture_analyze_observations: bool = False,
 ) -> TaskRun:
     started = time.time()
     safe_id = task_id.lower()
@@ -527,6 +529,33 @@ def _run_task(
     trace_count_before = len(_execution_evidence(sidepanel)[0])
     approved_file = Path(file_path).resolve() if file_path else None
     file_chooser_events: list[str] = []
+    analyze_observations: list[dict[str, object]] = []
+
+    def capture_analyze_request(request) -> None:
+        if not capture_analyze_observations or not request.url.rstrip('/').endswith('/analyze'):
+            return
+        try:
+            body = request.post_data_json or {}
+            page = dict(body.get('page_context') or {})
+            controls = []
+            for item in list(page.get('interactive_elements') or [])[:80]:
+                data = dict(item or {})
+                controls.append({
+                    key: str(data.get(key) or '')[:240]
+                    for key in ('type', 'input_type', 'role', 'selector', 'text', 'aria_label', 'accessibility_name', 'href')
+                })
+            analyze_observations.append({
+                'url': str(page.get('url') or '')[:500],
+                'title': str(page.get('title') or '')[:240],
+                'visible_text_length': len(str(page.get('visible_text') or '')),
+                'controls': controls,
+            })
+            del analyze_observations[:-12]
+        except Exception as exc:
+            analyze_observations.append({'capture_error': str(exc)[:500]})
+
+    if capture_analyze_observations:
+        sidepanel.on('request', capture_analyze_request)
 
     def provide_approved_file(chooser) -> None:
         if approved_file is None or not approved_file.is_file():
@@ -664,6 +693,7 @@ def _run_task(
         durable_executions=durable_executions,
         initial_url=initial_url,
         browser_pages=browser_pages,
+        analyze_observations=analyze_observations,
     )
 
 
@@ -789,6 +819,11 @@ def main() -> int:
         "--reload-extension",
         action="store_true",
         help="Force an already-registered unpacked extension to reload before opening the side panel.",
+    )
+    parser.add_argument(
+        "--capture-analyze-observations",
+        action="store_true",
+        help="Diagnostic-only: record bounded value-free control metadata from /analyze requests.",
     )
     args = parser.parse_args()
     if args.repeat < 1 or args.repeat > 100:
@@ -969,6 +1004,7 @@ def main() -> int:
                 args.enable_advanced_control,
                 initial_url,
                 args.legacy_harness_file_selection,
+                args.capture_analyze_observations,
             )
             results.append(result)
             _write_report(extension_id, profile_dir, results)

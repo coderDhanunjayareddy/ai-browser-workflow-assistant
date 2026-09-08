@@ -183,6 +183,22 @@ def test_signup_and_public_form_do_not_become_research_blueprints(monkeypatch):
     assert submit_node.metadata["action_payload"]["submit_policy"] == "sandbox_only"
 
 
+def test_pagination_conformance_url_does_not_create_a_form_workflow(monkeypatch):
+    monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
+    result = MissionBlueprintBuilder().build(
+        mission_id="pagination-conformance",
+        user_goal=(
+            "Open http://127.0.0.1:8765/pagination-conformance-fixture.html. "
+            "Navigate to page 2 of the paged results using the observed pagination control. "
+            "Verify fixture_state=pagination_page_2_exactly_once"
+        ),
+    )
+
+    node_ids = [node.node_id for node in result.blueprint.nodes]
+    assert "define_form_workflow" not in node_ids
+    assert "Form Workflow" not in result.capabilities.capabilities
+
+
 def test_data_extraction_goal_creates_extraction_graph(monkeypatch):
     monkeypatch.setattr(settings, "mission_blueprint_v1", "shadow")
 

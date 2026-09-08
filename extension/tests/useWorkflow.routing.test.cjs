@@ -194,6 +194,15 @@ test('observation merge collapses only proven unique node aliases', () => {
   } finally { global.document = originalDocument }
 })
 
+test('fallback extraction preserves accessible link identity ahead of a shared href', () => {
+  const source = fs.readFileSync(path.join(root, 'src/content/extractor.ts'), 'utf8')
+  const ariaCandidate = source.indexOf("const ariaLabel = el.getAttribute('aria-label')", source.indexOf('function buildSelector'))
+  const hrefCandidate = source.indexOf("const href = el.getAttribute('href')", source.indexOf('function buildSelector'))
+  assert.ok(ariaCandidate >= 0)
+  assert.ok(hrefCandidate >= 0)
+  assert.ok(ariaCandidate < hrefCandidate)
+})
+
 function action(overrides = {}) {
   return {
     action_id: overrides.action_id ?? 'a1',

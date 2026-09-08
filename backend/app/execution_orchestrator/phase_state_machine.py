@@ -163,6 +163,11 @@ def _phase_actions(category: str, phase: PhaseName) -> tuple[list[str], list[str
     if phase == "OPEN" and category in {"interactive_browser_task", "saas_signup", "file_upload"}:
         allowed.append("navigate")
         forbidden.remove("navigate")
+        # An interactive surface may expose its next destination as a grounded
+        # in-page control (pagination, wizard step, menu link). Preserve that
+        # exact live target instead of converting it into a research-style new
+        # tab merely because the control also has an href.
+        allowed.append("click")
     return allowed, forbidden
 
 

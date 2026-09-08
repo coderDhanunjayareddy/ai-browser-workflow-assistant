@@ -79,7 +79,7 @@ def infer_objective_type(objective: str) -> ObjectiveType:
         return ObjectiveType.TRAVEL_BOOKING
     if _has(text, "docs", "documentation", "api reference", "extract docs"):
         return ObjectiveType.DOCUMENTATION_EXTRACTION
-    if _has(text, "form", "fill"):
+    if _has_phrase(text, "form", "fill"):
         return ObjectiveType.FORM_WORKFLOW
     if _has(text, "dashboard", "admin", "settings"):
         return ObjectiveType.DASHBOARD
@@ -374,3 +374,12 @@ def _average(values: list[float]) -> float:
 
 def _has(text: str, *needles: str) -> bool:
     return any(needle in text for needle in needles)
+
+
+def _has_phrase(text: str, *phrases: str) -> bool:
+    """Match task-language phrases without matching inside unrelated words."""
+    return any(
+        re.search(rf"(?<!\w){re.escape(phrase.strip().lower())}(?!\w)", text.lower())
+        for phrase in phrases
+        if phrase.strip()
+    )

@@ -911,7 +911,7 @@ def _needs_collection_policy(text: str) -> bool:
 
 
 def _needs_form_workflow(text: str) -> bool:
-    return _has(
+    return _has_phrase(
         text,
         "form",
         "fill",
@@ -956,6 +956,16 @@ def _capability_reason(capability: str, mission_type: MissionType) -> str:
 def _has(text: str, *needles: str) -> bool:
     lowered = text.lower()
     return any(needle.lower() in lowered for needle in needles)
+
+
+def _has_phrase(text: str, *phrases: str) -> bool:
+    """Match explicit task phrases, never substrings inside URLs or nouns."""
+    lowered = text.lower()
+    return any(
+        re.search(rf"(?<!\w){re.escape(phrase.strip().lower())}(?!\w)", lowered)
+        for phrase in phrases
+        if phrase.strip()
+    )
 
 
 def _in_memory_service() -> MissionBlueprintPersistenceService:

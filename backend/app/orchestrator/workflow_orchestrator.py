@@ -2940,9 +2940,16 @@ def _deterministic_observed_control_response(
         flags=re.IGNORECASE,
     )
     named_control_matches.extend(re.findall(
-        r"\b(?:activate|click|press|choose|select)\s+(?:the\s+)?(?:exact\s+)?(?:enabled\s+)?"
+        r"\b(?:activate|click|press)\s+(?:the\s+)?(?:exact\s+)?(?:enabled\s+)?"
         r"[`\"'\u201c\u201d]?([^,.;\n]{1,80}?)[`\"'\u201c\u201d]?\s+"
         r"(?:control|button|link|option|menu\s+item|tab)(?:\s+(?:exactly\s+)?once)?\b",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    ))
+    named_control_matches.extend(re.findall(
+        r"\b(?:choose|select)\s+(?:the\s+)?(?:exact\s+)?(?:enabled\s+)?"
+        r"[`\"'\u201c\u201d]?([^,.;\n]{1,80}?)[`\"'\u201c\u201d]?\s+"
+        r"(?:button|link|menu\s+item|tab)(?:\s+(?:exactly\s+)?once)?\b",
         str(task or ""),
         flags=re.IGNORECASE,
     ))
@@ -2971,9 +2978,21 @@ def _deterministic_observed_control_response(
             if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "click"
             and prior_step_succeeded(step)
         }
+        completed_assignment_names = {
+            " ".join(requested_name.split()).casefold()
+            for _position, requested_action, requested_name, requested_value in ordered_selections
+            if any(
+                str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").casefold()
+                == requested_action
+                and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or "")
+                == requested_value
+                and prior_step_succeeded(step)
+                for step in prior_steps
+            )
+        }
         for named_control in named_controls:
             requested_identity = " ".join(named_control.split()).casefold()
-            if requested_identity in completed_control_names:
+            if requested_identity in completed_control_names or requested_identity in completed_assignment_names:
                 continue
             viable_matches: list[dict[str, Any]] = []
             for element in elements:
@@ -3345,7 +3364,12 @@ def _deterministic_observed_control_response(
             action_type = "click"
             description = "Use the observed modal control required by the task"
     elif "edit the first row" in task_text or "edit first row" in task_text:
-        control = _find_observed_control(elements, exact_labels=("edit",), label_terms=("edit",))
+        control = _find_observed_control(
+            elements,
+            exact_labels=("edit",),
+            label_terms=("edit",),
+            allow_first_exact=True,
+        )
         if control is not None:
             selector = str(control.get("selector") or "")
             action_type = "click"
@@ -3681,8 +3705,32 @@ def _find_observed_control(
     exact_labels: tuple[str, ...] = (),
     label_terms: tuple[str, ...] = (),
     selector_terms: tuple[str, ...] = (),
+    allow_first_exact: bool = False,
 ) -> dict[str, Any] | None:
-    exact = {label.lower() for label in exact_labels}
+    exact = {" ".join(label.split()).casefold() for label in exact_labels if label.strip()}
+
+    # Exact accessible identity must be evaluated per source field. Joining
+    # text, aria-label, and accessibility_name turns one correct identity into
+    # values such as ``Page 2 Page 2 Page 2`` and makes equality impossible.
+    # Prefer a unique exact match before considering deliberately fuzzy terms.
+    exact_matches: dict[str, dict[str, Any]] = {}
+    if exact:
+        for element in elements:
+            selector = str(element.get("selector") or "").strip()
+            if not selector:
+                continue
+            identities = {
+                " ".join(str(element.get(key) or "").split()).casefold()
+                for key in ("text", "aria_label", "accessibility_name", "placeholder", "name")
+                if str(element.get(key) or "").strip()
+            }
+            if identities & exact:
+                exact_matches.setdefault(selector, element)
+        if len(exact_matches) == 1:
+            return next(iter(exact_matches.values()))
+        if len(exact_matches) > 1:
+            return next(iter(exact_matches.values())) if allow_first_exact else None
+
     for element in elements:
         selector = str(element.get("selector") or "")
         if not selector:
@@ -3692,7 +3740,7 @@ def _find_observed_control(
             for key in ("text", "aria_label", "accessibility_name", "placeholder", "name")
         ).strip().lower()
         selector_lower = selector.lower()
-        if label in exact or any(term in label for term in label_terms) or any(term in selector_lower for term in selector_terms):
+        if any(term in label for term in label_terms) or any(term in selector_lower for term in selector_terms):
             return element
     return None
 

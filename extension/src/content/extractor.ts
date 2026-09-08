@@ -103,6 +103,9 @@ export function extractPageContext(): PageContext {
     const testId = el.getAttribute('data-testid')
     if (testId) return `[data-testid="${testId}"]`
 
+    const ariaLabel = el.getAttribute('aria-label')
+    if (ariaLabel) return `${el.tagName.toLowerCase()}[aria-label="${ariaLabel}"]`
+
     if (el.tagName.toLowerCase() === 'a') {
       const href = el.getAttribute('href')
       if (href && !href.startsWith('javascript:')) {
@@ -111,9 +114,6 @@ export function extractPageContext(): PageContext {
         }
       }
     }
-
-    const ariaLabel = el.getAttribute('aria-label')
-    if (ariaLabel) return `${el.tagName.toLowerCase()}[aria-label="${ariaLabel}"]`
 
     const title = el.getAttribute('title')
     if (title) return `${el.tagName.toLowerCase()}[title="${title}"]`

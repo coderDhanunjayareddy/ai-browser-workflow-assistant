@@ -150,6 +150,50 @@ test('select_option reports no effect when selection is unchanged', () => {
   assert.equal(verification.reason, 'no_effect')
 })
 
+test('choose_date is verified when the requested date is already the observed postcondition', () => {
+  const requested = state({
+    target: {
+      exists: true,
+      selector: '#due-date',
+      tagName: 'input',
+      inputType: 'date',
+      filled: true,
+      value: '2026-09-30',
+    },
+  })
+  const verification = verifyActionEffect(
+    action('choose_date', '2026-09-30'),
+    result('choose_date'),
+    requested,
+    requested,
+    15,
+  )
+  assert.equal(verification.verified, true)
+  assert.equal(verification.reason, 'verified')
+})
+
+test('choose_date reports no effect when the observed date does not match', () => {
+  const unchanged = state({
+    target: {
+      exists: true,
+      selector: '#due-date',
+      tagName: 'input',
+      inputType: 'date',
+      filled: true,
+      value: '2026-09-29',
+    },
+  })
+  const verification = verifyActionEffect(
+    action('choose_date', '2026-09-30'),
+    result('choose_date'),
+    unchanged,
+    unchanged,
+    15,
+  )
+  assert.equal(verification.verified, false)
+  assert.equal(verification.reason, 'no_effect')
+})
+
 test('navigate is verified when URL changes', () => {
   const verification = verifyActionEffect(
     action('navigate', 'https://example.test/next'),
