@@ -622,6 +622,26 @@ test('observation binding preserves an explicit immutable target identity', () =
   assert.equal(bound.grounding.semantic_kind, 'recipient')
 })
 
+test('observation binding preserves the exact child-frame identity', () => {
+  const bound = bindObservationGrounding(action({
+    action_type: 'click',
+    target_selector: '#frame-continue',
+  }), pageContext({
+    frame_id: 'top',
+    interactive_elements: [{
+      type: 'button',
+      role: 'button',
+      selector: '#frame-continue',
+      accessibility_name: 'Continue',
+      frame_id: 'chrome-frame:7',
+      visible: true,
+    }],
+  }))
+
+  assert.equal(bound.grounding.frame_id, 'chrome-frame:7')
+  assert.equal(bound.grounding.accessibility_name, 'Continue')
+})
+
 test('same-URL navigate continuation is rejected as a no-effect action', () => {
   const sameUrl = action({
     action_id: 'same-url',
@@ -1757,6 +1777,7 @@ test('planner context includes compact multi-tab workspace summary when provided
   assert.match(request.supplemental_context, /Google Search - visited/)
   assert.match(request.supplemental_context, /Cursor Pricing - active, Facts: 3/)
   assert.doesNotMatch(request.supplemental_context, /https:\/\//)
+  assert.ok(request.supplemental_context.indexOf('Active Goal') < request.supplemental_context.indexOf('Tab Workspace'))
 })
 
 test('cancellation clears pending actions and enters cancelled state', () => {

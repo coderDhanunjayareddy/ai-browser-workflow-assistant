@@ -10,6 +10,7 @@ export function expectedEffectKind(action: SuggestedAction): ExpectedEffectKind 
   const actionType = action.action_type
   if (actionType === 'navigate') return 'url_change'
   if (actionType === 'click' && action.grounding?.expected_url_path) return 'url_change'
+  if (actionType === 'click' && action.grounding?.semantic_kind === 'download_control') return 'download_complete'
   if (actionType === 'click') return 'target_state_change'
   if (actionType === 'fill') return 'value_change'
   if (['select_option', 'choose_date'].includes(actionType)) return 'selection_change'

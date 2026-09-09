@@ -55,6 +55,7 @@ import {
   type MultiTabWorkspace,
 } from '../workspace/multiTabWorkspace'
 import { ConsequentialSubmissionLedger } from './consequential_submission_ledger'
+import { downloadMetadata } from './file_transfer_metadata'
 
 const POLICY_BACKEND_URL = BACKEND_URL
 const CONTENT_RESERVATIONS_KEY = 'content_insertion_reservations_v1'
@@ -70,6 +71,62 @@ type TrustedLocalFile = {
 
 function leafName(path: string): string {
   return String(path || '').split(/[\\/]/).pop() || ''
+}
+
+async function waitForExpectedDownload(
+  startedAt: number,
+  expectedFilename: string,
+  expectedUrl: string,
+  timeoutMs = 30_000,
+): Promise<BasicExecutionResult> {
+  const cutoff = new Date(startedAt - 500).toISOString()
+  const deadline = Date.now() + timeoutMs
+  let detected: chrome.downloads.DownloadItem | null = null
+  while (Date.now() < deadline) {
+    const items = await chrome.downloads.search({ startedAfter: cutoff, orderBy: ['-startTime'], limit: 20 })
+    const matches = items.filter((item) => {
+      const nameMatches = !expectedFilename
+        || leafName(item.filename || '').normalize('NFKC').toLocaleLowerCase()
+          === expectedFilename.normalize('NFKC').toLocaleLowerCase()
+      const urlMatches = !expectedUrl || item.url === expectedUrl || item.finalUrl === expectedUrl
+      return nameMatches && urlMatches
+    })
+    if (matches.length > 1) {
+      return {
+        success: false,
+        message: 'More than one download matched the exact requested resource; completion was not attributed.',
+        action_id: '',
+        download_detected: true,
+        download_completed: false,
+      }
+    }
+    detected = matches[0] ?? detected
+    if (detected?.state === 'interrupted') {
+      return {
+        success: false,
+        message: `The exact download was interrupted (${detected.error || 'unknown reason'}).`,
+        action_id: '',
+        ...downloadMetadata(detected, false),
+      }
+    }
+    if (detected?.state === 'complete' && detected.exists !== false) {
+      return {
+        success: true,
+        message: `Downloaded and verified the exact file: ${leafName(detected.filename)}`,
+        action_id: '',
+        ...downloadMetadata(detected, true),
+      }
+    }
+    await sleep(100)
+  }
+  return {
+    success: false,
+    message: detected
+      ? 'The exact download was detected but did not complete within the bounded verification window.'
+      : 'No download matching the exact observed resource was detected within the bounded verification window.',
+    action_id: '',
+    ...(detected ? downloadMetadata(detected, false) : { download_detected: false, download_completed: false }),
+  }
 }
 
 async function resolveTrustedLocalFile(action: ExecutableAction): Promise<
@@ -513,12 +570,13 @@ async function extractContextWithRetry(tabId?: number) {
             func: extractPageContextV2,
           }),
           chrome.scripting.executeScript({
-            target: { tabId: tab.id },
+            target: { tabId: tab.id, allFrames: true },
             func: extractPageContext,
           }),
         ])
         const v2Context = v2Results[0]?.result
-        const v1Context = v1Results[0]?.result
+        const topFrameResult = v1Results.find((entry) => entry.frameId === 0) || v1Results[0]
+        const v1Context = topFrameResult?.result
         if (v2Context && v1Context) {
           const aliases = await chrome.scripting.executeScript({
             target: { tabId: tab.id },
@@ -527,19 +585,50 @@ async function extractContextWithRetry(tabId?: number) {
           })
           logExtractionDiagnostics('EXTRACT_CONTEXT_V1', v1Context)
           logExtractionDiagnostics('EXTRACT_CONTEXT_V2', v2Context)
+          const topOrigin = (() => {
+            try { return new URL(v1Context.url).origin } catch { return '' }
+          })()
+          const childContexts = v1Results
+            .filter((entry) => entry.frameId !== 0 && entry.result)
+            .filter((entry) => {
+              try { return new URL(entry.result!.url).origin === topOrigin } catch { return false }
+            })
+          const childInteractive = childContexts.flatMap((entry) =>
+            (entry.result!.interactive_elements || []).map((item: any) => ({
+              ...item,
+              frame_id: `chrome-frame:${entry.frameId}`,
+            })),
+          )
+          const mergedTopInteractive = mergeInteractiveElementLists(
+            v1Context.interactive_elements,
+            v2Context.interactive_elements,
+            150,
+            aliases[0]?.result || {},
+          ).map((item) => ({ ...item, frame_id: 'top' }))
+          const uniqueInteractive = new Map<string, any>()
+          for (const item of [...mergedTopInteractive, ...childInteractive]) {
+            const key = `${item.frame_id || 'top'}|${item.selector || ''}`
+            if (!uniqueInteractive.has(key)) uniqueInteractive.set(key, item)
+          }
+          const childVisibleText = childContexts
+            .map((entry) => String(entry.result!.visible_text || '').trim())
+            .filter(Boolean)
+            .join('\n')
           const merged = {
             ...v1Context,
             ...v2Context,
-            metadata: v1Context.metadata,
-            interactive_elements: mergeInteractiveElementLists(
-              v1Context.interactive_elements,
-              v2Context.interactive_elements,
-              150,
-              aliases[0]?.result || {},
-            ),
+            frame_id: 'top',
+            metadata: {
+              ...v1Context.metadata,
+              same_origin_child_frame_count: String(childContexts.length),
+            },
+            interactive_elements: [...uniqueInteractive.values()].slice(0, 150),
             content_blocks: v1Context.content_blocks,
             images: v1Context.images,
-            visible_text: v1Context.visible_text || v2Context.visible_text,
+            visible_text: [v1Context.visible_text || v2Context.visible_text, childVisibleText]
+              .filter(Boolean)
+              .join('\n')
+              .slice(0, 2000),
           }
           logExtractionDiagnostics('EXTRACT_CONTEXT_MERGED_RETURNED_TO_SIDEPANEL', merged)
           return merged
@@ -687,10 +776,6 @@ async function handleExecuteAction(
     }
 
     if (action.action_type === 'click') {
-      if (contract.browser_binding.frame_id !== 'top') {
-        sendResponse({ error: 'Browser action rejected: exact child-frame dispatch is not yet supported by the canonical click executor.' })
-        return
-      }
       let submissionBefore: SubmissionPageEvidence | null = null
       if (action.consequential_submission) {
         const inspection = await chrome.scripting.executeScript({
@@ -760,6 +845,19 @@ async function handleExecuteAction(
         trustedLocalFile,
       )
       let executionWithContentEvidence: BasicExecutionResult = cdpExecution
+      if (contract.expected_effect.kind === 'download_complete' && cdpExecution.success) {
+        const download = await waitForExpectedDownload(
+          Date.now() - Math.max(0, performance.now() - startedAt),
+          String(action.grounding?.expected_download_filename || ''),
+          String(action.grounding?.expected_download_url || ''),
+        )
+        executionWithContentEvidence = {
+          ...cdpExecution,
+          ...download,
+          action_id: action.action_id,
+          success: cdpExecution.success && download.success,
+        }
+      }
       if (action.consequential_submission && submissionBefore) {
         let after: SubmissionPageEvidence | null = null
         let delivered = false
@@ -843,10 +941,6 @@ async function handleExecuteAction(
     }
 
     if (action.action_type === 'keyboard_shortcut') {
-      if (contract.browser_binding.frame_id !== 'top') {
-        sendResponse({ error: 'Browser action rejected: exact child-frame dispatch is not yet supported by the canonical keyboard executor.' })
-        return
-      }
       const cdpExecution = await cdpController.execute(tab.id, action)
       const verifiedResult = await createVerifiedExecutionResult(tab.id, contract, beforeState, cdpExecution, startedAt)
       const exactPostcondition = requiresExactOpenedTargetVerification(contract)
@@ -864,10 +958,6 @@ async function handleExecuteAction(
     }
 
     if (executorStrategy === 'trusted_cdp') {
-      if (contract.browser_binding.frame_id !== 'top') {
-        sendResponse({ error: 'Browser action rejected: exact child-frame dispatch is not yet supported by the canonical trusted-input executor.' })
-        return
-      }
       const cdpExecution = await cdpController.execute(tab.id, action)
       const verifiedResult = await createVerifiedExecutionResult(tab.id, contract, beforeState, cdpExecution, startedAt)
       const completed = attachCanonicalContractEvidence(
@@ -1142,8 +1232,10 @@ async function captureActionVerificationState(
   fallbackTab?: chrome.tabs.Tab,
 ): Promise<ActionVerificationState> {
   try {
+    const frameMatch = /^chrome-frame:(\d+)$/.exec(String(action.grounding?.frame_id || ''))
+    const frameId = frameMatch ? Number(frameMatch[1]) : null
     const [state] = await chrome.scripting.executeScript({
-      target: { tabId },
+      target: frameId === null ? { tabId } : { tabId, frameIds: [frameId] },
       func: captureVerificationState,
       args: [action],
     })

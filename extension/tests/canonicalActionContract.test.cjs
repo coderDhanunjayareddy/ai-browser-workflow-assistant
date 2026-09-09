@@ -104,6 +104,23 @@ test('navigation-result click preserves its exact URL postcondition', () => {
   assert.equal(contract.expected_effect.url_path, '/watch')
 })
 
+test('observed download control requires completed-download evidence', () => {
+  const contract = buildCanonicalActionContract(clickAction({
+    target_selector: 'a#download-report',
+    grounding: {
+      source: 'dom_snapshot',
+      accessibility_name: 'Download Report',
+      role: 'link',
+      semantic_kind: 'download_control',
+      expected_download_filename: 'synthetic-download.txt',
+      expected_download_url: 'https://example.test/synthetic-download.txt',
+    },
+  }), context, 'download-key')
+  assert.equal(contract.expected_effect.kind, 'download_complete')
+  assert.equal(contract.action.grounding.expected_download_filename, 'synthetic-download.txt')
+  assert.equal(contract.action.grounding.expected_download_url, 'https://example.test/synthetic-download.txt')
+})
+
 test('content-insertion control names are not misclassified as newly opened resource identities', () => {
   const contract = buildCanonicalActionContract(clickAction({
     target_selector: 'button[aria-label="Attach"]',
@@ -168,6 +185,14 @@ test('production service worker has one click mutation route and no selector-rec
   assert.doesNotMatch(clickBranch, /executeAction|executeActionV2|findRecoverySelector|\.click\(/)
   assert.match(worker, /canonicalExecutorStrategy/)
   assert.match(worker, /no canonical executor is registered/)
+})
+
+test('production worker observes same-origin child frames and verifies in the bound frame', () => {
+  const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
+  assert.match(worker, /allFrames: true/)
+  assert.match(worker, /frame_id: `chrome-frame:\$\{entry\.frameId\}`/)
+  assert.match(worker, /frameIds: \[frameId\]/)
+  assert.doesNotMatch(worker, /exact child-frame dispatch is not yet supported/)
 })
 
 test('production gateway does not import competing legacy mutation pipelines', () => {

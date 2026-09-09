@@ -8,6 +8,10 @@ const dynamicDialogFixturePath = path.join(__dirname, 'dynamic-dialog-fixture.ht
 const formConformanceFixturePath = path.join(__dirname, 'form-conformance-fixture.html');
 const paginationConformanceFixturePath = path.join(__dirname, 'pagination-conformance-fixture.html');
 const collectionConformanceFixturePath = path.join(__dirname, 'collection-conformance-fixture.html');
+const frameConformanceFixturePath = path.join(__dirname, 'frame-conformance-fixture.html');
+const frameConformanceChildPath = path.join(__dirname, 'frame-conformance-child.html');
+const downloadConformanceFixturePath = path.join(__dirname, 'download-conformance-fixture.html');
+const syntheticDownloadPath = path.join(__dirname, 'synthetic-download.txt');
 const server = http.createServer((request, response) => {
   if (request.url === '/health') {
     response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -42,6 +46,32 @@ const server = http.createServer((request, response) => {
   if (request.url?.startsWith('/collection-conformance-fixture.html')) {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     fs.createReadStream(collectionConformanceFixturePath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/frame-conformance-fixture.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(frameConformanceFixturePath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/frame-conformance-child.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(frameConformanceChildPath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/download-conformance-fixture.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(downloadConformanceFixturePath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/synthetic-download.txt')) {
+    const size = fs.statSync(syntheticDownloadPath).size;
+    response.writeHead(200, {
+      'content-type': 'text/plain; charset=utf-8',
+      'content-length': size,
+      'content-disposition': 'attachment; filename="synthetic-download.txt"',
+      'cache-control': 'no-store',
+    });
+    fs.createReadStream(syntheticDownloadPath).pipe(response);
     return;
   }
   response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });

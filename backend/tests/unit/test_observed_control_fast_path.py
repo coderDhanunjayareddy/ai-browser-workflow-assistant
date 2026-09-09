@@ -1807,6 +1807,35 @@ def test_observed_control_rejects_ambiguous_exact_accessible_identity() -> None:
     assert _find_observed_control(duplicate_links, exact_labels=("page 2",)) is None
 
 
+def test_named_control_location_qualifier_preserves_child_frame_binding() -> None:
+    response = _deterministic_observed_control_response(
+        session_id="frame-control",
+        task=(
+            "Activate the exact enabled control named Continue inside the embedded workspace "
+            "exactly once. Verify fixture_state=frame_continued_exactly_once"
+        ),
+        page_context=_page(
+            "https://unfamiliar.example/frame-host",
+            [
+                InteractiveElement(
+                    type="button",
+                    selector="#frame-continue",
+                    text="Continue",
+                    visible=True,
+                    role="button",
+                    frame_id="chrome-frame:7",
+                )
+            ],
+        ),
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].target_selector == "#frame-continue"
+    assert response.suggested_actions[0].grounding["frame_id"] == "chrome-frame:7"
+
+
 def test_registration_with_missing_credentials_asks_instead_of_fabricating_values() -> None:
     response = _deterministic_observed_control_response(
         session_id="register",

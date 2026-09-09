@@ -190,6 +190,101 @@ def test_compound_task_preserves_completed_gmail_and_opens_youtube_in_new_tab():
     assert continued.suggested_actions[0].value == "https://www.youtube.com/"
 
 
+def test_compound_explicit_urls_on_same_host_preserve_path_identity():
+    first_url = "http://127.0.0.1:8765/frame-conformance-fixture.html"
+    second_url = "http://127.0.0.1:8765/pagination-conformance-fixture.html"
+    task = f"Open {first_url}. Then open {second_url} in a new tab."
+
+    initial = resolve_destination(session_id="same-host-paths", task=task, page_context=page())
+    assert initial is not None
+    assert initial.suggested_actions[0].action_type == "navigate"
+    assert initial.suggested_actions[0].value == first_url
+
+    continued = resolve_destination(
+        session_id="same-host-paths",
+        task=task,
+        page_context=page(first_url),
+        prior_steps=[successful_navigation(first_url)],
+    )
+    assert continued is not None
+    assert continued.suggested_actions[0].action_type == "open_new_tab"
+    assert continued.suggested_actions[0].value == second_url
+
+
+def test_explicit_url_identity_normalizes_only_trailing_slash_and_optional_fragment():
+    objective = "Open https://example.com/workspace/#inbox"
+    result = resolve_destination(
+        session_id="explicit-fragment",
+        task=objective,
+        page_context=page("https://example.com/workspace/#inbox"),
+        prior_steps=[successful_navigation("https://example.com/workspace/#inbox")],
+    )
+    assert result is None
+
+    different_path = resolve_destination(
+        session_id="explicit-fragment-path",
+        task=objective,
+        page_context=page("https://example.com/other/#inbox"),
+        prior_steps=[successful_navigation("https://example.com/other/#inbox")],
+    )
+    assert different_path is not None
+    assert different_path.suggested_actions[0].value == "https://example.com/workspace/#inbox"
+
+
+def test_completed_destinations_focus_one_observed_existing_tab_by_exact_title():
+    first_url = "http://127.0.0.1:8765/frame-conformance-fixture.html"
+    second_url = "http://127.0.0.1:8765/pagination-conformance-fixture.html"
+    task = (
+        f"Open {first_url}. Then open {second_url} in a new tab. "
+        "Return to the original tab titled Neutral Framed Workspace and verify that exact title."
+    )
+    prior_steps = [
+        successful_navigation(first_url),
+        PriorStep(
+            action_type="open_new_tab",
+            description=f"Open {second_url}",
+            value=second_url,
+            execution_result="success: new tab loaded",
+            page_url=second_url,
+            page_title="Neutral Pagination Workspace",
+        ),
+    ]
+    result = resolve_destination(
+        session_id="focus-exact-title",
+        task=task,
+        page_context=PageContext(
+            url=second_url, title="Neutral Pagination Workspace", metadata={},
+            interactive_elements=[], content_blocks=[], headings=[], selected_text="", visible_text="", images=[],
+        ),
+        prior_steps=prior_steps,
+        user_context=(
+            "Tab Workspace\nActive: Neutral Pagination Workspace\nOpen Tabs:\n"
+            "1. Neutral Pagination Workspace - active\n"
+            "2. Neutral Framed Workspace - visited"
+        ),
+    )
+    assert result is not None
+    assert result.outcome_kind == "act"
+    assert result.suggested_actions[0].action_type == "focus_existing_tab"
+    assert result.suggested_actions[0].value == "title:Neutral Framed Workspace"
+
+
+def test_exact_requested_tab_title_reports_only_after_active_title_matches():
+    result = resolve_destination(
+        session_id="focus-title-complete",
+        task="Return to the original tab titled Neutral Framed Workspace and verify that exact title.",
+        page_context=PageContext(
+            url="https://example.test/", title="Neutral Framed Workspace", metadata={},
+            interactive_elements=[], content_blocks=[], headings=[], selected_text="", visible_text="", images=[],
+        ),
+        user_context="Tab Workspace\nActive: Neutral Framed Workspace",
+    )
+    assert result is not None
+    assert result.outcome_kind == "report"
+    assert result.sgv_verified is True
+    assert result.goal_convergence is True
+
+
 def test_compound_task_preserves_failed_gmail_attempt_and_continues_independent_media_objective():
     continued = resolve_destination(
         session_id="s2-blocked",

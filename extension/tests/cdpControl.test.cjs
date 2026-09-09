@@ -155,6 +155,36 @@ test('stable selector grounding scrolls an exact offscreen target into the viewp
   assert.match(source, /direct\.scrollIntoView\(\{ block: 'center', inline: 'center', behavior: 'instant' \}\)/)
 })
 
+test('stable selector grounding traverses a same-origin child frame and preserves top coordinates', () => {
+  const style = () => ({ display: 'block', visibility: 'visible' })
+  const target = {
+    tagName: 'BUTTON',
+    textContent: 'Continue',
+    value: '',
+    getAttribute: (name) => name === 'aria-label' ? 'Continue' : null,
+    getBoundingClientRect: () => ({ left: 20, top: 30, width: 100, height: 40 }),
+    querySelectorAll: () => [],
+    scrollIntoView: () => undefined,
+  }
+  const childDocument = {
+    querySelectorAll: (selector) => selector === '#frame-continue' ? [target] : [],
+  }
+  const frame = {
+    tagName: 'IFRAME',
+    contentDocument: childDocument,
+    shadowRoot: null,
+    getBoundingClientRect: () => ({ left: 200, top: 100, width: 400, height: 300 }),
+  }
+  const topDocument = {
+    querySelectorAll: (selector) => selector === '*' ? [frame] : [],
+  }
+  const expression = runtimeGroundingExpression('#frame-continue', 'Continue')
+  const result = Function('document', 'getComputedStyle', `return ${expression}`)(topDocument, style)
+
+  assert.equal(result.ok, true)
+  assert.deepEqual({ x: result.x, y: result.y }, { x: 270, y: 150 })
+})
+
 test('ambiguous exact text fragments resolve only through one exact actionable primary line', () => {
   const style = () => ({ display: 'block', visibility: 'visible' })
   const makeRow = (innerText, left) => ({

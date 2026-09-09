@@ -318,6 +318,13 @@ export function extractPageContextV2(): PageContext {
         item.input_type = el.type
         item.placeholder = el.placeholder || undefined
       }
+      if (el instanceof HTMLAnchorElement) {
+        item.href = el.href
+        if (el.hasAttribute('download') || /\.(?:pdf|csv|tsv|txt|json|zip|docx?|xlsx?|pptx?|png|jpe?g|webp|mp3|mp4)(?:$|[?#])/i.test(el.href)) {
+          item.semantic_kind = 'download_control'
+          item.download_filename = el.download || decodeURIComponent(new URL(el.href, window.location.href).pathname.split('/').pop() || '') || null
+        }
+      }
 
       return item
     })

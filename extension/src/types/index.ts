@@ -24,7 +24,10 @@ export interface InteractiveElement {
   }
   href?: string
   semantic_kind?: string
+  download_filename?: string | null
   selector_id?: string
+  /** Exact Chrome frame binding. Child-frame observations use chrome-frame:<id>. */
+  frame_id?: string
 }
 
 export interface ContentBlock {
@@ -36,6 +39,7 @@ export interface ContentBlock {
 export interface PageContext {
   tab_id?: number
   window_id?: number
+  frame_id?: string
   url: string
   title: string
   metadata: Record<string, string>
@@ -94,6 +98,8 @@ export interface ActionGrounding {
   role?: string | null
   semantic_kind?: string | null
   expected_url_path?: string | null
+  expected_download_filename?: string | null
+  expected_download_url?: string | null
   screenshot_verified?: boolean
   screenshot_hash?: string | null
   bounding_box?: { x: number; y: number; width: number; height: number } | null
@@ -106,6 +112,7 @@ export type ExpectedEffectKind =
   | 'selection_change'
   | 'viewport_change'
   | 'tab_state_change'
+  | 'download_complete'
   | 'page_state_change'
   | 'no_mutation'
 

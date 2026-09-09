@@ -164,6 +164,7 @@ export function bindObservationGrounding(action: SuggestedAction, context: PageC
       ...(action.grounding || {}),
       source: visualAction ? 'vision_region' : 'dom_snapshot',
       selector_id: observed.selector_id ?? observed.element_id ?? null,
+      frame_id: observed.frame_id ?? action.grounding?.frame_id ?? context.frame_id ?? 'top',
       accessibility_name: action.grounding?.accessibility_name ?? observed.accessibility_name ?? observed.aria_label ?? observed.text ?? null,
       role: action.grounding?.role ?? observed.role ?? observed.type ?? null,
       semantic_kind: action.grounding?.semantic_kind ?? observed.semantic_kind ?? null,
@@ -935,12 +936,15 @@ function buildSupplementalContext(
     content: task,
     priority: 1,
   })
+  // Exact tab identity is executable runtime state. Keep it ahead of larger
+  // descriptive summaries so context budgeting cannot erase a required tab
+  // binding while leaving only narrative mission/workspace text.
+  const tabWorkspaceSummary = summarizeMultiTabWorkspace(tabWorkspace)
+  if (tabWorkspaceSummary) sections.push(summarySection(tabWorkspaceSummary, 1))
   const missionSummary = summarizeMissionSnapshot(missionSnapshot)
   if (missionSummary) sections.push(summarySection(missionSummary, 1))
   const workspaceSummary = summarizeTaskWorkspace(workspace)
   if (workspaceSummary) sections.push(summarySection(workspaceSummary, 2))
-  const tabWorkspaceSummary = summarizeMultiTabWorkspace(tabWorkspace)
-  if (tabWorkspaceSummary) sections.push(summarySection(tabWorkspaceSummary, 2))
 
   if (userInputs.length > 0) {
     sections.push({

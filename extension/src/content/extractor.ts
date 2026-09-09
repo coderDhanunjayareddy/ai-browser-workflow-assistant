@@ -460,6 +460,10 @@ export function extractPageContext(): PageContext {
       }
       if (el instanceof HTMLAnchorElement) {
         base.href = el.href
+        if (el.hasAttribute('download') || /\.(?:pdf|csv|tsv|txt|json|zip|docx?|xlsx?|pptx?|png|jpe?g|webp|mp3|mp4)(?:$|[?#])/i.test(el.href)) {
+          base.semantic_kind = 'download_control'
+          base.download_filename = el.download || decodeURIComponent(new URL(el.href, window.location.href).pathname.split('/').pop() || '') || null
+        }
       }
       if (el instanceof HTMLInputElement) {
         return { ...base, input_type: el.type, placeholder: el.placeholder || undefined }

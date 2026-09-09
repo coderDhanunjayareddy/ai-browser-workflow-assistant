@@ -291,10 +291,135 @@ def _host_matches(url: str, domains: tuple[str, ...]) -> bool:
     return any(host == domain or host.endswith(f".{domain}") for domain in domains)
 
 
+def _explicit_destination_matches(observed_url: str, expected_url: str) -> bool:
+    """Compare explicit destinations without collapsing distinct paths on one host.
+
+    Registry applications intentionally use host-level identity because their
+    authenticated routes vary. An explicit user URL is different: its path and
+    query are part of the requested destination and must survive objective
+    sequencing. Fragments are required only when the user supplied one.
+    """
+    observed_safe = _safe_http_url(observed_url)
+    expected_safe = _safe_http_url(expected_url)
+    if not observed_safe or not expected_safe:
+        return False
+    try:
+        observed = urlparse(observed_safe)
+        expected = urlparse(expected_safe)
+        observed_port = observed.port or (443 if observed.scheme.lower() == "https" else 80)
+        expected_port = expected.port or (443 if expected.scheme.lower() == "https" else 80)
+    except ValueError:
+        return False
+
+    def normalized_path(value: str) -> str:
+        path = value or "/"
+        return path if path == "/" else path.rstrip("/")
+
+    same_resource = (
+        observed.scheme.lower() == expected.scheme.lower()
+        and (observed.hostname or "").lower() == (expected.hostname or "").lower()
+        and observed_port == expected_port
+        and normalized_path(observed.path) == normalized_path(expected.path)
+        and observed.query == expected.query
+    )
+    return same_resource and (not expected.fragment or observed.fragment == expected.fragment)
+
+
 def _accepted_alternative(user_context: str) -> bool:
     normalized = _normalize(user_context)
     return bool(re.search(r"\banswer\s+(?:yes|okay|ok|sure|proceed|continue)\b", normalized)) or any(
         f"use {_normalize(app.display_name)}" in normalized for app in APP_DESTINATIONS
+    )
+
+
+def _requested_tab_title(task: str) -> str | None:
+    match = re.search(
+        r"\b(?:return|switch|focus|go\s+back)\b[^.]{0,100}?\btab\s+titled\s+"
+        r"[\"']?(.+?)[\"']?(?=\s+(?:and\s+verify|without|but\s+do\s+not|do\s+not)\b|[.;]|$)",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    title = " ".join(match.group(1).strip(" \t\"'").split())
+    return title or None
+
+
+def _workspace_tab_titles(user_context: str) -> list[str]:
+    titles: list[str] = []
+    for line in str(user_context or "").splitlines():
+        text = line.strip()
+        active = re.match(r"^Active:\s*(.+?)\s*$", text, flags=re.IGNORECASE)
+        listed = re.match(
+            r"^\d+\.\s*(.+?)\s+-\s*(?:active|visited|completed|closed)(?:,.*)?$",
+            text,
+            flags=re.IGNORECASE,
+        )
+        candidate = active.group(1) if active else listed.group(1) if listed else ""
+        candidate = " ".join(candidate.split())
+        if candidate and candidate not in titles:
+            titles.append(candidate)
+    return titles
+
+
+def _tab_focus_response(
+    *,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    user_context: str,
+) -> AnalyzeResponse | None:
+    requested = _requested_tab_title(task)
+    if not requested:
+        return None
+    current_title = " ".join(str(getattr(page_context, "title", "") or "").split())
+    if current_title.casefold() == requested.casefold():
+        return AnalyzeResponse(
+            session_id=session_id,
+            analysis="The explicitly requested existing tab is active and its exact title is verified.",
+            outcome_kind="report",
+            report=ReportOutcome(
+                answer=f'Verified that the existing tab titled "{requested}" is active.',
+                claim=f'The active browser page title exactly matches "{requested}".',
+            ),
+            suggested_actions=[],
+            sgv_verified=True,
+            goal_convergence=True,
+            backend_authoritative_report=True,
+        )
+    matches = [title for title in _workspace_tab_titles(user_context) if title.casefold() == requested.casefold()]
+    if len(matches) != 1:
+        return AnalyzeResponse(
+            session_id=session_id,
+            analysis="Tab focus paused because the exact requested title was not unique in the observed tab workspace.",
+            outcome_kind="ask",
+            clarification_question=(
+                f'I could not identify exactly one open tab titled "{requested}". '
+                "Please keep the intended tab open or provide its exact current title."
+            ),
+            suggested_actions=[],
+        )
+    digest = hashlib.sha256(f"{session_id}|focus-title|{requested}".encode("utf-8")).hexdigest()[:16]
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis="Focus the uniquely observed existing tab by its exact title without opening or closing a tab.",
+        outcome_kind="act",
+        suggested_actions=[SuggestedAction(
+            action_id=f"tab-focus-{digest}",
+            action_type="focus_existing_tab",
+            target_selector="",
+            value=f"title:{matches[0]}",
+            description=f'Focus the existing tab titled "{matches[0]}"',
+            reasoning="The requested title has one exact match in the observed tab workspace.",
+            confidence=0.95,
+            safety_level="safe",
+            provenance=[{
+                "source_type": "system",
+                "source_id": "tab_lifecycle_resolver.v1",
+                "trust": "trusted",
+                "labels": ["exact_tab_title", "existing_tab_only"],
+            }],
+        )],
     )
 
 
@@ -318,9 +443,8 @@ def _objective_satisfied(
         app = _APP_BY_ID[objective.app_id]
         return any(_host_matches(url, app.domains) for url in observed_urls if url)
     if objective.explicit_url:
-        expected = urlparse(objective.explicit_url)
         return any(
-            (urlparse(url).hostname or "").lower() == (expected.hostname or "").lower()
+            _explicit_destination_matches(url, objective.explicit_url)
             for url in observed_urls if url
         )
     return False
@@ -915,6 +1039,14 @@ def resolve_destination(
         return media_response
     decision = _decision(task, page_context, prior_steps or [], user_context)
     if decision.kind == "none" or decision.objective is None:
+        focus_response = _tab_focus_response(
+            session_id=session_id,
+            task=task,
+            page_context=page_context,
+            user_context=user_context,
+        )
+        if focus_response is not None:
+            return focus_response
         return None
     if decision.kind == "ask":
         return AnalyzeResponse(

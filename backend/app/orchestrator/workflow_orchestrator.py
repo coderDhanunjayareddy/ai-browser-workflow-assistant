@@ -2961,6 +2961,16 @@ def _deterministic_observed_control_response(
             matched_name.strip(" `\"'\u201c\u201d"),
             flags=re.IGNORECASE,
         ).strip()
+        # Location phrases qualify where the control lives; they are not part
+        # of its accessible identity (for example, "Continue inside the
+        # embedded workspace"). Keep the exact name stable across frames,
+        # dialogs, panels, and sections.
+        named_control = re.split(
+            r"\s+(?:inside|within|in)\s+(?:the\s+)?",
+            named_control,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0].strip()
         if named_control:
             named_controls.append(named_control)
     if not action_type and named_controls:
@@ -3041,10 +3051,14 @@ def _deterministic_observed_control_response(
                 target_grounding = {
                     "source": "dom_snapshot",
                     "selector_id": selector,
+                    "frame_id": str(control.get("frame_id") or getattr(page_context, "frame_id", "top") or "top"),
                     "accessibility_name": observed_identity(control),
                     "role": str(control.get("role") or control.get("type") or "").strip() or None,
-                    "semantic_kind": "explicitly_named_control",
+                    "semantic_kind": str(control.get("semantic_kind") or "explicitly_named_control"),
                 }
+                if str(control.get("semantic_kind") or "").casefold() == "download_control":
+                    target_grounding["expected_download_filename"] = str(control.get("download_filename") or "").strip() or None
+                    target_grounding["expected_download_url"] = str(control.get("href") or "").strip() or None
                 break
             if len(remaining_matches) > 1:
                 return AnalyzeResponse(

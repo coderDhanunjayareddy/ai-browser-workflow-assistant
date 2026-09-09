@@ -301,7 +301,9 @@ export function runtimeGroundingExpression(selector: string, exactName: string |
         const r = direct.getBoundingClientRect();
         return { ok: true, x: offsetX + r.left + r.width / 2, y: offsetY + r.top + r.height / 2, observedName: label(direct) };
       }
-      if (direct) return { ok: false, reason: 'selector_exact_name_mismatch', observedName: label(direct) };
+      const directMismatch = direct
+        ? { ok: false, reason: 'selector_exact_name_mismatch', observedName: label(direct) }
+        : null;
       const elements = root.querySelectorAll ? Array.from(root.querySelectorAll('*')) : [];
       for (const el of elements) {
         visited += 1;
@@ -317,7 +319,7 @@ export function runtimeGroundingExpression(selector: string, exactName: string |
           } catch {}
         }
       }
-      return { ok: false, reason: 'selector_not_found' };
+      return directMismatch || { ok: false, reason: 'selector_not_found' };
     };
     return walk(document, 0, 0, 0);
   })()`
@@ -480,7 +482,14 @@ export class CdpController {
       attempts.push('stable_selector:unavailable')
     }
 
-    const frameId = action.grounding?.frame_id && action.grounding.frame_id !== 'top' ? action.grounding.frame_id : undefined
+    const requestedFrame = action.grounding?.frame_id || 'top'
+    // chrome-frame:<id> is the exact extension frame binding. Stable-selector
+    // grounding above traverses same-origin documents from the top context;
+    // never pass a Chrome frame id to CDP, whose Page.FrameId is a different
+    // identifier namespace.
+    const frameId = requestedFrame !== 'top' && !requestedFrame.startsWith('chrome-frame:')
+      ? requestedFrame
+      : undefined
     const ax = await send(target, 'Accessibility.getFullAXTree', frameId ? { frameId } : {}).catch(() => ({ nodes: [] }))
     const backendNodeId = action.action_type === 'click'
       ? chooseExactAccessibilityBackendNode(Array.isArray(ax.nodes) ? ax.nodes : [], action)

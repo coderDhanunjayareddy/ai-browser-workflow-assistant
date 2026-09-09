@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Embedded Workspace</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 30px; }
+    button { padding: 12px 24px; font-weight: 650; }
+    #marker { color: #14532d; font: 600 14px ui-monospace, monospace; }
+  </style>
+</head>
+<body>
+  <h2>Embedded task</h2>
+  <p id="marker">fixture_state=frame_waiting</p>
+  <button id="frame-continue" type="button" aria-label="Continue">Continue</button>
+  <script>
+    document.getElementById('frame-continue').addEventListener('click', () => {
+      const marker = document.getElementById('marker');
+      if (marker.textContent === 'fixture_state=frame_waiting') {
+        marker.textContent = 'fixture_state=frame_continued_exactly_once';
+      }
+    });
+  </script>
+</body>
+</html>

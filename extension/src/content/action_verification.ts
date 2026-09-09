@@ -17,6 +17,7 @@ export interface ExpectedEffectContract {
     | 'selection_change'
     | 'viewport_change'
     | 'tab_state_change'
+    | 'download_complete'
     | 'page_state_change'
     | 'no_mutation'
   description: string
@@ -88,6 +89,7 @@ export interface BasicExecutionResult {
   rich_text_validated?: boolean
   download_detected?: boolean
   download_completed?: boolean
+  download_path_ref?: string | null
   opened_tab_id?: number | null
   previous_tab_id?: number | null
   active_tab_id?: number | null
@@ -436,6 +438,13 @@ export function verifyActionEffect(
         verified = executionResult.tab_switch_verified === true
           || typeof executionResult.opened_tab_id === 'number'
           || typeof executionResult.closed_tab_id === 'number'
+        break
+      case 'download_complete':
+        verified = executionResult.download_detected === true
+          && executionResult.download_completed === true
+          && Boolean(executionResult.filename)
+          && typeof executionResult.size_bytes === 'number'
+          && executionResult.size_bytes > 0
         break
       case 'page_state_change':
         verified = Boolean(

@@ -17,7 +17,9 @@ class InteractiveElement(BaseModel):
     element_id: Optional[str] = None
     href: Optional[str] = None
     semantic_kind: Optional[str] = None
+    download_filename: Optional[str] = None
     selector_id: Optional[str] = None
+    frame_id: str = Field(default="top", min_length=1, max_length=300)
 
 
 class ContentBlock(BaseModel):

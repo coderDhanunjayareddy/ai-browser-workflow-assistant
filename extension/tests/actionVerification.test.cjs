@@ -75,6 +75,25 @@ test('click reports no effect when state is unchanged', () => {
   assert.equal(verification.reason, 'no_effect')
 })
 
+test('download effect requires completed file identity and positive size', () => {
+  const downloadAction = action('click')
+  const contract = { kind: 'download_complete', description: 'Download the exact observed resource' }
+  const incomplete = verifyActionEffect(
+    downloadAction,
+    { ...result('click'), download_detected: true, download_completed: false, filename: 'report.txt', size_bytes: 10 },
+    state(), state(), 12, contract,
+  )
+  assert.equal(incomplete.verified, false)
+
+  const complete = verifyActionEffect(
+    downloadAction,
+    { ...result('click'), download_detected: true, download_completed: true, filename: 'report.txt', size_bytes: 10 },
+    state(), state(), 12, contract,
+  )
+  assert.equal(complete.verified, true)
+  assert.equal(complete.reason, 'verified')
+})
+
 test('navigation-result click requires the declared URL path, not a generic DOM change', () => {
   const navigationClick = {
     ...action('click'),
