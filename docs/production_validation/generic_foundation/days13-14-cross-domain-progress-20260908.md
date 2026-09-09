@@ -17,6 +17,7 @@
 | Same-origin child frame: observe, exact bind, trusted click, same-frame verify | Neutral local fixture | PASS | 34.2 s | navigate, click | 0 / 0 |
 | Tab lifecycle: distinct same-origin paths, new tab, exact-title return | Neutral local fixtures | PASS | 32.2 s | navigate, open new tab, focus existing tab | 0 / 0 |
 | Native download: exact observed control, completed file identity, MIME, size, hash | Neutral local fixture | PASS | 38.8 s | navigate, click | 0 / 0 |
+| Production-owned local-file insertion: exact broker binding + preview, no commit | Neutral local fixture | PASS | 47.9 s | navigate, click | 0 / 0 |
 
 Every browser mutation above travelled through the extension side panel and the canonical gateway. The live harness did not directly click or fill the target page. The authentication run intentionally stopped before the synthetic human action.
 
@@ -43,10 +44,11 @@ Every browser mutation above travelled through the extension side panel and the 
 19. `gf-d1314-download-04` was an infrastructure-only diagnostic: the local fixture server had stopped, the workflow performed one navigation attempt, detected the browser error page, and stopped without clicking or downloading. The fixture process was restored and its health, 106-byte content length, MIME type, and attachment filename were verified before later runs.
 20. The subsequent Playwright-owned fresh-profile runs (`gf-d1314-download-05` through `gf-d1314-download-09`) prove that the canonical trusted click requested `/synthetic-download.txt` exactly once per run at the fixture server, but Playwright's download manager did not expose the completed artifact through Chrome's extension download ledger or browser debugger events. The application therefore correctly refused to claim completion. This is an unresolved certification-harness compatibility gap, not a download PASS; a normal-Chrome live run is still required.
 21. The normal-Chrome run (`gf-d1314-download-native-01`) passed in 38.8 seconds. The persisted workflow contains exactly one successful navigation and one successful canonical click whose authoritative effect was `download_complete`. The server recorded exactly one `/synthetic-download.txt` request. Native Downloads contains exactly one 106-byte `synthetic-download.txt`; its SHA-256 (`1FC13CB20F6590BD58EFADB4A17E46E0DE8B9ADD42DE56753583BB50870F4EE0`) exactly equals the approved fixture, and the response MIME is `text/plain`. The file was not opened, uploaded, shared, or deleted.
+22. The first production-owned content-insertion run (`gf-d1314-content-insertion-prod-01`) passed in 47.9 seconds without the diagnostic `--legacy-harness-file-selection` flag and without a runner file-path argument. The service worker resolved exactly one top-level Downloads file through `local_downloads_broker_exact_match`; the canonical CDP trace records `file_binding:local_downloads_broker_exact_match:exact_filename`. The page visibly reached `fixture_state=preview_ready_exactly_once` and displayed `synthetic-day5.txt | text/plain | 130`. The separate `Commit content` counter remained `0`. Both durable actions succeeded on their first non-retryable attempt; no submission, send, share, delete, or duplicate chooser occurred.
 
 ## Regression results
 
-- Focused backend foundation/policy/intervention/orchestrator suite: **219 passed**.
+- Release-critical backend foundation/policy/intervention/orchestrator suite: **363 passed**.
 - Full extension suite: **244 passed**.
 - Focused child-frame/backend grounding suites: **106 extension checks and 70 backend checks passed**.
 - Extension TypeScript check: **passed**.
@@ -87,10 +89,13 @@ Every browser mutation above travelled through the extension side panel and the 
 - `docs/production_validation/live_sidepanel/gf-d1314-download-09.json`
 - `docs/production_validation/generic_foundation/fixture-server-live.log` (server-side exact request evidence)
 - `docs/production_validation/live_sidepanel/gf-d1314-download-native-01.json`
+- `docs/production_validation/live_sidepanel/gf-d1314-content-insertion-prod-01.json`
+- `docs/production_validation/live_sidepanel/gf-d1314-content-insertion-prod-01-target.png`
+- `docs/production_validation/generic_foundation/pre-days13-14-evidence-audit-20260909.md`
 
 ## Remaining before the Days 13–14 exit
 
-- Complete production-owned content insertion. Verified native download, tab lifecycle, and same-origin child-frame execution now pass; cross-origin frame isolation remains part of the live safety matrix.
+- Extend the passed production-owned content-insertion checkpoint to randomized controls, stale-target/restart recovery, and structurally different authorized real services. Verified native download, tab lifecycle, and same-origin child-frame execution also pass; cross-origin frame isolation remains part of the live safety matrix.
 - Run unseen/randomized DOM variants for each mutation family.
 - Complete restart/resume and stale-target live variants with duplicate-effect accounting.
 - Complete prompt-injection, cross-origin, account-confusion, and privileged-URL live safety cases.

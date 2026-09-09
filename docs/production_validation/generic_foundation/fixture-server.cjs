@@ -11,6 +11,7 @@ const collectionConformanceFixturePath = path.join(__dirname, 'collection-confor
 const frameConformanceFixturePath = path.join(__dirname, 'frame-conformance-fixture.html');
 const frameConformanceChildPath = path.join(__dirname, 'frame-conformance-child.html');
 const downloadConformanceFixturePath = path.join(__dirname, 'download-conformance-fixture.html');
+const contentInsertionConformanceFixturePath = path.join(__dirname, 'content-insertion-conformance-fixture.html');
 const syntheticDownloadPath = path.join(__dirname, 'synthetic-download.txt');
 const server = http.createServer((request, response) => {
   console.log(`${new Date().toISOString()} ${request.method} ${request.url}`);
@@ -64,6 +65,11 @@ const server = http.createServer((request, response) => {
     fs.createReadStream(downloadConformanceFixturePath).pipe(response);
     return;
   }
+  if (request.url?.startsWith('/content-insertion-conformance-fixture.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(contentInsertionConformanceFixturePath).pipe(response);
+    return;
+  }
   if (request.url?.startsWith('/synthetic-download.txt')) {
     const size = fs.statSync(syntheticDownloadPath).size;
     response.writeHead(200, {
@@ -79,4 +85,8 @@ const server = http.createServer((request, response) => {
   response.end('Not found');
 });
 
-server.listen(8765, '127.0.0.1');
+const requestedPort = Number(process.argv[2] || 8765);
+if (!Number.isInteger(requestedPort) || requestedPort < 1024 || requestedPort > 65535) {
+  throw new Error(`Invalid fixture port: ${process.argv[2]}`);
+}
+server.listen(requestedPort, '127.0.0.1');

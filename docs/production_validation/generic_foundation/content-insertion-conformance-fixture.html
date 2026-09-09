@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Neutral Content Workspace</title>
+</head>
+<body>
+  <main>
+    <h1>Synthetic content preview</h1>
+    <p id="fixture-state">fixture_state=awaiting_content</p>
+    <label for="approved-content">Choose approved document</label>
+    <input id="approved-content" type="file" accept="text/plain,application/pdf">
+    <output id="content-preview" role="status" aria-live="polite"></output>
+    <button id="commit-content" type="button">Commit content</button>
+    <output id="commit-count">0</output>
+  </main>
+  <script>
+    document.getElementById('approved-content').addEventListener('change', function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      document.getElementById('content-preview').textContent =
+        `Preview: ${file.name} | ${file.type || 'application/octet-stream'} | ${file.size}`;
+      document.getElementById('fixture-state').textContent = 'fixture_state=preview_ready_exactly_once';
+    });
+    document.getElementById('commit-content').addEventListener('click', function () {
+      const count = document.getElementById('commit-count');
+      count.textContent = String(Number(count.textContent || '0') + 1);
+    });
+  </script>
+</body>
+</html>
