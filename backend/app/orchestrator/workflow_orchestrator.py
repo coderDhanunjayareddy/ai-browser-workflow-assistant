@@ -3860,7 +3860,7 @@ def _find_exact_recipient_control(
     """Return one observed destination control without accepting highlighted substrings.
 
     Search UIs commonly split a prefix match into a child span (for example,
-    ``Rahul`` inside ``Rahul Computers``).  Prefer a row/list item whose primary
+    an exact contact name inside a longer organization name). Prefer a row/list item whose primary
     label is the exact requested name followed only by result metadata.  Fall
     back to an exact leaf only when that leaf selector is unique.
     """

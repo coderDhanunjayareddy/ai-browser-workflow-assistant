@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from app.core.config import settings
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, SuggestedAction
 from app.runtime_state_manager.entity_binding import bind_runtime_resource, list_entities, register_entity
 from app.runtime_state_manager.entity_pipeline_trace import entity_pipeline_replay, entity_pipeline_telemetry
-from app.semantic_execution_kernel.engine import SemanticExecutionKernel, _repair_unsupported_contact_ambiguity
+from app.semantic_execution_kernel.engine import (
+    SemanticExecutionKernel,
+    _interactive_entity_score,
+    _repair_unsupported_contact_ambiguity,
+)
 from app.semantic_execution_kernel.mission_state import build_mission_state
 
 
@@ -87,6 +93,27 @@ def _pagination_page() -> PageContext:
         visible_text="Paged List Item A Item B Prev 1 2 Next page 1",
         images=[],
     )
+
+
+def test_contact_search_scoring_is_name_agnostic():
+    entity = SimpleNamespace(
+        title="Search contacts",
+        semantic_type="form",
+        confidence=0.9,
+        metadata={"role": "searchbox"},
+        browser_bindings=SimpleNamespace(selector="#directory-search", selector_id="directory-search"),
+    )
+
+    def score_for(name: str) -> float:
+        proposal = SimpleNamespace(
+            action_type="FILL_FORM",
+            parameters={"value": name, "description": f"Find the exact contact named {name}"},
+            source_description=f"Search contacts for {name}",
+        )
+        return _interactive_entity_score(entity, f"Open the exact chat for my contact {name}", proposal)
+
+    assert score_for("Aadhya") == score_for("Zoya")
+    assert score_for("Aadhya") > 0.5
 
 
 def test_explicit_pagination_scroll_is_repaired_to_visible_page_control(monkeypatch):

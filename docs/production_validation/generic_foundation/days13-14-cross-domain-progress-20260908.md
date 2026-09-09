@@ -16,6 +16,7 @@
 | Delayed incremental collection with randomized control order (2 fresh profiles) | Neutral local fixture | PASS 2/2 | 30.1–31.2 s | navigate, click | 0 / 0 |
 | Same-origin child frame: observe, exact bind, trusted click, same-frame verify | Neutral local fixture | PASS | 34.2 s | navigate, click | 0 / 0 |
 | Tab lifecycle: distinct same-origin paths, new tab, exact-title return | Neutral local fixtures | PASS | 32.2 s | navigate, open new tab, focus existing tab | 0 / 0 |
+| Native download: exact observed control, completed file identity, MIME, size, hash | Neutral local fixture | PASS | 38.8 s | navigate, click | 0 / 0 |
 
 Every browser mutation above travelled through the extension side panel and the canonical gateway. The live harness did not directly click or fill the target page. The authentication run intentionally stopped before the synthetic human action.
 
@@ -37,11 +38,16 @@ Every browser mutation above travelled through the extension side panel and the 
 14. The first tab-lifecycle diagnostic (`gf-d1314-tabs-01`) stopped after the first navigation because explicit destinations were considered complete by hostname alone. Two different paths on the same origin therefore collapsed into one objective. Explicit destination identity is now scheme, host, effective port, normalized path, and query sensitive (plus fragment when supplied). A deterministic, domain-neutral tab-focus stage also binds only one observed existing tab whose title exactly matches the user's requested title; it neither opens a substitute nor closes a tab.
 15. After that correction, `gf-d1314-tabs-02` opened both same-origin/different-path destinations exactly once and verified the new-tab transition, then paused before focus because the bounded supplemental context placed executable tab inventory after larger narrative summaries. The side panel now prioritizes exact tab workspace identity before mission/workspace narrative, preventing context trimming from erasing the binding needed by a generic tab action. The diagnostic produced two successful mutations, zero retries, and zero tab closures.
 16. The final tab-lifecycle run (`gf-d1314-tabs-03`) passed in 32.2 seconds. It executed exactly one navigation, one `open_new_tab`, and one `focus_existing_tab`; every durable action succeeded on its first non-retryable attempt. The tab-control verifier recorded `tab_switch_verified=true`, the following live observation reported `Neutral Framed Workspace` at the original URL, and the backend emitted an SGV-verified terminal report for that exact active title. Both requested tabs remained open and no close action occurred.
+17. The first download run reached the exact observed link but the service-worker boundary rejected the newly introduced `download_complete` contract. The runtime validator now admits only an exact filename without path separators and an HTTP(S), same-origin resource URL; cross-origin substitution and path-shaped filenames fail closed.
+18. Download observation was initially armed after trusted input. It is now armed before dispatch through both the Chrome downloads ledger and browser-level CDP events, and is disposed after one bounded verification window. Completion still requires an exact filename and URL, completed state, and positive byte count; focus or click success alone cannot pass.
+19. `gf-d1314-download-04` was an infrastructure-only diagnostic: the local fixture server had stopped, the workflow performed one navigation attempt, detected the browser error page, and stopped without clicking or downloading. The fixture process was restored and its health, 106-byte content length, MIME type, and attachment filename were verified before later runs.
+20. The subsequent Playwright-owned fresh-profile runs (`gf-d1314-download-05` through `gf-d1314-download-09`) prove that the canonical trusted click requested `/synthetic-download.txt` exactly once per run at the fixture server, but Playwright's download manager did not expose the completed artifact through Chrome's extension download ledger or browser debugger events. The application therefore correctly refused to claim completion. This is an unresolved certification-harness compatibility gap, not a download PASS; a normal-Chrome live run is still required.
+21. The normal-Chrome run (`gf-d1314-download-native-01`) passed in 38.8 seconds. The persisted workflow contains exactly one successful navigation and one successful canonical click whose authoritative effect was `download_complete`. The server recorded exactly one `/synthetic-download.txt` request. Native Downloads contains exactly one 106-byte `synthetic-download.txt`; its SHA-256 (`1FC13CB20F6590BD58EFADB4A17E46E0DE8B9ADD42DE56753583BB50870F4EE0`) exactly equals the approved fixture, and the response MIME is `text/plain`. The file was not opened, uploaded, shared, or deleted.
 
 ## Regression results
 
 - Focused backend foundation/policy/intervention/orchestrator suite: **219 passed**.
-- Full extension suite: **240 passed**.
+- Full extension suite: **244 passed**.
 - Focused child-frame/backend grounding suites: **106 extension checks and 70 backend checks passed**.
 - Extension TypeScript check: **passed**.
 - Extension production build: **passed**.
@@ -72,10 +78,19 @@ Every browser mutation above travelled through the extension side panel and the 
 - `docs/production_validation/live_sidepanel/gf-d1314-tabs-02.json` (safe failing diagnostic; both destinations opened once, focus withheld when exact tab inventory was absent)
 - `docs/production_validation/live_sidepanel/gf-d1314-tabs-03.json`
 - `docs/production_validation/live_sidepanel/gf-d1314-tabs-03-target.png`
+- `docs/production_validation/live_sidepanel/gf-d1314-download-03.json` (safe failing diagnostic; contract accepted, completed artifact not observed)
+- `docs/production_validation/live_sidepanel/gf-d1314-download-04.json` (fixture-server outage; one navigation, zero click/download actions)
+- `docs/production_validation/live_sidepanel/gf-d1314-download-05.json`
+- `docs/production_validation/live_sidepanel/gf-d1314-download-06.json`
+- `docs/production_validation/live_sidepanel/gf-d1314-download-07.json`
+- `docs/production_validation/live_sidepanel/gf-d1314-download-08.json`
+- `docs/production_validation/live_sidepanel/gf-d1314-download-09.json`
+- `docs/production_validation/generic_foundation/fixture-server-live.log` (server-side exact request evidence)
+- `docs/production_validation/live_sidepanel/gf-d1314-download-native-01.json`
 
 ## Remaining before the Days 13–14 exit
 
-- Complete the remaining capability matrix for verified download and production-owned content insertion. Tab lifecycle and same-origin child-frame execution now pass; cross-origin frame isolation remains part of the live safety matrix.
+- Complete production-owned content insertion. Verified native download, tab lifecycle, and same-origin child-frame execution now pass; cross-origin frame isolation remains part of the live safety matrix.
 - Run unseen/randomized DOM variants for each mutation family.
 - Complete restart/resume and stale-target live variants with duplicate-effect accounting.
 - Complete prompt-injection, cross-origin, account-confusion, and privileged-URL live safety cases.

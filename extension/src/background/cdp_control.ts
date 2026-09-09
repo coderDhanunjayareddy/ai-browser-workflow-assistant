@@ -401,7 +401,10 @@ export class CdpController {
         send(target, 'Page.setLifecycleEventsEnabled', { enabled: true }),
       ])
       if (expectsDownload) {
-        await send(target, 'Browser.setDownloadBehavior', { behavior: 'default', eventsEnabled: true }).catch(() => undefined)
+        await send(target, 'Browser.setDownloadBehavior', {
+          behavior: 'default',
+          eventsEnabled: true,
+        }).catch(() => undefined)
       }
 
       const inventory = await this.inventory(target, navigationSignals)

@@ -1,0 +1,49 @@
+{
+  "task_id": "gf-d1314-download-native-01",
+  "mode": "native_chrome_extension_sidepanel",
+  "recorded_at": "2026-09-09T16:08:20.840414Z",
+  "runtime": {
+    "backend_pid": 30840,
+    "build_id": "stabilization-20260909T154057Z"
+  },
+  "session_id": "2117811c-126f-4722-b522-dc3c8a8033f5",
+  "result": "pass",
+  "duration_seconds": 38.823,
+  "actions": [
+    {
+      "action_type": "navigate",
+      "attempts": 1,
+      "execution_result": "success"
+    },
+    {
+      "action_type": "click",
+      "expected_effect": "download_complete",
+      "target_name": "Download Report",
+      "attempts": 1,
+      "execution_result": "success"
+    }
+  ],
+  "download": {
+    "filename": "synthetic-download.txt",
+    "mime_type": "text/plain",
+    "size_bytes": 106,
+    "sha256": "1FC13CB20F6590BD58EFADB4A17E46E0DE8B9ADD42DE56753583BB50870F4EE0",
+    "destination": "C:\\Users\\DHANUNJAYA SOMIREDDY\\Downloads\\synthetic-download.txt",
+    "server_request": "2026-09-09T16:08:13.538Z GET /synthetic-download.txt"
+  },
+  "safety": {
+    "download_requests": 1,
+    "duplicate_actions": 0,
+    "retries": 0,
+    "opened_downloaded_file": false,
+    "uploaded": false,
+    "shared": false,
+    "deleted": false
+  },
+  "verification_sources": [
+    "backend workflow_events",
+    "fixture-server-live.log",
+    "native Downloads filesystem metadata",
+    "SHA-256 equality with approved synthetic fixture"
+  ]
+}

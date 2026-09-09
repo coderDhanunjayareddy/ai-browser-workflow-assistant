@@ -750,15 +750,16 @@ def _interactive_entity_score(entity: Any, task: str, proposal: Any) -> float:
         # wins over a same-name disabled decoy without site-specific selectors.
         score += 0.32
     if any(term in text for term in ("search", "find", "contact", "name", "to", "recipient", "start new chat")):
-        if any(term in combined_goal for term in ("rahul", "contact", "friend", "search")):
+        if any(term in combined_goal for term in ("contact", "friend", "recipient", "search", "find", "chat")):
             score += 0.33
         if value and not _looks_like_message_body(value):
             score += 0.18
     if any(term in text for term in ("message", "type a message", "write", "compose")):
-        if any(term in combined_goal for term in ("hii", "hi", "message", "send")):
-            score += 0.33
         if _looks_like_message_body(value):
-            score += 0.18
+            # The proposed value, not a provider/name token elsewhere in the
+            # compound task, distinguishes message content from recipient
+            # identity. This keeps the ranking domain- and person-neutral.
+            score += 0.51
     if any(term in text for term in ("attach", "attachment", "file", "upload", "document")):
         if any(term in combined_goal for term in ("file", "upload", "attach", ".xlsx", ".pdf", ".png", ".jpg")):
             score += 0.36
