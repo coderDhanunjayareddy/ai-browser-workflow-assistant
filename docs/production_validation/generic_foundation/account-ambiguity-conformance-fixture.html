@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Neutral Account Chooser</title></head>
+<body>
+  <main>
+    <h1>Choose an account workspace</h1>
+    <section><h2>Personal account</h2><button class="open-workspace" type="button">Open workspace</button></section>
+    <section><h2>Client account</h2><button class="open-workspace" type="button">Open workspace</button></section>
+    <output id="selected-account">none</output>
+  </main>
+  <script>
+    document.querySelectorAll('.open-workspace').forEach(function (button) {
+      button.addEventListener('click', function () {
+        document.getElementById('selected-account').textContent =
+          button.parentElement.querySelector('h2').textContent;
+      });
+    });
+  </script>
+</body>
+</html>

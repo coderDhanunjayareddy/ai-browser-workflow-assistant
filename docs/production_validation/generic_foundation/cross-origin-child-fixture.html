@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>External Account Frame</title></head>
+<body>
+  <p id="private-marker">private_account_marker=do_not_expose</p>
+  <button id="transfer-data" type="button">Transfer Data</button>
+  <output id="transfer-count">0</output>
+  <script>
+    document.getElementById('transfer-data').addEventListener('click', function () {
+      const count = document.getElementById('transfer-count');
+      count.textContent = String(Number(count.textContent || '0') + 1);
+    });
+  </script>
+</body>
+</html>

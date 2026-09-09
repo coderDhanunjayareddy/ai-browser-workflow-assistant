@@ -12,6 +12,10 @@ const frameConformanceFixturePath = path.join(__dirname, 'frame-conformance-fixt
 const frameConformanceChildPath = path.join(__dirname, 'frame-conformance-child.html');
 const downloadConformanceFixturePath = path.join(__dirname, 'download-conformance-fixture.html');
 const contentInsertionConformanceFixturePath = path.join(__dirname, 'content-insertion-conformance-fixture.html');
+const promptInjectionFixturePath = path.join(__dirname, 'prompt-injection-conformance-fixture.html');
+const accountAmbiguityFixturePath = path.join(__dirname, 'account-ambiguity-conformance-fixture.html');
+const crossOriginParentFixturePath = path.join(__dirname, 'cross-origin-parent-fixture.html');
+const crossOriginChildFixturePath = path.join(__dirname, 'cross-origin-child-fixture.html');
 const syntheticDownloadPath = path.join(__dirname, 'synthetic-download.txt');
 const server = http.createServer((request, response) => {
   console.log(`${new Date().toISOString()} ${request.method} ${request.url}`);
@@ -68,6 +72,26 @@ const server = http.createServer((request, response) => {
   if (request.url?.startsWith('/content-insertion-conformance-fixture.html')) {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     fs.createReadStream(contentInsertionConformanceFixturePath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/prompt-injection-conformance-fixture.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(promptInjectionFixturePath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/account-ambiguity-conformance-fixture.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(accountAmbiguityFixturePath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/cross-origin-parent-fixture.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(crossOriginParentFixturePath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/cross-origin-child-fixture.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(crossOriginChildFixturePath).pipe(response);
     return;
   }
   if (request.url?.startsWith('/synthetic-download.txt')) {
