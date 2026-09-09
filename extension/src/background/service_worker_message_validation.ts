@@ -16,6 +16,8 @@ export type ExecutableAction = {
     role?: string | null
     semantic_kind?: string | null
     expected_url_path?: string | null
+    expected_download_filename?: string | null
+    expected_download_url?: string | null
     screenshot_verified?: boolean
     screenshot_hash?: string | null
     bounding_box?: { x: number; y: number; width: number; height: number } | null
@@ -173,6 +175,20 @@ function validateGrounding(value: unknown): boolean {
     if (!isBoundedString(value.expected_url_path, 2048, true)) return false
     if (value.expected_url_path !== null && value.expected_url_path !== '' && !String(value.expected_url_path).startsWith('/')) return false
   }
+  if (value.expected_download_filename !== undefined) {
+    if (!isBoundedString(value.expected_download_filename, 500, true)) return false
+    if (value.expected_download_filename !== null && /[\\/]/.test(String(value.expected_download_filename))) return false
+  }
+  if (value.expected_download_url !== undefined) {
+    if (!isBoundedString(value.expected_download_url, 8192, true)) return false
+    if (value.expected_download_url) {
+      try {
+        if (!['http:', 'https:'].includes(new URL(String(value.expected_download_url)).protocol)) return false
+      } catch {
+        return false
+      }
+    }
+  }
   if (value.screenshot_verified !== undefined && typeof value.screenshot_verified !== 'boolean') return false
   if (value.screenshot_hash !== undefined && !isBoundedString(value.screenshot_hash, 128, true)) return false
   if (value.bounding_box !== undefined && value.bounding_box !== null) {
@@ -235,11 +251,23 @@ export function validateCanonicalActionContract(value: unknown): value is Canoni
   if (!isRecord(value.resource_identity) || !isBoundedString(value.resource_identity.url, 8192) || !isBoundedString(value.resource_identity.title, 2000)) return false
   if (value.resource_identity.url !== (navigationAction ? value.origin.target_url : value.origin.observed_url)) return false
   if (!isRecord(value.expected_effect)) return false
-  const effectKinds = new Set(['url_change', 'target_state_change', 'value_change', 'selection_change', 'viewport_change', 'tab_state_change', 'page_state_change', 'no_mutation'])
+  const effectKinds = new Set(['url_change', 'target_state_change', 'value_change', 'selection_change', 'viewport_change', 'tab_state_change', 'download_complete', 'page_state_change', 'no_mutation'])
   if (!effectKinds.has(String(value.expected_effect.kind)) || !isBoundedString(value.expected_effect.description, 5000)) return false
   if (value.expected_effect.url_path !== undefined && !isBoundedString(value.expected_effect.url_path, 2048, true)) return false
   const actionExpectedPath = isRecord(value.action.grounding) ? value.action.grounding.expected_url_path ?? null : null
   if ((value.expected_effect.url_path ?? null) !== actionExpectedPath) return false
+  if (value.expected_effect.kind === 'download_complete') {
+    if (!isRecord(value.action.grounding) || value.action.grounding.semantic_kind !== 'download_control') return false
+    const filename = String(value.action.grounding.expected_download_filename || '')
+    const resourceUrl = String(value.action.grounding.expected_download_url || '')
+    if (!filename || /[\\/]/.test(filename) || !resourceUrl) return false
+    try {
+      const parsedResource = new URL(resourceUrl)
+      if (!['http:', 'https:'].includes(parsedResource.protocol) || parsedResource.origin !== value.origin.origin) return false
+    } catch {
+      return false
+    }
+  }
   if (!['safe', 'caution', 'danger'].includes(String(value.safety_class)) || value.safety_class !== value.action.safety_level) return false
   if (!isBoundedString(value.idempotency_key, 1000) || !String(value.idempotency_key).trim()) return false
 

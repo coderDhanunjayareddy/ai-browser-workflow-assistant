@@ -3551,6 +3551,35 @@ def _deterministic_observed_report_response(
     for step in reversed(list(prior_steps or [])):
         data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
         evidence = dict(data.get("browser_evidence") or {})
+        if evidence.get("download_detected") is not True or evidence.get("download_completed") is not True:
+            continue
+        filename = str(evidence.get("filename") or "").strip()
+        mime_type = str(evidence.get("mime_type") or "").strip()
+        size_bytes = int(evidence.get("size_bytes") or 0)
+        if not filename or size_bytes <= 0 or filename.casefold() not in str(task or "").casefold():
+            continue
+        return AnalyzeResponse(
+            session_id=session_id,
+            analysis=(
+                "The browser download lifecycle recorded a completed exact resource with filename, MIME type, "
+                "and positive byte size. A click response alone was not treated as completion."
+            ),
+            outcome_kind="report",
+            report=ReportOutcome(
+                answer=f'Verified the completed download "{filename}" ({mime_type or "unknown MIME"}, {size_bytes} bytes).',
+                claim=(
+                    f'The exact observed download completed with filename "{filename}", MIME type '
+                    f'"{mime_type or "unknown"}", and size {size_bytes} bytes.'
+                ),
+            ),
+            suggested_actions=[],
+            sgv_verified=True,
+            goal_convergence=True,
+            backend_authoritative_report=True,
+        )
+    for step in reversed(list(prior_steps or [])):
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        evidence = dict(data.get("browser_evidence") or {})
         if evidence.get("delivery_verified") is not True:
             continue
         content_identity = str(evidence.get("delivered_content_identity") or "").strip()

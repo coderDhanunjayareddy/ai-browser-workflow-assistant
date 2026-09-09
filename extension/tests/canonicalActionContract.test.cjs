@@ -231,6 +231,17 @@ test('content selection evidence is armed before trusted input and remains withi
   assert.match(worker, /args: \[action\.content_insertion, 30_000\]/)
 })
 
+test('download observation is armed before trusted input and disposed after bounded verification', () => {
+  const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
+  const armIndex = worker.indexOf("const downloadObservation = contract.expected_effect.kind === 'download_complete'")
+  const dispatchIndex = worker.indexOf('const cdpExecution = await cdpController.execute')
+  assert.ok(armIndex >= 0)
+  assert.ok(dispatchIndex > armIndex)
+  assert.match(worker, /chrome\.downloads\.onCreated\.addListener\(onCreated\)/)
+  assert.match(worker, /chrome\.downloads\.onChanged\.addListener\(onChanged\)/)
+  assert.match(worker, /downloadObservation\.dispose\(\)/)
+})
+
 test('consequential submission reserves once before trusted input and settles delivered or uncertain', () => {
   const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
   const preflightIndex = worker.indexOf('func: inspectConsequentialSubmission')

@@ -608,6 +608,73 @@ def test_explicit_named_control_uses_unique_enabled_observed_target_without_plan
     assert response.suggested_actions[0].grounding["semantic_kind"] == "explicitly_named_control"
 
 
+def test_explicit_named_download_preserves_observed_resource_identity() -> None:
+    page = _page(
+        "https://unfamiliar.example.test/downloads",
+        [
+            InteractiveElement(
+                type="a",
+                role="link",
+                selector="#download-report",
+                text="Download Report",
+                accessibility_name="Download Report",
+                href="https://unfamiliar.example.test/synthetic-download.txt",
+                semantic_kind="download_control",
+                download_filename="synthetic-download.txt",
+                visible=True,
+            ),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="generic-download-control",
+        task="Activate the exact Download Report link once.",
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    action = response.suggested_actions[0]
+    assert action.target_selector == "#download-report"
+    assert action.grounding["semantic_kind"] == "download_control"
+    assert action.grounding["expected_download_filename"] == "synthetic-download.txt"
+    assert action.grounding["expected_download_url"] == "https://unfamiliar.example.test/synthetic-download.txt"
+
+
+def test_completed_download_reports_only_from_typed_file_evidence() -> None:
+    page = _page("https://unfamiliar.example.test/downloads", [])
+    completed = PriorStep(
+        action_type="click",
+        description="Activate the grounded exact control: Download Report",
+        target_selector="#download-report",
+        value="Download Report",
+        execution_result="success",
+        page_url=page.url,
+        page_title=page.title,
+        browser_evidence={
+            "download_detected": True,
+            "download_completed": True,
+            "filename": "synthetic-download.txt",
+            "mime_type": "text/plain",
+            "size_bytes": 106,
+        },
+    )
+
+    response = _deterministic_observed_report_response(
+        session_id="generic-download-report",
+        task="Download synthetic-download.txt and verify its completed filename, MIME type, and positive size.",
+        page_context=page,
+        prior_steps=[completed],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert '"synthetic-download.txt"' in response.report.answer
+    assert "text/plain" in response.report.answer
+    assert "106 bytes" in response.report.answer
+
+
 def test_natural_field_assignment_then_exact_control_advances_without_planner() -> None:
     page = _page(
         "https://unfamiliar.example.test/",

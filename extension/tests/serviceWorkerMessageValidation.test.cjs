@@ -222,6 +222,47 @@ test('canonical contract rejects target, origin, frame, safety, and resource ide
   assert.match(validateServiceWorkerMessage(executeMessage({ contract: contract({}, { resource_identity: { url: 'https://example.com/other', title: 'Other' } }) }), sender, runtimeId), /invalid canonical action contract/)
 })
 
+test('download completion contracts require exact same-origin resource identity', () => {
+  const downloadGrounding = {
+    source: 'dom_snapshot',
+    semantic_kind: 'download_control',
+    expected_download_filename: 'synthetic-download.txt',
+    expected_download_url: 'https://example.com/synthetic-download.txt',
+  }
+  const downloadContract = contract(
+    { grounding: downloadGrounding },
+    { expected_effect: { kind: 'download_complete', description: 'Download the exact observed file' } },
+  )
+
+  assert.equal(validateServiceWorkerMessage(executeMessage({ contract: downloadContract }), sender, runtimeId), null)
+  assert.match(
+    validateServiceWorkerMessage(
+      executeMessage({
+        contract: contract(
+          { grounding: { ...downloadGrounding, expected_download_url: 'https://evil.example/synthetic-download.txt' } },
+          { expected_effect: { kind: 'download_complete', description: 'Download the exact observed file' } },
+        ),
+      }),
+      sender,
+      runtimeId,
+    ),
+    /invalid canonical action contract/,
+  )
+  assert.match(
+    validateServiceWorkerMessage(
+      executeMessage({
+        contract: contract(
+          { grounding: { ...downloadGrounding, expected_download_filename: '..\\synthetic-download.txt' } },
+          { expected_effect: { kind: 'download_complete', description: 'Download the exact observed file' } },
+        ),
+      }),
+      sender,
+      runtimeId,
+    ),
+    /invalid canonical action contract/,
+  )
+})
+
 test('validates every non-execution message family and rejects unknown types', () => {
   assert.equal(validateServiceWorkerMessage({ type: 'EXTRACT_CONTEXT', tab_id: 2 }, sender, runtimeId), null)
   assert.match(validateServiceWorkerMessage({ type: 'EXTRACT_CONTEXT', tab_id: '2' }, sender, runtimeId), /invalid tab binding/)

@@ -77,6 +77,7 @@ async function waitForExpectedDownload(
   startedAt: number,
   expectedFilename: string,
   expectedUrl: string,
+  observedDownloads: Map<number, chrome.downloads.DownloadItem>,
   timeoutMs = 30_000,
 ): Promise<BasicExecutionResult> {
   const cutoff = new Date(startedAt - 500).toISOString()
@@ -84,7 +85,9 @@ async function waitForExpectedDownload(
   let detected: chrome.downloads.DownloadItem | null = null
   while (Date.now() < deadline) {
     const items = await chrome.downloads.search({ startedAfter: cutoff, orderBy: ['-startTime'], limit: 20 })
-    const matches = items.filter((item) => {
+    const candidates = new Map<number, chrome.downloads.DownloadItem>()
+    for (const item of [...observedDownloads.values(), ...items]) candidates.set(item.id, item)
+    const matches = [...candidates.values()].filter((item) => {
       const nameMatches = !expectedFilename
         || leafName(item.filename || '').normalize('NFKC').toLocaleLowerCase()
           === expectedFilename.normalize('NFKC').toLocaleLowerCase()
@@ -126,6 +129,46 @@ async function waitForExpectedDownload(
       : 'No download matching the exact observed resource was detected within the bounded verification window.',
     action_id: '',
     ...(detected ? downloadMetadata(detected, false) : { download_detected: false, download_completed: false }),
+  }
+}
+
+function armExpectedDownloadObservation(): {
+  observedDownloads: Map<number, chrome.downloads.DownloadItem>
+  dispose: () => void
+} {
+  const observedDownloads = new Map<number, chrome.downloads.DownloadItem>()
+  const onCreated = (item: chrome.downloads.DownloadItem) => {
+    observedDownloads.set(item.id, item)
+  }
+  const onChanged = (delta: chrome.downloads.DownloadDelta) => {
+    const current = observedDownloads.get(delta.id)
+    if (!current) return
+    const apply = (
+      key: keyof chrome.downloads.DownloadItem,
+      change: { current?: unknown } | undefined,
+    ) => {
+      if (change && Object.prototype.hasOwnProperty.call(change, 'current')) {
+        (current as unknown as Record<string, unknown>)[key] = change.current
+      }
+    }
+    apply('filename', delta.filename)
+    apply('url', delta.url)
+    apply('finalUrl', delta.finalUrl)
+    apply('mime', delta.mime)
+    apply('state', delta.state)
+    apply('error', delta.error)
+    apply('exists', delta.exists)
+    apply('totalBytes', delta.totalBytes)
+    apply('fileSize', delta.fileSize)
+  }
+  chrome.downloads.onCreated.addListener(onCreated)
+  chrome.downloads.onChanged.addListener(onChanged)
+  return {
+    observedDownloads,
+    dispose: () => {
+      chrome.downloads.onCreated.removeListener(onCreated)
+      chrome.downloads.onChanged.removeListener(onChanged)
+    },
   }
 }
 
@@ -839,23 +882,35 @@ async function handleExecuteAction(
           return
         }
       }
+      const downloadObservation = contract.expected_effect.kind === 'download_complete'
+        ? armExpectedDownloadObservation()
+        : null
       const cdpExecution = await cdpController.execute(
         tab.id,
         action,
         trustedLocalFile,
       )
       let executionWithContentEvidence: BasicExecutionResult = cdpExecution
-      if (contract.expected_effect.kind === 'download_complete' && cdpExecution.success) {
-        const download = await waitForExpectedDownload(
-          Date.now() - Math.max(0, performance.now() - startedAt),
-          String(action.grounding?.expected_download_filename || ''),
-          String(action.grounding?.expected_download_url || ''),
-        )
-        executionWithContentEvidence = {
-          ...cdpExecution,
-          ...download,
-          action_id: action.action_id,
-          success: cdpExecution.success && download.success,
+      if (downloadObservation) {
+        try {
+          if (cdpExecution.success && cdpExecution.download_completed === true) {
+            executionWithContentEvidence = cdpExecution
+          } else if (cdpExecution.success) {
+            const download = await waitForExpectedDownload(
+              Date.now() - Math.max(0, performance.now() - startedAt),
+              String(action.grounding?.expected_download_filename || ''),
+              String(action.grounding?.expected_download_url || ''),
+              downloadObservation.observedDownloads,
+            )
+            executionWithContentEvidence = {
+              ...cdpExecution,
+              ...download,
+              action_id: action.action_id,
+              success: cdpExecution.success && download.success,
+            }
+          }
+        } finally {
+          downloadObservation.dispose()
         }
       }
       if (action.consequential_submission && submissionBefore) {

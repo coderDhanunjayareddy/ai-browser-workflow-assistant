@@ -26,6 +26,12 @@ export type CdpExecutionResult = {
   cdp_target_count: number
   cdp_screenshot_hash: string | null
   adapter_trace: Record<string, string | number | boolean | null>
+  download_detected?: boolean
+  download_completed?: boolean
+  filename?: string | null
+  mime_type?: string | null
+  size_bytes?: number | null
+  download_path_ref?: string | null
 }
 
 export type TrustedLocalFile = {
@@ -336,6 +342,18 @@ export class CdpController {
     const target = debuggee(tabId)
     const startedAt = performance.now()
     const navigationSignals: string[] = []
+    const expectedDownloadFilename = String(action.grounding?.expected_download_filename || '')
+    const expectedDownloadUrl = String(action.grounding?.expected_download_url || '')
+    const expectsDownload = action.grounding?.semantic_kind === 'download_control'
+      && Boolean(expectedDownloadFilename)
+      && Boolean(expectedDownloadUrl)
+    let downloadGuid: string | null = null
+    let downloadDetected = false
+    let downloadCompleted = false
+    let downloadMime: string | null = null
+    let downloadSize = 0
+    let completeDownloadSignal: (() => void) | null = null
+    const downloadCompletedSignal = new Promise<void>((resolve) => { completeDownloadSignal = resolve })
     let fileChooserResolve: ((value: { backendNodeId: number; frameId?: string }) => void) | null = null
     const onEvent = (source: chrome.debugger.Debuggee, method: string, params?: Record<string, any>) => {
       if (source.tabId === tabId && /^(Page\.(frameNavigated|lifecycleEvent|navigatedWithinDocument)|Target\.(targetCreated|attachedToTarget))$/.test(method)) {
@@ -343,6 +361,25 @@ export class CdpController {
       }
       if (source.tabId === tabId && method === 'Page.fileChooserOpened' && Number.isInteger(params?.backendNodeId)) {
         fileChooserResolve?.({ backendNodeId: Number(params!.backendNodeId), frameId: params?.frameId })
+      }
+      if (source.tabId === tabId && expectsDownload && method === 'Network.responseReceived') {
+        const response = params?.response
+        if (response?.url === expectedDownloadUrl && typeof response?.mimeType === 'string') downloadMime = response.mimeType
+      }
+      if (source.tabId === tabId && expectsDownload && method === 'Browser.downloadWillBegin') {
+        const filename = String(params?.suggestedFilename || '')
+        const url = String(params?.url || '')
+        if (filename === expectedDownloadFilename && url === expectedDownloadUrl) {
+          downloadGuid = String(params?.guid || '')
+          downloadDetected = Boolean(downloadGuid)
+        }
+      }
+      if (source.tabId === tabId && expectsDownload && method === 'Browser.downloadProgress' && params?.guid === downloadGuid) {
+        downloadSize = Math.max(Number(params?.receivedBytes || 0), Number(params?.totalBytes || 0))
+        if (params?.state === 'completed' && downloadSize > 0) {
+          downloadCompleted = true
+          completeDownloadSignal?.()
+        }
       }
     }
     let attached = false
@@ -354,10 +391,14 @@ export class CdpController {
         send(target, 'Page.enable'),
         send(target, 'DOM.enable'),
         send(target, 'Runtime.enable'),
+        send(target, 'Network.enable'),
         send(target, 'Accessibility.enable'),
         send(target, 'Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: false, flatten: true }),
         send(target, 'Page.setLifecycleEventsEnabled', { enabled: true }),
       ])
+      if (expectsDownload) {
+        await send(target, 'Browser.setDownloadBehavior', { behavior: 'default', eventsEnabled: true }).catch(() => undefined)
+      }
 
       const inventory = await this.inventory(target, navigationSignals)
       let grounding = await this.resolvePoint(target, action)
@@ -431,8 +472,23 @@ export class CdpController {
         await send(target, 'Page.setInterceptFileChooserDialog', { enabled: false }).catch(() => undefined)
         grounding.attempts.push(`file_binding:${trustedLocalFile.source}:exact_filename`)
       }
+      if (expectsDownload && !downloadCompleted) {
+        await Promise.race([
+          downloadCompletedSignal,
+          new Promise((resolve) => setTimeout(resolve, 5_000)),
+        ])
+      }
       await new Promise((resolve) => setTimeout(resolve, 180))
-      return this.result(action, true, `CDP ${action.action_type} dispatched via ${grounding.point.source} grounding.`, inventory, grounding.point.source, grounding.screenshotHash, startedAt, grounding.attempts, grounding.fallbackReason)
+      const result = this.result(action, true, `CDP ${action.action_type} dispatched via ${grounding.point.source} grounding.`, inventory, grounding.point.source, grounding.screenshotHash, startedAt, grounding.attempts, grounding.fallbackReason)
+      return expectsDownload ? {
+        ...result,
+        download_detected: downloadDetected,
+        download_completed: downloadCompleted,
+        filename: downloadDetected ? expectedDownloadFilename : null,
+        mime_type: downloadMime,
+        size_bytes: downloadSize > 0 ? downloadSize : null,
+        download_path_ref: null,
+      } : result
     } catch (error) {
       return this.result(action, false, `CDP execution failed: ${String(error)}`, { targetCount: 0, frameCount: 0, frameIds: [], navigationSignals }, null, null, startedAt)
     } finally {
