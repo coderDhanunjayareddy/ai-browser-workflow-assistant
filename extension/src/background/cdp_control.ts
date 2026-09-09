@@ -366,7 +366,11 @@ export class CdpController {
         const response = params?.response
         if (response?.url === expectedDownloadUrl && typeof response?.mimeType === 'string') downloadMime = response.mimeType
       }
-      if (source.tabId === tabId && expectsDownload && method === 'Browser.downloadWillBegin') {
+      // Browser-domain download events are emitted by the attached debugger
+      // session but are not guaranteed to include the originating tab id.
+      // Attribute them only through the immutable URL + filename contract,
+      // then bind progress through Chromium's generated download GUID.
+      if (expectsDownload && method === 'Browser.downloadWillBegin') {
         const filename = String(params?.suggestedFilename || '')
         const url = String(params?.url || '')
         if (filename === expectedDownloadFilename && url === expectedDownloadUrl) {
@@ -374,7 +378,7 @@ export class CdpController {
           downloadDetected = Boolean(downloadGuid)
         }
       }
-      if (source.tabId === tabId && expectsDownload && method === 'Browser.downloadProgress' && params?.guid === downloadGuid) {
+      if (expectsDownload && method === 'Browser.downloadProgress' && params?.guid === downloadGuid) {
         downloadSize = Math.max(Number(params?.receivedBytes || 0), Number(params?.totalBytes || 0))
         if (params?.state === 'completed' && downloadSize > 0) {
           downloadCompleted = true

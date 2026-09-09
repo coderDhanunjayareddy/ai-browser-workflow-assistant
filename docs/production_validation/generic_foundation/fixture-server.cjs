@@ -13,6 +13,7 @@ const frameConformanceChildPath = path.join(__dirname, 'frame-conformance-child.
 const downloadConformanceFixturePath = path.join(__dirname, 'download-conformance-fixture.html');
 const syntheticDownloadPath = path.join(__dirname, 'synthetic-download.txt');
 const server = http.createServer((request, response) => {
+  console.log(`${new Date().toISOString()} ${request.method} ${request.url}`);
   if (request.url === '/health') {
     response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
     response.end(JSON.stringify({ status: 'ok', fixture: 'generic-human-intervention' }));

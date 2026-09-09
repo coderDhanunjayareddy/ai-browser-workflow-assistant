@@ -1,47 +1,47 @@
 {
   "mode": "extension_sidepanel_playwright",
   "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
-  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_1788969339266",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_1788968990422",
   "results": [
     {
-      "task_id": "gf-d1314-download-08",
+      "task_id": "gf-d1314-download-06",
       "status": "failed",
-      "duration_s": 74.6,
+      "duration_s": 75.1,
       "phase": "failed",
       "error": "I could not complete \u201cActivate the grounded exact control: Download Report\u201d. I stopped safely, recorded the failure, and did not claim success.",
       "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 aab2360-dirty \u00b7 stabilization-20260909T154057Z \u00b7 pid 30840\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nI could not complete \u201cActivate the grounded exact control: Download Report\u201d. I stopped safely, recorded the failure, and did not claim success.\n\nResume safely\n\nAI ANALYSIS\n\nSelected a deterministic action from an explicitly requested, currently observed browser control.\n\nI could not complete \u201cActivate the grounded exact control: Download Report\u201d. I stopped safely, recorded the failure, and did not claim success.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open http://127.0.0.1:8765/download-conformance-fixture.html. Activate the exact Download Report link once. Verify the completed download filename synthetic-download.txt, MIME type text/plain\nNeutral Download Workspace\nhttp://127.0.0.1:8765/download-conformance-fixture.html\nVerification: verified\nTime: 1.6s\nNavigating to: http://127.0.0.1:8765/download-conformance-fixture.html\n\u2717\nStep 2\nCLICK\nActivate the grounded exact control: Download Report\nNeutral Download Workspace\nhttp://127.0.0.1:8765/download-conformance-fixture.html\nVerification: execution_failed\nTime: 35.3s\nNo download matching the exact observed resource was detected within the bounded verification window.\nNo download matching the exact observed resource was detected within the bounded verification window.",
-      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-download-08.png",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-download-08-target.png",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-download-06.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-download-06-target.png",
       "target_controls": [],
       "canonical_adapter_traces": [
         {
           "action_id": "observed_control_fdea9a5de24a",
           "action_type": "click",
           "canonical_contract": true,
-          "cdp_duration_ms": 5240,
+          "cdp_duration_ms": 5255,
           "cdp_fallback_reason": null,
           "cdp_frame_count": 1,
           "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
           "cdp_grounding_source": "stable_selector",
           "cdp_navigation_signal_count": 5,
           "cdp_target_count": 0,
-          "dispatch_id": "observed_control_fdea9a5de24a:1788969376610",
+          "dispatch_id": "observed_control_fdea9a5de24a:1788969026661",
           "dispatch_path": "service_worker>policy>canonical_cdp_click",
           "execution_adapter": "cdp",
           "expected_effect": "download_complete",
           "frame_id": "top",
-          "idempotency_key": "a74823c4-d005-4cfb-bf39-68519d14cdf8:636833184:intent_7897cb546feb468f8f4e6c1003781bdc",
+          "idempotency_key": "33872d7d-80ab-43f5-b31a-e8045edf9b98:281388601:intent_768748d124ce483b8a05e413d4ba2252",
           "reason": "execution_failed",
           "safety_class": "safe",
           "target_name": "Download Report",
           "target_selector_preserved": true,
-          "timestamp": "2026-09-09T15:56:51.943Z",
+          "timestamp": "2026-09-09T15:51:01.967Z",
           "verified": false
         }
       ],
       "durable_executions": [
         {
-          "key": "a74823c4-d005-4cfb-bf39-68519d14cdf8:636833184:intent_7897cb546feb468f8f4e6c1003781bdc",
+          "key": "33872d7d-80ab-43f5-b31a-e8045edf9b98:281388601:intent_768748d124ce483b8a05e413d4ba2252",
           "actionId": "observed_control_fdea9a5de24a",
           "actionType": "click",
           "status": "failed",
@@ -50,10 +50,10 @@
           "result": {
             "success": false,
             "message": "No download matching the exact observed resource was detected within the bounded verification window.",
-            "dispatch_id": "observed_control_fdea9a5de24a:1788969376610",
+            "dispatch_id": "observed_control_fdea9a5de24a:1788969026661",
             "dispatch_path": "service_worker>policy>canonical_cdp_click",
             "contract_schema_version": "1.0",
-            "contract_idempotency_key": "a74823c4-d005-4cfb-bf39-68519d14cdf8:636833184:intent_7897cb546feb468f8f4e6c1003781bdc",
+            "contract_idempotency_key": "33872d7d-80ab-43f5-b31a-e8045edf9b98:281388601:intent_768748d124ce483b8a05e413d4ba2252",
             "verification": {
               "after_state": {
                 "activeElementSignature": "a|download-report|Download Report",
@@ -106,7 +106,7 @@
                 "dom_changed": false,
                 "download_completed": false,
                 "download_detected": false,
-                "execution_duration_ms": 35313,
+                "execution_duration_ms": 35287,
                 "execution_success": false,
                 "expanded_state_changed": false,
                 "expected_effect_description": "Activate the grounded exact control: Download Report",
@@ -139,8 +139,8 @@
           }
         },
         {
-          "key": "a74823c4-d005-4cfb-bf39-68519d14cdf8:636833184:intent_a3249f54437644a481261ff6f43d0b09",
-          "actionId": "destination-0af7732f4c3032e0",
+          "key": "33872d7d-80ab-43f5-b31a-e8045edf9b98:281388601:intent_7c345929b5604ed78d491cc8f48a4785",
+          "actionId": "destination-c34937895f2863d2",
           "actionType": "navigate",
           "status": "succeeded",
           "attempts": 1,
@@ -148,10 +148,10 @@
           "result": {
             "success": true,
             "message": "Navigating to: http://127.0.0.1:8765/download-conformance-fixture.html",
-            "dispatch_id": "destination-0af7732f4c3032e0:1788969358055",
+            "dispatch_id": "destination-c34937895f2863d2:1788969007639",
             "dispatch_path": "service_worker>policy>chrome.tabs.update",
             "contract_schema_version": "1.0",
-            "contract_idempotency_key": "a74823c4-d005-4cfb-bf39-68519d14cdf8:636833184:intent_a3249f54437644a481261ff6f43d0b09",
+            "contract_idempotency_key": "33872d7d-80ab-43f5-b31a-e8045edf9b98:281388601:intent_7c345929b5604ed78d491cc8f48a4785",
             "verification": {
               "after_state": {
                 "activeElementSignature": "body|Synthetic download fixture_state=download_ready Download Report",
@@ -190,7 +190,7 @@
                 "dom_changed": true,
                 "download_completed": null,
                 "download_detected": null,
-                "execution_duration_ms": 1620,
+                "execution_duration_ms": 1639,
                 "execution_success": true,
                 "expanded_state_changed": false,
                 "expected_effect_description": "Open the resolved destination for Open http://127.0.0.1:8765/download-conformance-fixture.html. Activate the exact Download Report link once. Verify the completed download filename synthetic-download.txt, MIME type text/plain",
@@ -233,7 +233,7 @@
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-download-08-page-1.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-download-06-page-1.png"
         },
         {
           "index": 2,
@@ -243,7 +243,7 @@
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-download-08-page-2.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-download-06-page-2.png"
         }
       ],
       "analyze_observations": []
