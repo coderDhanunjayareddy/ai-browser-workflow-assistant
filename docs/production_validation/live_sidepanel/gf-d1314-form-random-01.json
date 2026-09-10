@@ -1,0 +1,728 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_1789049481464",
+  "results": [
+    {
+      "task_id": "gf-d1314-form-random-01",
+      "status": "needs_info",
+      "duration_s": 30.0,
+      "phase": "Waiting for info",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 3e0a71d-dirty \u00b7 stabilization-20260910T135216Z \u00b7 pid 6608\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for info\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nThe exact requested control \"enabled\" is not present in the accessible current-page observation. No substitute target was selected and no browser mutation was dispatched.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen the resolved destination for Open http://127.0.0.1:8770/form-conformance-fixture.html?variant=random. Fill the exact field named Project title with Cross-domain audit. Select High in the exact control named Priority. Choose 2026-09-30 in the exact control named Due date. Activate the exact enabled control named Preview exactly once. Verify fixture_state=form_preview_ready_exactly_once. Do not submit the form or repeat any mutation\nNeutral Form Workspace\nhttp://127.0.0.1:8770/form-conformance-fixture.html?variant=random\nVerification: verified\nTime: 1.7s\nNavigating to: http://127.0.0.1:8770/form-conformance-fixture.html?variant=random\n\u26a1\nStep 2\nCLICK\nActivate the grounded exact control: Priority\nNeutral Form Workspace\nhttp://127.0.0.1:8770/form-conformance-fixture.html?variant=random\nVerification: verified\nTime: 385ms\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 3\nCLICK\nActivate the grounded exact control: Due date\nNeutral Form Workspace\nhttp://127.0.0.1:8770/form-conformance-fixture.html?variant=random\nVerification: verified\nTime: 230ms\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 4\nCLICK\nActivate the grounded exact control: Preview\nNeutral Form Workspace\nhttp://127.0.0.1:8770/form-conformance-fixture.html?variant=random\nVerification: verified\nTime: 223ms\nCDP click dispatched via stable_selector grounding.\n\nNEED INFORMATION\n\nPlease expose the exact control named \"enabled\" and ask me to verify and resume.\n\nContinue",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-form-random-01.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-form-random-01-target.png",
+      "target_controls": [
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "Project title",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Preview",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "Due date",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "canonical_adapter_traces": [
+        {
+          "action_id": "observed_control_c3e4e1c8f07e",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 330,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 6,
+          "cdp_target_count": 0,
+          "dispatch_id": "observed_control_c3e4e1c8f07e:1789049502134",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_2b24c7cfbb644138a1ab82cd8ba77906",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": "Priority",
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-10T14:11:42.571Z",
+          "verified": true
+        },
+        {
+          "action_id": "observed_control_e70c2caf6c4c",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 195,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 5,
+          "cdp_target_count": 0,
+          "dispatch_id": "observed_control_e70c2caf6c4c:1789049504961",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_56fc0efb0de04b6088714bfbb018e030",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": "Due date",
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-10T14:11:45.218Z",
+          "verified": true
+        },
+        {
+          "action_id": "observed_control_f9ed3fd5c88f",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 196,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 5,
+          "cdp_target_count": 0,
+          "dispatch_id": "observed_control_f9ed3fd5c88f:1789049507798",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_8009a89b638648fbbc1f8893c22a2056",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": "Preview",
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-10T14:11:48.037Z",
+          "verified": true
+        }
+      ],
+      "durable_executions": [
+        {
+          "key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_2b24c7cfbb644138a1ab82cd8ba77906",
+          "actionId": "observed_control_c3e4e1c8f07e",
+          "actionType": "click",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "CDP click dispatched via stable_selector grounding.",
+            "dispatch_id": "observed_control_c3e4e1c8f07e:1789049502134",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_2b24c7cfbb644138a1ab82cd8ba77906",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "select|control-5eac00dc|priority|Priority|Low High",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random|Neutral Form Workspace|94|4|0|0|||{\"exists\":true,\"selector\":\"#control-5eac00dc\",\"tagName\":\"select\",\"ariaExpanded\":null,\"visible\":true,\"selectedValue\":\"Low\",\"selectedText\":\"Low\"}",
+                "expandedStates": [],
+                "interactiveCount": 4,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selectedText": "Low",
+                  "selectedValue": "Low",
+                  "selector": "#control-5eac00dc",
+                  "tagName": "select",
+                  "visible": true
+                },
+                "title": "Neutral Form Workspace",
+                "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+                "visibleTextLength": 94
+              },
+              "before_state": {
+                "activeElementSignature": "body|Neutral form preview fixture_state=form_ready Project title PreviewDue date Prio",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random|Neutral Form Workspace|94|4|0|0|||{\"exists\":true,\"selector\":\"#control-5eac00dc\",\"tagName\":\"select\",\"ariaExpanded\":null,\"visible\":true,\"selectedValue\":\"Low\",\"selectedText\":\"Low\"}",
+                "expandedStates": [],
+                "interactiveCount": 4,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selectedText": "Low",
+                  "selectedValue": "Low",
+                  "selector": "#control-5eac00dc",
+                  "tagName": "select",
+                  "visible": true
+                },
+                "title": "Neutral Form Workspace",
+                "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+                "visibleTextLength": 94
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 6,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": false,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 385,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Activate the grounded exact control: Priority",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": true,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": false,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_56fc0efb0de04b6088714bfbb018e030",
+          "actionId": "observed_control_e70c2caf6c4c",
+          "actionType": "click",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "CDP click dispatched via stable_selector grounding.",
+            "dispatch_id": "observed_control_e70c2caf6c4c:1789049504961",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_56fc0efb0de04b6088714bfbb018e030",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "input|control-a92468a3|due-date|Due date",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random|Neutral Form Workspace|94|4|0|0|||{\"exists\":true,\"selector\":\"#control-a92468a3\",\"tagName\":\"input\",\"ariaExpanded\":null,\"visible\":true,\"inputType\":\"date\",\"checked\":null,\"filled\":false,\"value\":\"\"}",
+                "expandedStates": [],
+                "interactiveCount": 4,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "checked": null,
+                  "exists": true,
+                  "filled": false,
+                  "inputType": "date",
+                  "selector": "#control-a92468a3",
+                  "tagName": "input",
+                  "value": "",
+                  "visible": true
+                },
+                "title": "Neutral Form Workspace",
+                "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+                "visibleTextLength": 94
+              },
+              "before_state": {
+                "activeElementSignature": "select|control-5eac00dc|priority|Priority|Low High",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random|Neutral Form Workspace|94|4|0|0|||{\"exists\":true,\"selector\":\"#control-a92468a3\",\"tagName\":\"input\",\"ariaExpanded\":null,\"visible\":true,\"inputType\":\"date\",\"checked\":null,\"filled\":false,\"value\":\"\"}",
+                "expandedStates": [],
+                "interactiveCount": 4,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "checked": null,
+                  "exists": true,
+                  "filled": false,
+                  "inputType": "date",
+                  "selector": "#control-a92468a3",
+                  "tagName": "input",
+                  "value": "",
+                  "visible": true
+                },
+                "title": "Neutral Form Workspace",
+                "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+                "visibleTextLength": 94
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 5,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": false,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 230,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Activate the grounded exact control: Due date",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": true,
+                "target_expanded_changed": false,
+                "target_filled_after": false,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": false,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_73cdda287e75404c9ad13a0c78bdeadc",
+          "actionId": "destination-f46445047e72bc4e",
+          "actionType": "navigate",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Navigating to: http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+            "dispatch_id": "destination-f46445047e72bc4e:1789049497196",
+            "dispatch_path": "service_worker>policy>chrome.tabs.update",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_73cdda287e75404c9ad13a0c78bdeadc",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|Neutral form preview fixture_state=form_ready Project title PreviewDue date Prio",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random|Neutral Form Workspace|94|4|0|0|||",
+                "expandedStates": [],
+                "interactiveCount": 4,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "Neutral Form Workspace",
+                "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+                "visibleTextLength": 94
+              },
+              "before_state": {
+                "activeElementSignature": null,
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "chrome://newtab/|New Tab",
+                "expandedStates": [],
+                "interactiveCount": 0,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "New Tab",
+                "url": "chrome://newtab/",
+                "visibleTextLength": 0
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "navigate",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 1662,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Open the resolved destination for Open http://127.0.0.1:8770/form-conformance-fixture.html?variant=random. Fill the exact field named Project title with Cross-domain audit. Select High in the exact control named Priority. Choose 2026-09-30 in the exact control named Due date. Activate the exact enabled control named Preview exactly once. Verify fixture_state=form_preview_ready_exactly_once. Do not submit the form or repeat any mutation",
+                "expected_effect_kind": "url_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": null,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": true,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_8009a89b638648fbbc1f8893c22a2056",
+          "actionId": "observed_control_f9ed3fd5c88f",
+          "actionType": "click",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "CDP click dispatched via stable_selector grounding.",
+            "dispatch_id": "observed_control_f9ed3fd5c88f:1789049507798",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "17e8f8ce-a409-4ff9-a2b2-e3486fd82ac7:1481974773:intent_8009a89b638648fbbc1f8893c22a2056",
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "button|control-3c9d23c0|Preview|Preview",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random|Neutral Form Workspace|112|4|0|0|||{\"exists\":true,\"selector\":\"#control-3c9d23c0\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 4,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "#control-3c9d23c0",
+                  "tagName": "button",
+                  "visible": true
+                },
+                "title": "Neutral Form Workspace",
+                "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+                "visibleTextLength": 112
+              },
+              "before_state": {
+                "activeElementSignature": "input|control-a92468a3|due-date|Due date",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random|Neutral Form Workspace|94|4|0|0|||{\"exists\":true,\"selector\":\"#control-3c9d23c0\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 4,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "#control-3c9d23c0",
+                  "tagName": "button",
+                  "visible": true
+                },
+                "title": "Neutral Form Workspace",
+                "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+                "visibleTextLength": 94
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 5,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 223,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Activate the grounded exact control: Preview",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": true,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-form-random-01-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+          "title": "Neutral Form Workspace",
+          "body_text": "Neutral form preview\n\nfixture_state=form_invalid preview_count=1\n\nProject title\nPreview\nDue date\nPriority\nLow\nHigh",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\gf-d1314-form-random-01-page-2.png"
+        }
+      ],
+      "analyze_observations": [
+        {
+          "url": "chrome://newtab/",
+          "title": "New Tab",
+          "visible_text_length": 135,
+          "controls": []
+        },
+        {
+          "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+          "title": "Neutral Form Workspace",
+          "visible_text_length": 96,
+          "controls": [
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#control-9b07fcd1",
+              "text": "Project title",
+              "aria_label": "Project title",
+              "accessibility_name": "Project title",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#control-3c9d23c0",
+              "text": "Preview",
+              "aria_label": "Preview",
+              "accessibility_name": "Preview",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "date",
+              "role": "textbox",
+              "selector": "#control-a92468a3",
+              "text": "Due date",
+              "aria_label": "Due date",
+              "accessibility_name": "Due date",
+              "href": ""
+            },
+            {
+              "type": "select",
+              "input_type": "",
+              "role": "combobox",
+              "selector": "#control-5eac00dc",
+              "text": "Priority",
+              "aria_label": "Priority",
+              "accessibility_name": "Priority",
+              "href": ""
+            }
+          ]
+        },
+        {
+          "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+          "title": "Neutral Form Workspace",
+          "visible_text_length": 96,
+          "controls": [
+            {
+              "type": "select",
+              "input_type": "",
+              "role": "combobox",
+              "selector": "#control-5eac00dc",
+              "text": "Priority",
+              "aria_label": "Priority",
+              "accessibility_name": "Priority",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#control-9b07fcd1",
+              "text": "Project title",
+              "aria_label": "Project title",
+              "accessibility_name": "Project title",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#control-3c9d23c0",
+              "text": "Preview",
+              "aria_label": "Preview",
+              "accessibility_name": "Preview",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "date",
+              "role": "textbox",
+              "selector": "#control-a92468a3",
+              "text": "Due date",
+              "aria_label": "Due date",
+              "accessibility_name": "Due date",
+              "href": ""
+            }
+          ]
+        },
+        {
+          "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+          "title": "Neutral Form Workspace",
+          "visible_text_length": 96,
+          "controls": [
+            {
+              "type": "input",
+              "input_type": "date",
+              "role": "textbox",
+              "selector": "#control-a92468a3",
+              "text": "Due date",
+              "aria_label": "Due date",
+              "accessibility_name": "Due date",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#control-9b07fcd1",
+              "text": "Project title",
+              "aria_label": "Project title",
+              "accessibility_name": "Project title",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#control-3c9d23c0",
+              "text": "Preview",
+              "aria_label": "Preview",
+              "accessibility_name": "Preview",
+              "href": ""
+            },
+            {
+              "type": "select",
+              "input_type": "",
+              "role": "combobox",
+              "selector": "#control-5eac00dc",
+              "text": "Priority",
+              "aria_label": "Priority",
+              "accessibility_name": "Priority",
+              "href": ""
+            }
+          ]
+        },
+        {
+          "url": "http://127.0.0.1:8770/form-conformance-fixture.html?variant=random",
+          "title": "Neutral Form Workspace",
+          "visible_text_length": 114,
+          "controls": [
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#control-3c9d23c0",
+              "text": "Preview",
+              "aria_label": "Preview",
+              "accessibility_name": "Preview",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#control-9b07fcd1",
+              "text": "Project title",
+              "aria_label": "Project title",
+              "accessibility_name": "Project title",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "date",
+              "role": "textbox",
+              "selector": "#control-a92468a3",
+              "text": "Due date",
+              "aria_label": "Due date",
+              "accessibility_name": "Due date",
+              "href": ""
+            },
+            {
+              "type": "select",
+              "input_type": "",
+              "role": "combobox",
+              "selector": "#control-5eac00dc",
+              "text": "Priority",
+              "aria_label": "Priority",
+              "accessibility_name": "Priority",
+              "href": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

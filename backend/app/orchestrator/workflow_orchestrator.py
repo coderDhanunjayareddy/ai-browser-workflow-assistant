@@ -2779,6 +2779,15 @@ def _deterministic_observed_control_response(
         str(task or ""),
         flags=re.IGNORECASE,
     )
+    if field_assignment is None:
+        field_assignment = re.search(
+            r"\bfill(?:\s+in)?\s+(?:the\s+)?(?:exact\s+)?(?:visible\s+)?"
+            r"(?:field|textbox|input)\s+(?:named|labelled|labeled)\s+"
+            r"[`\"']?([a-z][a-z0-9 _-]{0,60}?)[`\"']?\s+with\s+"
+            r"[`\"']?([^,.;\n`\"']{1,500})[`\"']?",
+            str(task or ""),
+            flags=re.IGNORECASE,
+        )
     if not action_type and field_assignment:
         requested_field = " ".join(field_assignment.group(1).split()).casefold()
         requested_value = field_assignment.group(2)
@@ -2841,7 +2850,7 @@ def _deterministic_observed_control_response(
     # site procedure or selector template.
     ordered_selections: list[tuple[int, str, str, str]] = []
     for match in re.finditer(
-        r"\bselect\s+[`\"']([^`\"']{1,200})[`\"']\s+(?:in|from)\s+(?:the\s+)?"
+        r"\bselect\s+[`\"']?([^,.;\n`\"']{1,200}?)[`\"']?\s+(?:in|from)\s+(?:the\s+)?"
         r"(?:exact\s+)?(?:enabled\s+)?(?:control|select|dropdown|combobox)\s+"
         r"(?:named|labelled|labeled)\s+[`\"']?([^,.;\n`\"']{1,120})",
         str(task or ""),
@@ -2849,7 +2858,16 @@ def _deterministic_observed_control_response(
     ):
         ordered_selections.append((match.start(), "select_option", match.group(2).strip(), match.group(1)))
     for match in re.finditer(
-        r"\b(?:choose|select|set)\s+(?:the\s+)?date\s+[`\"']([^`\"']{1,80})[`\"']\s+"
+        r"\b(?:choose|select|set)\s+(?:the\s+)?date\s+[`\"']?([^,.;\n`\"']{1,80}?)[`\"']?\s+"
+        r"(?:in|from|on)\s+(?:the\s+)?(?:exact\s+)?(?:enabled\s+)?"
+        r"(?:control|input|date\s+picker)\s+(?:named|labelled|labeled)\s+"
+        r"[`\"']?([^,.;\n`\"']{1,120})",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    ):
+        ordered_selections.append((match.start(), "choose_date", match.group(2).strip(), match.group(1)))
+    for match in re.finditer(
+        r"\b(?:choose|set)\s+([0-9]{4}-[0-9]{2}-[0-9]{2})\s+"
         r"(?:in|from|on)\s+(?:the\s+)?(?:exact\s+)?(?:enabled\s+)?"
         r"(?:control|input|date\s+picker)\s+(?:named|labelled|labeled)\s+"
         r"[`\"']?([^,.;\n`\"']{1,120})",
@@ -2971,7 +2989,7 @@ def _deterministic_observed_control_response(
             maxsplit=1,
             flags=re.IGNORECASE,
         )[0].strip()
-        if named_control:
+        if named_control and named_control.casefold() not in {"exact", "enabled", "visible"}:
             named_controls.append(named_control)
     if not action_type and named_controls:
 

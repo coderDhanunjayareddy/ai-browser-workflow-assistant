@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from app.schemas.response import SuggestedAction
 
 
@@ -93,28 +95,28 @@ def classify_action_risk(action: SuggestedAction) -> tuple[str, list[str], list[
     ):
         approval_hooks.extend(["scoped_confirmation", "content_disclosure"])
         reasons.append("content_insertion_requires_exact_binding_confirmation")
-    if any(term in text for term in DESTRUCTIVE_TERMS):
+    if _contains_any_term(text, DESTRUCTIVE_TERMS):
         approval_hooks.append("destructive_action")
         reasons.append("destructive_action_detected")
-    if any(term in text for term in IRREVERSIBLE_TERMS):
+    if _contains_any_term(text, IRREVERSIBLE_TERMS):
         approval_hooks.append("irreversible_external_action")
         reasons.append("irreversible_action_detected")
-    if any(term in text for term in CONFIRM_TERMS):
+    if _contains_any_term(text, CONFIRM_TERMS):
         approval_hooks.append("scoped_confirmation")
         reasons.append("scoped_confirmation_required")
     if action.action_type in {"close_tab"}:
         approval_hooks.append("tab_close")
         reasons.append("tab_close_requires_policy_check")
-    if action.action_type in {"fill"} and any(term in text for term in HANDOFF_TERMS):
+    if action.action_type in {"fill"} and _contains_any_term(text, HANDOFF_TERMS):
         approval_hooks.append("sensitive_input")
         reasons.append("sensitive_input_detected")
-    if "upload" in text:
+    if _contains_term(text, "upload"):
         approval_hooks.append("file_upload")
         reasons.append("file_upload_detected")
-    if "download" in text:
+    if _contains_term(text, "download"):
         reasons.append("file_download_detected")
 
-    if any(term in text for term in HANDOFF_TERMS):
+    if _contains_any_term(text, HANDOFF_TERMS):
         return "critical", approval_hooks, reasons or ["sensitive_context"]
     if action.safety_level == "danger" or approval_hooks:
         return "danger", approval_hooks, reasons
@@ -135,3 +137,12 @@ def _action_text(action: SuggestedAction) -> str:
         ]
         if value
     )
+
+
+def _contains_term(text: str, term: str) -> bool:
+    phrase = r"\s+".join(re.escape(part) for part in term.casefold().split())
+    return re.search(rf"(?<![a-z0-9]){phrase}(?![a-z0-9])", text.casefold()) is not None
+
+
+def _contains_any_term(text: str, terms: set[str]) -> bool:
+    return any(_contains_term(text, term) for term in terms)

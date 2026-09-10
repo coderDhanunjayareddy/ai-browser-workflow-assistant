@@ -89,6 +89,32 @@ def test_safe_action_is_allowed_immediately_before_execution(engine: LivePolicyE
     assert decision.origin == "https://example.com"
 
 
+def test_machine_generated_selector_substrings_do_not_trigger_sensitive_policy(engine: LivePolicyEngine):
+    safe_selection = request(action(
+        action_id="select-random",
+        action_type="select_option",
+        selector="#control-2fa8c173",
+        value="High",
+        description="Select the explicitly requested value in the uniquely observed Priority control",
+    ))
+    decision = engine.enforce(safe_selection)
+    assert decision.allowed is True
+    assert decision.risk_level == "safe"
+
+
+def test_real_sensitive_terms_still_require_the_existing_policy_boundary(engine: LivePolicyEngine):
+    sensitive = request(action(
+        action_id="fill-2fa",
+        action_type="fill",
+        selector="#verification-code",
+        value="123456",
+        description="Fill the 2FA verification code",
+    ))
+    decision = engine.enforce(sensitive)
+    assert decision.allowed is False
+    assert decision.risk_level == "critical"
+
+
 def test_observational_wait_does_not_inherit_upload_confirmation_from_description(engine: LivePolicyEngine):
     observe = request(action(
         action_id="wait-upload-control",

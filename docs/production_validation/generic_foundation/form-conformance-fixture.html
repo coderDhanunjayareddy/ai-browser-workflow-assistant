@@ -32,12 +32,24 @@
     </form>
   </main>
   <script>
+    if (new URL(location.href).searchParams.get('variant') === 'random') {
+      const form = document.querySelector('#form');
+      const controls = Array.from(form.children);
+      for (let index = controls.length - 1; index > 0; index -= 1) {
+        const swap = crypto.getRandomValues(new Uint32Array(1))[0] % (index + 1);
+        [controls[index], controls[swap]] = [controls[swap], controls[index]];
+      }
+      controls.forEach((control) => form.appendChild(control));
+      form.querySelectorAll('input, select, button').forEach((control) => {
+        control.id = `control-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16)}`;
+      });
+    }
     let previewCount = 0;
-    document.querySelector('#preview').addEventListener('click', () => {
+    document.querySelector('[aria-label="Preview"]').addEventListener('click', () => {
       previewCount += 1;
-      const title = document.querySelector('#project-title').value;
-      const priority = document.querySelector('#priority').value;
-      const dueDate = document.querySelector('#due-date').value;
+      const title = document.querySelector('[name="project-title"]').value;
+      const priority = document.querySelector('[name="priority"]').value;
+      const dueDate = document.querySelector('[name="due-date"]').value;
       document.querySelector('#state').textContent =
         title === 'Cross-domain audit' && priority === 'High' && dueDate === '2026-09-30' && previewCount === 1
           ? 'fixture_state=form_preview_ready_exactly_once'

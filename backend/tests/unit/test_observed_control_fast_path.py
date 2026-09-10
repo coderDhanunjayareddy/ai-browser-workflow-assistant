@@ -349,6 +349,46 @@ def test_named_native_selection_and_date_follow_task_order() -> None:
     assert second.suggested_actions[0].value == "2026-09-30"
 
 
+def test_natural_compound_form_assignments_do_not_depend_on_observed_control_order() -> None:
+    task = (
+        "Fill the exact field named Project title with Cross-domain audit. "
+        "Select High in the exact control named Priority. "
+        "Choose 2026-09-30 in the exact control named Due date. "
+        "Activate the exact enabled control named Preview exactly once."
+    )
+    page = _page(
+        "https://forms.example.test/preview",
+        [
+            InteractiveElement(type="button", role="button", selector="#random-preview", text="Preview", visible=True, accessibility_name="Preview"),
+            InteractiveElement(type="input", input_type="date", selector="#random-due", text="", visible=True, accessibility_name="Due date"),
+            InteractiveElement(type="select", role="combobox", selector="#random-priority", text="", visible=True, accessibility_name="Priority"),
+            InteractiveElement(type="input", role="textbox", selector="#random-title", text="", visible=True, accessibility_name="Project title"),
+        ],
+    )
+    prior: list[PriorStep] = []
+    expected = [
+        ("fill", "#random-title", "Cross-domain audit"),
+        ("select_option", "#random-priority", "High"),
+        ("choose_date", "#random-due", "2026-09-30"),
+        ("click", "#random-preview", "Preview"),
+    ]
+    for index, (action_type, selector, value) in enumerate(expected):
+        response = _deterministic_observed_control_response(
+            session_id="random-natural-form", task=task, page_context=page, prior_steps=prior,
+        )
+        assert response is not None
+        assert response.outcome_kind == "act"
+        action = response.suggested_actions[0]
+        assert (action.action_type, action.target_selector, action.value) == (action_type, selector, value)
+        prior.append(PriorStep(
+            action_type=action_type,
+            description=f"step {index}",
+            target_selector=selector,
+            value=value,
+            execution_result="success",
+        ))
+
+
 def test_completed_assignments_are_not_reinterpreted_as_clicks_in_a_compound_form_task() -> None:
     task = (
         "Select 'High' in the exact enabled control named Priority. "
