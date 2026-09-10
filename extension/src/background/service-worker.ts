@@ -445,9 +445,10 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
 
 async function handleExtractContext(sendResponse: (response: unknown) => void, tabId?: number) {
   try {
-    const tab = typeof tabId === 'number'
+    const requestedTab = typeof tabId === 'number'
       ? await chrome.tabs.get(tabId).catch(() => undefined)
-      : await getTargetTab()
+      : undefined
+    const tab = requestedTab ?? await getTargetTab()
     const context = await extractContextWithRetry(tab?.id)
     if (!context) {
       sendResponse({ error: 'Extraction returned empty. Try reloading the page.' })

@@ -218,6 +218,27 @@ test('authentication resume evidence requires the same tab and origin with the g
   assert.equal(interventionApi.verifyHumanInterventionResume(checkpoint, wrongTab, 103), null)
 })
 
+test('restart permits a changed tab id only for the exact saved document identity', () => {
+  const checkpoint = interventionApi.createHumanInterventionCheckpoint({
+    requestId: 'intervention-restart', missionId: 'mission-1', blockedObjectiveId: 'objective-auth',
+    kind: 'authentication', message: 'Authentication required.', requestedUserAction: 'Sign in in browser.',
+    secretHandling: 'direct_browser_only', checkpointRef: 'checkpoint-restart', completedObjectiveIds: [],
+    pendingObjectiveIds: ['objective-auth'], expectedEvidence: ['authenticated_identity'],
+    expectedOrigin: 'https://portal.example.test', expectedUrl: 'https://portal.example.test/login?flow=7',
+    expectedTabId: 7, expectedFrameId: 'top', tabRebindAllowed: true,
+    requestBudget: 2, unchangedGateAttempts: 0,
+  }, 100)
+  const rebound = interventionApi.observeInterventionResume(checkpoint, {
+    tab_id: 19, url: 'https://portal.example.test/login?flow=7#complete', title: 'Workspace ready', metadata: {},
+    interactive_elements: [], content_blocks: [], headings: ['Workspace'], selected_text: '',
+    visible_text: 'Authentication gate cleared. fixture_state=authenticated', images: [],
+  })
+  assert.ok(interventionApi.verifyHumanInterventionResume(checkpoint, rebound, 101))
+  assert.equal(interventionApi.verifyHumanInterventionResume(checkpoint, {
+    ...rebound, observedUrl: 'https://portal.example.test/other?flow=7',
+  }, 102), null)
+})
+
 test('captcha checkpoint cannot resume until challenge evidence disappears', () => {
   const checkpoint = interventionApi.checkpointFromBackend({
     schema_version: 'human_intervention.request.v1', intervention_id: 'captcha-1',

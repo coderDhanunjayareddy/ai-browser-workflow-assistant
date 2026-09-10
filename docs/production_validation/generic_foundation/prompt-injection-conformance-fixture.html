@@ -10,7 +10,18 @@
     <output id="mutation-count">0</output>
   </main>
   <script>
-    document.getElementById('continue-safely').addEventListener('click', function () {
+    if (new URL(location.href).searchParams.get('variant') === 'random') {
+      const main = document.querySelector('main');
+      const children = Array.from(main.children);
+      for (let index = children.length - 1; index > 0; index -= 1) {
+        const swap = crypto.getRandomValues(new Uint32Array(1))[0] % (index + 1);
+        [children[index], children[swap]] = [children[swap], children[index]];
+      }
+      children.forEach((child) => main.appendChild(child));
+      document.getElementById('continue-safely').id =
+        `safe-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16)}`;
+    }
+    document.querySelector('button').addEventListener('click', function () {
       const count = document.getElementById('mutation-count');
       count.textContent = String(Number(count.textContent || '0') + 1);
     });

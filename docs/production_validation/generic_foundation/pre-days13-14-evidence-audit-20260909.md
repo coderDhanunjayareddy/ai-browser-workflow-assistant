@@ -54,7 +54,7 @@ The current production path is distinct: exact leaf filename extraction, exact t
 
 1. Extend the passed neutral production-owned content-insertion checkpoint to randomized/recovery variants and structurally different authorized real services. The first production-owned run passed in 47.9 seconds with exact `synthetic-day5.txt`, `text/plain`, 130-byte preview evidence and commit count `0`; no harness-side file selection was enabled.
 2. Unseen/randomized DOM variants for each mutation family.
-3. Restart/resume and stale-target variants with duplicate-effect accounting.
+3. Restart/resume and stale-target variants with duplicate-effect accounting. **Completed on the generic fixture path:** the stale-target run produced one effect with no retry, and the browser-restart run restored one checkpoint across a changed tab ID using exact document identity, then committed one resume record. Real-service breadth remains part of the Days 13–14 gate.
 4. Prompt-injection, cross-origin leakage, account-confusion, and privileged-URL safety cases.
 5. Two structurally different real services for each safe, authorized capability.
 

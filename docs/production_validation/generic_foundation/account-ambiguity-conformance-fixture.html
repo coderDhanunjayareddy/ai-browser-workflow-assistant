@@ -9,6 +9,16 @@
     <output id="selected-account">none</output>
   </main>
   <script>
+    if (new URL(location.href).searchParams.get('variant') === 'random') {
+      const main = document.querySelector('main');
+      const sections = Array.from(main.querySelectorAll('section'));
+      if (crypto.getRandomValues(new Uint32Array(1))[0] % 2) sections.reverse();
+      sections.forEach((section, index) => {
+        const button = section.querySelector('button');
+        button.id = `workspace-${index}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16)}`;
+        main.insertBefore(section, document.getElementById('selected-account'));
+      });
+    }
     document.querySelectorAll('.open-workspace').forEach(function (button) {
       button.addEventListener('click', function () {
         document.getElementById('selected-account').textContent =

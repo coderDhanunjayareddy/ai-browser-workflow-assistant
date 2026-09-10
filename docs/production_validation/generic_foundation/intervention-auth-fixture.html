@@ -33,14 +33,22 @@
   <script>
     const gate = document.querySelector('#gate');
     const workspace = document.querySelector('#workspace');
-    document.querySelector('#complete-auth').addEventListener('click', () => {
-      const effectCount = document.querySelector('#auth-effect-count');
-      const nextCount = Number((effectCount.textContent || '').split('=').pop() || '0') + 1;
-      effectCount.textContent = `auth_effect_count=${nextCount}`;
+    const runId = new URL(location.href).searchParams.get('run') || 'default';
+    const storageKey = `synthetic_auth_state:${runId}`;
+    function showAuthenticated(count) {
+      document.querySelector('#auth-effect-count').textContent = `auth_effect_count=${count}`;
       gate.style.display = 'none';
       workspace.style.display = 'block';
       document.title = 'Synthetic Workspace Ready';
-      history.replaceState(null, '', '#authenticated');
+      if (location.hash !== '#authenticated') history.replaceState(null, '', `${location.pathname}${location.search}#authenticated`);
+    }
+    const restored = JSON.parse(localStorage.getItem(storageKey) || 'null');
+    if (restored?.authenticated === true) showAuthenticated(Number(restored.effectCount || 0));
+    document.querySelector('#complete-auth').addEventListener('click', () => {
+      const effectCount = document.querySelector('#auth-effect-count');
+      const nextCount = Number((effectCount.textContent || '').split('=').pop() || '0') + 1;
+      localStorage.setItem(storageKey, JSON.stringify({ authenticated: true, effectCount: nextCount }));
+      showAuthenticated(nextCount);
     });
   </script>
 </body>

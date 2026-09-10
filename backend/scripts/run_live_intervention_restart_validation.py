@@ -15,9 +15,7 @@ from run_live_sidepanel_validation import (
     _ensure_auto_mode,
     _execution_evidence,
     _extension_id,
-    _open_reloaded_sidepanel,
     _open_workflow_panel,
-    _reload_extension_from_disk,
     _reset_and_wait_for_prompt,
     _sidepanel_text,
 )
@@ -27,7 +25,8 @@ DEFAULT_PROMPT = (
     "Open http://127.0.0.1:8770/intervention-auth-fixture.html. "
     "If human authentication is required, pause and let me complete it. "
     "After authentication, verify the same tab and origin, resume from the saved checkpoint, "
-    "and report fixture_state=authenticated. Do not submit, upload, purchase, send, share, "
+    "and report the exact visible marker \"fixture_state=authenticated\". "
+    "Do not submit, upload, purchase, send, share, "
     "or change external data."
 )
 
@@ -76,14 +75,15 @@ def main() -> int:
         if args.profile_dir
         else REPORT_DIR / f"profile_restart_{int(time.time() * 1000)}"
     )
+    fixture_url = f"{args.fixture_url}?run={safe_id}"
     prompt = DEFAULT_PROMPT.replace(
         'http://127.0.0.1:8770/intervention-auth-fixture.html',
-        args.fixture_url,
+        fixture_url,
     )
     started = time.time()
     result: dict[str, object] = {
         'task_id': args.task_id,
-        'mode': 'extension_sidepanel_extension_restart',
+        'mode': 'extension_sidepanel_browser_restart',
         'profile_dir': str(profile_dir),
         'prompt': prompt,
         'synthetic_human_action': 'Playwright clicked only the local, no-credential authentication fixture.',
@@ -91,16 +91,16 @@ def main() -> int:
     }
 
     with sync_playwright() as pw:
-        context = pw.chromium.launch_persistent_context(
-            str(profile_dir),
-            headless=False,
-            viewport={'width': 1440, 'height': 950},
-            args=[
+        launch_options = {
+            'headless': False,
+            'viewport': {'width': 1440, 'height': 950},
+            'args': [
                 f'--disable-extensions-except={EXTENSION_DIR}',
                 f'--load-extension={EXTENSION_DIR}',
                 '--disable-quic',
             ],
-        )
+        }
+        context = pw.chromium.launch_persistent_context(str(profile_dir), **launch_options)
         context.set_default_timeout(15_000)
         extension_id = _extension_id(context)
         result['extension_id'] = extension_id
@@ -129,7 +129,7 @@ def main() -> int:
 
         target = next(
             page for page in context.pages
-            if page.url.startswith(args.fixture_url)
+            if page.url.startswith(fixture_url)
         )
         target.get_by_role('button', name='Complete synthetic sign in').click()
         target.get_by_text('fixture_state=authenticated', exact=True).wait_for(state='visible')
@@ -139,8 +139,20 @@ def main() -> int:
                 f'Synthetic authentication effect was not exactly once: {effect_count_after_human!r}'
             )
 
-        _reload_extension_from_disk(context, extension_id)
-        reloaded_panel = _open_reloaded_sidepanel(context, extension_id)
+        context.close()
+
+        context = pw.chromium.launch_persistent_context(str(profile_dir), **launch_options)
+        context.set_default_timeout(15_000)
+        restarted_extension_id = _extension_id(context)
+        if restarted_extension_id != extension_id:
+            raise RuntimeError('Unpacked extension identity changed across browser restart.')
+        restored_targets = [page for page in context.pages if page.url.startswith(fixture_url)]
+        target = restored_targets[0] if restored_targets else context.new_page()
+        if not restored_targets:
+            target.goto(fixture_url, wait_until='domcontentloaded')
+        target.get_by_text('fixture_state=authenticated', exact=True).wait_for(state='visible')
+        reloaded_panel = context.new_page()
+        reloaded_panel.goto(f'chrome-extension://{extension_id}/src/sidepanel/index.html')
         _open_workflow_panel(reloaded_panel)
         restored_text = _wait_for_text(
             reloaded_panel,
@@ -201,6 +213,12 @@ def main() -> int:
             'checks': checks,
             'checkpoint_request_id': (intervention_before.get('checkpoint') or {}).get('requestId'),
             'restored_checkpoint_request_id': (restored_intervention.get('checkpoint') or {}).get('requestId'),
+            'checkpoint_expected_tab_id': (intervention_before.get('checkpoint') or {}).get('expectedTabId'),
+            'resumed_observed_tab_id': resume_evidence.get('observedTabId'),
+            'tab_id_changed_across_browser_restart': (
+                (intervention_before.get('checkpoint') or {}).get('expectedTabId')
+                != resume_evidence.get('observedTabId')
+            ),
             'resume_evidence': resume_evidence,
             'durable_executions': executions,
             'canonical_adapter_traces': final_snapshot.get('traces') or [],

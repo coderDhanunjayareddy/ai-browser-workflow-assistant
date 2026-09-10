@@ -253,9 +253,13 @@ export function normalizeLedgerAfterRestart(
   ]))
   const interrupted = Object.values(executions).some((record) => record.status === 'uncertain')
   const transient = ['observing', 'analyzing', 'executing', 'refreshing'].includes(ledger.workflow.phase)
+  const restoredCheckpoint = ledger.workflow.humanIntervention ?? ledger.intervention?.checkpoint ?? null
+  const reboundCheckpoint = restoredCheckpoint
+    ? { ...restoredCheckpoint, tabRebindAllowed: true }
+    : null
   const restoredWorkflow: WorkflowState = {
     ...ledger.workflow,
-    humanIntervention: ledger.workflow.humanIntervention ?? ledger.intervention?.checkpoint ?? null,
+    humanIntervention: reboundCheckpoint,
   }
   const workflow: WorkflowState = interrupted || transient
     ? {
@@ -275,6 +279,12 @@ export function normalizeLedgerAfterRestart(
     workflow,
     approval: { status: 'none', actionId: null, updatedAt: now },
     executions,
+    intervention: ledger.intervention
+      ? {
+          ...ledger.intervention,
+          checkpoint: { ...ledger.intervention.checkpoint, tabRebindAllowed: true },
+        }
+      : null,
   }
 }
 

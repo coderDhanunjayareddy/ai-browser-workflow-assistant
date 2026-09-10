@@ -38,8 +38,10 @@ export interface HumanInterventionCheckpoint {
   pendingObjectiveIds: string[]
   expectedEvidence: ResumeEvidenceKind[]
   expectedOrigin?: string
+  expectedUrl?: string
   expectedTabId?: number
   expectedFrameId?: string
+  tabRebindAllowed?: boolean
   requestBudget: number
   unchangedGateAttempts: number
   state: 'awaiting_user' | 'ready_to_verify' | 'resumed' | 'expired'
@@ -54,6 +56,7 @@ export interface HumanInterventionResumeEvidence {
   resumedObjectiveId: string
   evidenceKinds: ResumeEvidenceKind[]
   observedOrigin?: string
+  observedUrl?: string
   observedTabId?: number
   observedFrameId?: string
   duplicateDispatchPrevented: true
@@ -96,7 +99,11 @@ export function verifyHumanInterventionResume(
   if (checkpoint.state === 'resumed' || checkpoint.state === 'expired') return null
   if (checkpoint.unchangedGateAttempts >= checkpoint.requestBudget) return null
   if (checkpoint.expectedOrigin && checkpoint.expectedOrigin !== observed.observedOrigin) return null
-  if (checkpoint.expectedTabId !== undefined && checkpoint.expectedTabId !== observed.observedTabId) return null
+  const sameTab = checkpoint.expectedTabId === undefined || checkpoint.expectedTabId === observed.observedTabId
+  const safelyReboundTab = checkpoint.tabRebindAllowed === true
+    && Boolean(checkpoint.expectedUrl)
+    && sameDocumentIdentity(checkpoint.expectedUrl, observed.observedUrl)
+  if (!sameTab && !safelyReboundTab) return null
   if (checkpoint.expectedFrameId !== undefined && checkpoint.expectedFrameId !== observed.observedFrameId) return null
   const evidence = new Set(observed.evidenceKinds)
   if (!checkpoint.expectedEvidence.every((kind) => evidence.has(kind))) return null
@@ -142,6 +149,7 @@ const BACKEND_EVIDENCE_MAP: Record<BackendHumanInterventionRequest['resume_condi
 export function checkpointFromBackend(
   request: BackendHumanInterventionRequest,
   now = Date.now(),
+  observedUrl?: string,
 ): HumanInterventionCheckpoint {
   if (request.schema_version !== HUMAN_INTERVENTION_REQUEST_SCHEMA) {
     throw new Error('Unsupported human-intervention contract version.')
@@ -161,6 +169,7 @@ export function checkpointFromBackend(
       ? ['challenge_cleared']
       : [BACKEND_EVIDENCE_MAP[request.resume_condition.evidence_kind]],
     expectedOrigin: request.resume_condition.observed_origin,
+    expectedUrl: observedUrl,
     expectedTabId: request.resume_condition.tab_id,
     expectedFrameId: request.resume_condition.frame_id,
     requestBudget: request.request_budget,
@@ -177,8 +186,22 @@ function observedOrigin(url: string): string | undefined {
   }
 }
 
+function sameDocumentIdentity(expected: string | undefined, observed: string | undefined): boolean {
+  if (!expected || !observed) return false
+  try {
+    const left = new URL(expected)
+    const right = new URL(observed)
+    return left.origin === right.origin
+      && left.pathname === right.pathname
+      && left.search === right.search
+  } catch {
+    return false
+  }
+}
+
 const AUTHENTICATION_GATE = /\b(sign[ -]?in|log[ -]?in|scan (?:the )?qr|qr code|authenticate|authentication required|verify (?:your )?identity|otp|passcode|verification code|one[- ]time (?:code|password)|two[- ]factor|multi[- ]factor)\b/i
 const CHALLENGE_GATE = /\b(captcha|recaptcha|hcaptcha|verify you are human|security challenge|challenge required)\b/i
+const AUTHENTICATION_RESOLVED = /\b(authenticated|signed[ -]?in|logged[ -]?in)\b|\b(authentication|sign[ -]?in|log[ -]?in|identity)\b.{0,40}\b(cleared|complete|completed|successful|verified|ready)\b/i
 
 function contextHasGate(context: PageContext, pattern: RegExp): boolean {
   if (pattern.test(`${context.title}\n${context.headings.join('\n')}\n${context.visible_text.slice(0, 4000)}`)) return true
@@ -197,7 +220,11 @@ export function observeInterventionResume(
   const sameOrigin = !checkpoint.expectedOrigin || checkpoint.expectedOrigin === origin
   if (sameOrigin) evidenceKinds.push('url_and_origin', 'page_state')
   if (checkpoint.kind === 'authentication' || checkpoint.kind === 'mfa') {
-    if (sameOrigin && !contextHasGate(context, AUTHENTICATION_GATE)) evidenceKinds.push('authenticated_identity')
+    const rendered = `${context.title}\n${context.headings.join('\n')}\n${context.visible_text.slice(0, 4000)}`
+    const resolved = AUTHENTICATION_RESOLVED.test(rendered)
+    if (sameOrigin && (resolved || !contextHasGate(context, AUTHENTICATION_GATE))) {
+      evidenceKinds.push('authenticated_identity')
+    }
   }
   if (checkpoint.kind === 'captcha') {
     if (sameOrigin && !contextHasGate(context, CHALLENGE_GATE)) evidenceKinds.push('challenge_cleared')
@@ -206,6 +233,7 @@ export function observeInterventionResume(
   return {
     evidenceKinds: [...new Set(evidenceKinds)],
     observedOrigin: origin,
+    observedUrl: context.url,
     observedTabId: context.tab_id,
     observedFrameId: 'top',
   }

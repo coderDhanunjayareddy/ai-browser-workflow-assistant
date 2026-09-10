@@ -5,7 +5,14 @@
   <main>
     <h1>Outer workspace</h1>
     <p id="outer-state">outer_state=unchanged</p>
-    <iframe title="External account frame" src="http://localhost:8767/cross-origin-child-fixture.html"></iframe>
+    <iframe id="external-frame" title="External account frame" src="http://localhost:8767/cross-origin-child-fixture.html"></iframe>
   </main>
+  <script>
+    if (new URL(location.href).searchParams.get('variant') === 'random') {
+      const nonce = crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+      document.getElementById('external-frame').src =
+        `http://localhost:8767/cross-origin-child-fixture.html?nonce=${nonce}`;
+    }
+  </script>
 </body>
 </html>

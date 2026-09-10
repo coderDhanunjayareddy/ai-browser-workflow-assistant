@@ -1306,7 +1306,7 @@ export function routeAnalyzeOutcome(
         analysisText: result.analysis,
         pendingActions: [],
         clarificationQuestion: null,
-        humanIntervention: checkpointFromBackend(result.human_intervention),
+        humanIntervention: checkpointFromBackend(result.human_intervention, Date.now(), options.currentUrl),
         contractOutcome: outcomeKind,
         report: null,
         replan: null,
