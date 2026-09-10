@@ -188,11 +188,27 @@ export function extractPageContext(): PageContext {
     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
       return el.placeholder || el.getAttribute('aria-label') || el.getAttribute('name') || ''
     }
-    // Prefer explicit label attributes (most reliable for AI selector generation)
-    const label = el.getAttribute('aria-label') || el.getAttribute('title') ||
+    const ariaLabel = el.getAttribute('aria-label')
+    if (ariaLabel) return sanitizeText(ariaLabel)
+
+    // Rendered content is the primary visible identity for controls whose
+    // accessible name is legitimately derived from content. `title` remains
+    // a fallback description; using it first turns repeated navigation links
+    // such as "next" into false duplicates of a visible body link.
+    const tag = el.tagName.toLowerCase()
+    const role = (el.getAttribute('role') || '').toLowerCase()
+    const nameFromContent = new Set([
+      'button', 'a', 'summary', 'option',
+      'link', 'menuitem', 'tab', 'listitem', 'row',
+    ])
+    if (nameFromContent.has(tag) || nameFromContent.has(role)) {
+      const text = sanitizeText((el.textContent || '').trim()).slice(0, 80)
+      if (text) return text
+    }
+
+    const label = el.getAttribute('title') ||
                   el.getAttribute('placeholder') || el.getAttribute('data-placeholder')
     if (label) return sanitizeText(label)
-    // For listitem/row/option roles: use inner text (contact name, thread subject, etc.)
     return sanitizeText((el.textContent || '').trim()).slice(0, 80)
   }
 

@@ -42,6 +42,18 @@ test('extractor_v2 prefers rendered control content over title fallback', () => 
   assert.ok(titleIndex > contentIndex, 'title must remain a fallback after rendered control content')
 })
 
+test('legacy extractor also prefers rendered control content before merged observations', () => {
+  const source = fs.readFileSync(path.join(root, 'src/content/extractor.ts'), 'utf8')
+  const functionBody = source.slice(
+    source.indexOf('function getElementText'),
+    source.indexOf('function getMetaContent'),
+  )
+  const contentIndex = functionBody.indexOf('if (nameFromContent.has(tag)')
+  const titleIndex = functionBody.indexOf("const label = el.getAttribute('title')")
+  assert.ok(contentIndex >= 0, 'legacy name-from-content branch must remain present')
+  assert.ok(titleIndex > contentIndex, 'legacy title must remain a fallback after rendered control content')
+})
+
 test('extractor_v2 records generic ARIA and native disabled state', () => {
   const source = fs.readFileSync(path.join(root, 'src/content/extractor_v2.ts'), 'utf8')
   assert.match(source, /aria-disabled[^\n]+state\['aria_disabled'\] = true/)
