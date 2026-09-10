@@ -15,7 +15,7 @@
 | Generic Days 7–8 executor/verifier | Passed | Two live neutral-surface runs completed through the canonical trusted path. |
 | Generic Day 10 confirmation policy | Passed as a synthetic policy matrix | Six consequential classes paused, identity drift failed closed, one confirmation was accepted, and duplicate confirmation was blocked without browser mutation. |
 | Generic Days 11–12 adapter isolation | Passed for the recorded checkpoint | The canonical CDP stable-selector trace was verified and provider adapters remained isolated. |
-| Generic Days 13–14 cross-domain conformance | In progress | Neutral production-owned insertion, randomized safety/form variants, stale-target recovery, and full browser restart/resume now pass. Structurally different real-service breadth and the remaining randomized mutation families remain. |
+| Generic Days 13–14 cross-domain conformance | In progress | Neutral production-owned insertion, randomized safety/form variants, stale-target recovery, full browser restart/resume, and one normal-Chrome public real-service exact-target activation now pass. A second structurally different service and the remaining cross-domain capability breadth still remain. |
 | Day 15 release decision | Blocked | Cannot begin until the Days 13–14 matrix and the reopened original Day 4/5 gates are complete. |
 
 ## Raw-evidence reconciliation
@@ -26,6 +26,7 @@
 - Generic Days 11–12: one completed 32.1-second run with a verified canonical stable-selector CDP trace.
 - Generic Days 13–14: public search, dynamic dialog, public read, authentication intervention, compound form, pagination, delayed collection (2/2), same-origin frame, tab lifecycle, and native download evidence all parse and match the progress report.
 - Native download was separately verified in normal Chrome: one server request, one 106-byte file, exact filename, `text/plain`, and SHA-256 `1FC13CB20F6590BD58EFADB4A17E46E0DE8B9ADD42DE56753583BB50870F4EE0`; no open/upload/share/delete action.
+- The normal-Chrome GitHub rerun independently verified the final `microsoft/playwright` URL and title. Backend persistence contains exactly two approved/executed mutations, zero retries/recoveries, a verified terminal identity event, and zero prohibited-action events.
 - Twenty-five local evidence links across the audited reports resolve; none are missing.
 
 ## Regression and infrastructure audit
@@ -68,6 +69,6 @@ The current production path is distinct: exact leaf filename extraction, exact t
 - Randomized production-owned insertion passed 3/3 with a different generated valid selector on every load and a disabled file-input decoy first in DOM order. All three runs selected the exact broker-bound file once, verified the same filename/MIME/size preview, and left commit count `0`.
 - Stale-target recovery and full browser restart/resume passed with exact duplicate-effect accounting. The restart changed the browser tab ID, rebound only the identical origin/path/query document, and committed one resume record.
 - Randomized hostile-content, account-ambiguity, cross-origin, and compound-form variants passed. The form run exposed and corrected order-coupled instruction parsing plus a false-positive policy match where a random selector contained the substring `2fa`.
-- A GitHub public repository workflow is retained as externally blocked evidence: bundled Chromium returned `ERR_NETWORK_ACCESS_DENIED`, and the normal-Chrome fresh profile did not register the unpacked extension. No real-service pass is claimed.
+- The earlier GitHub bundled-Chromium workflow remains externally blocked evidence. A later user-submitted run through the installed normal-Chrome side panel now passes as the first real-service exact-target activation: one navigation, one exact-link click, verified final identity, and no external-data mutation. This single pass does not satisfy the required cross-domain breadth.
 
 This audit does not convert controlled evidence into a release pass. Original Day 4 and Day 5 remain pending until their stated application-owned and real-service gates are satisfied.

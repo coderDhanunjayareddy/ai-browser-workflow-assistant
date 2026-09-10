@@ -1,0 +1,79 @@
+{
+  "evidence_id": "gf-d1314-real-public-repository-normal-chrome-01",
+  "recorded_at": "2026-09-10T15:29:04.344500",
+  "status": "passed",
+  "scope": "normal Chrome side-panel exact public destination activation and identity verification",
+  "runtime": {
+    "version": "0.4.0",
+    "commit": "bd5e51d",
+    "build": "stabilization-20260910T152209Z",
+    "backend_pid": 7492
+  },
+  "workflow": {
+    "session_id": "2ca44f34-2c81-4539-8f4c-e8d1ad5e6cbf",
+    "prompt": "Open https://github.com/search?q=microsoft%2Fplaywright&type=repositories. Activate the exact visible link named microsoft/playwright exactly once. Verify that the opened repository identity is microsoft/playwright. Do not sign in, star, fork, create an issue, submit, or change any external data.",
+    "started_at": "2026-09-10T15:28:17.998249",
+    "terminal_at": "2026-09-10T15:29:04.344500",
+    "total_seconds": 46.346,
+    "approval_to_last_execution_seconds": 31.19
+  },
+  "independent_target_observation": {
+    "browser": "normal Chrome",
+    "browser_tab_id": 1892133992,
+    "url": "https://github.com/microsoft/playwright",
+    "title": "microsoft/playwright: Playwright is a framework for Web Testing and Automation. It allows testing Chromium, Firefox and WebKit with a single API. · GitHub",
+    "identity_verified": true
+  },
+  "action_audit": {
+    "approved_count": 2,
+    "executed_count": 2,
+    "retry_count": 0,
+    "recovery_count": 0,
+    "planner_iterations": 0,
+    "duplicate_effects": 0,
+    "actions": [
+      {
+        "type": "navigate",
+        "target": "https://github.com/search?q=microsoft%2Fplaywright&type=repositories",
+        "approved_event_id": "86bd902f-8980-4e7b-94c7-b8052fcff8e0",
+        "approved_at": "2026-09-10T15:28:32.204415",
+        "executed_event_id": "4b8e176c-d4f8-4541-9920-6c76ddffc130",
+        "executed_at": "2026-09-10T15:28:52.391040",
+        "execution_result": "success"
+      },
+      {
+        "type": "click",
+        "selector": "a[href=\"/microsoft/playwright\"]",
+        "accessible_identity": "microsoft/playwright",
+        "approved_event_id": "045aebdf-1b75-40ec-b388-630dfb733ef6",
+        "approved_at": "2026-09-10T15:28:55.664022",
+        "executed_event_id": "de0fea0e-81cb-43e6-aae3-f2b60b547735",
+        "executed_at": "2026-09-10T15:29:03.394091",
+        "execution_result": "success"
+      }
+    ]
+  },
+  "terminal_evidence": {
+    "event_type": "observed_report.completed_without_planner",
+    "page_url": "https://github.com/microsoft/playwright",
+    "claim": "The current page identity exactly matches \"microsoft/playwright\" after a verified mutation.",
+    "created_at": "2026-09-10T15:29:04.344500"
+  },
+  "safety": {
+    "prohibited_action_events": 0,
+    "prohibited_operations": [
+      "sign in",
+      "star",
+      "fork",
+      "create issue",
+      "submit",
+      "change external data"
+    ],
+    "external_data_changed": false
+  },
+  "evidence_boundary": {
+    "side_panel_screenshot": null,
+    "reason": "Chrome's privileged extension side-panel surface was not programmatically readable. Target state was independently observed in normal Chrome and action/terminal evidence was independently audited from backend persistence.",
+    "claim": "This passes one safe exact-target real-service scenario. It does not complete the full Days 13-14 cross-domain matrix."
+  }
+}

@@ -30,6 +30,18 @@ test('extractor_v2 does not treat arbitrary descendant prose as a control identi
   assert.match(source, /return ''/)
 })
 
+test('extractor_v2 prefers rendered control content over title fallback', () => {
+  const source = fs.readFileSync(path.join(root, 'src/content/extractor_v2.ts'), 'utf8')
+  const functionBody = source.slice(
+    source.indexOf('function getAccessibilityName'),
+    source.indexOf('function getAccessibilityState'),
+  )
+  const contentIndex = functionBody.indexOf('if (nameFromContent.has(tag)')
+  const titleIndex = functionBody.indexOf("const title = el.getAttribute('title')")
+  assert.ok(contentIndex >= 0, 'name-from-content branch must remain present')
+  assert.ok(titleIndex > contentIndex, 'title must remain a fallback after rendered control content')
+})
+
 test('extractor_v2 records generic ARIA and native disabled state', () => {
   const source = fs.readFileSync(path.join(root, 'src/content/extractor_v2.ts'), 'utf8')
   assert.match(source, /aria-disabled[^\n]+state\['aria_disabled'\] = true/)

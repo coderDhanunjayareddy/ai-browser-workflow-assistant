@@ -264,11 +264,18 @@ def decompose_destination_objectives(task: str) -> list[DestinationObjective]:
     objectives: list[DestinationObjective] = []
     for index, part in enumerate(_split_objectives(task), start=1):
         capability = _capability(part)
-        app = _app_mentioned(part)
-        constrained = _constrained_app(part)
         explicit = _explicit_url(part)
+        # Registry aliases must not be inferred from tokens inside an explicit
+        # URL (for example, the `docs` host label in docs.python.org).
+        app = None if explicit else _app_mentioned(part)
+        constrained = None if explicit else _constrained_app(part)
         entity = None if app or explicit else _unknown_entity(part)
-        if app is None:
+        # An explicit URL is already the authoritative destination identity.
+        # Do not also infer a default application from incidental capability
+        # words later in the instruction (for example, "document identity").
+        # Dual identities make completion test the inferred application and
+        # can reopen an already reached explicit URL in additional tabs.
+        if app is None and explicit is None and entity is None:
             app = next((
                 candidate for candidate in APP_DESTINATIONS
                 if capability in candidate.default_capabilities
@@ -456,14 +463,14 @@ def _objective_satisfied(
                 for url in observed_urls if url
                 for app in compatible
             )
-    if objective.app_id:
-        app = _APP_BY_ID[objective.app_id]
-        return any(_host_matches(url, app.domains) for url in observed_urls if url)
     if objective.explicit_url:
         return any(
             _explicit_destination_matches(url, objective.explicit_url)
             for url in observed_urls if url
         )
+    if objective.app_id:
+        app = _APP_BY_ID[objective.app_id]
+        return any(_host_matches(url, app.domains) for url in observed_urls if url)
     return False
 
 

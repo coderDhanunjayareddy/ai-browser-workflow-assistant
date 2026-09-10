@@ -875,6 +875,41 @@ def test_explicit_named_control_pauses_when_multiple_enabled_exact_targets_exist
     assert "multiple enabled controls" in response.clarification_question.lower()
 
 
+def test_named_link_prefers_unique_exact_rendered_text_over_duplicate_title_fallbacks() -> None:
+    page = _page(
+        "https://docs.example.test/library/index.html",
+        [
+            InteractiveElement(
+                type="a", role="link", selector="#top-next", text="next",
+                accessibility_name="asyncio — Asynchronous I/O", visible=True,
+                href="https://docs.example.test/library/asyncio.html",
+            ),
+            InteractiveElement(
+                type="a", role="link", selector="#body-link", text="asyncio — Asynchronous I/O",
+                accessibility_name="asyncio — Asynchronous I/O", visible=True,
+                href="https://docs.example.test/library/asyncio.html",
+            ),
+            InteractiveElement(
+                type="a", role="link", selector="#bottom-next", text="next",
+                accessibility_name="asyncio — Asynchronous I/O", visible=True,
+                href="https://docs.example.test/library/asyncio.html",
+            ),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="generic-visible-text-preference",
+        task='Activate the exact visible link named asyncio — Asynchronous I/O exactly once.',
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].action_type == "click"
+    assert response.suggested_actions[0].target_selector == "#body-link"
+
+
 def test_compound_named_controls_advance_in_order_after_verified_prior_click() -> None:
     task = (
         "Activate the exact enabled control named Open review, then activate "

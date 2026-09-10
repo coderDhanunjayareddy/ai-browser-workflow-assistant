@@ -131,12 +131,6 @@ export function extractPageContextV2(): PageContext {
     const ariaLabel = el.getAttribute('aria-label')
     if (ariaLabel) return ariaLabel
 
-    const title = el.getAttribute('title')
-    if (title) return title
-
-    const placeholder = el.getAttribute('placeholder')
-    if (placeholder) return placeholder
-
     const labelledBy = el.getAttribute('aria-labelledby')
     if (labelledBy) {
       const labelledText = labelledBy
@@ -161,6 +155,16 @@ export function extractPageContextV2(): PageContext {
       const text = (el.textContent || '').replace(/\s+/g, ' ').trim()
       if (text.length <= 160) return text
     }
+
+    // `title` is a fallback description, not a stronger name than rendered
+    // link/button content. Treating it as primary can make several "next"
+    // navigation links appear to have the same identity as one visible body
+    // link that points to the same document.
+    const title = el.getAttribute('title')
+    if (title) return title
+
+    const placeholder = el.getAttribute('placeholder')
+    if (placeholder) return placeholder
     return ''
   }
 

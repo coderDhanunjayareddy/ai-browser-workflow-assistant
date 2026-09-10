@@ -247,6 +247,31 @@ def test_explicit_url_identity_normalizes_only_trailing_slash_and_optional_fragm
     assert different_path.suggested_actions[0].value == "https://example.com/workspace/#inbox"
 
 
+def test_explicit_url_remains_authoritative_when_later_words_imply_a_default_application():
+    url = "https://docs.python.org/3/library/ipc.html"
+    task = (
+        f"Open {url}. Activate the exact visible link named asyncio — Asynchronous I/O exactly once. "
+        "Verify that the opened document identity is asyncio — Asynchronous I/O. "
+        "Do not sign in, download, submit feedback, or change any external data."
+    )
+
+    objectives = decompose_destination_objectives(task)
+    assert len(objectives) == 1
+    assert objectives[0].explicit_url == url
+    assert objectives[0].app_id is None
+
+    completed = resolve_destination(
+        session_id="explicit-url-with-document-word",
+        task=task,
+        page_context=page(url),
+        prior_steps=[successful_navigation(url)],
+    )
+
+    # Destination Resolution must yield to exact-control grounding once the
+    # explicit destination is reached; it must not reopen the URL in a new tab.
+    assert completed is None
+
+
 def test_completed_destinations_focus_one_observed_existing_tab_by_exact_title():
     first_url = "http://127.0.0.1:8765/frame-conformance-fixture.html"
     second_url = "http://127.0.0.1:8765/pagination-conformance-fixture.html"

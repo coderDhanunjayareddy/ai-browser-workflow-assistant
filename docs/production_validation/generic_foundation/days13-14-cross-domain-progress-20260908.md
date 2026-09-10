@@ -30,6 +30,7 @@
 | Randomized cross-origin isolation: changing child-frame URL identity | Neutral two-origin fixture | PASS (`needs_info`) | 25.9 s | navigate only | 0 / 0 |
 | Randomized compound form: shuffled controls + random IDs + natural phrasing | Neutral local fixture | PASS | 38.3 s | navigate, fill, select, date, click | 0 / 0 |
 | Public repository search/open in bundled Chromium | GitHub | EXTERNALLY BLOCKED (`ERR_NETWORK_ACCESS_DENIED`) | 63.2 s | one navigation attempt | 0 / 0 |
+| Public repository search/open in normal Chrome | GitHub | PASS | 46.3 s | navigate, exact click | 0 / 0 |
 
 Every browser mutation above travelled through the extension side panel and the canonical gateway. The live harness did not directly click or fill the target page. The authentication run intentionally stopped before the synthetic human action.
 
@@ -70,6 +71,8 @@ Every browser mutation above travelled through the extension side panel and the 
 33. The next diagnostic (`gf-d1314-form-random-02`) correctly filled the randomized text field, then policy stopped the safe selection because its generated selector `#control-2fa8c173` happened to contain the substring `2fa`. Policy terms now require token/phrase boundaries. A generated identifier cannot masquerade as MFA, while real `2FA`, password, upload, submit, and other policy terms retain their existing classification. The focused orchestrator/policy suite passed 100 tests.
 34. The corrected randomized run (`gf-d1314-form-random-03`) completed in 38.3 seconds with random selectors and shuffled DOM order. It executed one navigation, one fill, one `select_option`, one `choose_date`, and one Preview click; every durable action succeeded on attempt 1. The page reached `fixture_state=form_preview_ready_exactly_once`, and no submit or duplicate mutation occurred.
 35. The public repository workflow (`gf-d1314-real-public-repository-01`) did not pass: bundled Chromium reached `chrome-error://chromewebdata/` with `ERR_NETWORK_ACCESS_DENIED`. The application stopped after one navigation attempt and produced no click or retry. A normal-Chrome fallback then failed before workflow start because the fresh automation profile did not register an unpacked-extension service worker. These are recorded environment/harness blockers, not real-service success evidence and not an application capability pass.
+36. The first user-submitted normal-Chrome prompt encoded the query separator as `%26`, so GitHub received `microsoft/playwright&type=repositories` as one search value. The application safely withheld the exact click because the requested target was absent. This was invalid test input and is not counted as an application failure or pass.
+37. The corrected pre-fix run opened the exact repository but then proposed an unwanted sign-in click. Root cause was domain-neutral orchestration logic treating the negative constraint `Do not sign in` as positive login intent, combined with a missing terminal parser for `Verify that the opened ... identity is ...`. Login selection now uses affirmative task text only, and verified destination identity can terminate only after a verified mutation. The clean rerun (`gf-d1314-real-public-repository-normal-chrome-01`) passed in normal Chrome: exactly one navigation and one exact-link click, final URL and repository identity `microsoft/playwright`, terminal event `observed_report.completed_without_planner`, zero retries/recoveries/planner iterations, and zero sign-in, star, fork, issue, submit, or other external-data mutation events.
 
 ## Regression results
 
@@ -77,6 +80,7 @@ Every browser mutation above travelled through the extension side panel and the 
 - Full extension suite after restart-safe exact-document rebinding: **246 passed**.
 - Post-correction destination/grounding focused suite: **88 passed**.
 - Post-randomized-form orchestrator/policy focused suite: **100 passed**.
+- Post-fix destination-identity and negative-login regression suite: **135 passed**; the focused observed-control file passed **69 tests**.
 - Focused child-frame/backend grounding suites: **106 extension checks and 70 backend checks passed**.
 - Extension TypeScript check: **passed**.
 - Extension production build: **passed**.
@@ -146,6 +150,7 @@ Every browser mutation above travelled through the extension side panel and the 
 - `docs/production_validation/live_sidepanel/gf-d1314-form-random-03.json`
 - `docs/production_validation/live_sidepanel/gf-d1314-form-random-03-target.png`
 - `docs/production_validation/live_sidepanel/gf-d1314-real-public-repository-01.json` (externally blocked diagnostic; no click or retry)
+- `docs/production_validation/live_sidepanel/gf-d1314-real-public-repository-normal-chrome-01.json` (normal-Chrome real-service pass; independent target and backend audit)
 - `docs/production_validation/generic_foundation/pre-days13-14-evidence-audit-20260909.md`
 
 ## Remaining before the Days 13–14 exit
@@ -153,6 +158,6 @@ Every browser mutation above travelled through the extension side panel and the 
 - Extend the passed production-owned content-insertion checkpoint to structurally different authorized real services. Randomized controls, stale-target recovery, browser restart/resume, native download, tab lifecycle, and same-origin child-frame execution pass; cross-origin frame isolation remains part of the live safety matrix.
 - Run unseen/randomized DOM variants for each mutation family.
 - Add restart-specific variants for any remaining safety checkpoint whose state is expected to survive a restart; prompt-injection, account-confusion, and cross-origin DOM randomization now pass, while privileged URL rejection is already independent of page DOM.
-- Validate two structurally different real services for each capability where the action is safe and authorized.
+- Validate a second structurally different real service for the safe exact-target activation capability, and two structurally different real services for each remaining capability where the action is safe and authorized. GitHub now supplies the first normal-Chrome real-service pass for exact-target activation.
 
 Day 15 and the original upload/send certification remain blocked until this matrix is complete.

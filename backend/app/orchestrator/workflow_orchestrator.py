@@ -3061,6 +3061,19 @@ def _deterministic_observed_control_response(
                 element for selector_id, element in unique_matches.items()
                 if selector_id not in completed_clicks
             ]
+            if len(remaining_matches) > 1:
+                # Title/help metadata may give several controls the same
+                # computed accessibility identity even though only one has
+                # the user's requested text visibly rendered. Prefer that
+                # unique text-exact control. Keep genuinely duplicated visible
+                # controls ambiguous (for example, the same action in two
+                # different account sections).
+                rendered_text_matches = [
+                    element for element in remaining_matches
+                    if " ".join(str(element.get("text") or "").split()).casefold() == requested_identity
+                ]
+                if len(rendered_text_matches) == 1:
+                    remaining_matches = rendered_text_matches
             if len(remaining_matches) == 1:
                 control = remaining_matches[0]
                 selector = str(control.get("selector") or "").strip()
