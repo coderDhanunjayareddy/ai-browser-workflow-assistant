@@ -97,7 +97,9 @@ def _load_destination_registry() -> tuple[AppDestination, ...]:
 APP_DESTINATIONS = _load_destination_registry()
 
 _APP_BY_ID = {app.app_id: app for app in APP_DESTINATIONS}
-_UNSAFE_SCHEMES = {"javascript", "data", "file", "chrome", "chrome-extension", "about"}
+_UNSAFE_SCHEMES = {
+    "javascript", "data", "file", "chrome", "chrome-extension", "edge", "about", "devtools", "view-source",
+}
 _ACCOUNT_PATH_TERMS = ("login", "signin", "sign-in", "account", "student", "portal", "exam")
 _MAX_DISCOVERY_PROVIDER_ATTEMPTS = 2
 _TERMINAL_FAILURE_TERMS = (
@@ -166,6 +168,21 @@ def _safe_http_url(value: str) -> str | None:
 def _explicit_url(text: str) -> str | None:
     match = re.search(r"https?://[^\s<>'\"`]+", str(text or ""), flags=re.IGNORECASE)
     return _safe_http_url(match.group(0)) if match else None
+
+
+def _explicit_privileged_url(text: str) -> str | None:
+    """Return an explicitly requested non-web URL that must not enter discovery.
+
+    Treating a browser-owned or local URL as an unknown institution name can
+    turn a clear safety boundary into an unrelated web search. Preserve only a
+    bounded display value; it is never emitted as an executable destination.
+    """
+    match = re.search(
+        r"\b(?:chrome|chrome-extension|edge|about|file|javascript|data|devtools|view-source):(?:/{0,2})[^\s<>'\"`]*",
+        str(text or ""),
+        flags=re.IGNORECASE,
+    )
+    return match.group(0).rstrip(".,);]") if match else None
 
 
 def _split_objectives(task: str) -> list[str]:
@@ -1029,6 +1046,27 @@ def resolve_destination(
     prior_steps: list[Any] | None = None,
     user_context: str = "",
 ) -> AnalyzeResponse | None:
+    privileged_url = _explicit_privileged_url(task)
+    if privileged_url:
+        return AnalyzeResponse(
+            session_id=session_id,
+            analysis=(
+                "The requested destination uses a browser-owned, local, or otherwise privileged URL scheme. "
+                "It cannot be opened through the webpage automation executor, and no search substitute was attempted."
+            ),
+            outcome_kind="report",
+            report=ReportOutcome(
+                answer=(
+                    f'I cannot open "{privileged_url}" through this automation path. '
+                    "Open that privileged browser page yourself if needed, then ask me to verify or continue from a regular webpage."
+                ),
+                claim="No privileged URL, substitute destination, or browser mutation was dispatched.",
+            ),
+            suggested_actions=[],
+            sgv_verified=True,
+            goal_convergence=True,
+            backend_authoritative_report=True,
+        )
     media_response = _resolve_media_playback(
         session_id=session_id,
         task=task,

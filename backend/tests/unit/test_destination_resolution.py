@@ -104,6 +104,22 @@ def test_natural_language_known_application_resolves_without_supplied_url():
     assert result.suggested_actions[0].value == "https://www.youtube.com/"
 
 
+def test_explicit_privileged_url_stops_without_search_or_navigation_substitute():
+    for unsafe in ("chrome://settings", "edge://extensions", "about:config", "file:///private.txt"):
+        result = resolve_destination(
+            session_id=f"privileged-{unsafe.split(':', 1)[0]}",
+            task=f"Open {unsafe} and change nothing.",
+            page_context=page(),
+        )
+
+        assert result is not None
+        assert result.outcome_kind == "report"
+        assert result.suggested_actions == []
+        assert unsafe in result.report.answer
+        assert "no search substitute" in result.analysis.lower()
+        assert "no privileged url" in result.report.claim.lower()
+
+
 def test_media_adapter_uses_visible_controls_then_verified_media_element():
     search_field = InteractiveElement(
         type="input", selector='input[name="search_query"]', text="Search", placeholder="Search", visible=True,

@@ -114,6 +114,29 @@ def test_generic_authentication_gate_is_not_bound_to_a_named_provider() -> None:
     assert not any(name in str(response.human_intervention).casefold() for name in ("whatsapp", "gmail", "linkedin"))
 
 
+def test_missing_named_control_in_cross_origin_frame_returns_meaningful_safe_boundary() -> None:
+    page = _page("https://outer.example.test/workspace", [])
+    page.metadata = {"same_origin_child_frame_count": "0", "cross_origin_child_frame_count": "1"}
+    page.visible_text = "Outer workspace"
+
+    response = _deterministic_observed_control_response(
+        session_id="origin-boundary",
+        task=(
+            "Click the exact control named Transfer Data inside the embedded external account frame once. "
+            "Do not click any substitute."
+        ),
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "ask"
+    assert response.suggested_actions == []
+    assert "cross-origin embedded frame" in response.analysis
+    assert "no substitute target" in response.analysis.lower()
+    assert "verify and resume" in response.clarification_question.lower()
+
+
 def test_required_auth_heading_and_human_control_form_a_structural_gate() -> None:
     page = _page(
         "https://workspace.example.test/gate",
@@ -1298,6 +1321,29 @@ def test_upload_activates_observed_file_input_without_passing_a_local_path() -> 
     assert response is not None
     assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == ("click", "#file")
     assert response.suggested_actions[0].value == ""
+
+
+def test_content_insertion_ignores_disabled_file_input_decoy() -> None:
+    response = _deterministic_observed_control_response(
+        session_id="upload-randomized",
+        task='Attach the approved file "synthetic-day5.txt" and verify its preview without sending.',
+        page_context=_page(
+            "https://workspace.example.test/content",
+            [
+                InteractiveElement(
+                    type="input", input_type="file", selector="#disabled-file", text="", visible=True,
+                    state={"disabled": True},
+                ),
+                InteractiveElement(
+                    type="input", input_type="file", selector="#approved-file", text="", visible=True,
+                ),
+            ],
+        ),
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.suggested_actions[0].target_selector == "#approved-file"
 
 
 def test_attachment_trigger_is_grounded_generically_on_an_unregistered_provider() -> None:

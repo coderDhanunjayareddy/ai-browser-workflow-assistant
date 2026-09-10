@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Neutral Stale Target Workspace</title></head>
+<body>
+  <main>
+    <h1>Stale target recovery</h1>
+    <p id="fixture-state">fixture_state=ready</p>
+    <div id="control-host"><button id="initial-control" type="button">Continue</button></div>
+    <output id="effect-count">0</output>
+  </main>
+  <script>
+    const host = document.getElementById('control-host');
+    const count = document.getElementById('effect-count');
+    function bindEffect(button) {
+      button.addEventListener('click', function () {
+        count.textContent = String(Number(count.textContent || '0') + 1);
+        document.getElementById('fixture-state').textContent = 'fixture_state=continued_exactly_once';
+        button.disabled = true;
+      });
+    }
+    const initial = document.getElementById('initial-control');
+    bindEffect(initial);
+    initial.addEventListener('pointerenter', function replaceBeforeDispatch() {
+      const replacement = document.createElement('button');
+      replacement.id = `replacement-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16)}`;
+      replacement.type = 'button';
+      replacement.textContent = 'Continue';
+      bindEffect(replacement);
+      initial.replaceWith(replacement);
+    }, { once: true });
+  </script>
+</body>
+</html>

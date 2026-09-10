@@ -231,6 +231,13 @@ test('content selection evidence is armed before trusted input and remains withi
   assert.match(worker, /args: \[action\.content_insertion, 30_000\]/)
 })
 
+test('cross-origin frame presence is counted without merging its private content', () => {
+  const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
+  assert.match(worker, /cross_origin_child_frame_count/)
+  assert.match(worker, /const crossOriginChildFrameCount = childFrameResults\.length - childContexts\.length/)
+  assert.match(worker, /const childVisibleText = childContexts/)
+})
+
 test('download observation is armed before trusted input and disposed after bounded verification', () => {
   const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
   const armIndex = worker.indexOf("const downloadObservation = contract.expected_effect.kind === 'download_complete'")

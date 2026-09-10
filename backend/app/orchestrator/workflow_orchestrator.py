@@ -3000,6 +3000,7 @@ def _deterministic_observed_control_response(
                 for step in prior_steps
             )
         }
+        missing_named_control: str | None = None
         for named_control in named_controls:
             requested_identity = " ".join(named_control.split()).casefold()
             if requested_identity in completed_control_names or requested_identity in completed_assignment_names:
@@ -3074,9 +3075,35 @@ def _deterministic_observed_control_response(
                     ),
                     suggested_actions=[],
                 )
+            missing_named_control = named_control
             # Preserve task order. A later named control is not eligible until
             # the earlier one has a verified successful prior step.
             break
+        if not action_type and missing_named_control:
+            cross_origin_value = str(
+                getattr(page_context, "metadata", {}).get("cross_origin_child_frame_count") or "0"
+            )
+            cross_origin_count = int(cross_origin_value) if cross_origin_value.isdigit() else 0
+            boundary = (
+                " The page contains a cross-origin embedded frame whose contents are intentionally isolated."
+                if cross_origin_count > 0
+                else ""
+            )
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    f'The exact requested control "{missing_named_control}" is not present in the accessible '
+                    f'current-page observation.{boundary} No substitute target was selected and no browser mutation was dispatched.'
+                ),
+                outcome_kind="ask",
+                clarification_question=(
+                    f'Expose an accessible exact control named "{missing_named_control}", or complete the isolated '
+                    "frame step yourself and ask me to verify and resume."
+                    if cross_origin_count > 0
+                    else f'Please expose the exact control named "{missing_named_control}" and ask me to verify and resume.'
+                ),
+                suggested_actions=[],
+            )
 
     if action_type:
         pass
@@ -3219,10 +3246,13 @@ def _deterministic_observed_control_response(
             (
                 element
                 for element in elements
-                if str(element.get("input_type") or "").lower() == "file"
-                or (
-                    str(element.get("type") or "").lower() == "input"
-                    and "file" in str(element.get("selector") or "").lower()
+                if _is_viable_content_insertion_control(element)
+                and (
+                    str(element.get("input_type") or "").lower() == "file"
+                    or (
+                        str(element.get("type") or "").lower() == "input"
+                        and "file" in str(element.get("selector") or "").lower()
+                    )
                 )
             ),
             None,
@@ -3798,6 +3828,11 @@ def _is_viable_content_insertion_control(element: dict[str, Any]) -> bool:
     """
     selector = str(element.get("selector") or "").strip()
     if not selector:
+        return False
+    state = dict(element.get("state") or {})
+    if element.get("visible") is False or any(
+        bool(state.get(key)) for key in ("disabled", "aria_disabled", "readonly", "hidden")
+    ):
         return False
     selector_lower = selector.casefold()
     if any(

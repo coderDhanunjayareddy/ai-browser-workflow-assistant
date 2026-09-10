@@ -631,11 +631,12 @@ async function extractContextWithRetry(tabId?: number) {
           const topOrigin = (() => {
             try { return new URL(v1Context.url).origin } catch { return '' }
           })()
-          const childContexts = v1Results
-            .filter((entry) => entry.frameId !== 0 && entry.result)
+          const childFrameResults = v1Results.filter((entry) => entry.frameId !== 0 && entry.result)
+          const childContexts = childFrameResults
             .filter((entry) => {
               try { return new URL(entry.result!.url).origin === topOrigin } catch { return false }
             })
+          const crossOriginChildFrameCount = childFrameResults.length - childContexts.length
           const childInteractive = childContexts.flatMap((entry) =>
             (entry.result!.interactive_elements || []).map((item: any) => ({
               ...item,
@@ -664,6 +665,7 @@ async function extractContextWithRetry(tabId?: number) {
             metadata: {
               ...v1Context.metadata,
               same_origin_child_frame_count: String(childContexts.length),
+              cross_origin_child_frame_count: String(Math.max(0, crossOriginChildFrameCount)),
             },
             interactive_elements: [...uniqueInteractive.values()].slice(0, 150),
             content_blocks: v1Context.content_blocks,

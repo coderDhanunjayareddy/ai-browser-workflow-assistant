@@ -16,6 +16,7 @@ const promptInjectionFixturePath = path.join(__dirname, 'prompt-injection-confor
 const accountAmbiguityFixturePath = path.join(__dirname, 'account-ambiguity-conformance-fixture.html');
 const crossOriginParentFixturePath = path.join(__dirname, 'cross-origin-parent-fixture.html');
 const crossOriginChildFixturePath = path.join(__dirname, 'cross-origin-child-fixture.html');
+const staleTargetFixturePath = path.join(__dirname, 'stale-target-conformance-fixture.html');
 const syntheticDownloadPath = path.join(__dirname, 'synthetic-download.txt');
 const server = http.createServer((request, response) => {
   console.log(`${new Date().toISOString()} ${request.method} ${request.url}`);
@@ -92,6 +93,11 @@ const server = http.createServer((request, response) => {
   if (request.url?.startsWith('/cross-origin-child-fixture.html')) {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     fs.createReadStream(crossOriginChildFixturePath).pipe(response);
+    return;
+  }
+  if (request.url?.startsWith('/stale-target-conformance-fixture.html')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    fs.createReadStream(staleTargetFixturePath).pipe(response);
     return;
   }
   if (request.url?.startsWith('/synthetic-download.txt')) {

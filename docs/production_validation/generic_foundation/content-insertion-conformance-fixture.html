@@ -8,14 +8,27 @@
   <main>
     <h1>Synthetic content preview</h1>
     <p id="fixture-state">fixture_state=awaiting_content</p>
-    <label for="approved-content">Choose approved document</label>
+    <input id="disabled-file-decoy" type="file" disabled aria-label="Unavailable old document control">
+    <label id="approved-label" for="approved-content">Choose approved document</label>
     <input id="approved-content" type="file" accept="text/plain,application/pdf">
     <output id="content-preview" role="status" aria-live="polite"></output>
     <button id="commit-content" type="button">Commit content</button>
     <output id="commit-count">0</output>
   </main>
   <script>
-    document.getElementById('approved-content').addEventListener('change', function (event) {
+    const variant = new URLSearchParams(location.search).get('variant') || 'base';
+    const input = document.getElementById('approved-content');
+    const label = document.getElementById('approved-label');
+    if (variant !== 'base') {
+      const identity = variant === 'random'
+        ? Array.from(crypto.getRandomValues(new Uint8Array(6)), value => value.toString(16).padStart(2, '0')).join('')
+        : variant.replace(/[^a-z0-9_-]/gi, '').toLowerCase();
+      input.id = `approved-${identity || 'variant'}`;
+      label.htmlFor = input.id;
+      document.querySelector('main').insertBefore(input, document.getElementById('fixture-state'));
+      document.querySelector('main').insertBefore(label, input);
+    }
+    input.addEventListener('change', function (event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
       document.getElementById('content-preview').textContent =
