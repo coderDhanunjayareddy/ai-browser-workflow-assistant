@@ -15,7 +15,7 @@
 | Generic Days 7–8 executor/verifier | Passed | Two live neutral-surface runs completed through the canonical trusted path. |
 | Generic Day 10 confirmation policy | Passed as a synthetic policy matrix | Six consequential classes paused, identity drift failed closed, one confirmation was accepted, and duplicate confirmation was blocked without browser mutation. |
 | Generic Days 11–12 adapter isolation | Passed for the recorded checkpoint | The canonical CDP stable-selector trace was verified and provider adapters remained isolated. |
-| Generic Days 13–14 cross-domain conformance | In progress | Ten scenario rows currently pass; content insertion, randomized variants, recovery, safety, and structurally different real-service coverage remain. |
+| Generic Days 13–14 cross-domain conformance | In progress | Neutral production-owned insertion, randomized safety/form variants, stale-target recovery, and full browser restart/resume now pass. Structurally different real-service breadth and the remaining randomized mutation families remain. |
 | Day 15 release decision | Blocked | Cannot begin until the Days 13–14 matrix and the reopened original Day 4/5 gates are complete. |
 
 ## Raw-evidence reconciliation
@@ -31,7 +31,7 @@
 ## Regression and infrastructure audit
 
 - Release-critical backend suite: **363 passed** in 29.35 seconds.
-- Extension suite: **244 passed**.
+- Extension suite: **246 passed** after exact-document restart rebinding.
 - Extension TypeScript check: **passed**.
 - Alembic current/head: `20260908_0004`; schema compatibility: **passed**.
 - Canonical runtime health at audit start: backend connected at `http://localhost:8000`, build `stabilization-20260909T154057Z`, PID `30840`. After the audited generality correction, the extension and backend were rebuilt together as `stabilization-20260909T165119Z`, commit marker `4e2af40-dirty`, PID `22764`.
@@ -53,7 +53,7 @@ The current production path is distinct: exact leaf filename extraction, exact t
 ## Remaining Days 13–14 gates
 
 1. Extend the passed neutral production-owned content-insertion checkpoint to randomized/recovery variants and structurally different authorized real services. The first production-owned run passed in 47.9 seconds with exact `synthetic-day5.txt`, `text/plain`, 130-byte preview evidence and commit count `0`; no harness-side file selection was enabled.
-2. Unseen/randomized DOM variants for each mutation family.
+2. Unseen/randomized DOM variants for each mutation family. Randomized insertion and compound form now pass; remaining families are still pending.
 3. Restart/resume and stale-target variants with duplicate-effect accounting. **Completed on the generic fixture path:** the stale-target run produced one effect with no retry, and the browser-restart run restored one checkpoint across a changed tab ID using exact document identity, then committed one resume record. Real-service breadth remains part of the Days 13–14 gate.
 4. Prompt-injection, cross-origin leakage, account-confusion, and privileged-URL safety cases.
 5. Two structurally different real services for each safe, authorized capability.
@@ -66,5 +66,8 @@ The current production path is distinct: exact leaf filename extraction, exact t
 - Duplicate exact controls across two account sections produced a clarification and no account selection.
 - A discovered privileged-URL fallback defect was corrected. The rerun rejected `chrome://settings` on New Tab with zero actions and no web-search substitute.
 - Randomized production-owned insertion passed 3/3 with a different generated valid selector on every load and a disabled file-input decoy first in DOM order. All three runs selected the exact broker-bound file once, verified the same filename/MIME/size preview, and left commit count `0`.
+- Stale-target recovery and full browser restart/resume passed with exact duplicate-effect accounting. The restart changed the browser tab ID, rebound only the identical origin/path/query document, and committed one resume record.
+- Randomized hostile-content, account-ambiguity, cross-origin, and compound-form variants passed. The form run exposed and corrected order-coupled instruction parsing plus a false-positive policy match where a random selector contained the substring `2fa`.
+- A GitHub public repository workflow is retained as externally blocked evidence: bundled Chromium returned `ERR_NETWORK_ACCESS_DENIED`, and the normal-Chrome fresh profile did not register the unpacked extension. No real-service pass is claimed.
 
 This audit does not convert controlled evidence into a release pass. Original Day 4 and Day 5 remain pending until their stated application-owned and real-service gates are satisfied.

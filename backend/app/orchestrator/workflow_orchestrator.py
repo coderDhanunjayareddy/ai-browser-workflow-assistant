@@ -5,7 +5,7 @@ import re
 import time
 from dataclasses import replace
 from typing import Any
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, unquote, urlencode, urlparse, urlunparse
 
 from app.intervention_runtime import (
     create_authentication_intervention,
@@ -3442,7 +3442,7 @@ def _deterministic_observed_control_response(
             selector = str(control.get("selector") or "")
             action_type = "click"
             description = "Click the observed Ready control after its dynamic appearance"
-    elif any(term in task_text for term in ("log in", "login", "sign in")):
+    elif any(term in affirmative_text for term in ("log in", "login", "sign in")):
         username_control = _find_observed_control(elements, selector_terms=("username", "user", "email"), label_terms=("username", "email"))
         password_control = _find_observed_control(elements, selector_terms=("password", "passwd"), label_terms=("password",))
         submit_control = _find_observed_control(elements, label_terms=("sign in", "log in", "login", "submit"))
@@ -3506,6 +3506,34 @@ def _deterministic_observed_report_response(
     affirmative_text = affirmative_task_text(task)
     current_url = str(getattr(page_context, "url", "") or "").lower()
     visible_text = " ".join(str(getattr(page_context, "visible_text", "") or "").split())
+
+    def successful_mutation(step: Any) -> bool:
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        if str(data.get("action_type") or "").lower() not in {
+            "click",
+            "fill",
+            "select_option",
+            "choose_date",
+            "keyboard_shortcut",
+            "media_control",
+        }:
+            return False
+        result = str(data.get("execution_result") or "").strip().casefold()
+        if any(term in result for term in ("failed", "failure", "no_effect", "no effect", "error:")):
+            return False
+        # Current-page postcondition evidence remains mandatory, so a stored
+        # successful mutation can never produce a completion claim by itself.
+        return result.startswith((
+            "success",
+            "filled field",
+            "clicked target",
+            "cdp click dispatched",
+            "selected option",
+            "selected visible option",
+            "intent execution queue completed",
+        )) or "verification: verified" in result
+
+    verified_mutation = any(successful_mutation(step) for step in list(prior_steps or []))
     visible_marker_match = re.search(
         r"\b(?:(?:exact\s+)?visible\s+(?:(?:text\s+)?marker|text)|page\s+marker)\b"
         r"\s*(?:is|:)?\s*[`\"']([^`\"']{1,300})[`\"']",
@@ -3528,6 +3556,50 @@ def _deterministic_observed_report_response(
                 goal_convergence=True,
                 backend_authoritative_report=True,
             )
+    identity_expectation = re.search(
+        r"\b(?:verify|confirm)\b(?:\s+that)?\s+"
+        r"(?:(?:the\s+)?(?:opened|current|destination|target)\s+)?"
+        r"(?:[a-z][a-z0-9_-]*\s+){0,3}?identity\s+"
+        r"(?:is|equals|matches)\s+[`\"']?([^.;\n`\"']{1,240})",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    )
+    if identity_expectation and verified_mutation:
+        expected_identity = " ".join(identity_expectation.group(1).split()).strip(" /`\"'")
+        expected_canonical = re.sub(r"\s*[/\\]\s*", "/", expected_identity).casefold()
+        try:
+            observed_path = unquote(urlparse(current_url).path).strip("/").casefold()
+        except Exception:
+            observed_path = ""
+        visible_canonical = re.sub(r"[^a-z0-9]+", " ", visible_text.casefold()).strip()
+        expected_visible = re.sub(r"[^a-z0-9]+", " ", expected_canonical).strip()
+        identity_matches = bool(
+            expected_canonical
+            and (
+                observed_path == expected_canonical
+                or (expected_visible and expected_visible in visible_canonical)
+            )
+        )
+        if identity_matches:
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    "A verified browser mutation was followed by current-page URL or visible evidence "
+                    "matching the explicitly requested destination identity."
+                ),
+                outcome_kind="report",
+                report=ReportOutcome(
+                    answer=f'Verified the opened destination identity "{expected_identity}".',
+                    claim=(
+                        f'The current page identity exactly matches "{expected_identity}" after a verified mutation.'
+                    ),
+                ),
+                suggested_actions=[],
+                sgv_verified=True,
+                goal_convergence=True,
+                backend_authoritative_report=True,
+            )
+
     state_assignment = re.search(
         r"\b(?:verify|confirm)\b(?:\s+that)?\s+"
         r"([a-z][a-z0-9_-]{1,80}\s*=\s*[a-z0-9][a-z0-9_-]{0,160})",
@@ -3547,35 +3619,6 @@ def _deterministic_observed_report_response(
         ).strip(" `\"'")
         expected_identity = re.sub(r"[^a-z0-9]+", " ", expected_state.casefold()).strip()
         visible_identity = re.sub(r"[^a-z0-9]+", " ", visible_text.casefold()).strip()
-        def successful_mutation(step: Any) -> bool:
-            data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
-            if str(data.get("action_type") or "").lower() not in {
-                "click",
-                "fill",
-                "select_option",
-                "choose_date",
-                "keyboard_shortcut",
-                "media_control",
-            }:
-                return False
-            result = str(data.get("execution_result") or "").strip().casefold()
-            if any(term in result for term in ("failed", "failure", "no_effect", "no effect", "error:")):
-                return False
-            # The browser executor persists the canonical result as ``success``;
-            # richer clients may additionally retain their verification text.
-            # Current-page postcondition evidence remains mandatory below, so a
-            # successful mutation alone can never produce a completion claim.
-            return result.startswith((
-                "success",
-                "filled field",
-                "clicked target",
-                "cdp click dispatched",
-                "selected option",
-                "selected visible option",
-                "intent execution queue completed",
-            )) or "verification: verified" in result
-
-        verified_mutation = any(successful_mutation(step) for step in list(prior_steps or []))
         if expected_identity and verified_mutation and expected_identity in visible_identity:
             return AnalyzeResponse(
                 session_id=session_id,

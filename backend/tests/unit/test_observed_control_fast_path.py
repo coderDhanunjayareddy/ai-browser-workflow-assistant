@@ -570,6 +570,52 @@ def test_generic_postcondition_accepts_canonical_persisted_success_result() -> N
     assert response.suggested_actions == []
 
 
+def test_opened_destination_identity_terminates_after_verified_exact_click() -> None:
+    page = _page("https://code.example.test/acme/runner", [])
+    page.title = "acme/runner"
+    page.visible_text = "acme runner Public project"
+    task = (
+        "Open the public project search. Activate the exact visible link named acme/runner exactly once. "
+        "Verify that the opened project identity is acme/runner. Do not sign in or change external data."
+    )
+    exact_click = PriorStep(
+        action_type="click",
+        description="Activate the grounded exact control: acme/runner",
+        target_selector='a[href="/acme/runner"]',
+        value="acme/runner",
+        execution_result="success",
+        page_url=page.url,
+        page_title=page.title,
+    )
+
+    response = _deterministic_observed_report_response(
+        session_id="generic-opened-identity",
+        task=task,
+        page_context=page,
+        prior_steps=[exact_click],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "report"
+    assert response.sgv_verified is True
+    assert response.suggested_actions == []
+    assert "acme/runner" in response.report.answer
+
+
+def test_opened_destination_identity_requires_verified_mutation() -> None:
+    page = _page("https://code.example.test/acme/runner", [])
+    page.visible_text = "acme runner Public project"
+
+    response = _deterministic_observed_report_response(
+        session_id="generic-opened-identity-no-mutation",
+        task="Verify that the opened project identity is acme/runner.",
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is None
+
+
 def test_generic_postcondition_accepts_identifier_named_state_clause() -> None:
     page = _page("https://unfamiliar.example.test/workspace", [])
     page.visible_text = "fixture_state=continued_exactly_once"
@@ -1275,6 +1321,26 @@ def test_login_controls_are_selected_in_fill_fill_submit_order() -> None:
     )
     assert submit is not None
     assert (submit.suggested_actions[0].action_type, submit.suggested_actions[0].target_selector) == ("click", "#login-btn")
+
+
+def test_negative_login_constraint_never_selects_optional_login_control() -> None:
+    page = _page(
+        "https://code.example.test/acme/runner",
+        [InteractiveElement(type="a", selector="#login", text="Sign in", visible=True, role="link")],
+    )
+    page.visible_text = "acme runner Sign in"
+
+    response = _deterministic_observed_control_response(
+        session_id="negative-login-constraint",
+        task=(
+            "Open the exact project named acme/runner and verify its identity. "
+            "Do not sign in, submit, or change external data."
+        ),
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is None
 
 
 def test_pagination_and_modal_actions_use_observed_selectors() -> None:
