@@ -13,9 +13,11 @@ export interface FileTransferAction {
     expected_effect: string
     requires_bound_file: boolean
     destination_entity: string
+    destination_url: string
     stage: string
     opens_native_chooser: boolean
     reveal_selector?: string | null
+    requested_filename?: string | null
   } | null
 }
 

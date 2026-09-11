@@ -127,6 +127,7 @@ def compile_capability_request(
         )
         safety_class = "consequential"
     elif action_type == "upload_file" or content_insertion:
+        template = _ACTION_TEMPLATES["upload_file"]
         safety_class = "caution"
     elif safety_level == "danger":
         safety_class = "consequential"
@@ -160,6 +161,8 @@ def compile_capability_request(
             "planner_action_ref": action_id,
             "live_grounding_required": bool(target_selector),
             "content_identity": _content_identity(content_insertion, consequential),
+            "content_destination_url": _content_destination_url(content_insertion),
+            "content_insertion_effect": _content_insertion_effect(content_insertion),
         },
         preconditions=["objective_capability_matched", "current_page_observed", "target_grounded_live"],
         expected_effect=ExpectedEffect(
@@ -170,7 +173,10 @@ def compile_capability_request(
         safety_class=safety_class,
         retry_budget=template.retry_budget if safety_class in {"safe", "caution"} else 0,
         idempotency_key=f"{mission_id}:{objective_id}:{action_id}",
-        confirmation_required=safety_class in {"consequential", "privileged"},
+        confirmation_required=(
+            safety_class in {"consequential", "privileged"}
+            or _content_insertion_needs_confirmation(content_insertion)
+        ),
         intervention_kinds=["authentication", "mfa", "captcha", "privileged_ui", "identity_ambiguity"],
     )
 
@@ -190,10 +196,39 @@ def _entity_type_for(action_type: str, *, consequential: bool) -> str:
 def _content_identity(content_insertion: object, consequential: object) -> str | None:
     for declaration in (consequential, content_insertion):
         if isinstance(declaration, dict):
-            value = declaration.get("content_identity") or declaration.get("resource_id")
+            value = (
+                declaration.get("content_identity")
+                or declaration.get("resource_id")
+                or declaration.get("requested_filename")
+            )
             if value:
                 return str(value)
     return None
+
+
+def _content_destination_url(content_insertion: object) -> str | None:
+    if isinstance(content_insertion, dict):
+        value = content_insertion.get("destination_url")
+        if value:
+            return str(value)
+    return None
+
+
+def _content_insertion_effect(content_insertion: object) -> str | None:
+    if isinstance(content_insertion, dict):
+        value = content_insertion.get("expected_effect")
+        if value:
+            return str(value)
+    return None
+
+
+def _content_insertion_needs_confirmation(content_insertion: object) -> bool:
+    if not isinstance(content_insertion, dict):
+        return False
+    return bool(
+        content_insertion.get("opens_native_chooser") is True
+        or content_insertion.get("expected_effect") in {"selection_sends_immediately", "device_capture"}
+    )
 
 
 def _destination_identity(content_insertion: object, consequential: object) -> str | None:

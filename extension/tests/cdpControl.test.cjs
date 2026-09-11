@@ -329,6 +329,7 @@ test('transient content option is revealed and grounded inside one trusted dispa
       expected_effect: 'preview_then_send',
       requires_bound_file: true,
       destination_entity: 'Recipient',
+      destination_url: 'https://messaging.example.test/thread/123',
       stage: 'select_bound_content',
       opens_native_chooser: true,
       reveal_selector: 'button[aria-label="Attach"]',

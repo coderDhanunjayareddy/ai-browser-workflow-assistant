@@ -4174,7 +4174,7 @@ def _content_insertion_effect(task: str) -> str:
         return "structured_draft"
     if re.search(r"\b(insert|embed)\b.{0,80}\b(editor|document|canvas|composer)\b", text):
         return "inserts_into_composer"
-    if re.search(r"\b(upload|store|save)\b.{0,80}\b(to|into)\b", text):
+    if re.search(r"\b(upload|store|save)\b", text):
         return "selection_sends_immediately"
     # Attaching normally exposes a review/preview state before a separate
     # send or submit. Unknown upload semantics take the immediate-effect path

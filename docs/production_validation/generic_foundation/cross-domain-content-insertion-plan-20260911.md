@@ -1,7 +1,7 @@
 # Cross-domain content-insertion certification plan
 
 **Recorded:** 2026-09-11  
-**Status:** IMPLEMENTATION STARTED — no real-service upload pass is claimed yet
+**Status:** CI-1 IMPLEMENTED AND LOCALLY VERIFIED — no real-service upload pass is claimed yet
 
 ## Objective
 
@@ -56,9 +56,21 @@ Certify one provider-neutral content-insertion path across structurally differen
 - Zero sends/submissions, wrong files, wrong destinations, duplicate selections, second choosers, or unverified success claims.
 - The original Day 4 20/20 gate remains separate and is not converted to PASS by this cross-domain checkpoint.
 
+## Implementation checkpoint — 2026-09-11
+
+- Production declarations now bind the exact HTTP(S) document URL as well as the destination entity, file identity, content kind, and expected effect.
+- The extension rejects a missing/privileged destination URL and revalidates the exact origin, path, query, and required fragment immediately before chooser dispatch and after selection.
+- Provider-neutral effect classification distinguishes preview-before-send, structured drafts, editor insertion, immediate upload/storage, and device capture. Unknown `upload`/`store`/`save` semantics take the safer immediate-effect class.
+- Content insertion is compiled as `content_transfer.insert`, not an ordinary click. Its generic capability contract carries the requested filename, destination URL, effect, zero retry budget, and confirmation requirement.
+- The chooser ledger records the exact destination URL and continues to block a second chooser after selected, cancelled, or uncertain dispatch.
+- Approved synthetic artifact: `synthetic-day5.txt`, `text/plain`, 130 bytes, SHA-256 `5009cc5417c8c6b175e13637bff785182c49e8d78f91ed9f07dbdec840c10945`, resolved through `local_downloads_broker_exact_match`.
+- Verification: 87 focused insertion/orchestrator/broker/capability tests passed; 43 policy and generic capability boundary tests passed; all 248 extension tests passed; TypeScript check and production extension build passed.
+- Canonical runtime rebuilt as `stabilization-20260911T054428Z`, commit handshake `744259e-dirty`, PID `13480`.
+
+Still pending: reload the unpacked extension, then run the live action-time confirmation and preview-only matrix on two authorized structurally different services. No live service pass is inferred from local tests.
+
 ## External behavior references
 
 - Chrome DevTools Protocol exposes chooser interception through `Page.setInterceptFileChooserDialog` / `Page.fileChooserOpened` and exact file binding through `DOM.setFileInputFiles`.
 - Chrome extensions use `chrome.debugger` as the supported transport for CDP commands on a bound tab.
 - Official messaging and mail documentation confirms that file selection and final send are separate stages on preview-capable surfaces; the certification intentionally stops before send.
-

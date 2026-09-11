@@ -280,6 +280,7 @@ type ContentInsertionReservation = {
   state: 'chooser_opened' | 'selected' | 'cancelled' | 'uncertain'
   origin: string
   destination_entity: string
+  destination_url: string
   kind: string
   effect: string
   updated_at_ms: number
@@ -303,6 +304,7 @@ async function reserveContentChooser(
     state: 'chooser_opened',
     origin: contract.origin.origin,
     destination_entity: declaration.destination_entity,
+    destination_url: declaration.destination_url,
     kind: declaration.kind,
     effect: declaration.expected_effect,
     updated_at_ms: Date.now(),

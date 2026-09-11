@@ -178,6 +178,7 @@ test('content insertion declaration is typed and preserved inside the canonical 
     expected_effect: 'preview_then_send',
     requires_bound_file: true,
     destination_entity: 'Synthetic Recipient',
+    destination_url: 'https://messaging.example.test/thread/123',
     stage: 'select_bound_content',
     opens_native_chooser: true,
     requested_filename: 'synthetic-day5.txt',
@@ -187,6 +188,8 @@ test('content insertion declaration is typed and preserved inside the canonical 
   assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, kind: 'unknown' } })), false)
   assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, opens_native_chooser: 'yes' } })), false)
   assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, requested_filename: '..\\secret.txt' } })), false)
+  assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, destination_url: undefined } })), false)
+  assert.equal(validateExecutableAction(action({ content_insertion: { ...insertion, destination_url: 'chrome://settings' } })), false)
 })
 
 test('consequential submission declaration binds destination and content identity', () => {

@@ -137,6 +137,7 @@ test('content-insertion control names are not misclassified as newly opened reso
       expected_effect: 'preview_then_send',
       requires_bound_file: true,
       destination_entity: 'Synthetic Recipient',
+      destination_url: 'https://messaging.example.test/thread/123',
       stage: 'open_insertion_menu',
       opens_native_chooser: false,
     },

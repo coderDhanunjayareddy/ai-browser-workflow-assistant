@@ -44,6 +44,30 @@ def test_compiler_converts_consequential_declaration_to_confirmed_zero_retry_ope
     assert request.target.exact_match_required is True
 
 
+def test_compiler_binds_content_insertion_without_provider_knowledge():
+    request = compile_capability_request(
+        action=_action(
+            safety_level="caution",
+            content_insertion={
+                "requested_filename": "synthetic-day5.txt",
+                "destination_entity": "Client Review",
+                "destination_url": "https://workspace.example.test/drafts/42",
+                "expected_effect": "structured_draft",
+                "opens_native_chooser": True,
+            },
+        ),
+        mission_id="mission-1", objective_id="objective-insert", objective_identity=None,
+        run_id="run-1",
+    )
+    assert request.capability_id == "content_transfer.insert"
+    assert request.family == "content_transfer"
+    assert request.inputs["content_identity"] == "synthetic-day5.txt"
+    assert request.inputs["content_destination_url"] == "https://workspace.example.test/drafts/42"
+    assert request.inputs["content_insertion_effect"] == "structured_draft"
+    assert request.confirmation_required is True
+    assert request.retry_budget == 0
+
+
 def test_compiler_rejects_unknown_actions_instead_of_guessing_a_named_workflow():
     with pytest.raises(ValueError, match="Unsupported generic action type"):
         compile_capability_request(

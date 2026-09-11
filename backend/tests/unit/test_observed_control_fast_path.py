@@ -3,6 +3,8 @@ from __future__ import annotations
 from app.orchestrator.workflow_orchestrator import (
     _deterministic_human_intervention_response,
     _destination_ordinal_from_task,
+    _content_insertion_destination_entity,
+    _content_insertion_effect,
     _deterministic_observed_control_response,
     _deterministic_observed_report_response,
     _find_observed_control,
@@ -1178,6 +1180,9 @@ def test_verified_cdp_menu_click_advances_to_new_content_kind_control() -> None:
     assert action.content_insertion["opens_native_chooser"] is True
     assert action.content_insertion["reveal_selector"] == 'button[aria-label="Attach"]'
     assert action.content_insertion["requested_filename"] == "synthetic-day5.txt"
+    assert action.content_insertion["destination_entity"] == "Rahul"
+    assert action.content_insertion["destination_url"] == "https://web.whatsapp.com/"
+    assert action.content_insertion["expected_effect"] == "preview_then_send"
 
 
 def test_whatsapp_open_only_task_converges_from_trusted_exact_click_evidence() -> None:
@@ -1229,6 +1234,7 @@ def test_generic_content_insertion_converges_from_exact_preview_evidence_without
             "content_request_id": "content-test-1",
             "content_kind": "document",
             "destination_origin": "https://messaging.example.test",
+            "destination_url": "https://messaging.example.test/thread/123",
             "destination_entity": "Synthetic Recipient",
             "upload_files_count": 1,
             "upload_accepted": True,
@@ -1260,6 +1266,7 @@ def test_generic_content_insertion_does_not_converge_for_wrong_origin_or_send_ob
     evidence = {
         "content_request_id": "content-test-2",
         "destination_origin": "https://other.example.test",
+        "destination_url": "https://other.example.test/thread/123",
         "destination_entity": "Synthetic Recipient",
         "upload_files_count": 1,
         "upload_accepted": True,
@@ -1287,6 +1294,19 @@ def test_generic_content_insertion_does_not_converge_for_wrong_origin_or_send_ob
     assert wrong_origin is None
 
     selection.browser_evidence["destination_origin"] = "https://messaging.example.test"
+    selection.browser_evidence["destination_url"] = "https://messaging.example.test/thread/other"
+    wrong_document = _deterministic_observed_report_response(
+        session_id="wrong-document",
+        task=(
+            "Open the exact chat named Synthetic Recipient. Attach the file named synthetic-day4.txt. "
+            "Do not send anything."
+        ),
+        page_context=page,
+        prior_steps=[selection],
+    )
+    assert wrong_document is None
+
+    selection.browser_evidence["destination_url"] = "https://messaging.example.test/thread/123"
     send_requested = _deterministic_observed_report_response(
         session_id="send-requested",
         task=(
@@ -1521,6 +1541,23 @@ def test_upload_activates_observed_file_input_without_passing_a_local_path() -> 
     assert response is not None
     assert (response.suggested_actions[0].action_type, response.suggested_actions[0].target_selector) == ("click", "#file")
     assert response.suggested_actions[0].value == ""
+    insertion = response.suggested_actions[0].content_insertion
+    assert insertion is not None
+    assert insertion["destination_url"] == "http://127.0.0.1:5051/upload"
+    assert insertion["destination_entity"] == "Fixture [http://127.0.0.1:5051/upload]"
+    assert insertion["expected_effect"] == "selection_sends_immediately"
+
+
+def test_content_insertion_effect_and_destination_are_provider_neutral() -> None:
+    page = _page(
+        "https://workspace.example.test/drafts/42?mode=edit",
+        [InteractiveElement(type="input", input_type="file", selector="#file", text="", visible=True)],
+    )
+    page.title = "Synthetic Composer"
+    task = 'Attach "synthetic-day5.txt" to the draft named "Client Review".'
+    destination_url = "https://workspace.example.test/drafts/42?mode=edit"
+    assert _content_insertion_destination_entity(task, page, destination_url) == "Client Review"
+    assert _content_insertion_effect(task) == "structured_draft"
 
 
 def test_content_insertion_ignores_disabled_file_input_decoy() -> None:
@@ -1562,6 +1599,9 @@ def test_attachment_trigger_is_grounded_generically_on_an_unregistered_provider(
     assert (action.action_type, action.target_selector) == ("click", "#paperclip")
     assert "content-insertion control" in action.description
     assert "WhatsApp" not in action.description
+    assert action.content_insertion is not None
+    assert action.content_insertion["destination_url"] == "https://messaging.example.test/thread/123"
+    assert action.content_insertion["expected_effect"] == "preview_then_send"
 
 
 def test_content_insertion_prefers_composer_trigger_over_unrelated_global_media_navigation() -> None:
