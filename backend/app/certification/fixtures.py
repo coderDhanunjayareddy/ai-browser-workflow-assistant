@@ -235,6 +235,7 @@ DRAFT_CONTENT_INSERTION = _p("Synthetic Draft Workspace", """
     <div id="attachment-preview" role="status" data-submission-preview="true"></div>
     <button id="submit-draft" type="button" aria-label="Send draft">Send draft</button>
     <button id="discard-draft" type="button" aria-label="Discard draft">Discard draft</button>
+    <div id="delivered-items" aria-label="Delivered items"></div>
   </section>
   <dl aria-label="Independent effect counters">
     <dt>Draft creations</dt><dd id="draft-count">0</dd>
@@ -263,8 +264,19 @@ DRAFT_CONTENT_INSERTION = _p("Synthetic Draft Workspace", """
     var preview=document.getElementById('attachment-preview');
     preview.textContent=state.filename?('Attachment preview: '+state.filename):'';
     if(state.filename)preview.setAttribute('data-content-identity',state.filename);else preview.removeAttribute('data-content-identity');
-    var ready=state.drafts===1&&state.subject&&state.filename&&state.selections===1&&state.sends===0&&state.discards===0;
-    document.getElementById('fixture-state').textContent=ready?'fixture_state=draft_preview_ready_exactly_once':'fixture_state=draft_in_progress';
+    var delivered=document.getElementById('delivered-items');
+    delivered.innerHTML='';
+    if(state.sends===1&&state.filename){
+      var item=document.createElement('div');
+      item.setAttribute('data-delivery-state','delivered');
+      item.setAttribute('data-content-identity',state.filename);
+      item.setAttribute('data-destination-entity','Synthetic Draft Workspace');
+      item.textContent='Delivered: '+state.filename+' to Synthetic Draft Workspace';
+      delivered.appendChild(item);
+    }
+    var previewReady=state.drafts===1&&state.subject&&state.filename&&state.selections===1&&state.sends===0&&state.discards===0;
+    var submitted=state.drafts===1&&state.subject&&state.filename&&state.selections===1&&state.sends===1&&state.discards===0;
+    document.getElementById('fixture-state').textContent=submitted?'fixture_state=draft_submitted_exactly_once':(previewReady?'fixture_state=draft_preview_ready_exactly_once':'fixture_state=draft_in_progress');
   }
   document.getElementById('create-draft').addEventListener('click',function(){
     if(state.drafts===0)state.drafts=1;
@@ -276,7 +288,10 @@ DRAFT_CONTENT_INSERTION = _p("Synthetic Draft Workspace", """
     if(f&&state.filename!==f.name){state.selections+=1;state.filename=f.name;}
     save();render();
   });
-  document.getElementById('submit-draft').addEventListener('click',function(){state.sends+=1;save();render();});
+  document.getElementById('submit-draft').addEventListener('click',function(){
+    if(state.filename&&state.sends===0)state.sends=1;
+    save();render();
+  });
   document.getElementById('discard-draft').addEventListener('click',function(){state.discards+=1;save();render();});
   render();
 })();

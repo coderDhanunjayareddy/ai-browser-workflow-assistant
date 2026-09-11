@@ -21,6 +21,7 @@ def main() -> int:
     parser.add_argument("--repeat", type=int, default=20)
     parser.add_argument("--timeout-s", type=int, default=240)
     parser.add_argument("--filename", default="synthetic-day5.txt")
+    parser.add_argument("--confirm-synthetic-submit", action="store_true")
     args = parser.parse_args()
     if args.repeat < 1 or args.repeat > 100:
         parser.error("--repeat must be between 1 and 100")
@@ -42,6 +43,8 @@ def main() -> int:
             "--subject",
             f"Synthetic cross-domain attachment preview {sequence_id} run {index:02d}",
         ]
+        if args.confirm_synthetic_submit:
+            command.append("--confirm-synthetic-submit")
         completed = subprocess.run(
             command,
             cwd=str(BACKEND),
@@ -101,6 +104,7 @@ def main() -> int:
         "status": "passed" if passed == args.repeat else "failed",
         "stopped_on_first_failure": True,
         "harness_file_injection": False,
+        "synthetic_submit_confirmed": args.confirm_synthetic_submit,
         "total_duration_s": round(time.time() - started, 1),
         "min_workflow_duration_s": min(durations) if durations else None,
         "max_workflow_duration_s": max(durations) if durations else None,

@@ -392,7 +392,9 @@ def _approve_pending_action(sidepanel, timeout_ms: int = 1500) -> bool:
                 const buttons = Array.from(document.querySelectorAll('button'));
                 const button = buttons.find((el) => {
                     const text = (el.textContent || '').toLowerCase();
-                    return text.includes('approve') && !el.hasAttribute('disabled');
+                    return (text.includes('approve') || text.includes('confirm &'))
+                        && !text.includes('reject')
+                        && !el.hasAttribute('disabled');
                 });
                 if (button instanceof HTMLElement) {
                     button.scrollIntoView({ block: 'center', inline: 'center' });
@@ -427,7 +429,11 @@ def _looks_like_critical_approval(text: str) -> bool:
         text,
         flags=re.IGNORECASE,
     ))
-    send_like = "send" in text and any(term in text for term in ("message", "whatsapp", "email", "mail"))
+    typed_consequential = (
+        "external action:" in text
+        and "this confirmation is valid once" in text
+    )
+    send_like = "send" in text and any(term in text for term in ("message", "whatsapp", "email", "mail", "draft"))
     account_like = any(
         term in text
         for term in (
@@ -441,7 +447,7 @@ def _looks_like_critical_approval(text: str) -> bool:
             "official form",
         )
     )
-    return approval_visible and (send_like or account_like)
+    return approval_visible and (typed_consequential or send_like or account_like)
 
 
 def _open_workflow_panel(sidepanel) -> None:

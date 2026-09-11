@@ -1,0 +1,656 @@
+{
+  "schema_version": "extension_content_insertion_e2e.v1",
+  "run_id": "draft-preview-1789129057186",
+  "mode": "application_owned_extension_sidepanel",
+  "harness_file_injection": false,
+  "profile_dir": "C:\\Work\\AI_Browser_Assist\\playwright-profile-extension-e2e-draft-preview-1789129057186",
+  "extension_dir": "C:\\Work\\AI_Browser_Assist\\extension\\dist",
+  "filename": "synthetic-day5.txt",
+  "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789129056835 run 01",
+  "status": "failed",
+  "fixture_url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+  "prompt": "On the current synthetic draft workspace, activate the exact enabled Create draft control once. Enter the exact subject \"Synthetic cross-domain attachment preview content-insertion-reliability-1789129056835 run 01\" in the exact Subject field. Attach the explicitly approved file \"synthetic-day5.txt\" from Downloads and verify its visible attachment preview. After the exact preview is visible, send it exactly once to the Synthetic Draft Workspace test destination. Do not discard it or change any external data.",
+  "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
+  "workflow_result": {
+    "task_id": "draft-preview-1789129057186",
+    "status": "timeout",
+    "duration_s": 244.9,
+    "phase": "timeout",
+    "error": "",
+    "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 fd5e1f6-dirty \u00b7 stabilization-20260911T112454Z \u00b7 pid 2716\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nSelected a deterministic action from an explicitly requested, currently observed browser control.\n\n\u26a1\nStep 1\nCLICK\nActivate the uniquely observed control that creates the requested draft\nSynthetic Draft Workspace\nhttp://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129\u2026\nVerification: verified\nTime: 249ms\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 2\nFILL\nFill the uniquely observed draft subject field with the explicitly supplied subject\nSynthetic Draft Workspace\nhttp://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129\u2026\nVerification: verified\nTime: 228ms\nCDP fill dispatched via stable_selector grounding.\n\u26a1\nStep 3\nCLICK\nActivate the observed content-insertion control for the broker-bound approved local_file content\nSynthetic Draft Workspace\nhttp://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129\u2026\nVerification: verified\nTime: 302ms\nUpload: accepted\nBroker-bound content preview verified: synthetic-day5.txt\nSTEP 4\nRequires approval\nCLICK\ndanger\n96% confident\n\nActivate the observed final submission control for the verified content and destination\n\nThe requested control is visible in the current browser observation and is grounded by its selector.\n\nExternal action: send\nExact destination: Synthetic Draft Workspace [http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186]\nExact content or change: synthetic-day5.txt\nThis confirmation is valid once and only for these displayed identities.\n#submit-draft\n\u2713 Confirm & send\n\u2715 Reject",
+    "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\draft-preview-1789129057186.png",
+    "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\draft-preview-1789129057186-target.png",
+    "target_controls": [
+      {
+        "tag": "button",
+        "role": "",
+        "aria_label": "Create draft",
+        "placeholder": "",
+        "contenteditable": "",
+        "testid": ""
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "aria_label": "Subject",
+        "placeholder": "",
+        "contenteditable": "",
+        "testid": ""
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "aria_label": "",
+        "placeholder": "",
+        "contenteditable": "",
+        "testid": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "aria_label": "Send draft",
+        "placeholder": "",
+        "contenteditable": "",
+        "testid": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "aria_label": "Discard draft",
+        "placeholder": "",
+        "contenteditable": "",
+        "testid": ""
+      }
+    ],
+    "canonical_adapter_traces": [
+      {
+        "action_id": "observed_control_abf4d9faa913",
+        "action_type": "click",
+        "canonical_contract": true,
+        "cdp_duration_ms": 214,
+        "cdp_fallback_reason": null,
+        "cdp_frame_count": 1,
+        "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+        "cdp_grounding_source": "stable_selector",
+        "cdp_navigation_signal_count": 5,
+        "cdp_target_count": 0,
+        "dispatch_id": "observed_control_abf4d9faa913:1789129077999",
+        "dispatch_path": "service_worker>policy>canonical_cdp_click",
+        "execution_adapter": "cdp",
+        "expected_effect": "target_state_change",
+        "frame_id": "top",
+        "idempotency_key": "64d70e6d-173f-4694-b7d5-e875aa81ef1c:1843032893:intent_e9af777474e541e89a3282c3b21c2f9c",
+        "reason": "verified",
+        "safety_class": "safe",
+        "target_name": "Create draft",
+        "target_selector_preserved": true,
+        "timestamp": "2026-09-11T12:17:58.295Z",
+        "verified": true
+      },
+      {
+        "action_id": "observed_control_ff312f6a8e52",
+        "action_type": "fill",
+        "canonical_contract": true,
+        "cdp_duration_ms": 206,
+        "cdp_fallback_reason": null,
+        "cdp_frame_count": 1,
+        "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+        "cdp_grounding_source": "stable_selector",
+        "cdp_navigation_signal_count": 5,
+        "cdp_target_count": 0,
+        "dispatch_id": "observed_control_ff312f6a8e52:1789129081148",
+        "dispatch_path": "service_worker>policy>canonical_trusted_cdp",
+        "execution_adapter": "cdp",
+        "expected_effect": "value_change",
+        "frame_id": "top",
+        "idempotency_key": "64d70e6d-173f-4694-b7d5-e875aa81ef1c:1843032893:intent_2f71733c5dea418fb79d03cddb405d4b",
+        "reason": "verified",
+        "safety_class": "safe",
+        "target_name": "Subject",
+        "target_selector_preserved": true,
+        "timestamp": "2026-09-11T12:18:01.431Z",
+        "verified": true
+      },
+      {
+        "action_id": "observed_control_e02fdfc52435",
+        "action_type": "click",
+        "canonical_contract": true,
+        "cdp_duration_ms": 216,
+        "cdp_fallback_reason": null,
+        "cdp_frame_count": 1,
+        "cdp_grounding_attempts": "stable_selector:selected_unique_exact|file_binding:local_downloads_broker_exact_match:exact_filename",
+        "cdp_grounding_source": "stable_selector",
+        "cdp_navigation_signal_count": 5,
+        "cdp_target_count": 0,
+        "dispatch_id": "observed_control_e02fdfc52435:1789129084281",
+        "dispatch_path": "service_worker>policy>canonical_cdp_click",
+        "execution_adapter": "cdp",
+        "expected_effect": "target_state_change",
+        "frame_id": "top",
+        "idempotency_key": "64d70e6d-173f-4694-b7d5-e875aa81ef1c:1843032893:intent_a2cdabd110d94f6ab1cd37d737e191b5",
+        "reason": "verified",
+        "safety_class": "safe",
+        "target_name": "Attach files",
+        "target_selector_preserved": true,
+        "timestamp": "2026-09-11T12:18:04.626Z",
+        "verified": true
+      }
+    ],
+    "durable_executions": [
+      {
+        "key": "64d70e6d-173f-4694-b7d5-e875aa81ef1c:1843032893:intent_2f71733c5dea418fb79d03cddb405d4b",
+        "actionId": "observed_control_ff312f6a8e52",
+        "actionType": "fill",
+        "status": "succeeded",
+        "attempts": 1,
+        "retryable": true,
+        "result": {
+          "success": true,
+          "message": "CDP fill dispatched via stable_selector grounding.",
+          "dispatch_id": "observed_control_ff312f6a8e52:1789129081148",
+          "dispatch_path": "service_worker>policy>canonical_trusted_cdp",
+          "contract_schema_version": "1.0",
+          "contract_idempotency_key": "64d70e6d-173f-4694-b7d5-e875aa81ef1c:1843032893:intent_2f71733c5dea418fb79d03cddb405d4b",
+          "verification": {
+            "after_state": {
+              "activeElementSignature": "input|draft-subject|Subject",
+              "checkboxStates": [],
+              "dialogCount": 0,
+              "domSignature": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186|Synthetic Draft Workspace|164|6|0|0|||{\"exists\":true,\"selector\":\"#draft-subject\",\"tagName\":\"input\",\"ariaExpanded\":null,\"visible\":true,\"inputType\":\"text\",\"checked\":null,\"filled\":true,\"value\":\"Synthetic cross-domain attachment preview content-insertion-reliability-1789129056835 run 01\"}",
+              "expandedStates": [],
+              "interactiveCount": 6,
+              "modalCount": 0,
+              "scrollX": 0,
+              "scrollY": 0,
+              "target": {
+                "ariaExpanded": null,
+                "checked": null,
+                "exists": true,
+                "filled": true,
+                "inputType": "text",
+                "selector": "#draft-subject",
+                "tagName": "input",
+                "value": "Synthetic cross-domain attachment preview content-insertion-reliability-1789129056835 run 01",
+                "visible": true
+              },
+              "title": "Synthetic Draft Workspace",
+              "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+              "visibleTextLength": 164
+            },
+            "before_state": {
+              "activeElementSignature": "body|Synthetic Draft Workspace Create draft Subject Attach files Send draft Discard d",
+              "checkboxStates": [],
+              "dialogCount": 0,
+              "domSignature": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186|Synthetic Draft Workspace|164|6|0|0|||{\"exists\":true,\"selector\":\"#draft-subject\",\"tagName\":\"input\",\"ariaExpanded\":null,\"visible\":true,\"inputType\":\"text\",\"checked\":null,\"filled\":false,\"value\":\"\"}",
+              "expandedStates": [],
+              "interactiveCount": 6,
+              "modalCount": 0,
+              "scrollX": 0,
+              "scrollY": 0,
+              "target": {
+                "ariaExpanded": null,
+                "checked": null,
+                "exists": true,
+                "filled": false,
+                "inputType": "text",
+                "selector": "#draft-subject",
+                "tagName": "input",
+                "value": "",
+                "visible": true
+              },
+              "title": "Synthetic Draft Workspace",
+              "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+              "visibleTextLength": 164
+            },
+            "reason": "verified",
+            "signals": {
+              "action_type": "fill",
+              "cdp_navigation_signal_count": 5,
+              "checkbox_state_changed": false,
+              "dialog_count_changed": false,
+              "dom_changed": true,
+              "download_completed": null,
+              "download_detected": null,
+              "execution_duration_ms": 228,
+              "execution_success": true,
+              "expanded_state_changed": false,
+              "expected_effect_description": "Fill the uniquely observed draft subject field with the explicitly supplied subject",
+              "expected_effect_kind": "value_change",
+              "expected_url_path": null,
+              "expected_url_path_matched": null,
+              "focus_changed": true,
+              "interactive_count_changed": false,
+              "modal_count_changed": false,
+              "rich_text_validated": null,
+              "scroll_position_changed": false,
+              "tab_switch_verified": null,
+              "target_checked_changed": false,
+              "target_exists_after": true,
+              "target_expanded_changed": false,
+              "target_filled_after": true,
+              "target_selected_changed": false,
+              "target_value_changed": true,
+              "url_changed": false,
+              "visible_text_length_changed": false,
+              "wave2_capability": null,
+              "wave2_validated": null,
+              "wave3_capability": null,
+              "wave3_validated": null,
+              "wave4_capability": null,
+              "wave4_validated": null
+            },
+            "verified": true
+          }
+        }
+      },
+      {
+        "key": "64d70e6d-173f-4694-b7d5-e875aa81ef1c:1843032893:intent_a2cdabd110d94f6ab1cd37d737e191b5",
+        "actionId": "observed_control_e02fdfc52435",
+        "actionType": "click",
+        "status": "succeeded",
+        "attempts": 1,
+        "retryable": false,
+        "result": {
+          "success": true,
+          "message": "Broker-bound content preview verified: synthetic-day5.txt",
+          "dispatch_id": "observed_control_e02fdfc52435:1789129084281",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "contract_schema_version": "1.0",
+          "contract_idempotency_key": "64d70e6d-173f-4694-b7d5-e875aa81ef1c:1843032893:intent_a2cdabd110d94f6ab1cd37d737e191b5",
+          "verification": {
+            "after_state": {
+              "activeElementSignature": "label|attach-control|button|Attach files|Attach files",
+              "checkboxStates": [],
+              "dialogCount": 0,
+              "domSignature": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186|Synthetic Draft Workspace|218|6|0|0|||{\"exists\":true,\"selector\":\"#attach-control\",\"tagName\":\"label\",\"ariaExpanded\":null,\"visible\":true}",
+              "expandedStates": [],
+              "interactiveCount": 6,
+              "modalCount": 0,
+              "scrollX": 0,
+              "scrollY": 0,
+              "target": {
+                "ariaExpanded": null,
+                "exists": true,
+                "selector": "#attach-control",
+                "tagName": "label",
+                "visible": true
+              },
+              "title": "Synthetic Draft Workspace",
+              "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+              "visibleTextLength": 218
+            },
+            "before_state": {
+              "activeElementSignature": "input|draft-subject|Subject",
+              "checkboxStates": [],
+              "dialogCount": 0,
+              "domSignature": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186|Synthetic Draft Workspace|164|6|0|0|||{\"exists\":true,\"selector\":\"#attach-control\",\"tagName\":\"label\",\"ariaExpanded\":null,\"visible\":true}",
+              "expandedStates": [],
+              "interactiveCount": 6,
+              "modalCount": 0,
+              "scrollX": 0,
+              "scrollY": 0,
+              "target": {
+                "ariaExpanded": null,
+                "exists": true,
+                "selector": "#attach-control",
+                "tagName": "label",
+                "visible": true
+              },
+              "title": "Synthetic Draft Workspace",
+              "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+              "visibleTextLength": 164
+            },
+            "reason": "verified",
+            "signals": {
+              "action_type": "click",
+              "cdp_navigation_signal_count": 5,
+              "checkbox_state_changed": false,
+              "dialog_count_changed": false,
+              "dom_changed": true,
+              "download_completed": null,
+              "download_detected": null,
+              "execution_duration_ms": 302,
+              "execution_success": true,
+              "expanded_state_changed": false,
+              "expected_effect_description": "Activate the observed content-insertion control for the broker-bound approved local_file content",
+              "expected_effect_kind": "target_state_change",
+              "expected_url_path": null,
+              "expected_url_path_matched": null,
+              "focus_changed": true,
+              "interactive_count_changed": false,
+              "modal_count_changed": false,
+              "rich_text_validated": null,
+              "scroll_position_changed": false,
+              "tab_switch_verified": null,
+              "target_checked_changed": false,
+              "target_exists_after": true,
+              "target_expanded_changed": false,
+              "target_filled_after": null,
+              "target_selected_changed": false,
+              "target_value_changed": false,
+              "url_changed": false,
+              "visible_text_length_changed": true,
+              "wave2_capability": null,
+              "wave2_validated": null,
+              "wave3_capability": null,
+              "wave3_validated": null,
+              "wave4_capability": null,
+              "wave4_validated": null
+            },
+            "verified": true
+          }
+        }
+      },
+      {
+        "key": "64d70e6d-173f-4694-b7d5-e875aa81ef1c:1843032893:intent_e9af777474e541e89a3282c3b21c2f9c",
+        "actionId": "observed_control_abf4d9faa913",
+        "actionType": "click",
+        "status": "succeeded",
+        "attempts": 1,
+        "retryable": false,
+        "result": {
+          "success": true,
+          "message": "CDP click dispatched via stable_selector grounding.",
+          "dispatch_id": "observed_control_abf4d9faa913:1789129077999",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "contract_schema_version": "1.0",
+          "contract_idempotency_key": "64d70e6d-173f-4694-b7d5-e875aa81ef1c:1843032893:intent_e9af777474e541e89a3282c3b21c2f9c",
+          "verification": {
+            "after_state": {
+              "activeElementSignature": "body|Synthetic Draft Workspace Create draft Subject Attach files Send draft Discard d",
+              "checkboxStates": [],
+              "dialogCount": 0,
+              "domSignature": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186|Synthetic Draft Workspace|164|6|0|0|||{\"exists\":true,\"selector\":\"#create-draft\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":false}",
+              "expandedStates": [],
+              "interactiveCount": 6,
+              "modalCount": 0,
+              "scrollX": 0,
+              "scrollY": 0,
+              "target": {
+                "ariaExpanded": null,
+                "exists": true,
+                "selector": "#create-draft",
+                "tagName": "button",
+                "visible": false
+              },
+              "title": "Synthetic Draft Workspace",
+              "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+              "visibleTextLength": 164
+            },
+            "before_state": {
+              "activeElementSignature": "body|Synthetic Draft Workspace Create draft Subject Attach files Send draft Discard d",
+              "checkboxStates": [],
+              "dialogCount": 0,
+              "domSignature": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186|Synthetic Draft Workspace|131|6|0|0|||{\"exists\":true,\"selector\":\"#create-draft\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+              "expandedStates": [],
+              "interactiveCount": 6,
+              "modalCount": 0,
+              "scrollX": 0,
+              "scrollY": 0,
+              "target": {
+                "ariaExpanded": null,
+                "exists": true,
+                "selector": "#create-draft",
+                "tagName": "button",
+                "visible": true
+              },
+              "title": "Synthetic Draft Workspace",
+              "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+              "visibleTextLength": 131
+            },
+            "reason": "verified",
+            "signals": {
+              "action_type": "click",
+              "cdp_navigation_signal_count": 5,
+              "checkbox_state_changed": false,
+              "dialog_count_changed": false,
+              "dom_changed": true,
+              "download_completed": null,
+              "download_detected": null,
+              "execution_duration_ms": 249,
+              "execution_success": true,
+              "expanded_state_changed": false,
+              "expected_effect_description": "Activate the uniquely observed control that creates the requested draft",
+              "expected_effect_kind": "target_state_change",
+              "expected_url_path": null,
+              "expected_url_path_matched": null,
+              "focus_changed": false,
+              "interactive_count_changed": false,
+              "modal_count_changed": false,
+              "rich_text_validated": null,
+              "scroll_position_changed": false,
+              "tab_switch_verified": null,
+              "target_checked_changed": false,
+              "target_exists_after": true,
+              "target_expanded_changed": false,
+              "target_filled_after": null,
+              "target_selected_changed": false,
+              "target_value_changed": false,
+              "url_changed": false,
+              "visible_text_length_changed": true,
+              "wave2_capability": null,
+              "wave2_validated": null,
+              "wave3_capability": null,
+              "wave3_validated": null,
+              "wave4_capability": null,
+              "wave4_validated": null
+            },
+            "verified": true
+          }
+        }
+      }
+    ],
+    "initial_url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+    "browser_pages": [
+      {
+        "index": 1,
+        "url": "about:blank",
+        "title": "",
+        "body_text": "",
+        "video": {
+          "exists": false
+        },
+        "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\draft-preview-1789129057186-page-1.png"
+      },
+      {
+        "index": 2,
+        "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+        "title": "Synthetic Draft Workspace",
+        "body_text": "Synthetic Draft Workspace\nSubject  Attach files\nAttachment preview: synthetic-day5.txt\nSend draft Discard draft\nDraft creations\n1\nFile selections\n1\nSubmissions\n0\nDiscards\n0\nfixture_state=draft_preview_ready_exactly_once",
+        "video": {
+          "exists": false
+        },
+        "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\draft-preview-1789129057186-page-2.png"
+      }
+    ],
+    "analyze_observations": [
+      {
+        "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+        "title": "Synthetic Draft Workspace",
+        "visible_text_length": 131,
+        "controls": [
+          {
+            "type": "button",
+            "input_type": "",
+            "role": "button",
+            "selector": "#create-draft",
+            "text": "Create draft",
+            "aria_label": "Create draft",
+            "accessibility_name": "Create draft",
+            "href": ""
+          }
+        ]
+      },
+      {
+        "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+        "title": "Synthetic Draft Workspace",
+        "visible_text_length": 165,
+        "controls": [
+          {
+            "type": "input",
+            "input_type": "text",
+            "role": "textbox",
+            "selector": "#draft-subject",
+            "text": "Subject",
+            "aria_label": "Subject",
+            "accessibility_name": "Subject",
+            "href": ""
+          },
+          {
+            "type": "button",
+            "input_type": "",
+            "role": "button",
+            "selector": "#submit-draft",
+            "text": "Send draft",
+            "aria_label": "Send draft",
+            "accessibility_name": "Send draft",
+            "href": ""
+          },
+          {
+            "type": "label",
+            "input_type": "",
+            "role": "button",
+            "selector": "#attach-control",
+            "text": "Attach files",
+            "aria_label": "Attach files",
+            "accessibility_name": "Attach files",
+            "href": ""
+          },
+          {
+            "type": "button",
+            "input_type": "",
+            "role": "button",
+            "selector": "#discard-draft",
+            "text": "Discard draft",
+            "aria_label": "Discard draft",
+            "accessibility_name": "Discard draft",
+            "href": ""
+          }
+        ]
+      },
+      {
+        "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+        "title": "Synthetic Draft Workspace",
+        "visible_text_length": 165,
+        "controls": [
+          {
+            "type": "input",
+            "input_type": "text",
+            "role": "textbox",
+            "selector": "#draft-subject",
+            "text": "Subject",
+            "aria_label": "Subject",
+            "accessibility_name": "Subject",
+            "href": ""
+          },
+          {
+            "type": "button",
+            "input_type": "",
+            "role": "button",
+            "selector": "#submit-draft",
+            "text": "Send draft",
+            "aria_label": "Send draft",
+            "accessibility_name": "Send draft",
+            "href": ""
+          },
+          {
+            "type": "label",
+            "input_type": "",
+            "role": "button",
+            "selector": "#attach-control",
+            "text": "Attach files",
+            "aria_label": "Attach files",
+            "accessibility_name": "Attach files",
+            "href": ""
+          },
+          {
+            "type": "button",
+            "input_type": "",
+            "role": "button",
+            "selector": "#discard-draft",
+            "text": "Discard draft",
+            "aria_label": "Discard draft",
+            "accessibility_name": "Discard draft",
+            "href": ""
+          }
+        ]
+      },
+      {
+        "url": "http://127.0.0.1:61123/draft-content-insertion?run=draft-preview-1789129057186",
+        "title": "Synthetic Draft Workspace",
+        "visible_text_length": 219,
+        "controls": [
+          {
+            "type": "label",
+            "input_type": "",
+            "role": "button",
+            "selector": "#attach-control",
+            "text": "Attach files",
+            "aria_label": "Attach files",
+            "accessibility_name": "Attach files",
+            "href": ""
+          },
+          {
+            "type": "input",
+            "input_type": "text",
+            "role": "textbox",
+            "selector": "#draft-subject",
+            "text": "Subject",
+            "aria_label": "Subject",
+            "accessibility_name": "Subject",
+            "href": ""
+          },
+          {
+            "type": "button",
+            "input_type": "",
+            "role": "button",
+            "selector": "#submit-draft",
+            "text": "Send draft",
+            "aria_label": "Send draft",
+            "accessibility_name": "Send draft",
+            "href": ""
+          },
+          {
+            "type": "button",
+            "input_type": "",
+            "role": "button",
+            "selector": "#discard-draft",
+            "text": "Discard draft",
+            "aria_label": "Discard draft",
+            "accessibility_name": "Discard draft",
+            "href": ""
+          }
+        ]
+      }
+    ]
+  },
+  "before_restart": {
+    "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+    "draft_count": 1,
+    "selection_count": 1,
+    "send_count": 0,
+    "discard_count": 0,
+    "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789129056835 run 01",
+    "preview_filename": "synthetic-day5.txt"
+  },
+  "after_restart": {
+    "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+    "draft_count": 1,
+    "selection_count": 1,
+    "send_count": 0,
+    "discard_count": 0,
+    "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789129056835 run 01",
+    "preview_filename": "synthetic-day5.txt"
+  },
+  "failures": [
+    "fixture_state: expected 'fixture_state=draft_submitted_exactly_once', observed 'fixture_state=draft_preview_ready_exactly_once'",
+    "send_count: expected 1, observed 0",
+    "extension workflow status: expected 'completed', observed 'timeout'",
+    "fixture_state: expected 'fixture_state=draft_submitted_exactly_once', observed 'fixture_state=draft_preview_ready_exactly_once'",
+    "send_count: expected 1, observed 0"
+  ],
+  "trace": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789129057186-trace.zip",
+  "before_restart_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789129057186-before-restart.png",
+  "after_restart_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789129057186-after-restart.png",
+  "synthetic_submit_confirmed": true
+}

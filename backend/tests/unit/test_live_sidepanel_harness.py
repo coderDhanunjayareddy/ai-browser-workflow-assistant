@@ -26,6 +26,16 @@ def test_explicit_send_approval_prompt_remains_critical() -> None:
     assert MODULE._looks_like_critical_approval(text.lower()) is True
 
 
+def test_typed_synthetic_submission_approval_is_provider_neutral_and_critical() -> None:
+    text = (
+        "Requires approval\nExternal action: send\n"
+        "Exact destination: Synthetic Draft Workspace\n"
+        "This confirmation is valid once and only for these displayed identities.\n"
+        "Confirm & send"
+    )
+    assert MODULE._looks_like_critical_approval(text.lower()) is True
+
+
 def test_terminal_status_fills_missing_presentation_phase() -> None:
     assert MODULE._reported_phase("✓ Done — 2 of 2 steps succeeded", "completed") == "completed"
     assert MODULE._reported_phase("No phase label", "failed") == "failed"

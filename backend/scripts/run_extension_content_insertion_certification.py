@@ -45,13 +45,23 @@ def _read_fixture_state(page) -> dict[str, object]:
     )
 
 
-def _assert_safe_exact_preview(state: dict[str, object], *, subject: str, filename: str) -> list[str]:
+def _assert_safe_exact_preview(
+    state: dict[str, object],
+    *,
+    subject: str,
+    filename: str,
+    expected_sends: int = 0,
+) -> list[str]:
     failures: list[str] = []
     expected = {
-        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "fixture_state": (
+            "fixture_state=draft_submitted_exactly_once"
+            if expected_sends == 1
+            else "fixture_state=draft_preview_ready_exactly_once"
+        ),
         "draft_count": 1,
         "selection_count": 1,
-        "send_count": 0,
+        "send_count": expected_sends,
         "discard_count": 0,
         "subject": subject,
         "preview_filename": filename,
@@ -87,6 +97,14 @@ def main() -> int:
     parser.add_argument("--timeout-s", type=int, default=180)
     parser.add_argument("--extension-dir", default=str(ROOT / "extension" / "dist"))
     parser.add_argument("--profile-dir", default="")
+    parser.add_argument(
+        "--confirm-synthetic-submit",
+        action="store_true",
+        help=(
+            "Consume the visible consequential approval for one local synthetic submission. "
+            "Use only after the user explicitly confirms this exact test operation."
+        ),
+    )
     args = parser.parse_args()
 
     extension_dir = Path(args.extension_dir).resolve()
@@ -131,7 +149,12 @@ def main() -> int:
             f"On the current synthetic draft workspace, activate the exact enabled Create draft control once. "
             f"Enter the exact subject {quoted_subject} in the exact Subject field. Attach the explicitly approved file "
             f"{quoted_filename} from Downloads and verify its visible attachment preview. "
-            "Do not send, submit, discard, or change any external data."
+            + (
+                "After the exact preview is visible, send it exactly once to the Synthetic Draft Workspace "
+                "test destination. Do not discard it or change any external data."
+                if args.confirm_synthetic_submit
+                else "Do not send, submit, discard, or change any external data."
+            )
         )
         report["fixture_url"] = fixture_url
         report["prompt"] = prompt
@@ -154,7 +177,7 @@ def main() -> int:
             prompt,
             args.timeout_s,
             "",
-            False,
+            args.confirm_synthetic_submit,
             True,
             fixture_url,
             False,
@@ -162,7 +185,13 @@ def main() -> int:
         )
         target.screenshot(path=str(before_restart_png), full_page=True)
         before_restart = _read_fixture_state(target)
-        failures = _assert_safe_exact_preview(before_restart, subject=args.subject, filename=args.filename)
+        expected_sends = 1 if args.confirm_synthetic_submit else 0
+        failures = _assert_safe_exact_preview(
+            before_restart,
+            subject=args.subject,
+            filename=args.filename,
+            expected_sends=expected_sends,
+        )
         if result.status != "completed":
             failures.append(f"extension workflow status: expected 'completed', observed {result.status!r}")
         context.tracing.stop(path=str(trace_path))
@@ -176,7 +205,12 @@ def main() -> int:
         restarted_target = restarted.new_page()
         restarted_target.goto(fixture_url, wait_until="domcontentloaded", timeout=30_000)
         after_restart = _read_fixture_state(restarted_target)
-        restart_failures = _assert_safe_exact_preview(after_restart, subject=args.subject, filename=args.filename)
+        restart_failures = _assert_safe_exact_preview(
+            after_restart,
+            subject=args.subject,
+            filename=args.filename,
+            expected_sends=expected_sends,
+        )
         restarted_target.screenshot(path=str(after_restart_png), full_page=True)
         restarted.close()
 
@@ -191,6 +225,7 @@ def main() -> int:
             "before_restart_screenshot": str(before_restart_png),
             "after_restart_screenshot": str(after_restart_png),
             "status": "passed" if not failures and not restart_failures else "failed",
+            "synthetic_submit_confirmed": args.confirm_synthetic_submit,
         }
     )
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
