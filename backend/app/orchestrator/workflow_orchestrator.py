@@ -3,6 +3,7 @@ import json
 import hashlib
 import re
 import time
+import unicodedata
 from dataclasses import replace
 from typing import Any
 from urllib.parse import parse_qsl, unquote, urlencode, urlparse, urlunparse
@@ -2624,7 +2625,7 @@ def _deterministic_observed_control_response(
         identity_bound = (
             bool(content_identity and destination_entity and observed_origin and current_origin)
             and content_identity.casefold() in str(task or "").casefold()
-            and requested_entity.casefold() == destination_entity.casefold()
+            and _exact_identity_key(requested_entity) == _exact_identity_key(destination_entity)
             and observed_origin.casefold() == current_origin.casefold()
         )
         operation_control = _find_observed_control(
@@ -2658,8 +2659,8 @@ def _deterministic_observed_control_response(
         and (
             _find_exact_recipient_control(elements, requested_destination, ordinal=_destination_ordinal_from_task(task))
             or any(
-                str(dict(element.get("state") or {}).get("value") or "").strip().casefold()
-                == requested_destination.casefold()
+                _exact_identity_key(str(dict(element.get("state") or {}).get("value") or ""))
+                == _exact_identity_key(requested_destination)
                 for element in elements
             )
         )
@@ -2700,23 +2701,21 @@ def _deterministic_observed_control_response(
                 evidence.get("adapter_exact_identity_verified") is True
                 and expected
                 and observed
-                and expected.casefold() == requested_destination.casefold()
-                and observed.casefold() == requested_destination.casefold()
+                and _exact_identity_key(expected) == _exact_identity_key(requested_destination)
+                and _exact_identity_key(observed) == _exact_identity_key(requested_destination)
             ):
                 exact_destination_verified = True
                 observed_destination = observed
                 break
         if not exact_destination_verified:
-            for element in elements:
-                label = " ".join(
-                    str(element.get(key) or "")
-                    for key in ("aria_label", "accessibility_name", "placeholder")
-                ).strip()
-                match = re.search(r"\btype a message to\s+(.+?)\s*$", label, flags=re.IGNORECASE)
-                if match:
-                    observed_destination = match.group(1).strip()
-                    exact_destination_verified = observed_destination.casefold() == requested_destination.casefold()
-                    break
+            composer_candidates = _composer_destination_candidates(elements)
+            candidate_keys = {_exact_identity_key(candidate) for candidate in composer_candidates}
+            requested_key = _exact_identity_key(requested_destination)
+            if len(candidate_keys) == 1 and requested_key in candidate_keys:
+                exact_destination_verified = True
+                observed_destination = next(iter(composer_candidates))
+            elif composer_candidates:
+                observed_destination = ", ".join(sorted(set(composer_candidates), key=str.casefold))
         downstream_mutation_requested = bool(re.search(
             r"\b(attach|upload|insert|add|send|share|submit|post|publish|type|write|reply|message)\b",
             affirmative_text,
@@ -3177,7 +3176,7 @@ def _deterministic_observed_control_response(
         search_was_filled = any(
             str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "fill"
             and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "") == search_selector
-            and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or "").strip().casefold() == requested_destination.casefold()
+            and _exact_identity_key(str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or "")) == _exact_identity_key(requested_destination)
             and prior_step_succeeded(step)
             for step in prior_steps
         )
@@ -3187,7 +3186,7 @@ def _deterministic_observed_control_response(
             for step in prior_steps
         )
         search_state = dict(search_control.get("state") or {}) if search_control is not None else {}
-        search_has_exact_value = str(search_state.get("value") or "").strip().casefold() == requested_destination.casefold()
+        search_has_exact_value = _exact_identity_key(str(search_state.get("value") or "")) == _exact_identity_key(requested_destination)
         if exact_contact is not None and str(exact_contact.get("selector") or "") not in completed_clicks:
             # Preserve the selector that was actually observed.  Inventing a
             # parent-row selector here breaks the canonical grounding contract
@@ -3712,7 +3711,7 @@ def _deterministic_observed_report_response(
             content_identity
             and destination_entity
             and content_identity.casefold() in str(task or "").casefold()
-            and requested_entity.casefold() == destination_entity.casefold()
+            and _exact_identity_key(requested_entity) == _exact_identity_key(destination_entity)
         ):
             return AnalyzeResponse(
                 session_id=session_id,
@@ -3761,7 +3760,7 @@ def _deterministic_observed_report_response(
         exact_origin_bound = bool(expected_origin and observed_origin and expected_origin.casefold() == observed_origin.casefold())
         exact_document_bound = _content_insertion_document_matches(current_url, observed_destination_url)
         exact_entity_bound = not requested_entity or (
-            observed_entity and requested_entity.casefold() == observed_entity.casefold()
+            observed_entity and _exact_identity_key(requested_entity) == _exact_identity_key(observed_entity)
         )
         send_requested = bool(re.search(r"\b(send|share|submit|post|publish)\b", affirmative_text))
         if exact_filename_bound and exact_origin_bound and exact_document_bound and exact_entity_bound and not send_requested:
@@ -3822,7 +3821,7 @@ def _deterministic_observed_report_response(
         if (
             recipient
             and observed_exact_recipient
-            and observed_exact_recipient.casefold() == recipient.casefold()
+            and _exact_identity_key(observed_exact_recipient) == _exact_identity_key(recipient)
             and not downstream_mutation_requested
         ):
             return AnalyzeResponse(
@@ -3998,15 +3997,6 @@ def _is_viable_content_insertion_control(element: dict[str, Any]) -> bool:
     # Some applications implement controls as focusable generic elements.
     # Accept those only when their own accessible identity (not descendant
     # text) describes an insertion action.
-    accessible_identity = " ".join(
-        str(element.get(key) or "")
-        for key in ("aria_label", "accessibility_name", "title")
-    )
-    accessible_identity = " ".join(accessible_identity.split()).casefold()
-    # A row's computed accessibility name can contain its entire descendant
-    # message. Never accept insertion vocabulary embedded in that prose.
-    if not accessible_identity or len(accessible_identity) > 80:
-        return False
     exact_identities = {
         "attach",
         "attachment",
@@ -4024,7 +4014,52 @@ def _is_viable_content_insertion_control(element: dict[str, Any]) -> bool:
         "videos",
         "audio",
     }
-    return accessible_identity in exact_identities
+    # Evaluate each identity source independently. Extractors and browser AX
+    # trees may expose the same accessible name in more than one field; joining
+    # them creates false identities such as `Attach Attach`. Long row prose is
+    # still excluded and cannot authorize a content mutation.
+    identities = {
+        " ".join(str(element.get(key) or "").split()).casefold()
+        for key in ("aria_label", "accessibility_name", "title", "name")
+        if 0 < len(" ".join(str(element.get(key) or "").split())) <= 80
+    }
+    return bool(identities & exact_identities)
+
+
+def _exact_identity_key(value: str) -> str:
+    """Normalize presentation-only differences without collapsing real words."""
+    text = unicodedata.normalize("NFKC", str(value or ""))
+    text = re.sub(r"[\u200b-\u200d\ufeff]", "", text)
+    text = " ".join(text.split())
+    # UI frameworks commonly add/remove spacing next to paired punctuation.
+    # Do not remove ordinary inter-word spaces: `Ann A` must not equal `Anna`.
+    text = re.sub(r"\s*([()\[\]{}])\s*", r"\1", text)
+    return text.casefold()
+
+
+def _composer_destination_candidates(elements: list[dict[str, Any]]) -> list[str]:
+    """Extract independently observed destination names from composer labels.
+
+    Each accessibility source is parsed separately. This prevents merged fields
+    such as `Type a message to A Type a message to A` from becoming a fake
+    destination while still rejecting genuinely conflicting identities.
+    """
+    candidates: dict[str, str] = {}
+    marker = re.compile(r"\btype a message to\s+", flags=re.IGNORECASE)
+    for element in elements:
+        for key in ("aria_label", "accessibility_name", "placeholder", "name"):
+            label = " ".join(str(element.get(key) or "").split())
+            if not label or not marker.search(label):
+                continue
+            pieces = marker.split(label)
+            for piece in pieces[1:]:
+                candidate = piece.strip()
+                if not candidate:
+                    continue
+                identity = _exact_identity_key(candidate)
+                if identity:
+                    candidates.setdefault(identity, candidate)
+    return list(candidates.values())
 
 
 def _find_exact_recipient_control(
@@ -4040,7 +4075,7 @@ def _find_exact_recipient_control(
     label is the exact requested name followed only by result metadata.  Fall
     back to an exact leaf only when that leaf selector is unique.
     """
-    expected = " ".join(str(requested_name or "").split()).casefold()
+    expected = _exact_identity_key(requested_name)
     if not expected:
         return None
 
@@ -4067,7 +4102,7 @@ def _find_exact_recipient_control(
         if not selector:
             continue
         observed = " ".join(label(element).split())
-        normalized = observed.casefold()
+        normalized = _exact_identity_key(observed)
         role = str(element.get("role") or "").casefold()
         if normalized == expected:
             leaf_candidates.append(element)

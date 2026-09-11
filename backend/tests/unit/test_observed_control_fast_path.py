@@ -5,6 +5,8 @@ from app.orchestrator.workflow_orchestrator import (
     _destination_ordinal_from_task,
     _content_insertion_destination_entity,
     _content_insertion_effect,
+    _composer_destination_candidates,
+    _exact_identity_key,
     _deterministic_observed_control_response,
     _deterministic_observed_report_response,
     _find_observed_control,
@@ -1558,6 +1560,62 @@ def test_content_insertion_effect_and_destination_are_provider_neutral() -> None
     destination_url = "https://workspace.example.test/drafts/42?mode=edit"
     assert _content_insertion_destination_entity(task, page, destination_url) == "Client Review"
     assert _content_insertion_effect(task) == "structured_draft"
+
+
+def test_repeated_composer_identity_and_punctuation_spacing_verify_one_destination() -> None:
+    page = _page(
+            "https://messages.example.test/thread/42",
+            [
+                InteractiveElement(
+                    type="div", role="textbox", selector="#composer", text="", visible=True,
+                    aria_label="Type a message to Ramu (Nanna)",
+                    accessibility_name="Type a message to Ramu (Nanna) Type a message to Ramu (Nanna)",
+                ),
+                InteractiveElement(
+                    type="button", role="button", selector="#attach", text="", visible=True,
+                    aria_label="Attach", accessibility_name="Attach",
+                ),
+            ],
+        )
+    assert _exact_identity_key("Ramu(Nanna)") == _exact_identity_key("Ramu (Nanna)")
+    assert _composer_destination_candidates([item.model_dump() for item in page.interactive_elements]) == ["Ramu (Nanna)"]
+    response = _deterministic_observed_control_response(
+        session_id="composer-duplicate-support",
+        task='Open the exact chat named "Ramu(Nanna)" and attach the file "synthetic-day5.txt". Do not send it.',
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].target_selector == "#attach"
+
+
+def test_conflicting_composer_identities_do_not_authorize_content_insertion() -> None:
+    response = _deterministic_observed_control_response(
+        session_id="composer-conflict",
+        task='Open the exact chat named "Ramu (Nanna)" and attach the file "synthetic-day5.txt". Do not send it.',
+        page_context=_page(
+            "https://messages.example.test/thread/42",
+            [
+                InteractiveElement(
+                    type="div", role="textbox", selector="#composer", text="", visible=True,
+                    aria_label="Type a message to Ramu (Nanna)",
+                    accessibility_name="Type a message to Different Person",
+                ),
+                InteractiveElement(
+                    type="button", role="button", selector="#attach", text="", visible=True,
+                    aria_label="Attach", accessibility_name="Attach",
+                ),
+            ],
+        ),
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "ask"
+    assert response.suggested_actions == []
+    assert "has not been verified" in response.analysis
 
 
 def test_content_insertion_ignores_disabled_file_input_decoy() -> None:

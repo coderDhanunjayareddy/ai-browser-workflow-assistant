@@ -70,6 +70,12 @@ Certify one provider-neutral content-insertion path across structurally differen
 
 Still pending: reload the unpacked extension, then run the live action-time confirmation and preview-only matrix on two authorized structurally different services. No live service pass is inferred from local tests.
 
+### Live diagnostic 01
+
+The first real messaging-preview attempt is a safe failing diagnostic, not a pass. It executed one navigation, three bounded waits, one search fill, and one exact destination click. It then asked for destination clarification before opening a chooser. Independent workflow history confirms zero chooser, file-selection, or send events. Root cause: duplicated accessibility sources were concatenated into a false composite composer identity, while requested and displayed identities also differed only by presentation spacing around parentheses.
+
+The verifier now parses each accessibility source independently, deduplicates repeated supporting composer identities, normalizes only presentation-level Unicode/paired-punctuation spacing, and continues to reject conflicting identities. The content-trigger recognizer received the same per-source correction so duplicated `Attach` metadata cannot become `Attach Attach`. Focused provider-neutral messaging/insertion regressions: **89 passed**, including repeated-support acceptance and conflicting-identity rejection.
+
 ## External behavior references
 
 - Chrome DevTools Protocol exposes chooser interception through `Page.setInterceptFileChooserDialog` / `Page.fileChooserOpened` and exact file binding through `DOM.setFileInputFiles`.

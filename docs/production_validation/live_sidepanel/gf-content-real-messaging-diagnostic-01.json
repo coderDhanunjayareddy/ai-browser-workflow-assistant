@@ -1,0 +1,21 @@
+{
+  "recorded_at": "2026-09-11T06:10:00Z",
+  "classification": "safe_failing_diagnostic",
+  "session_id": "d1560aa0-bcee-4f44-9835-4da1fe957e76",
+  "surface_family": "messaging_preview",
+  "destination_requested": "Ramu (Nanna)",
+  "destination_selector": "span[title=\"Ramu (Nanna)\"]",
+  "observed_actions": {
+    "navigate": 1,
+    "wait": 3,
+    "fill": 1,
+    "exact_destination_click": 1,
+    "file_chooser": 0,
+    "file_selection": 0,
+    "send": 0
+  },
+  "terminal_outcome": "clarification_required_after_verified_destination_click",
+  "root_cause": "Duplicate accessibility sources were concatenated, producing a false composite composer identity instead of one repeated supporting identity. Presentation-only spacing around parentheses also differed between requested and observed names.",
+  "side_effects": "No chooser opened, no file selected, no message typed, and nothing sent.",
+  "certification_credit": false
+}
