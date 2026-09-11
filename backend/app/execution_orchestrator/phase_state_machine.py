@@ -8,7 +8,10 @@ DEFAULT_GRAPH: list[PhaseName] = ["DISCOVER", "COLLECT", "OPEN", "READ", "EXTRAC
 GRAPH_BY_CATEGORY: dict[str, list[PhaseName]] = {
     "multi_page_research": DEFAULT_GRAPH,
     "job_search": ["DISCOVER", "COLLECT", "OPEN", "EXTRACT", "VALIDATE", "SYNTHESIZE", "REPORT", "COMPLETE"],
-    "file_upload": ["DISCOVER", "OPEN", "READ", "VALIDATE", "REPORT", "COMPLETE"],
+    # Content insertion is an interactive mutation workflow. Once its target
+    # surface is open, continue with observable validation/mutation steps; do
+    # not route the live composer through the research page-reading pipeline.
+    "file_upload": ["DISCOVER", "OPEN", "VALIDATE", "REPORT", "COMPLETE"],
     "form_filling": ["DISCOVER", "READ", "EXTRACT", "VALIDATE", "REPORT", "COMPLETE"],
     "saas_signup": ["DISCOVER", "OPEN", "READ", "VALIDATE", "REPORT", "COMPLETE"],
     "documentation_extraction": ["DISCOVER", "COLLECT", "OPEN", "READ", "EXTRACT", "SYNTHESIZE", "REPORT", "COMPLETE"],

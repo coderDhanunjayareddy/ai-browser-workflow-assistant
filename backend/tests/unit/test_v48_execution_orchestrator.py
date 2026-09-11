@@ -411,6 +411,21 @@ def test_interactive_browser_task_stays_in_validate_for_browser_interaction(monk
     assert result.suggested_actions[0].action_type == "fill"
 
 
+def test_file_insertion_surface_advances_to_validate_without_research_read_phase() -> None:
+    url = "https://workspace.example.test/drafts/17"
+    snapshot = ExecutionOrchestrator().build_snapshot(
+        session_id="content-insertion-not-research-read",
+        task='Create a draft and attach "synthetic-day5.txt" without sending it.',
+        page_context=_page(url),
+        prior_steps=[],
+    )
+
+    assert snapshot is not None
+    assert snapshot.workflow_category == "file_upload"
+    assert snapshot.active_phase.name == "VALIDATE"
+    assert "click" in snapshot.active_phase.allowed_actions
+
+
 def test_media_playback_stays_in_validate_until_playback_is_verified(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     engine = ExecutionOrchestrator()

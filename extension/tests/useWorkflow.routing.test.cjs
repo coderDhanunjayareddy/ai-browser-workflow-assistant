@@ -59,6 +59,7 @@ const {
   pageContextEvidenceScore,
   initialObservationAttempts,
   postNavigationObservationAttempts,
+  preferredWorkflowTabId,
   registerTab,
   routeAnalyzeOutcome,
   selectRicherPageContext,
@@ -71,6 +72,7 @@ const {
   workflowLoopObservationPhase,
   shouldAutoExecuteAction,
   shouldRequestSemanticRecovery,
+  shouldResumeExistingWorkflow,
 } = require(path.join(outDir, 'sidepanel/hooks/useWorkflow.js'))
 const { mergeInteractiveElementLists, resolveObservedSelectorAliases } = require(path.join(outDir, 'content/extractor.js'))
 const { isGroundedBrowserTarget, isSelectableBrowserTarget } = require(path.join(outDir, 'background/target_tab.js'))
@@ -102,6 +104,37 @@ test('each newly submitted task receives a fresh mission session identity', () =
   const second = createFreshWorkflowSessionId()
   assert.match(first, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
   assert.notEqual(first, second)
+})
+
+test('workflow resume re-observes the tab from the latest durable action evidence', () => {
+  assert.equal(preferredWorkflowTabId([
+    { action: {}, result: { success: true, opened_tab_id: 11 } },
+    { action: {}, result: { success: true, page_context: { tab_id: 22 } } },
+    { action: {}, result: { success: true }, page_snapshot: { url: 'https://example.test', title: 'Draft', metadata: {}, tab_id: 33 } },
+  ]), 33)
+})
+
+test('workflow resume falls back through canonical result tab evidence without guessing', () => {
+  assert.equal(preferredWorkflowTabId([
+    { action: {}, result: { success: true, opened_tab_id: 11 } },
+    { action: {}, result: { success: true, page_context: { tab_id: 22 } } },
+  ]), 22)
+  assert.equal(preferredWorkflowTabId([
+    { action: {}, result: { success: true, opened_tab_id: 11 } },
+  ]), 11)
+  assert.equal(preferredWorkflowTabId([]), undefined)
+})
+
+test('re-submitting an interrupted identical task resumes its durable mission instead of duplicating mutations', () => {
+  const interrupted = {
+    task: 'Create one draft and attach synthetic.txt',
+    phase: 'failed',
+    completedActions: [{ action: {}, result: { success: true } }],
+  }
+  assert.equal(shouldResumeExistingWorkflow('  CREATE one draft and attach   synthetic.txt ', interrupted), true)
+  assert.equal(shouldResumeExistingWorkflow('Create another draft', interrupted), false)
+  assert.equal(shouldResumeExistingWorkflow(interrupted.task, { ...interrupted, phase: 'completed' }), false)
+  assert.equal(shouldResumeExistingWorkflow(interrupted.task, { ...interrupted, completedActions: [] }), false)
 })
 
 test('navigation waits for DOM settle after the tab load completes', () => {

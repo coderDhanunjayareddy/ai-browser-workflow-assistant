@@ -914,9 +914,9 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
         )}
 
         {/* Analyze button */}
-        <button onClick={() => analyze()} style={s.primaryBtn}
+        <button onClick={() => isFailed ? void resumeWorkflow() : void analyze()} style={s.primaryBtn}
           disabled={isWorking || needsInput || (isAwaiting && !autoMode) || !task.trim() || listening}>
-          {phaseLabel[phase] ?? 'Analyze'}
+          {isFailed ? 'Resume safely' : (phaseLabel[phase] ?? 'Analyze')}
         </button>
 
         {/* Clear */}
@@ -974,9 +974,6 @@ function WorkflowPanel({ state, setTask, analyze, approveAction, rejectAction, s
 
       {/* Workflow error */}
       {error && <p data-testid="workflow-error" style={s.error}>{error}</p>}
-      {isFailed && task.trim() && !humanIntervention && (
-        <button onClick={() => void resumeWorkflow()} style={s.primaryBtn}>Resume safely</button>
-      )}
       {isFailed && humanIntervention && humanIntervention.state !== 'expired' && (
         <button onClick={() => void resumeWorkflow()} style={s.primaryBtn}>Verify human step again</button>
       )}

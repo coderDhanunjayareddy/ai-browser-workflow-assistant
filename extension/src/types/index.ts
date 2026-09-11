@@ -383,6 +383,8 @@ export interface CompletedAction {
     url: string
     title: string
     metadata: Record<string, string>
+    tab_id?: number
+    window_id?: number
   }
 }
 

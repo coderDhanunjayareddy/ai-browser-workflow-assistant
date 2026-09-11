@@ -426,6 +426,28 @@ interface WorkflowLoopInput {
   refresh: boolean
 }
 
+export function preferredWorkflowTabId(completedActions: CompletedAction[]): number | undefined {
+  for (let index = completedActions.length - 1; index >= 0; index -= 1) {
+    const completed = completedActions[index]
+    const snapshotTabId = completed.page_snapshot?.tab_id
+    if (typeof snapshotTabId === 'number') return snapshotTabId
+    const resultTabId = completed.result.page_context?.tab_id
+    if (typeof resultTabId === 'number') return resultTabId
+    if (typeof completed.result.opened_tab_id === 'number') return completed.result.opened_tab_id
+  }
+  return undefined
+}
+
+export function shouldResumeExistingWorkflow(
+  submittedTask: string,
+  workflow: WorkflowState | null | undefined,
+): workflow is WorkflowState {
+  if (!workflow || workflow.completedActions.length === 0) return false
+  if (['idle', 'completed', 'cancelled'].includes(workflow.phase)) return false
+  const normalize = (value: string) => value.replace(/\s+/g, ' ').trim().toLocaleLowerCase()
+  return Boolean(normalize(submittedTask)) && normalize(submittedTask) === normalize(workflow.task)
+}
+
 interface AnalyzeRequestBody {
   session_id: string
   task: string
@@ -1707,11 +1729,13 @@ export function useWorkflow() {
     let ctx: PageContext
     try {
       const observationAttempts = completedActions.length === 0 ? initialObservationAttempts(task) : 1
+      const preferredTabId = refresh ? preferredWorkflowTabId(completedActions) : undefined
       let bestContext: PageContext | null = null
       let observationError = ''
       for (let attempt = 0; attempt < observationAttempts; attempt += 1) {
         const res = await sendToBackground<{ context?: PageContext; error?: string }>({
           type: 'EXTRACT_CONTEXT',
+          tab_id: preferredTabId,
         })
         if (res.context) {
           bestContext = selectRicherPageContext(bestContext, res.context)
@@ -1912,6 +1936,21 @@ export function useWorkflow() {
     // taskOverride lets voice input bypass the stale closure on state.task.
     const task = (taskOverride ?? state.task).trim()
     if (!task) return
+    const existingWorkflow = durableLedgerRef.current?.workflow
+    if (shouldResumeExistingWorkflow(task, existingWorkflow)) {
+      setState({ ...existingWorkflow, error: null })
+      await runWorkflowLoop({
+        sessionId: existingWorkflow.sessionId,
+        task: existingWorkflow.task,
+        completedActions: existingWorkflow.completedActions,
+        validationPriorSteps: existingWorkflow.validationPriorSteps,
+        workspace: existingWorkflow.workspace,
+        tabWorkspace: existingWorkflow.tabWorkspace,
+        userInputs: existingWorkflow.userInputs,
+        refresh: true,
+      })
+      return
+    }
     // A submitted task is a new mission, not a continuation of a restored one.
     // Reusing the previous session id lets the backend mission ledger return a
     // stale intent from an unrelated task. Resume/continue paths intentionally
@@ -2208,6 +2247,8 @@ export function useWorkflow() {
               url: pageContextAfterAction.url,
               title: pageContextAfterAction.title,
               metadata: compactMetadata(pageContextAfterAction.metadata),
+              tab_id: pageContextAfterAction.tab_id,
+              window_id: pageContextAfterAction.window_id,
             }
           : undefined,
       },

@@ -1657,6 +1657,46 @@ def test_structured_draft_attaches_only_after_subject_is_observed() -> None:
     assert action.content_insertion["expected_effect"] == "structured_draft"
 
 
+def test_content_insertion_ignores_unrelated_bare_more_and_add_controls() -> None:
+    page = _page(
+        "https://mail.example.test/workspace/#drafts/17",
+        [
+            InteractiveElement(
+                type="input", role="textbox", selector="#topic", text="", visible=True,
+                accessibility_name="Subject", state={"value": "Synthetic preview"},
+            ),
+            InteractiveElement(
+                type="button", role="button", selector="#more-labels", text="More", visible=True,
+                accessibility_name="More labels",
+            ),
+            InteractiveElement(
+                type="button", role="button", selector="#add-contact", text="Add", visible=True,
+                accessibility_name="Add contact",
+            ),
+            InteractiveElement(
+                type="button", role="button", selector="#attach-files", text="", visible=True,
+                accessibility_name="Attach files",
+            ),
+        ],
+    )
+    response = _deterministic_observed_control_response(
+        session_id="generic-draft-ignore-broad-controls",
+        task=(
+            'Create one new draft with subject "Synthetic preview". '
+            'Attach "synthetic-day5.txt" and verify its preview. Do not send it.'
+        ),
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    action = response.suggested_actions[0]
+    assert action.target_selector == "#attach-files"
+    assert action.grounding["accessibility_name"] == "Attach files"
+    assert action.content_insertion is not None
+    assert action.content_insertion["opens_native_chooser"] is True
+
+
 def test_structured_draft_refuses_ambiguous_creation_controls() -> None:
     page = _page(
         "https://mail.example.test/workspace/#inbox",

@@ -3434,7 +3434,7 @@ def _deterministic_observed_control_response(
                 "image": ("photo", "photos", "image", "images", "media", "attach"),
                 "video": ("video", "videos", "media", "attach"),
                 "audio": ("audio", "sound", "voice", "attach"),
-                "local_file": ("document", "attach", "attachment", "file", "upload", "add"),
+                "local_file": ("document", "attach", "attachment", "file", "upload"),
             }
             requested_terms = tuple(dict.fromkeys(
                 term
@@ -3447,7 +3447,12 @@ def _deterministic_observed_control_response(
             # content-kind word as an attachment target can leave the composer
             # entirely.  Once the trigger has been used, the newly observed
             # kind-specific menu item becomes eligible on the next observation.
-            generic_menu_terms = ("attach", "attachment", "upload", "add", "more")
+            # Bare "More" and "Add" controls are not insertion evidence.
+            # Large applications commonly expose unrelated More/Add actions in
+            # navigation, account, and formatting regions. Accept only an
+            # insertion-specific accessible identity; unfamiliar icon-only
+            # controls must be clarified or exposed by richer observation.
+            generic_menu_terms = ("attach", "attachment", "upload")
             insertion_controls = [
                 element for element in elements
                 if _is_viable_content_insertion_control(element)
@@ -3489,7 +3494,7 @@ def _deterministic_observed_control_response(
                     str(attach_control.get(key) or "")
                     for key in ("text", "aria_label", "accessibility_name", "title")
                 ).lower()
-                generic_menu_terms = {"attach", "attachment", "upload", "add", "more"}
+                generic_menu_terms = {"attach", "attachment", "upload"}
                 selected_specific_kind = any(
                     term in observed_label
                     for term in requested_terms
