@@ -1082,6 +1082,29 @@ def resolve_destination(
     )
     if media_response is not None:
         return media_response
+    current_url = str(getattr(page_context, "url", "") or "")
+    # A capability-only instruction issued from a browser-owned page has no
+    # trustworthy destination identity.  Do not let the page planner turn the
+    # missing destination into a WAIT action that the HTTP(S)-only executor
+    # must reject.  Account-bearing services are especially unsafe to guess:
+    # ask for the application/account, then let the normal resolver navigate.
+    if not _safe_http_url(current_url) and not decompose_destination_objectives(task):
+        requested_capability = _capability(task)
+        if requested_capability != "navigation":
+            capability_label = requested_capability.replace("_", " ")
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    f"The request requires {capability_label}, but the current page is browser-owned "
+                    "and the instruction does not identify a trustworthy destination. No page action was dispatched."
+                ),
+                outcome_kind="ask",
+                clarification_question=(
+                    f"Which website or application should I use for {capability_label}? "
+                    "If an account is involved, also specify which signed-in account or confirm the currently intended account."
+                ),
+                suggested_actions=[],
+            )
     decision = _decision(task, page_context, prior_steps or [], user_context)
     if decision.kind == "none" or decision.objective is None:
         focus_response = _tab_focus_response(
@@ -1125,7 +1148,6 @@ def resolve_destination(
             backend_authoritative_report=True,
         )
     assert decision.url
-    current_url = str(getattr(page_context, "url", "") or "")
     preserve_existing = (
         _has_prior_destination_attempt(prior_steps or [])
         and current_url.startswith(("http://", "https://"))

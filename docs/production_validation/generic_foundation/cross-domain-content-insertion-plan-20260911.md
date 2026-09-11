@@ -1,7 +1,7 @@
 # Cross-domain content-insertion certification plan
 
 **Recorded:** 2026-09-11  
-**Status:** CI-1 IMPLEMENTED AND LOCALLY VERIFIED — no real-service upload pass is claimed yet
+**Status:** CROSS-SURFACE LIVE CERTIFICATION IN PROGRESS — messaging preview 2/2 passed; mail-draft preview pending
 
 ## Objective
 
@@ -52,7 +52,7 @@ Certify one provider-neutral content-insertion path across structurally differen
 ## Exit gate
 
 - Two structurally different authorized real services pass preview-only insertion.
-- Each service passes 5/5 fresh runs before the 20-run application-owned upload certification is resumed.
+- Live sampling uses two fresh runs on the first surface and one fresh run on a structurally different second surface. Repetition beyond those samples is covered by deterministic automated tests so the product owner is not repeatedly asked to approve the same disclosure.
 - Zero sends/submissions, wrong files, wrong destinations, duplicate selections, second choosers, or unverified success claims.
 - The original Day 4 20/20 gate remains separate and is not converted to PASS by this cross-domain checkpoint.
 
@@ -82,13 +82,21 @@ The corrected identity run reached a genuine visible attachment preview for `syn
 
 `destination_url` is now preserved as priority evidence from executor result through the analyze request. The serializer regression and complete extension suite pass: **249/249**, TypeScript check passed, and the focused messaging/orchestrator suite passed **80/80**. A clean rerun is still required before any live pass is awarded.
 
-### Messaging-preview live pass 1/5
+### Messaging-preview live pass 1/2
 
 The first clean rerun passed under session `94d668a1-ac37-4694-b800-f5c93d0f2b20`. It executed exactly five actions—navigate, search fill, exact destination click, insertion-menu click, and one file-selection click—with zero retries, recoveries, planner calls, redundant insertion actions, or send actions. Independent browser inspection observed the exact destination, `synthetic-day5.txt`, `TXT`, `130 B`, and one selected item. The visible `Send 1 selected` control remained untouched. End-to-preview latency was 48.004 seconds.
 
-### Messaging-preview live pass 2/5
+### Messaging-preview live pass 2/2
 
-The second fresh run passed under session `cdaca279-9636-47fe-a376-5dc9dbd1f1f0`. Independent browser inspection observed the exact destination `Ramu (Nanna)`, the exact preview filename `synthetic-day5.txt`, `TXT`, `130 B`, and exactly one selected item. The visible `Send 1 selected` control remained untouched. The persisted audit contains exactly five approved and five successful executed events—navigate, search fill, exact-destination click, insertion-menu click, and one document/file-selection click—with zero failed executions, retries, recoveries, planner calls, duplicate chooser actions, or send actions. End-to-preview action latency was 40.092 seconds. Messaging-preview certification progress is now **2/5**.
+The second fresh run passed under session `cdaca279-9636-47fe-a376-5dc9dbd1f1f0`. Independent browser inspection observed the exact destination `Ramu (Nanna)`, the exact preview filename `synthetic-day5.txt`, `TXT`, `130 B`, and exactly one selected item. The visible `Send 1 selected` control remained untouched. The persisted audit contains exactly five approved and five successful executed events—navigate, search fill, exact-destination click, insertion-menu click, and one document/file-selection click—with zero failed executions, retries, recoveries, planner calls, duplicate chooser actions, or send actions. End-to-preview action latency was 40.092 seconds. Messaging-preview certification progress is now **2/2**.
+
+Per the product owner's 2026-09-11 decision, the two independent clean passes complete the live repetition sample for this surface. This is recorded as **2/2 sampled live passes**, not misrepresented as the original 5/5 gate. Further repeatability coverage is automated.
+
+### Mail-draft live diagnostic 01
+
+The first second-surface submission did not create or modify a draft. It began from `chrome://newtab/` with a capability-only instruction that did not name a mail service or account. Destination resolution returned no destination, the semantic layer proposed a refresh wait, and the canonical executor rejected that action because browser-owned origins cannot enter the HTTP(S) mutation contract. Five observed sessions ended at that same pre-navigation boundary with zero draft, recipient, attachment, chooser, or send actions.
+
+The provider-neutral correction now converts a capability-only request on a browser-owned page into a meaningful clarification for the missing website/application and account instead of emitting an invalid wait. No mail provider is selected implicitly. The regression plus destination, semantic-kernel, and orchestrator suites pass **101/101**. The Windows runtime launcher was also hardened against host environments containing both `Path` and `PATH`; the canonical backend is healthy on build `stabilization-20260911T080229Z`, PID `8872`.
 
 ## External behavior references
 

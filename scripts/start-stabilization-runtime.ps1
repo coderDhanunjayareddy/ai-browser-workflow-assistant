@@ -162,6 +162,24 @@ $env:BUILD_COMMIT = $commit
 $env:BUILD_ID = $buildId
 $env:CANONICAL_BACKEND_URL = $BackendUrl
 
+# Windows environment keys are case-insensitive, but some host processes can
+# expose both `Path` and `PATH`. PowerShell's Start-Process builds a
+# case-insensitive environment dictionary and throws before launch when both
+# spellings are present. Preserve the richer value, remove every duplicate,
+# and restore one canonical `Path` entry before starting the backend.
+$processEnvironment = [Environment]::GetEnvironmentVariables([EnvironmentVariableTarget]::Process)
+$pathKeys = @($processEnvironment.Keys | Where-Object { [string]::Equals([string]$_, "Path", [StringComparison]::OrdinalIgnoreCase) })
+if ($pathKeys.Count -gt 1) {
+    $canonicalPath = $pathKeys `
+        | ForEach-Object { [string]$processEnvironment[$_] } `
+        | Sort-Object Length -Descending `
+        | Select-Object -First 1
+    foreach ($pathKey in $pathKeys) {
+        [Environment]::SetEnvironmentVariable([string]$pathKey, $null, [EnvironmentVariableTarget]::Process)
+    }
+    [Environment]::SetEnvironmentVariable("Path", $canonicalPath, [EnvironmentVariableTarget]::Process)
+}
+
 $stdoutPath = Join-Path $runtimeDir "$buildId.stdout.log"
 $stderrPath = Join-Path $runtimeDir "$buildId.stderr.log"
 $backendProcess = Start-Process -FilePath $pythonPath `

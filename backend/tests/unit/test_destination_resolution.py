@@ -120,6 +120,24 @@ def test_explicit_privileged_url_stops_without_search_or_navigation_substitute()
         assert "no privileged url" in result.report.claim.lower()
 
 
+def test_capability_only_task_on_browser_owned_page_requests_destination_instead_of_waiting():
+    result = resolve_destination(
+        session_id="missing-mail-destination",
+        task=(
+            'Create a new mail draft with subject "Synthetic attachment preview test". '
+            'Attach the approved synthetic file and do not send anything.'
+        ),
+        page_context=page(),
+    )
+
+    assert result is not None
+    assert result.outcome_kind == "ask"
+    assert result.suggested_actions == []
+    assert "which website or application" in result.clarification_question.lower()
+    assert "account" in result.clarification_question.lower()
+    assert "no page action was dispatched" in result.analysis.lower()
+
+
 def test_media_adapter_uses_visible_controls_then_verified_media_element():
     search_field = InteractiveElement(
         type="input", selector='input[name="search_query"]', text="Search", placeholder="Search", visible=True,
