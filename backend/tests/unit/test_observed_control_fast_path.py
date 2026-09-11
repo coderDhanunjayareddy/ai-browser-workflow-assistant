@@ -910,6 +910,65 @@ def test_named_link_prefers_unique_exact_rendered_text_over_duplicate_title_fall
     assert response.suggested_actions[0].target_selector == "#body-link"
 
 
+def test_named_link_collapses_duplicate_visible_controls_with_same_verified_destination() -> None:
+    destination = "https://docs.example.test/library/asyncio.html"
+    page = _page(
+        "https://docs.example.test/library/index.html",
+        [
+            InteractiveElement(
+                type="a", role="link", selector="#next-topic", text="asyncio — Asynchronous I/O",
+                accessibility_name="asyncio — Asynchronous I/O", visible=True, href=destination,
+                bounding_box={"x": 20, "y": 200, "width": 175, "height": 18},
+            ),
+            InteractiveElement(
+                type="a", role="link", selector="#body-link", text="asyncio — Asynchronous I/O",
+                accessibility_name="asyncio — Asynchronous I/O", visible=True, href=destination,
+                bounding_box={"x": 340, "y": 330, "width": 213, "height": 22},
+            ),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="generic-effect-equivalent-links",
+        task='Activate the exact visible link named asyncio — Asynchronous I/O exactly once.',
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].target_selector == "#body-link"
+
+
+def test_named_link_keeps_same_label_with_different_destinations_ambiguous() -> None:
+    page = _page(
+        "https://unfamiliar.example.test/workspace",
+        [
+            InteractiveElement(
+                type="a", role="link", selector="#personal", text="Dashboard",
+                accessibility_name="Dashboard", visible=True,
+                href="https://personal.example.test/dashboard",
+            ),
+            InteractiveElement(
+                type="a", role="link", selector="#work", text="Dashboard",
+                accessibility_name="Dashboard", visible=True,
+                href="https://work.example.test/dashboard",
+            ),
+        ],
+    )
+
+    response = _deterministic_observed_control_response(
+        session_id="generic-distinct-link-effects",
+        task='Activate the exact visible link named Dashboard exactly once.',
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "ask"
+    assert response.suggested_actions == []
+
+
 def test_compound_named_controls_advance_in_order_after_verified_prior_click() -> None:
     task = (
         "Activate the exact enabled control named Open review, then activate "

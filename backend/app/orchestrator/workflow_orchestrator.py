@@ -3074,6 +3074,17 @@ def _deterministic_observed_control_response(
                 ]
                 if len(rendered_text_matches) == 1:
                     remaining_matches = rendered_text_matches
+                elif len(rendered_text_matches) > 1:
+                    # Responsive layouts and documentation sites often render
+                    # the same safe link in a contents list, sidebar, and
+                    # next-topic area.  Duplicate controls are not ambiguous
+                    # when every candidate is a link with the exact same
+                    # validated destination: their observable effect is
+                    # equivalent.  This rule is deliberately limited to
+                    # http(s) links; buttons/forms/recipients remain ambiguous.
+                    equivalent_link = _select_effect_equivalent_link(rendered_text_matches)
+                    if equivalent_link is not None:
+                        remaining_matches = [equivalent_link]
             if len(remaining_matches) == 1:
                 control = remaining_matches[0]
                 selector = str(control.get("selector") or "").strip()
@@ -3890,6 +3901,53 @@ def _find_observed_control(
         if any(term in label for term in label_terms) or any(term in selector_lower for term in selector_terms):
             return element
     return None
+
+
+def _select_effect_equivalent_link(elements: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Choose deterministically only when duplicate links have one exact effect."""
+    if len(elements) < 2:
+        return elements[0] if elements else None
+
+    destinations: set[str] = set()
+    for element in elements:
+        if str(element.get("role") or "").casefold() != "link" and str(
+            element.get("type") or ""
+        ).casefold() != "a":
+            return None
+        href = str(element.get("href") or "").strip()
+        parsed = urlparse(href)
+        if parsed.scheme.casefold() not in {"http", "https"} or not parsed.netloc:
+            return None
+        destinations.add(
+            urlunparse(
+                (
+                    parsed.scheme.casefold(),
+                    parsed.netloc.casefold(),
+                    parsed.path or "/",
+                    parsed.params,
+                    parsed.query,
+                    parsed.fragment,
+                )
+            )
+        )
+    if len(destinations) != 1:
+        return None
+
+    def rank(element: dict[str, Any]) -> tuple[float, float, float, str]:
+        box = dict(element.get("bounding_box") or {})
+        width = max(float(box.get("width") or 0), 0.0)
+        height = max(float(box.get("height") or 0), 0.0)
+        # Prefer the clearest/largest visible hit target, then stable visual
+        # order and selector identity. The selected link still has the same
+        # destination as every alternative.
+        return (
+            -(width * height),
+            float(box.get("y") or float("inf")),
+            float(box.get("x") or float("inf")),
+            str(element.get("selector") or ""),
+        )
+
+    return sorted(elements, key=rank)[0]
 
 
 def _is_viable_content_insertion_control(element: dict[str, Any]) -> bool:
