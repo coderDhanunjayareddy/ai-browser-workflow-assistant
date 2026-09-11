@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 
 import pytest
 from fastapi.testclient import TestClient
@@ -25,6 +26,7 @@ def test_local_file_broker_resolves_one_exact_download(monkeypatch: pytest.Monke
         "filename": "synthetic-day5.txt",
         "mime_type": "text/plain",
         "size_bytes": len("synthetic evidence"),
+        "sha256": hashlib.sha256(b"synthetic evidence").hexdigest(),
         "source": "local_downloads_broker_exact_match",
     }
 

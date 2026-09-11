@@ -339,6 +339,7 @@ test('transient content option is revealed and grounded inside one trusted dispa
     filename: 'synthetic-day5.txt',
     mime_type: 'text/plain',
     size_bytes: 130,
+    sha256: 'a'.repeat(64),
     source: 'chrome_downloads_exact_match',
   })
   assert.equal(result.success, true)

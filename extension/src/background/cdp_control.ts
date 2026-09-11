@@ -39,6 +39,7 @@ export type TrustedLocalFile = {
   filename: string
   mime_type: string
   size_bytes: number
+  sha256: string
   source: 'chrome_downloads_exact_match' | 'local_downloads_broker_exact_match'
 }
 

@@ -66,6 +66,7 @@ type TrustedLocalFile = {
   filename: string
   mime_type: string
   size_bytes: number
+  sha256: string
   source: 'chrome_downloads_exact_match' | 'local_downloads_broker_exact_match'
 }
 
@@ -183,62 +184,37 @@ async function resolveTrustedLocalFile(action: ExecutableAction): Promise<
   if (!requested || /[\\/]/.test(requested)) {
     return { allowed: false, reason: 'exact_filename_missing' }
   }
-  const items = await chrome.downloads.search({ exists: true, limit: 200, orderBy: ['-startTime'] })
-  const exact = items.filter((item) => (
-    item.state === 'complete'
-    && Boolean(item.filename)
-    && leafName(item.filename).normalize('NFKC').toLocaleLowerCase() === requested.normalize('NFKC').toLocaleLowerCase()
-  ))
-  const unique = new Map(exact.map((item) => [String(item.filename).toLocaleLowerCase(), item]))
-  if (unique.size === 0) {
-    try {
-      const response = await fetch(`${POLICY_BACKEND_URL}/local-files/resolve-download`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-AI-Browser-Assist-Extension': 'service-worker',
-        },
-        body: JSON.stringify({ filename: requested }),
-      })
-      if (!response.ok) {
-        return { allowed: false, reason: `exact_download_not_found:${requested}` }
-      }
-      const resolved = await response.json() as Partial<TrustedLocalFile>
-      if (
-        typeof resolved.absolute_path !== 'string'
-        || !resolved.absolute_path
-        || leafName(resolved.absolute_path).normalize('NFKC').toLocaleLowerCase() !== requested.normalize('NFKC').toLocaleLowerCase()
-        || typeof resolved.filename !== 'string'
-        || resolved.filename.normalize('NFKC').toLocaleLowerCase() !== requested.normalize('NFKC').toLocaleLowerCase()
-        || typeof resolved.mime_type !== 'string'
-        || !Number.isFinite(resolved.size_bytes)
-        || Number(resolved.size_bytes) <= 0
-        || resolved.source !== 'local_downloads_broker_exact_match'
-      ) {
-        return { allowed: false, reason: `local_download_broker_invalid:${requested}` }
-      }
-      return { allowed: true, file: resolved as TrustedLocalFile }
-    } catch {
-      return { allowed: false, reason: `local_download_broker_unavailable:${requested}` }
+  try {
+    const response = await fetch(`${POLICY_BACKEND_URL}/local-files/resolve-download`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-AI-Browser-Assist-Extension': 'service-worker',
+      },
+      body: JSON.stringify({ filename: requested }),
+    })
+    if (!response.ok) {
+      return { allowed: false, reason: `exact_download_not_found:${requested}` }
     }
-  }
-  if (unique.size > 1) {
-    return { allowed: false, reason: `ambiguous_exact_download:${requested}` }
-  }
-  const item = [...unique.values()][0]
-  const size = Number(item.fileSize || item.totalBytes || 0)
-  if (!Number.isFinite(size) || size <= 0) {
-    return { allowed: false, reason: `download_metadata_incomplete:${requested}` }
-  }
-  return {
-    allowed: true,
-    file: {
-      absolute_path: item.filename,
-      filename: leafName(item.filename),
-      mime_type: String(item.mime || 'application/octet-stream'),
-      size_bytes: size,
-      source: 'chrome_downloads_exact_match',
-    },
+    const resolved = await response.json() as Partial<TrustedLocalFile>
+    if (
+      typeof resolved.absolute_path !== 'string'
+      || !resolved.absolute_path
+      || leafName(resolved.absolute_path).normalize('NFKC').toLocaleLowerCase() !== requested.normalize('NFKC').toLocaleLowerCase()
+      || typeof resolved.filename !== 'string'
+      || resolved.filename.normalize('NFKC').toLocaleLowerCase() !== requested.normalize('NFKC').toLocaleLowerCase()
+      || typeof resolved.mime_type !== 'string'
+      || !Number.isFinite(resolved.size_bytes)
+      || Number(resolved.size_bytes) <= 0
+      || typeof resolved.sha256 !== 'string'
+      || !/^[a-f0-9]{64}$/i.test(resolved.sha256)
+      || resolved.source !== 'local_downloads_broker_exact_match'
+    ) {
+      return { allowed: false, reason: `local_download_broker_invalid:${requested}` }
+    }
+    return { allowed: true, file: resolved as TrustedLocalFile }
+  } catch {
+    return { allowed: false, reason: `local_download_broker_unavailable:${requested}` }
   }
 }
 
@@ -989,14 +965,24 @@ async function handleExecuteAction(
               action.content_insertion.destination_url,
               String(evidence.destination_url || ''),
             )
-            await settleContentChooser(action, exactOrigin && exactDocument ? 'selected' : 'uncertain')
+            const exactFile = Boolean(
+              trustedLocalFile
+              && String(evidence.filename || '').normalize('NFKC').toLocaleLowerCase()
+                === trustedLocalFile.filename.normalize('NFKC').toLocaleLowerCase()
+              && String(evidence.mime_type || '') === trustedLocalFile.mime_type
+              && Number(evidence.size_bytes || 0) === trustedLocalFile.size_bytes
+              && String(evidence.content_sha256 || '').toLocaleLowerCase()
+                === trustedLocalFile.sha256.toLocaleLowerCase()
+            )
+            const exactBinding = exactOrigin && exactDocument && exactFile
+            await settleContentChooser(action, exactBinding ? 'selected' : 'uncertain')
             executionWithContentEvidence = {
               ...cdpExecution,
               ...evidence,
-              success: cdpExecution.success && exactOrigin && exactDocument,
-              message: exactOrigin && exactDocument
+              success: cdpExecution.success && exactBinding,
+              message: exactBinding
                 ? evidence.message
-                : 'Content selection destination changed before verification.',
+                : 'Content selection did not match the exact approved file and destination binding.',
             }
           } else {
             await settleContentChooser(action, evidence?.chooser_cancelled ? 'cancelled' : 'uncertain')

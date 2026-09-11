@@ -232,6 +232,19 @@ test('content selection evidence is armed before trusted input and remains withi
   assert.match(worker, /args: \[action\.content_insertion, 30_000\]/)
 })
 
+test('content selection binds the broker hash and exact document before and after trusted input', () => {
+  const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
+  const preflightIndex = worker.indexOf('matchesExactInsertionDocument(action.content_insertion.destination_url, tab.url)')
+  const dispatchIndex = worker.indexOf('const cdpExecution = await cdpController.execute')
+  const postflightIndex = worker.indexOf('const exactFile = Boolean(')
+  assert.ok(preflightIndex >= 0)
+  assert.ok(dispatchIndex > preflightIndex)
+  assert.ok(postflightIndex > dispatchIndex)
+  assert.match(worker, /trustedLocalFile\.sha256\.toLocaleLowerCase\(\)/)
+  assert.match(worker, /Number\(evidence\.size_bytes \|\| 0\) === trustedLocalFile\.size_bytes/)
+  assert.match(worker, /Content selection did not match the exact approved file and destination binding/)
+})
+
 test('cross-origin frame presence is counted without merging its private content', () => {
   const worker = fs.readFileSync(path.join(root, 'src', 'background', 'service-worker.ts'), 'utf8')
   assert.match(worker, /cross_origin_child_frame_count/)

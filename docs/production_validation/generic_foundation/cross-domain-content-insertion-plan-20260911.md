@@ -64,8 +64,9 @@ Certify one provider-neutral content-insertion path across structurally differen
 - Content insertion is compiled as `content_transfer.insert`, not an ordinary click. Its generic capability contract carries the requested filename, destination URL, effect, zero retry budget, and confirmation requirement.
 - The chooser ledger records the exact destination URL and continues to block a second chooser after selected, cancelled, or uncertain dispatch.
 - Approved synthetic artifact: `synthetic-day5.txt`, `text/plain`, 130 bytes, SHA-256 `5009cc5417c8c6b175e13637bff785182c49e8d78f91ed9f07dbdec840c10945`, resolved through `local_downloads_broker_exact_match`.
-- Verification: 87 focused insertion/orchestrator/broker/capability tests passed; 43 policy and generic capability boundary tests passed; all 248 extension tests passed; TypeScript check and production extension build passed.
-- Canonical runtime rebuilt as `stabilization-20260911T054428Z`, commit handshake `744259e-dirty`, PID `13480`.
+- The broker now computes the file SHA-256 itself. Post-selection verification compares filename, MIME type, byte size, SHA-256, origin, and exact document URL to that broker result; a mismatch is terminal and non-retriable.
+- Verification: 87 focused insertion/orchestrator/broker/capability tests passed; 43 policy and generic capability boundary tests passed; all 249 extension tests passed; TypeScript check and production build passed.
+- Canonical runtime rebuilt with the final hash binding as `stabilization-20260911T054933Z`, commit handshake `364eb73-dirty`, PID `5700`. The broker response was rechecked against the synthetic artifact and returned its exact filename, MIME type, 130-byte size, and expected SHA-256.
 
 Still pending: reload the unpacked extension, then run the live action-time confirmation and preview-only matrix on two authorized structurally different services. No live service pass is inferred from local tests.
 

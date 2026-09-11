@@ -3,6 +3,7 @@ from __future__ import annotations
 import mimetypes
 import os
 import unicodedata
+import hashlib
 from pathlib import Path
 
 from fastapi import APIRouter, Header, HTTPException
@@ -76,10 +77,15 @@ def resolve_exact_download(
     if size <= 0:
         raise HTTPException(status_code=409, detail=f"Downloads file is empty: {requested}")
     mime_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    digest = hashlib.sha256()
+    with file_path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
     return {
         "absolute_path": str(file_path),
         "filename": file_path.name,
         "mime_type": mime_type,
         "size_bytes": size,
+        "sha256": digest.hexdigest(),
         "source": "local_downloads_broker_exact_match",
     }
