@@ -1657,6 +1657,50 @@ def test_structured_draft_attaches_only_after_subject_is_observed() -> None:
     assert action.content_insertion["expected_effect"] == "structured_draft"
 
 
+def test_completed_named_draft_control_does_not_block_later_attachment() -> None:
+    page = _page(
+        "https://workspace.example.test/drafts/17",
+        [
+            InteractiveElement(
+                type="input", role="textbox", selector="#topic", text="", visible=True,
+                accessibility_name="Subject", state={"value": "Synthetic preview"},
+            ),
+            InteractiveElement(
+                type="button", role="button", selector="#insert", text="Attach files", visible=True,
+                accessibility_name="Attach files",
+            ),
+        ],
+    )
+    response = _deterministic_observed_control_response(
+        session_id="generic-draft-completed-named-trigger",
+        task=(
+            'Activate the exact enabled Create draft control once. '
+            'Enter the exact subject "Synthetic preview" in the exact Subject field. '
+            'Attach the explicitly approved file "synthetic-day5.txt" from Downloads and verify its preview. '
+            'Do not send or discard it.'
+        ),
+        page_context=page,
+        prior_steps=[
+            PriorStep(
+                action_type="click",
+                description="Activate the uniquely observed control that creates the requested draft",
+                target_selector="#create",
+                execution_result="CDP click dispatched via stable_selector grounding.",
+                browser_evidence={
+                    "grounded_accessibility_name": "Create draft",
+                    "grounded_semantic_kind": "draft_creation_trigger",
+                },
+            ),
+        ],
+    )
+
+    assert response is not None
+    assert response.outcome_kind != "ask"
+    action = response.suggested_actions[0]
+    assert (action.action_type, action.target_selector) == ("click", "#insert")
+    assert action.content_insertion is not None
+
+
 def test_content_insertion_ignores_unrelated_bare_more_and_add_controls() -> None:
     page = _page(
         "https://mail.example.test/workspace/#drafts/17",

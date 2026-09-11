@@ -3108,12 +3108,21 @@ def _deterministic_observed_control_response(
                     return candidate
             return ""
 
-        completed_control_names = {
-            " ".join(str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or "").split()).casefold()
-            for step in prior_steps
-            if str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "click"
-            and prior_step_succeeded(step)
-        }
+        completed_control_names: set[str] = set()
+        for step in prior_steps:
+            data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+            if str(data.get("action_type") or "").lower() != "click" or not prior_step_succeeded(step):
+                continue
+            evidence = dict(data.get("browser_evidence") or {})
+            for identity in (
+                data.get("value"),
+                evidence.get("grounded_accessibility_name"),
+                evidence.get("adapter_exact_expected_name"),
+                evidence.get("adapter_exact_observed_name"),
+            ):
+                normalized_identity = " ".join(str(identity or "").split()).casefold()
+                if normalized_identity:
+                    completed_control_names.add(normalized_identity)
         completed_assignment_names = {
             " ".join(requested_name.split()).casefold()
             for _position, requested_action, requested_name, requested_value in ordered_selections

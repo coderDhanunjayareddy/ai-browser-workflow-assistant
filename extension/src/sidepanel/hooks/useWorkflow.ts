@@ -829,6 +829,12 @@ function buildBrowserEvidence(
 
   if (action.action_id) evidence.action_id = action.action_id
   if (result.action_id) evidence.result_action_id = result.action_id
+  if (action.grounding?.accessibility_name) {
+    evidence.grounded_accessibility_name = action.grounding.accessibility_name
+  }
+  if (action.grounding?.semantic_kind) {
+    evidence.grounded_semantic_kind = action.grounding.semantic_kind
+  }
   if (pageSnapshot?.url) evidence.page_url = pageSnapshot.url
   if (pageSnapshot?.title) evidence.page_title = pageSnapshot.title
   if (typeof result.opened_tab_id === 'number') evidence.opened_tab_id = result.opened_tab_id
@@ -935,6 +941,8 @@ function buildBrowserEvidence(
     'mime_type',
     'size_bytes',
     'content_sha256',
+    'grounded_accessibility_name',
+    'grounded_semantic_kind',
     'adapter_exact_identity_verified',
     'adapter_exact_target_kind',
     'adapter_exact_expected_name',

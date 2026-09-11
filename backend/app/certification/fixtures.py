@@ -218,6 +218,70 @@ document.getElementById('emoji-insert').addEventListener('click',function(){docu
 document.getElementById('poll-draft').addEventListener('click',function(){document.getElementById('draft-state').textContent='Poll draft opened';});
 </script>""")
 
+# ── 6c. Draft-style content insertion lifecycle ──────────────────────────────
+# This fixture models a provider-neutral draft surface (mail, messaging,
+# ticketing, CRM, etc.) without embedding any provider-specific selectors.  It
+# persists its state by the `run` query parameter so a browser/extension restart
+# can prove that resume does not recreate the draft or reselect the file.
+DRAFT_CONTENT_INSERTION = _p("Synthetic Draft Workspace", """
+<header><h1>Synthetic Draft Workspace</h1></header>
+<main>
+  <button id="create-draft" type="button" aria-label="Create draft">Create draft</button>
+  <section id="draft" aria-label="Draft editor" hidden>
+    <label for="draft-subject">Subject</label>
+    <input id="draft-subject" type="text" aria-label="Subject" />
+    <label id="attach-control" for="draft-file" role="button" tabindex="0" aria-label="Attach files">Attach files</label>
+    <input id="draft-file" type="file" accept="text/plain,application/pdf,image/*" hidden />
+    <div id="attachment-preview" role="status" data-submission-preview="true"></div>
+    <button id="submit-draft" type="button" aria-label="Send draft">Send draft</button>
+    <button id="discard-draft" type="button" aria-label="Discard draft">Discard draft</button>
+  </section>
+  <dl aria-label="Independent effect counters">
+    <dt>Draft creations</dt><dd id="draft-count">0</dd>
+    <dt>File selections</dt><dd id="selection-count">0</dd>
+    <dt>Submissions</dt><dd id="send-count">0</dd>
+    <dt>Discards</dt><dd id="discard-count">0</dd>
+  </dl>
+  <output id="fixture-state">fixture_state=idle</output>
+</main>
+<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  var key='synthetic-draft-v1:'+(params.get('run')||'default');
+  var initial={drafts:0,selections:0,sends:0,discards:0,subject:'',filename:''};
+  var state;
+  try{state=Object.assign({},initial,JSON.parse(localStorage.getItem(key)||'{}'));}catch(_){state=Object.assign({},initial);}
+  function save(){localStorage.setItem(key,JSON.stringify(state));}
+  function render(){
+    document.getElementById('create-draft').hidden=state.drafts>0;
+    document.getElementById('draft').hidden=state.drafts===0;
+    document.getElementById('draft-subject').value=state.subject;
+    document.getElementById('draft-count').textContent=String(state.drafts);
+    document.getElementById('selection-count').textContent=String(state.selections);
+    document.getElementById('send-count').textContent=String(state.sends);
+    document.getElementById('discard-count').textContent=String(state.discards);
+    var preview=document.getElementById('attachment-preview');
+    preview.textContent=state.filename?('Attachment preview: '+state.filename):'';
+    if(state.filename)preview.setAttribute('data-content-identity',state.filename);else preview.removeAttribute('data-content-identity');
+    var ready=state.drafts===1&&state.subject&&state.filename&&state.selections===1&&state.sends===0&&state.discards===0;
+    document.getElementById('fixture-state').textContent=ready?'fixture_state=draft_preview_ready_exactly_once':'fixture_state=draft_in_progress';
+  }
+  document.getElementById('create-draft').addEventListener('click',function(){
+    if(state.drafts===0)state.drafts=1;
+    save();render();
+  });
+  document.getElementById('draft-subject').addEventListener('input',function(e){state.subject=e.target.value;save();render();});
+  document.getElementById('draft-file').addEventListener('change',function(e){
+    var f=e.target.files[0];
+    if(f&&state.filename!==f.name){state.selections+=1;state.filename=f.name;}
+    save();render();
+  });
+  document.getElementById('submit-draft').addEventListener('click',function(){state.sends+=1;save();render();});
+  document.getElementById('discard-draft').addEventListener('click',function(){state.discards+=1;save();render();});
+  render();
+})();
+</script>""")
+
 # ── 7. File download ────────────────────────────────────────────────────────--
 DOWNLOAD = _p("Download", """
 <header><h1>Reports</h1></header>
@@ -445,6 +509,7 @@ FIXTURES: dict[str, str] = {
     "/search":     SEARCH,
     "/upload":     UPLOAD,
     "/content-insertion": CONTENT_INSERTION,
+    "/draft-content-insertion": DRAFT_CONTENT_INSERTION,
     "/download":   DOWNLOAD,
     "/pagination": PAGINATION,
     "/modal":      MODAL,
