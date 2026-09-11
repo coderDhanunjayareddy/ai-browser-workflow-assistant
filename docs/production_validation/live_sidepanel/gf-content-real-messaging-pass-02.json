@@ -1,0 +1,40 @@
+{
+  "schema_version": "live_sidepanel_content_insertion.v1",
+  "recorded_at": "2026-09-11T07:06:13Z",
+  "certification_surface": "messaging_preview",
+  "run_number": 2,
+  "certification_credit": true,
+  "session_id": "cdaca279-9636-47fe-a376-5dc9dbd1f1f0",
+  "runtime": {
+    "app_version": "0.4.0",
+    "build_commit": "0ad9696-dirty",
+    "build_id": "stabilization-20260911T063906Z",
+    "process_id": 21192
+  },
+  "observed_target": {
+    "destination_identity": "Ramu (Nanna)",
+    "document_url": "https://web.whatsapp.com/",
+    "filename": "synthetic-day5.txt",
+    "displayed_type": "TXT",
+    "displayed_size_bytes": 130,
+    "selected_file_count": 1,
+    "preview_visible": true,
+    "send_control_visible": true,
+    "send_control_activated": false
+  },
+  "audit": {
+    "approved_events": 5,
+    "executed_events": 5,
+    "successful_executions": 5,
+    "failed_executions": 0,
+    "retry_count": 0,
+    "recovery_count": 0,
+    "planner_calls": 0,
+    "duplicate_chooser_actions": 0,
+    "send_actions": 0,
+    "false_success_rate": 0.0,
+    "workflow_stability_score": 100.0
+  },
+  "latency_seconds": 40.092,
+  "result": "pass"
+}

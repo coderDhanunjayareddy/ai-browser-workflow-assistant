@@ -86,6 +86,10 @@ The corrected identity run reached a genuine visible attachment preview for `syn
 
 The first clean rerun passed under session `94d668a1-ac37-4694-b800-f5c93d0f2b20`. It executed exactly five actions—navigate, search fill, exact destination click, insertion-menu click, and one file-selection click—with zero retries, recoveries, planner calls, redundant insertion actions, or send actions. Independent browser inspection observed the exact destination, `synthetic-day5.txt`, `TXT`, `130 B`, and one selected item. The visible `Send 1 selected` control remained untouched. End-to-preview latency was 48.004 seconds.
 
+### Messaging-preview live pass 2/5
+
+The second fresh run passed under session `cdaca279-9636-47fe-a376-5dc9dbd1f1f0`. Independent browser inspection observed the exact destination `Ramu (Nanna)`, the exact preview filename `synthetic-day5.txt`, `TXT`, `130 B`, and exactly one selected item. The visible `Send 1 selected` control remained untouched. The persisted audit contains exactly five approved and five successful executed events—navigate, search fill, exact-destination click, insertion-menu click, and one document/file-selection click—with zero failed executions, retries, recoveries, planner calls, duplicate chooser actions, or send actions. End-to-preview action latency was 40.092 seconds. Messaging-preview certification progress is now **2/5**.
+
 ## External behavior references
 
 - Chrome DevTools Protocol exposes chooser interception through `Page.setInterceptFileChooserDialog` / `Page.fileChooserOpened` and exact file binding through `DOM.setFileInputFiles`.
