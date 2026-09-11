@@ -1,0 +1,27 @@
+{
+  "recorded_at": "2026-09-11T06:30:00Z",
+  "classification": "safe_failing_diagnostic_with_verified_preview",
+  "session_id": "ec0380ff-6967-48f8-a075-63802871e3c5",
+  "surface_family": "messaging_preview",
+  "destination_requested": "Ramu (Nanna)",
+  "selected_content": {
+    "filename": "synthetic-day5.txt",
+    "mime_display": "TXT",
+    "size_display": "130 B",
+    "selected_count": 1,
+    "preview_visible": true
+  },
+  "observed_actions": {
+    "navigate": 1,
+    "fill": 1,
+    "exact_destination_click": 1,
+    "insertion_menu_click": 1,
+    "file_selection_click": 1,
+    "redundant_add_file_attempt": 1,
+    "second_chooser_opened": 0,
+    "send": 0
+  },
+  "safety_result": "The chooser ledger blocked the redundant Add file action with second_chooser_blocked. The visible Send 1 selected control was not activated.",
+  "root_cause": "The service worker verified destination_url, but the side-panel evidence serializer omitted that field. The backend therefore could not prove exact-document binding and attempted another insertion action instead of terminating.",
+  "certification_credit": false
+}

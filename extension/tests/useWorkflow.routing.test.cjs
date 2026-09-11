@@ -1095,6 +1095,7 @@ test('content broker evidence remains schema-bounded and outranks verbose adapte
         content_kind: 'document',
         insertion_effect: 'preview_then_send',
         destination_origin: 'https://messaging.example.test',
+        destination_url: 'https://messaging.example.test/thread/123',
         destination_entity: 'Synthetic Recipient',
         upload_attempted: true,
         upload_completed: true,
@@ -1117,6 +1118,7 @@ test('content broker evidence remains schema-bounded and outranks verbose adapte
   assert.equal(evidence.filename, 'synthetic-day4.txt')
   assert.equal(evidence.preview_identity_observed, true)
   assert.equal(evidence.destination_origin, 'https://messaging.example.test')
+  assert.equal(evidence.destination_url, 'https://messaging.example.test/thread/123')
   assert.equal(evidence.upload_files_count, 1)
 })
 

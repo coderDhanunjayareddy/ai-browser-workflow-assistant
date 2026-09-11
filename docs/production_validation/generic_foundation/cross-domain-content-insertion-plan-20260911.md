@@ -76,6 +76,16 @@ The first real messaging-preview attempt is a safe failing diagnostic, not a pas
 
 The verifier now parses each accessibility source independently, deduplicates repeated supporting composer identities, normalizes only presentation-level Unicode/paired-punctuation spacing, and continues to reject conflicting identities. The content-trigger recognizer received the same per-source correction so duplicated `Attach` metadata cannot become `Attach Attach`. Focused provider-neutral messaging/insertion regressions: **89 passed**, including repeated-support acceptance and conflicting-identity rejection.
 
+### Live diagnostic 02
+
+The corrected identity run reached a genuine visible attachment preview for `synthetic-day5.txt` (`TXT`, `130 B`, one selected item) in the exact requested conversation. It is still not counted as a certification pass because the workflow did not terminate: the service worker's verified `destination_url` was omitted by the side-panel evidence serializer. The orchestrator therefore attempted `Add file`; the chooser ledger correctly rejected it as `second_chooser_blocked`, so no second chooser opened and Send remained untouched.
+
+`destination_url` is now preserved as priority evidence from executor result through the analyze request. The serializer regression and complete extension suite pass: **249/249**, TypeScript check passed, and the focused messaging/orchestrator suite passed **80/80**. A clean rerun is still required before any live pass is awarded.
+
+### Messaging-preview live pass 1/5
+
+The first clean rerun passed under session `94d668a1-ac37-4694-b800-f5c93d0f2b20`. It executed exactly five actions—navigate, search fill, exact destination click, insertion-menu click, and one file-selection click—with zero retries, recoveries, planner calls, redundant insertion actions, or send actions. Independent browser inspection observed the exact destination, `synthetic-day5.txt`, `TXT`, `130 B`, and one selected item. The visible `Send 1 selected` control remained untouched. End-to-preview latency was 48.004 seconds.
+
 ## External behavior references
 
 - Chrome DevTools Protocol exposes chooser interception through `Page.setInterceptFileChooserDialog` / `Page.fileChooserOpened` and exact file binding through `DOM.setFileInputFiles`.

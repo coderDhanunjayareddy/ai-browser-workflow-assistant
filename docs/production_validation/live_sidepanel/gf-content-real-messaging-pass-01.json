@@ -1,0 +1,39 @@
+{
+  "recorded_at": "2026-09-11T06:44:30Z",
+  "classification": "live_preview_pass",
+  "session_id": "94d668a1-ac37-4694-b800-f5c93d0f2b20",
+  "runtime": {
+    "build_commit": "0ad9696-dirty",
+    "build_id": "stabilization-20260911T063906Z",
+    "process_id": 21192
+  },
+  "surface_family": "messaging_preview",
+  "destination": "Ramu (Nanna)",
+  "selected_content": {
+    "filename": "synthetic-day5.txt",
+    "mime_type": "text/plain",
+    "visible_type": "TXT",
+    "size_bytes": 130,
+    "visible_size": "130 B",
+    "sha256": "5009cc5417c8c6b175e13637bff785182c49e8d78f91ed9f07dbdec840c10945",
+    "selected_count": 1,
+    "preview_visible": true
+  },
+  "actions": {
+    "navigate": 1,
+    "search_fill": 1,
+    "exact_destination_click": 1,
+    "insertion_menu_click": 1,
+    "file_selection_click": 1,
+    "total_executed": 5,
+    "retries": 0,
+    "recoveries": 0,
+    "planner_calls": 0,
+    "redundant_insertion_actions": 0,
+    "send_actions": 0
+  },
+  "latency_seconds": 48.004,
+  "visible_send_control": "Send 1 selected",
+  "send_activated": false,
+  "certification_credit": true
+}
