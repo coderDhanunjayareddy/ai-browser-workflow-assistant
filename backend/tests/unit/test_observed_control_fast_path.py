@@ -1546,8 +1546,25 @@ def test_upload_activates_observed_file_input_without_passing_a_local_path() -> 
     insertion = response.suggested_actions[0].content_insertion
     assert insertion is not None
     assert insertion["destination_url"] == "http://127.0.0.1:5051/upload"
-    assert insertion["destination_entity"] == "Fixture [http://127.0.0.1:5051/upload]"
+    assert insertion["destination_entity"] == "Fixture"
     assert insertion["expected_effect"] == "selection_sends_immediately"
+
+
+def test_content_insertion_keeps_visible_entity_separate_from_document_url() -> None:
+    page = _page(
+        "https://workspace.example.test/drafts/42?mode=edit",
+        [InteractiveElement(type="input", input_type="file", selector="#file", text="", visible=True)],
+    )
+    page.title = "Client Review Workspace"
+
+    entity = _content_insertion_destination_entity(
+        'Attach "synthetic-day5.txt" to the current workspace.',
+        page,
+        "https://workspace.example.test/drafts/42?mode=edit",
+    )
+
+    assert entity == "Client Review Workspace"
+    assert "https://" not in entity
 
 
 def test_content_insertion_effect_and_destination_are_provider_neutral() -> None:

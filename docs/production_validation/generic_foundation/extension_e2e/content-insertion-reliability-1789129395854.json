@@ -1,0 +1,59 @@
+{
+  "schema_version": "extension_content_insertion_reliability.v1",
+  "sequence_id": "content-insertion-reliability-1789129395854",
+  "requested_runs": 20,
+  "executed_runs": 1,
+  "passed_runs": 0,
+  "failed_runs": 1,
+  "status": "failed",
+  "stopped_on_first_failure": true,
+  "harness_file_injection": false,
+  "synthetic_submit_confirmed": true,
+  "total_duration_s": 257.5,
+  "min_workflow_duration_s": 246.0,
+  "max_workflow_duration_s": 246.0,
+  "average_workflow_duration_s": 246.0,
+  "results": [
+    {
+      "index": 1,
+      "status": "failed",
+      "return_code": 1,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789129396140.json",
+      "duration_s": 246.0,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789129395854 run 01",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789129395854 run 01",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 4,
+      "durable_attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "failures": [
+        "fixture_state: expected 'fixture_state=draft_submitted_exactly_once', observed 'fixture_state=draft_preview_ready_exactly_once'",
+        "send_count: expected 1, observed 0",
+        "extension workflow status: expected 'completed', observed 'timeout'",
+        "fixture_state: expected 'fixture_state=draft_submitted_exactly_once', observed 'fixture_state=draft_preview_ready_exactly_once'",
+        "send_count: expected 1, observed 0"
+      ],
+      "stderr": ""
+    }
+  ]
+}

@@ -4395,9 +4395,13 @@ def _content_insertion_destination_entity(task: str, page_context: Any, destinat
     if named and named.group(1).strip():
         return named.group(1).strip()
     title = " ".join(str(getattr(page_context, "title", "") or "").split())
-    # A document identity remains provider-neutral while binding insertion to
-    # the exact observed surface when no recipient/folder/editor was named.
-    return f"{title} [{destination_url}]"[:500] if title else destination_url[:500]
+    # Keep the user-visible entity identity separate from the exact document
+    # binding.  ``destination_url`` already binds the content-insertion
+    # contract to the observed document (and the canonical action contract
+    # independently binds origin/tab/frame).  Combining title and URL here
+    # creates an identity that no real page exposes as visible evidence, which
+    # makes the final pre-dispatch review gate impossible to satisfy.
+    return title[:500] if title else destination_url[:500]
 
 
 def _content_insertion_effect(task: str) -> str:
