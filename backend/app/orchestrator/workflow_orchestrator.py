@@ -3270,19 +3270,26 @@ def _deterministic_observed_control_response(
     ):
         insertion_policy = build_file_upload_broker_policy(task)
         requested_kind = insertion_policy.requested_content_kinds[0]
-        destination_entity = _messaging_recipient_from_task(task) or ""
+        destination_url = _content_insertion_destination_url(str(getattr(page_context, "url", "") or ""))
+        destination_entity = _content_insertion_destination_entity(task, page_context, destination_url)
+        requested_filename = _requested_local_filename(task)
+        insertion_effect = _content_insertion_effect(task)
         content_insertion = {
             "schema_version": "content_insertion_request.v1",
             "request_id": "content_" + hashlib.sha1(
-                f"{session_id}|{requested_kind}|{destination_entity}".encode("utf-8")
+                (
+                    f"{session_id}|{requested_kind}|{requested_filename or ''}|{insertion_effect}|"
+                    f"{destination_url}|{destination_entity}"
+                ).encode("utf-8")
             ).hexdigest()[:16],
             "kind": requested_kind,
-            "expected_effect": "preview_then_send",
+            "expected_effect": insertion_effect,
             "requires_bound_file": insertion_policy.requires_user_selected_file,
             "destination_entity": destination_entity,
+            "destination_url": destination_url,
             "stage": "open_insertion_menu",
             "opens_native_chooser": False,
-            "requested_filename": _requested_local_filename(task),
+            "requested_filename": requested_filename,
         }
         control = next(
             (
@@ -3747,15 +3754,17 @@ def _deterministic_observed_report_response(
         except Exception:
             expected_origin = ""
         observed_origin = str(insertion_evidence.get("destination_origin") or "").rstrip("/")
+        observed_destination_url = str(insertion_evidence.get("destination_url") or "").strip()
         requested_entity = _messaging_recipient_from_task(task) or ""
         observed_entity = str(insertion_evidence.get("destination_entity") or "").strip()
         exact_filename_bound = filename.casefold() in str(task or "").casefold()
         exact_origin_bound = bool(expected_origin and observed_origin and expected_origin.casefold() == observed_origin.casefold())
+        exact_document_bound = _content_insertion_document_matches(current_url, observed_destination_url)
         exact_entity_bound = not requested_entity or (
             observed_entity and requested_entity.casefold() == observed_entity.casefold()
         )
         send_requested = bool(re.search(r"\b(send|share|submit|post|publish)\b", affirmative_text))
-        if exact_filename_bound and exact_origin_bound and exact_entity_bound and not send_requested:
+        if exact_filename_bound and exact_origin_bound and exact_document_bound and exact_entity_bound and not send_requested:
             return AnalyzeResponse(
                 session_id=session_id,
                 analysis=(
@@ -4112,6 +4121,65 @@ def _requested_local_filename(task: str) -> str | None:
         if candidate and "/" not in candidate and "\\" not in candidate and candidate not in {".", ".."}:
             return candidate
     return None
+
+
+def _content_insertion_destination_url(value: str) -> str:
+    """Return the exact HTTP(S) document identity used to scope one selection."""
+    parsed = urlparse(str(value or "").strip())
+    if parsed.scheme.casefold() not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return urlunparse(
+        (
+            parsed.scheme.casefold(),
+            parsed.netloc.casefold(),
+            parsed.path or "/",
+            parsed.params,
+            parsed.query,
+            parsed.fragment,
+        )
+    )
+
+
+def _content_insertion_document_matches(expected: str, observed: str) -> bool:
+    left = _content_insertion_destination_url(expected)
+    right = _content_insertion_destination_url(observed)
+    return bool(left and right and left == right)
+
+
+def _content_insertion_destination_entity(task: str, page_context: Any, destination_url: str) -> str:
+    recipient = _messaging_recipient_from_task(task)
+    if recipient:
+        return recipient
+    text = " ".join(str(task or "").split())
+    named = re.search(
+        r"\b(?:folder|document|draft|editor|workspace|record|post)\s+named\s+[\"'\u201c]([^\"'\u201d]+)[\"'\u201d]",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if named and named.group(1).strip():
+        return named.group(1).strip()
+    title = " ".join(str(getattr(page_context, "title", "") or "").split())
+    # A document identity remains provider-neutral while binding insertion to
+    # the exact observed surface when no recipient/folder/editor was named.
+    return f"{title} [{destination_url}]"[:500] if title else destination_url[:500]
+
+
+def _content_insertion_effect(task: str) -> str:
+    from app.task_language import affirmative_task_text
+
+    text = affirmative_task_text(task)
+    if re.search(r"\b(camera|take a photo|record a video)\b", text):
+        return "device_capture"
+    if re.search(r"\b(draft|compose)\b", text):
+        return "structured_draft"
+    if re.search(r"\b(insert|embed)\b.{0,80}\b(editor|document|canvas|composer)\b", text):
+        return "inserts_into_composer"
+    if re.search(r"\b(upload|store|save)\b.{0,80}\b(to|into)\b", text):
+        return "selection_sends_immediately"
+    # Attaching normally exposes a review/preview state before a separate
+    # send or submit. Unknown upload semantics take the immediate-effect path
+    # above so the policy pauses before disclosure.
+    return "preview_then_send"
 
 
 def _messaging_recipient_from_task(task: str) -> str | None:

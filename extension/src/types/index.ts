@@ -75,9 +75,11 @@ export interface ContentInsertionDeclaration {
   expected_effect: 'preview_then_send' | 'selection_sends_immediately' | 'inserts_into_composer' | 'structured_draft' | 'device_capture'
   requires_bound_file: boolean
   destination_entity: string
+  destination_url: string
   stage: 'open_insertion_menu' | 'select_bound_content'
   opens_native_chooser: boolean
   reveal_selector?: string | null
+  requested_filename?: string | null
 }
 
 export interface ConsequentialSubmissionDeclaration {

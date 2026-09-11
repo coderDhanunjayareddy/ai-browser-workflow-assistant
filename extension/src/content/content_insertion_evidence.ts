@@ -5,6 +5,7 @@ export interface ContentSelectionEvidence {
   content_kind: string
   insertion_effect: string
   destination_origin: string
+  destination_url: string
   destination_entity: string
   upload_files_count: number
   upload_attempted: boolean
@@ -31,6 +32,7 @@ export function prepareContentInsertionSelectionInspection(
     kind: string
     expected_effect: string
     destination_entity: string
+    destination_url: string
   },
 ): boolean {
   const runtime = globalThis as ContentSelectionWindow
@@ -53,6 +55,7 @@ export function prepareContentInsertionSelectionInspection(
       content_kind: declaration.kind,
       insertion_effect: declaration.expected_effect,
       destination_origin: location.origin,
+      destination_url: location.href,
       destination_entity: declaration.destination_entity,
       upload_files_count: input.files?.length || 0,
       upload_attempted: true,
@@ -76,6 +79,7 @@ export async function inspectContentInsertionSelection(
     kind: string
     expected_effect: string
     destination_entity: string
+    destination_url: string
   },
   timeoutMs = 60_000,
 ): Promise<ContentSelectionEvidence> {
@@ -103,6 +107,7 @@ export async function inspectContentInsertionSelection(
         content_kind: declaration.kind,
         insertion_effect: declaration.expected_effect,
         destination_origin: location.origin,
+        destination_url: location.href,
         destination_entity: declaration.destination_entity,
         upload_files_count: input?.files?.length || 0,
         upload_attempted: true,
@@ -151,6 +156,7 @@ export async function inspectContentInsertionSelection(
     content_kind: declaration.kind,
     insertion_effect: declaration.expected_effect,
     destination_origin: location.origin,
+    destination_url: location.href,
     destination_entity: declaration.destination_entity,
     upload_files_count: 0,
     upload_attempted: true,

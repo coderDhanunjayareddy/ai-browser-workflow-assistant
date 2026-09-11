@@ -242,6 +242,20 @@ async function resolveTrustedLocalFile(action: ExecutableAction): Promise<
   }
 }
 
+function matchesExactInsertionDocument(expected: string, observed: string): boolean {
+  try {
+    const left = new URL(expected)
+    const right = new URL(observed)
+    if (!['http:', 'https:'].includes(left.protocol) || !['http:', 'https:'].includes(right.protocol)) return false
+    return left.origin === right.origin
+      && left.pathname === right.pathname
+      && left.search === right.search
+      && (!left.hash || left.hash === right.hash)
+  } catch {
+    return false
+  }
+}
+
 async function reserveConsequentialSubmission(
   contract: CanonicalActionContract,
   action: ExecutableAction,
@@ -859,6 +873,12 @@ async function handleExecuteAction(
       }
       let trustedLocalFile: TrustedLocalFile | undefined
       if (action.content_insertion?.opens_native_chooser) {
+        if (!tab.url || !matchesExactInsertionDocument(action.content_insertion.destination_url, tab.url)) {
+          sendResponse({
+            error: 'Content insertion rejected because the exact destination document changed before file selection. No chooser was opened.',
+          })
+          return
+        }
         const trustedFile = await resolveTrustedLocalFile(action)
         if (!trustedFile.allowed) {
           sendResponse({
@@ -963,14 +983,18 @@ async function handleExecuteAction(
           const evidence = inspection?.[0]?.result
           if (evidence?.success) {
             const exactOrigin = evidence.destination_origin === contract.origin.origin
-            await settleContentChooser(action, exactOrigin ? 'selected' : 'uncertain')
+            const exactDocument = matchesExactInsertionDocument(
+              action.content_insertion.destination_url,
+              String(evidence.destination_url || ''),
+            )
+            await settleContentChooser(action, exactOrigin && exactDocument ? 'selected' : 'uncertain')
             executionWithContentEvidence = {
               ...cdpExecution,
               ...evidence,
-              success: cdpExecution.success && exactOrigin,
-              message: exactOrigin
+              success: cdpExecution.success && exactOrigin && exactDocument,
+              message: exactOrigin && exactDocument
                 ? evidence.message
-                : 'Content selection origin changed before verification.',
+                : 'Content selection destination changed before verification.',
             }
           } else {
             await settleContentChooser(action, evidence?.chooser_cancelled ? 'cancelled' : 'uncertain')

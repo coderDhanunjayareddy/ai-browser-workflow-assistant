@@ -29,6 +29,7 @@ export type ExecutableAction = {
     expected_effect: string
     requires_bound_file: boolean
     destination_entity: string
+    destination_url: string
     stage: string
     opens_native_chooser: boolean
     reveal_selector?: string | null
@@ -141,6 +142,7 @@ function validateContentInsertionDeclaration(value: unknown): boolean {
     && typeof value.requires_bound_file === 'boolean'
     && isBoundedString(value.request_id, 200) && Boolean(String(value.request_id).trim())
     && isBoundedString(value.destination_entity, 500)
+    && isHttpUrl(value.destination_url)
     && ['open_insertion_menu', 'select_bound_content'].includes(String(value.stage))
     && typeof value.opens_native_chooser === 'boolean'
     && (value.reveal_selector === undefined || value.reveal_selector === null || isBoundedString(value.reveal_selector, 2000))
@@ -149,6 +151,15 @@ function validateContentInsertionDeclaration(value: unknown): boolean {
       && Boolean(String(value.requested_filename).trim())
       && !/[\\/]/.test(String(value.requested_filename))
     ))
+}
+
+function isHttpUrl(value: unknown): boolean {
+  if (!isBoundedString(value, 2048) || !String(value).trim()) return false
+  try {
+    return ['http:', 'https:'].includes(new URL(String(value)).protocol)
+  } catch {
+    return false
+  }
 }
 
 function validateConsequentialSubmission(value: unknown): boolean {
