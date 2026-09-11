@@ -1562,6 +1562,122 @@ def test_content_insertion_effect_and_destination_are_provider_neutral() -> None
     assert _content_insertion_effect(task) == "structured_draft"
 
 
+def test_structured_draft_opens_unique_semantic_composer_before_attachment() -> None:
+    page = _page(
+        "https://mail.example.test/workspace/#inbox",
+        [
+            InteractiveElement(
+                type="button", role="button", selector="#new-item", text="Compose", visible=True,
+                accessibility_name="Compose",
+            ),
+            InteractiveElement(
+                type="input", role="searchbox", selector="#search", text="", visible=True,
+                accessibility_name="Search mail",
+            ),
+        ],
+    )
+    response = _deterministic_observed_control_response(
+        session_id="generic-draft-open",
+        task=(
+            'Create one new draft with subject "Synthetic preview". '
+            'Attach "synthetic-day5.txt" and verify its preview. Do not send it.'
+        ),
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    action = response.suggested_actions[0]
+    assert (action.action_type, action.target_selector) == ("click", "#new-item")
+    assert action.grounding["semantic_kind"] == "draft_creation_trigger"
+    assert action.content_insertion is None
+
+
+def test_structured_draft_fills_unique_subject_before_attachment() -> None:
+    page = _page(
+        "https://mail.example.test/workspace/#drafts/17",
+        [
+            InteractiveElement(
+                type="input", role="textbox", selector="#topic", text="", visible=True,
+                accessibility_name="Subject", state={"value": ""},
+            ),
+            InteractiveElement(
+                type="button", role="button", selector="#insert", text="Attach", visible=True,
+                accessibility_name="Attach",
+            ),
+        ],
+    )
+    response = _deterministic_observed_control_response(
+        session_id="generic-draft-subject",
+        task=(
+            'Create one new draft with subject "Synthetic preview". '
+            'Attach "synthetic-day5.txt" and verify its preview. Do not send it.'
+        ),
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    action = response.suggested_actions[0]
+    assert (action.action_type, action.target_selector, action.value) == (
+        "fill", "#topic", "Synthetic preview",
+    )
+    assert action.grounding["semantic_kind"] == "draft_subject_field"
+    assert action.content_insertion is None
+
+
+def test_structured_draft_attaches_only_after_subject_is_observed() -> None:
+    page = _page(
+        "https://mail.example.test/workspace/#drafts/17",
+        [
+            InteractiveElement(
+                type="input", role="textbox", selector="#topic", text="", visible=True,
+                accessibility_name="Subject", state={"value": "Synthetic preview"},
+            ),
+            InteractiveElement(
+                type="button", role="button", selector="#insert", text="Attach", visible=True,
+                accessibility_name="Attach",
+            ),
+        ],
+    )
+    response = _deterministic_observed_control_response(
+        session_id="generic-draft-attach",
+        task=(
+            'Create one new draft with subject "Synthetic preview". '
+            'Attach "synthetic-day5.txt" and verify its preview. Do not send it.'
+        ),
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    action = response.suggested_actions[0]
+    assert (action.action_type, action.target_selector) == ("click", "#insert")
+    assert action.content_insertion is not None
+    assert action.content_insertion["expected_effect"] == "structured_draft"
+
+
+def test_structured_draft_refuses_ambiguous_creation_controls() -> None:
+    page = _page(
+        "https://mail.example.test/workspace/#inbox",
+        [
+            InteractiveElement(type="button", role="button", selector="#personal", text="Compose", visible=True),
+            InteractiveElement(type="button", role="button", selector="#shared", text="Compose", visible=True),
+        ],
+    )
+    response = _deterministic_observed_control_response(
+        session_id="generic-draft-ambiguous",
+        task='Create a new draft with subject "Synthetic preview".',
+        page_context=page,
+        prior_steps=[],
+    )
+
+    assert response is not None
+    assert response.outcome_kind == "ask"
+    assert response.suggested_actions == []
+    assert "which account or composer" in response.clarification_question.casefold()
+
+
 def test_repeated_composer_identity_and_punctuation_spacing_verify_one_destination() -> None:
     page = _page(
             "https://messages.example.test/thread/42",

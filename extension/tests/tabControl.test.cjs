@@ -130,6 +130,50 @@ test('switch by Google SERP URL matches same query with extra parameters', () =>
   assert.equal(match.tab_id, 1)
 })
 
+test('unique SPA tab matches an explicit reference when stored URL omits its fragment', () => {
+  let state = createMultiTabWorkspace()
+  state = registerTab(state, {
+    id: 71,
+    windowId: 1,
+    title: 'Synthetic Mailbox',
+    url: 'https://mail.example.test/workspace/',
+    active: true,
+  }, 100)
+
+  const ref = parseTabReference(action(
+    'focus_existing_tab',
+    'url:https://mail.example.test/workspace/#inbox',
+  ))
+  const match = findTabEntryByReference(state, ref)
+
+  assert.equal(match.tab_id, 71)
+})
+
+test('fragment-insensitive URL matching refuses ambiguous live tabs', () => {
+  let state = createMultiTabWorkspace()
+  state = registerTab(state, {
+    id: 71,
+    windowId: 1,
+    title: 'Mailbox A',
+    url: 'https://mail.example.test/workspace/',
+    active: true,
+  }, 100)
+  state = registerTab(state, {
+    id: 72,
+    windowId: 1,
+    title: 'Mailbox B',
+    url: 'https://mail.example.test/workspace/',
+    active: false,
+  }, 110)
+
+  const ref = parseTabReference(action(
+    'focus_existing_tab',
+    'url:https://mail.example.test/workspace/#inbox',
+  ))
+
+  assert.equal(findTabEntryByReference(state, ref), null)
+})
+
 test('switch by explicit purpose parses and matches workspace', () => {
   const ref = parseTabReference(action('switch_tab', 'purpose:Collect pricing'))
   const match = findTabEntryByReference(workspace(), ref)

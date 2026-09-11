@@ -77,7 +77,11 @@ export function findTabEntryByReference(
     return workspace.tabs.find((tab) => tab.purpose.toLowerCase() === value) ?? null
   }
   if (reference.kind === 'url') {
-    return workspace.tabs.find((tab) => urlsMatch(tab.url, value)) ?? null
+    const matches = workspace.tabs.filter((tab) => tab.status !== 'closed' && urlsMatch(tab.url, value))
+    // URL normalization can intentionally omit an SPA fragment. Never turn
+    // that lossy identity into an arbitrary tab choice when two live tabs
+    // share the same document URL.
+    return matches.length === 1 ? matches[0] : null
   }
   return null
 }
@@ -128,10 +132,34 @@ function urlsMatch(tabUrl: string, referenceUrl: string): boolean {
     if (isGoogleSearchUrl(tab) && isGoogleSearchUrl(reference)) {
       return compactText(tab.searchParams.get('q')).toLowerCase() === compactText(reference.searchParams.get('q')).toLowerCase()
     }
+    if (
+      tab.protocol.toLowerCase() === reference.protocol.toLowerCase() &&
+      tab.hostname.toLowerCase() === reference.hostname.toLowerCase() &&
+      effectivePort(tab) === effectivePort(reference) &&
+      normalizePath(tab.pathname) === normalizePath(reference.pathname) &&
+      tab.search === reference.search
+    ) {
+      // Workspace entries may omit a client-side route fragment even though
+      // the live tab reference retains it. A unique base-document match is
+      // safe; conflicting explicit fragments are not.
+      return !tab.hash || !reference.hash || tab.hash === reference.hash
+    }
   } catch {
     return false
   }
   return false
+}
+
+function effectivePort(url: URL): string {
+  if (url.port) return url.port
+  if (url.protocol.toLowerCase() === 'https:') return '443'
+  if (url.protocol.toLowerCase() === 'http:') return '80'
+  return ''
+}
+
+function normalizePath(pathname: string): string {
+  const value = pathname || '/'
+  return value.length > 1 ? value.replace(/\/+$/, '') : value
 }
 
 function isGoogleSearchUrl(url: URL): boolean {

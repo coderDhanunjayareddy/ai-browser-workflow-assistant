@@ -2768,6 +2768,115 @@ def _deterministic_observed_control_response(
             suggested_actions=[],
         )
 
+    # Provider-neutral structured-draft progression. Content insertion is not
+    # eligible while the observed surface is still an inbox/list view. First
+    # require one unique draft-creation control, then bind the explicitly
+    # supplied subject to one unique subject field. Only a later observation
+    # may select an attachment control. This uses current accessibility/DOM
+    # evidence and task semantics; it contains no provider, origin, or selector
+    # registry.
+    draft_requested = bool(
+        re.search(r"\b(?:create|compose|start|open)\b.{0,50}\b(?:new\s+)?(?:mail|email|message|draft)\b", affirmative_text)
+        or re.search(r"\b(?:new\s+)?draft\b", affirmative_text)
+    )
+    requested_subject = _requested_draft_subject(task)
+    if not action_type and draft_requested:
+        subject_candidates = _semantic_field_candidates(elements, ("subject",))
+        if len(subject_candidates) > 1:
+            return AnalyzeResponse(
+                session_id=session_id,
+                analysis=(
+                    "Multiple enabled fields have the requested subject identity. "
+                    "No draft content was changed because the target is ambiguous."
+                ),
+                outcome_kind="ask",
+                clarification_question="Which surrounding draft or composer should receive the subject?",
+                suggested_actions=[],
+            )
+        if len(subject_candidates) == 1:
+            subject_control = subject_candidates[0]
+            subject_selector = str(subject_control.get("selector") or "").strip()
+            observed_subject = " ".join(str(dict(subject_control.get("state") or {}).get("value") or "").split())
+            subject_already_set = bool(
+                requested_subject
+                and _exact_identity_key(observed_subject) == _exact_identity_key(requested_subject)
+            ) or any(
+                str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").casefold() == "fill"
+                and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "") == subject_selector
+                and _exact_identity_key(str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("value") or ""))
+                == _exact_identity_key(requested_subject or "")
+                and prior_step_succeeded(step)
+                for step in prior_steps
+            )
+            if requested_subject and not subject_already_set:
+                selector = subject_selector
+                action_type = "fill"
+                value = requested_subject
+                description = "Fill the uniquely observed draft subject field with the explicitly supplied subject"
+                target_grounding = {
+                    "source": "dom_snapshot",
+                    "selector_id": selector,
+                    "accessibility_name": str(
+                        subject_control.get("accessibility_name")
+                        or subject_control.get("aria_label")
+                        or subject_control.get("placeholder")
+                        or ""
+                    ).strip() or None,
+                    "role": str(subject_control.get("role") or subject_control.get("type") or "").strip() or None,
+                    "semantic_kind": "draft_subject_field",
+                }
+            elif requested_subject is None:
+                return AnalyzeResponse(
+                    session_id=session_id,
+                    analysis="A draft composer is visible, but the requested subject value is missing.",
+                    outcome_kind="ask",
+                    clarification_question="What exact subject should I use for this draft?",
+                    suggested_actions=[],
+                )
+        else:
+            create_candidates = _semantic_activation_candidates(
+                elements,
+                exact_identities=("compose", "new message", "new email", "new mail", "create draft", "new draft"),
+            )
+            remaining_create_candidates = [
+                candidate for candidate in create_candidates
+                if str(candidate.get("selector") or "") not in completed_clicks
+            ]
+            if len(remaining_create_candidates) == 1:
+                create_control = remaining_create_candidates[0]
+                selector = str(create_control.get("selector") or "").strip()
+                action_type = "click"
+                description = "Activate the uniquely observed control that creates the requested draft"
+                target_grounding = {
+                    "source": "dom_snapshot",
+                    "selector_id": selector,
+                    "accessibility_name": _observed_element_identity(create_control),
+                    "role": str(create_control.get("role") or create_control.get("type") or "").strip() or None,
+                    "semantic_kind": "draft_creation_trigger",
+                }
+            elif len(remaining_create_candidates) > 1:
+                return AnalyzeResponse(
+                    session_id=session_id,
+                    analysis=(
+                        "Multiple enabled controls can create a draft. No control was selected because "
+                        "their destination/composer identities are not equivalent."
+                    ),
+                    outcome_kind="ask",
+                    clarification_question="Which account or composer should I use to create the draft?",
+                    suggested_actions=[],
+                )
+            elif not completed_clicks:
+                return AnalyzeResponse(
+                    session_id=session_id,
+                    analysis=(
+                        "The requested draft composer is not currently observable through one unique enabled "
+                        "creation control. No substitute control was selected."
+                    ),
+                    outcome_kind="ask",
+                    clarification_question="Expose the intended draft composer or identify the account/composer to use.",
+                    suggested_actions=[],
+                )
+
     # Domain-neutral natural-language field assignment. The task supplies both
     # the semantic field identity and the value; the current observation must
     # supply exactly one visible, enabled text-entry control with that identity.
@@ -3263,9 +3372,12 @@ def _deterministic_observed_control_response(
                 action_type = "keyboard_shortcut"
                 value = "ENTER"
                 description = "Submit the explicitly requested site search after filling the observed search field"
-    elif any(term in affirmative_text for term in ("upload", "attach", "insert", "add")) and any(
-        term in affirmative_text
-        for term in ("file", "document", "pdf", "image", "photo", "video", "audio")
+    elif any(term in affirmative_text for term in ("upload", "attach", "insert", "add")) and (
+        _requested_local_filename(task) is not None
+        or any(
+            term in affirmative_text
+            for term in ("file", "document", "pdf", "image", "photo", "video", "audio")
+        )
     ):
         insertion_policy = build_file_upload_broker_policy(task)
         requested_kind = insertion_policy.requested_content_kinds[0]
@@ -3909,6 +4021,81 @@ def _find_observed_control(
         if any(term in label for term in label_terms) or any(term in selector_lower for term in selector_terms):
             return element
     return None
+
+
+def _observed_element_identity(element: dict[str, Any]) -> str:
+    for key in ("accessibility_name", "aria_label", "text", "placeholder", "name"):
+        value = " ".join(str(element.get(key) or "").split())
+        if value:
+            return value
+    return ""
+
+
+def _semantic_field_candidates(
+    elements: list[dict[str, Any]],
+    identities: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    requested = {" ".join(value.split()).casefold() for value in identities if value.strip()}
+    matches: dict[str, dict[str, Any]] = {}
+    for element in elements:
+        selector = str(element.get("selector") or "").strip()
+        if not selector:
+            continue
+        state = dict(element.get("state") or {})
+        if element.get("visible") is False or any(bool(state.get(key)) for key in ("disabled", "aria_disabled", "readonly", "hidden")):
+            continue
+        role = str(element.get("role") or "").casefold()
+        element_type = str(element.get("type") or "").casefold()
+        if role not in {"textbox", "searchbox"} and element_type not in {"input", "textarea"}:
+            continue
+        sources = {
+            " ".join(str(element.get(key) or "").split()).casefold()
+            for key in ("accessibility_name", "aria_label", "placeholder", "name")
+            if str(element.get(key) or "").strip()
+        }
+        selector_identity = selector.casefold()
+        if any(identity in source for identity in requested for source in sources) or any(
+            identity in selector_identity for identity in requested
+        ):
+            matches.setdefault(selector, element)
+    return list(matches.values())
+
+
+def _semantic_activation_candidates(
+    elements: list[dict[str, Any]],
+    *,
+    exact_identities: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    requested = {_exact_identity_key(value) for value in exact_identities if value.strip()}
+    matches: dict[str, dict[str, Any]] = {}
+    for element in elements:
+        selector = str(element.get("selector") or "").strip()
+        if not selector:
+            continue
+        state = dict(element.get("state") or {})
+        if element.get("visible") is False or any(bool(state.get(key)) for key in ("disabled", "aria_disabled", "hidden")):
+            continue
+        role = str(element.get("role") or "").casefold()
+        element_type = str(element.get("type") or "").casefold()
+        if role not in {"button", "link", "menuitem"} and element_type not in {"button", "a"}:
+            continue
+        identities = {
+            _exact_identity_key(str(element.get(key) or ""))
+            for key in ("accessibility_name", "aria_label", "text", "name")
+            if str(element.get(key) or "").strip()
+        }
+        if identities & requested:
+            matches.setdefault(selector, element)
+    return list(matches.values())
+
+
+def _requested_draft_subject(task: str) -> str | None:
+    match = re.search(
+        r"\bsubject(?:\s+line)?\s*(?:is|to|of|named|:)?\s*[\"'\u201c]([^\"'\u201d]+)[\"'\u201d]",
+        str(task or ""),
+        flags=re.IGNORECASE,
+    )
+    return " ".join(match.group(1).split()) if match and match.group(1).strip() else None
 
 
 def _select_effect_equivalent_link(elements: list[dict[str, Any]]) -> dict[str, Any] | None:
