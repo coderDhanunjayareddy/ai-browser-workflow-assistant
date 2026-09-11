@@ -23,7 +23,7 @@ The harness does not inject the selected file. File resolution and chooser handl
 
 ## Latest executed evidence
 
-Machine-readable run: `extension_e2e/draft-preview-1789125912873.json`
+Clean machine-readable run: `extension_e2e/draft-preview-1789127166510.json`
 
 Observed before restart and again after restart:
 
@@ -35,7 +35,9 @@ Observed before restart and again after restart:
 - submissions: `0`
 - discards: `0`
 
-The extension displayed `✓ Done — 3 of 3 steps succeeded` and reported that the exact broker-bound preview was verified and nothing was sent. Each durable mutation had one attempt. The saved run's top-level status is `failed` only because the first harness version classified that final report after its last timeout poll. That classifier is now fixed and covered by a regression test.
+The extension displayed `✓ Done — 3 of 3 steps succeeded` and reported that the exact broker-bound preview was verified and nothing was sent. An earlier diagnostic run (`draft-preview-1789125912873.json`) reached the same correct browser state but exposed a timeout-boundary classification race. That classifier is fixed and covered by a regression test.
+
+The clean post-fix rerun completed in `29.7s`, reported `passed`, contained no failures, and independently reproduced the same state before and after restarting the isolated persistent Chromium profile. The harness did not inject the file. Its three durable mutations each had exactly one attempt.
 
 ## Verification
 
@@ -45,8 +47,8 @@ The extension displayed `✓ Done — 3 of 3 steps succeeded` and reported that 
 - Extension production build: passed.
 - Canonical runtime: `v0.4.0`, commit `fd5e1f6-dirty`, build `stabilization-20260911T112454Z`, PID `2716`.
 
-## Honest remaining gate
+## Gate result
 
-A clean post-classifier headed rerun is still required before this checkpoint is called fully certified. The attempted rerun was rejected before Chromium launched because the workspace had no execution credits. No workaround was used and no clean pass is claimed.
+The provider-neutral application-owned draft/content-insertion checkpoint is complete. This certifies the synthetic cross-domain lifecycle and restart invariant; it does not by itself certify every third-party provider or authorize consequential submission.
 
 No real Gmail draft, recipient, body, attachment, or send action was created by this checkpoint.
