@@ -208,12 +208,18 @@ def _requires_extraction(task: str) -> bool:
 
 def _validate_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list[Any]) -> bool:
     text = affirmative_task_text(task)
+    targets = _targets(task)
+    # Required effect artifacts outrank generic intermediate mutations. A
+    # verified subject fill, menu click, or other successful interaction is
+    # progress, but it cannot satisfy an explicit attachment/upload/download
+    # objective. This keeps compound interactive workflows in VALIDATE until
+    # the requested observable effect exists.
+    if "uploaded_files" in targets:
+        return len(artifacts.uploaded_files) >= targets["uploaded_files"]
+    if "downloads" in targets:
+        return len(artifacts.downloads) >= targets["downloads"]
     if _is_interactive_task(text) or _is_simple_search_interaction(text):
         return _target_state_reached(prior_steps)
-    if "upload" in text:
-        return bool(artifacts.uploaded_files)
-    if "download" in text:
-        return bool(artifacts.downloads)
     if "form" in text:
         return bool(artifacts.forms)
     return bool(artifacts.extracted_records or artifacts.opened_pages)

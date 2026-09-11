@@ -426,6 +426,53 @@ def test_file_insertion_surface_advances_to_validate_without_research_read_phase
     assert "click" in snapshot.active_phase.allowed_actions
 
 
+def test_file_insertion_does_not_report_after_only_an_intermediate_verified_fill() -> None:
+    url = "https://workspace.example.test/drafts/17"
+    task = 'Create a draft with subject "Synthetic" and attach "synthetic.txt" without sending it.'
+    subject_fill = PriorStep(
+        action_type="fill",
+        description="Fill the uniquely observed draft subject field",
+        target_selector='input[aria-label="Subject"]',
+        value="Synthetic",
+        execution_result="Filled subject\n\nVerification: verified",
+        page_url=url,
+        page_title="Synthetic draft",
+    )
+
+    before_attachment = ExecutionOrchestrator().build_snapshot(
+        session_id="content-insertion-requires-effect",
+        task=task,
+        page_context=_page(url),
+        prior_steps=[subject_fill],
+    )
+
+    assert before_attachment is not None
+    assert before_attachment.progress_ledger.current_counts["uploaded_files"] == 0
+    assert before_attachment.active_phase.name == "VALIDATE"
+    assert "click" in before_attachment.active_phase.allowed_actions
+
+    attachment_preview = PriorStep(
+        action_type="click",
+        description="Insert the broker-bound approved content",
+        target_selector='button[aria-label="Attach files"]',
+        value="synthetic.txt",
+        execution_result="Broker-bound content preview verified\n\nVerification: verified",
+        page_url=url,
+        page_title="Synthetic draft",
+        page_metadata={"uploaded_file": "synthetic.txt"},
+    )
+    after_attachment = ExecutionOrchestrator().build_snapshot(
+        session_id="content-insertion-requires-effect",
+        task=task,
+        page_context=_page(url),
+        prior_steps=[subject_fill, attachment_preview],
+    )
+
+    assert after_attachment is not None
+    assert after_attachment.progress_ledger.current_counts["uploaded_files"] == 1
+    assert after_attachment.active_phase.name == "REPORT"
+
+
 def test_media_playback_stays_in_validate_until_playback_is_verified(monkeypatch):
     monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
     engine = ExecutionOrchestrator()

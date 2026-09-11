@@ -130,6 +130,14 @@ The next claimed resume again created a fresh mission (`f0a64a4b-4c92-4368-9ee9-
 
 The submission boundary now provides a second, independent guard: submitting an identical interrupted task with verified completed actions reuses the durable session and refreshes from its last verified tab instead of allocating a new session. A deliberately fresh repeat requires clearing the prior workflow first. This protection is task- and provider-neutral. The complete extension suite passes **254/254**, the focused routing suite passes **75/75**, and TypeScript passes. A uniquely identifiable canonical build is now available as `stabilization-20260911T104104Z`, commit `dcaf6dd-dirty`, PID `10728`; the unpacked extension must be reloaded once to activate that build.
 
+### Mail-draft live diagnostic 06
+
+Session `7594c21d-d523-47b5-a278-c204375ce81e` executed one navigation, one draft-creation click, and one exact subject fill, then the execution orchestrator advanced to `REPORT` and rejected a planner `wait` because `REPORT` permits no browser actions. The audit contains six events, all three mutations succeeded, and contains zero chooser, attachment, send, or discard events. This is a safe failure and not a second-surface pass.
+
+Root cause: validation completion tested the broad `interactive task` condition before required artifact effects. Consequently, any verified intermediate mutation—such as subject fill—could complete `VALIDATE` even while the explicit `uploaded_files=1` target remained at zero. Validation now gives declared effect targets precedence: attachment/upload workflows remain in `VALIDATE` until the uploaded-file/preview artifact count is satisfied, and download workflows remain there until completed-download evidence exists. A verified intermediate click or fill is progress only, never completion of a missing artifact objective.
+
+The new regression proves that an exact verified subject fill leaves a compound draft-and-attach workflow in `VALIDATE`, while broker-backed attachment preview metadata advances it to `REPORT`. The focused provider-neutral orchestrator, grounding, and task-language suite passes **134/134**. Canonical runtime and extension handshake: build `stabilization-20260911T110401Z`, commit `cb0bbb6-dirty`, PID `27872`.
+
 ## External behavior references
 
 - Chrome DevTools Protocol exposes chooser interception through `Page.setInterceptFileChooserDialog` / `Page.fileChooserOpened` and exact file binding through `DOM.setFileInputFiles`.
