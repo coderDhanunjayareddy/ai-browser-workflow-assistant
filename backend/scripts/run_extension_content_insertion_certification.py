@@ -98,7 +98,14 @@ def main() -> int:
     report_dir = ROOT / "docs" / "production_validation" / "generic_foundation" / "extension_e2e"
     report_dir.mkdir(parents=True, exist_ok=True)
     run_id = f"draft-preview-{int(time.time() * 1000)}"
-    profile = Path(args.profile_dir).resolve() if args.profile_dir else report_dir / f"profile-{run_id}"
+    # Browser profiles are large, disposable runtime state. Keep them in the
+    # repository's ignored top-level profile area, never beside evidence files
+    # where they could be mistaken for reviewable certification artifacts.
+    profile = (
+        Path(args.profile_dir).resolve()
+        if args.profile_dir
+        else ROOT / f"playwright-profile-extension-e2e-{run_id}"
+    )
     trace_path = report_dir / f"{run_id}-trace.zip"
     before_restart_png = report_dir / f"{run_id}-before-restart.png"
     after_restart_png = report_dir / f"{run_id}-after-restart.png"

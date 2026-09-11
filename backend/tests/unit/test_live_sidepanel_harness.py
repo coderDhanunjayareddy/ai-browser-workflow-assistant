@@ -29,3 +29,12 @@ def test_explicit_send_approval_prompt_remains_critical() -> None:
 def test_terminal_status_fills_missing_presentation_phase() -> None:
     assert MODULE._reported_phase("✓ Done — 2 of 2 steps succeeded", "completed") == "completed"
     assert MODULE._reported_phase("No phase label", "failed") == "failed"
+
+
+def test_final_completion_snapshot_wins_timeout_boundary_race() -> None:
+    text = (
+        'Report answer: Attached and verified the preview for "synthetic-day5.txt". Nothing was sent.\n'
+        "✓ Done — 3 of 3 steps succeeded"
+    )
+    assert MODULE._reconcile_terminal_status("timeout", text) == "completed"
+    assert MODULE._reconcile_terminal_status("failed", text) == "failed"

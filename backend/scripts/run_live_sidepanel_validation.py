@@ -584,6 +584,15 @@ def _run_task(
     while time.time() < deadline:
         text = _sidepanel_text(sidepanel)
         lowered = text.lower()
+        # Read terminal evidence before trying to keep Auto mode enabled. The
+        # running-only banner disappears on completion; toggling at that point
+        # can mutate presentation state and race the final classification.
+        if "✓ done" in lowered or "done —" in lowered or "no actions needed" in lowered:
+            terminal_status = "completed"
+            break
+        if "complete" in lowered and ("report answer:" in lowered or "mission result is ready" in lowered):
+            terminal_status = "completed"
+            break
         _ensure_auto_mode(sidepanel)
         if _looks_like_critical_approval(lowered):
             if allow_confirmed_critical and _approve_pending_action(sidepanel, timeout_ms=1200):
@@ -629,15 +638,12 @@ def _run_task(
         if "human step required" in lowered or "waiting for you" in lowered:
             terminal_status = "needs_intervention"
             break
-        if "✓ done" in lowered or "done —" in lowered or "no actions needed" in lowered:
-            terminal_status = "completed"
-            break
-        if "complete" in lowered and ("report answer:" in lowered or "mission result is ready" in lowered):
-            terminal_status = "completed"
-            break
         time.sleep(1)
 
     text = _sidepanel_text(sidepanel)
+    # A final report can arrive between the last bounded poll and the deadline.
+    # Reconcile that exact final snapshot before emitting a timeout result.
+    terminal_status = _reconcile_terminal_status(terminal_status, text)
     if file_chooser_events:
         text = f"{text}\n\nFILE CHOOSER EVIDENCE\n" + "\n".join(file_chooser_events)
     phase = _reported_phase(text, terminal_status)
@@ -715,6 +721,18 @@ def _reported_phase(text: str, terminal_status: str) -> str:
     }:
         return terminal_status
     return phase
+
+
+def _reconcile_terminal_status(terminal_status: str, text: str) -> str:
+    """Prefer an exact final completion snapshot over a stale timeout poll."""
+    lowered = text.lower()
+    completed = (
+        "✓ done" in lowered
+        or "done —" in lowered
+        or "no actions needed" in lowered
+        or ("complete" in lowered and ("report answer:" in lowered or "mission result is ready" in lowered))
+    )
+    return "completed" if terminal_status == "timeout" and completed else terminal_status
 
 
 def _write_report(extension_id: str, profile_dir: Path, results: list[TaskRun]) -> None:
