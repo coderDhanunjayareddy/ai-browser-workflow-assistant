@@ -51,4 +51,21 @@ The clean post-fix rerun completed in `29.7s`, reported `passed`, contained no f
 
 The provider-neutral application-owned draft/content-insertion checkpoint is complete. This certifies the synthetic cross-domain lifecycle and restart invariant; it does not by itself certify every third-party provider or authorize consequential submission.
 
+## Consecutive reliability gate
+
+Aggregate evidence: `extension_e2e/content-insertion-reliability-1789127792432.json`
+
+- consecutive runs: `20/20` passed;
+- harness file injection: disabled in every run;
+- exact draft creations: `1` per run before and after restart;
+- exact file selections: `1` per run before and after restart;
+- submissions: `0` in every run;
+- discards: `0` in every run;
+- durable mutation attempts: `1` per mutation in every run;
+- invariant violations: `0`;
+- workflow latency: `28.5s` minimum, `29.91s` average, `31.5s` maximum;
+- full sequence wall time: `686.7s`.
+
+The application-owned attachment-preview reliability gate therefore passed. Consequential exactly-once submission remains a separate gate and still requires an explicit confirmation immediately before any real external send.
+
 No real Gmail draft, recipient, body, attachment, or send action was created by this checkpoint.

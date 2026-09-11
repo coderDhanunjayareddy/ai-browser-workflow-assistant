@@ -1,0 +1,697 @@
+{
+  "schema_version": "extension_content_insertion_reliability.v1",
+  "sequence_id": "content-insertion-reliability-1789127792432",
+  "requested_runs": 20,
+  "executed_runs": 20,
+  "passed_runs": 20,
+  "failed_runs": 0,
+  "status": "passed",
+  "stopped_on_first_failure": true,
+  "harness_file_injection": false,
+  "total_duration_s": 686.7,
+  "min_workflow_duration_s": 28.5,
+  "max_workflow_duration_s": 31.5,
+  "average_workflow_duration_s": 29.91,
+  "results": [
+    {
+      "index": 1,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789127792770.json",
+      "duration_s": 31.5,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 01",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 01",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 2,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789127830612.json",
+      "duration_s": 29.8,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 02",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 02",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 3,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789127864977.json",
+      "duration_s": 30.2,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 03",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 03",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 4,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789127899850.json",
+      "duration_s": 29.6,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 04",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 04",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 5,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789127933399.json",
+      "duration_s": 30.1,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 05",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 05",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 6,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789127967453.json",
+      "duration_s": 30.0,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 06",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 06",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 7,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128001735.json",
+      "duration_s": 29.4,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 07",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 07",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 8,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128035156.json",
+      "duration_s": 29.9,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 08",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 08",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 9,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128069045.json",
+      "duration_s": 31.1,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 09",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 09",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 10,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128104591.json",
+      "duration_s": 29.9,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 10",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 10",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 11,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128139007.json",
+      "duration_s": 30.0,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 11",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 11",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 12,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128173049.json",
+      "duration_s": 29.7,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 12",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 12",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 13,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128206910.json",
+      "duration_s": 30.4,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 13",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 13",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 14,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128242173.json",
+      "duration_s": 29.7,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 14",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 14",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 15,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128276789.json",
+      "duration_s": 30.1,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 15",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 15",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 16,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128311682.json",
+      "duration_s": 29.4,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 16",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 16",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 17,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128345285.json",
+      "duration_s": 29.1,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 17",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 17",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 18,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128378383.json",
+      "duration_s": 28.5,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 18",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 18",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 19,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128411138.json",
+      "duration_s": 29.5,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 19",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 19",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    },
+    {
+      "index": 20,
+      "status": "passed",
+      "return_code": 0,
+      "report": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\generic_foundation\\extension_e2e\\draft-preview-1789128445065.json",
+      "duration_s": 30.3,
+      "harness_file_injection": false,
+      "before_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 20",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "after_restart": {
+        "fixture_state": "fixture_state=draft_preview_ready_exactly_once",
+        "draft_count": 1,
+        "selection_count": 1,
+        "send_count": 0,
+        "discard_count": 0,
+        "subject": "Synthetic cross-domain attachment preview content-insertion-reliability-1789127792432 run 20",
+        "preview_filename": "synthetic-day5.txt"
+      },
+      "durable_action_count": 3,
+      "durable_attempts": [
+        1,
+        1,
+        1
+      ],
+      "failures": [],
+      "stderr": ""
+    }
+  ]
+}
