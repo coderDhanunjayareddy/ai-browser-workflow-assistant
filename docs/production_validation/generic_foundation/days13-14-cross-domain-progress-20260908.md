@@ -31,6 +31,7 @@
 | Randomized compound form: shuffled controls + random IDs + natural phrasing | Neutral local fixture | PASS | 38.3 s | navigate, fill, select, date, click | 0 / 0 |
 | Public repository search/open in bundled Chromium | GitHub | EXTERNALLY BLOCKED (`ERR_NETWORK_ACCESS_DENIED`) | 63.2 s | one navigation attempt | 0 / 0 |
 | Public repository search/open in normal Chrome | GitHub | PASS | 46.3 s | navigate, exact click | 0 / 0 |
+| Duplicate exact-name links with one verified effect in normal Chrome | Python documentation | PASS | 16.9 s | navigate, exact click | 0 / 0 |
 
 Every browser mutation above travelled through the extension side panel and the canonical gateway. The live harness did not directly click or fill the target page. The authentication run intentionally stopped before the synthetic human action.
 
@@ -73,6 +74,7 @@ Every browser mutation above travelled through the extension side panel and the 
 35. The public repository workflow (`gf-d1314-real-public-repository-01`) did not pass: bundled Chromium reached `chrome-error://chromewebdata/` with `ERR_NETWORK_ACCESS_DENIED`. The application stopped after one navigation attempt and produced no click or retry. A normal-Chrome fallback then failed before workflow start because the fresh automation profile did not register an unpacked-extension service worker. These are recorded environment/harness blockers, not real-service success evidence and not an application capability pass.
 36. The first user-submitted normal-Chrome prompt encoded the query separator as `%26`, so GitHub received `microsoft/playwright&type=repositories` as one search value. The application safely withheld the exact click because the requested target was absent. This was invalid test input and is not counted as an application failure or pass.
 37. The corrected pre-fix run opened the exact repository but then proposed an unwanted sign-in click. Root cause was domain-neutral orchestration logic treating the negative constraint `Do not sign in` as positive login intent, combined with a missing terminal parser for `Verify that the opened ... identity is ...`. Login selection now uses affirmative task text only, and verified destination identity can terminate only after a verified mutation. The clean rerun (`gf-d1314-real-public-repository-normal-chrome-01`) passed in normal Chrome: exactly one navigation and one exact-link click, final URL and repository identity `microsoft/playwright`, terminal event `observed_report.completed_without_planner`, zero retries/recoveries/planner iterations, and zero sign-in, star, fork, issue, submit, or other external-data mutation events.
+38. The Python documentation diagnostic first exposed explicit-URL/app-name confusion and duplicate tab creation; explicit URLs now suppress inferred application aliases and are checked before application identity. Later runs exposed duplicated `title` metadata and two genuinely visible exact-name links pointing to one destination. Both extractors now prioritize rendered control content over descriptive `title` metadata. The orchestrator collapses duplicates only when all candidates are HTTP(S) links with the same normalized complete destination; same-label links with different destinations and all non-link mutations remain ambiguous. The clean normal-Chrome run (`gf-d1314-real-public-documentation-normal-chrome-01`) selected the main-content link, executed one navigation and one click, reached `https://docs.python.org/3/library/asyncio.html`, emitted `observed_report.completed_without_planner`, and recorded zero retries, recoveries, planner iterations, duplicate effects, downloads, submissions, or external-data changes.
 
 ## Regression results
 
@@ -81,6 +83,7 @@ Every browser mutation above travelled through the extension side panel and the 
 - Post-correction destination/grounding focused suite: **88 passed**.
 - Post-randomized-form orchestrator/policy focused suite: **100 passed**.
 - Post-fix destination-identity and negative-login regression suite: **135 passed**; the focused observed-control file passed **69 tests**.
+- Post duplicate-effect correction: destination/observed-control focused suite **96 passed**; full extension suite **248 passed**; TypeScript check **passed**.
 - Focused child-frame/backend grounding suites: **106 extension checks and 70 backend checks passed**.
 - Extension TypeScript check: **passed**.
 - Extension production build: **passed**.
@@ -151,6 +154,7 @@ Every browser mutation above travelled through the extension side panel and the 
 - `docs/production_validation/live_sidepanel/gf-d1314-form-random-03-target.png`
 - `docs/production_validation/live_sidepanel/gf-d1314-real-public-repository-01.json` (externally blocked diagnostic; no click or retry)
 - `docs/production_validation/live_sidepanel/gf-d1314-real-public-repository-normal-chrome-01.json` (normal-Chrome real-service pass; independent target and backend audit)
+- `docs/production_validation/live_sidepanel/gf-d1314-real-public-documentation-normal-chrome-01.json` (second structurally different normal-Chrome exact-target pass; effect-equivalent duplicate links resolved once)
 - `docs/production_validation/generic_foundation/pre-days13-14-evidence-audit-20260909.md`
 
 ## Remaining before the Days 13–14 exit
@@ -158,6 +162,6 @@ Every browser mutation above travelled through the extension side panel and the 
 - Extend the passed production-owned content-insertion checkpoint to structurally different authorized real services. Randomized controls, stale-target recovery, browser restart/resume, native download, tab lifecycle, and same-origin child-frame execution pass; cross-origin frame isolation remains part of the live safety matrix.
 - Run unseen/randomized DOM variants for each mutation family.
 - Add restart-specific variants for any remaining safety checkpoint whose state is expected to survive a restart; prompt-injection, account-confusion, and cross-origin DOM randomization now pass, while privileged URL rejection is already independent of page DOM.
-- Validate a second structurally different real service for the safe exact-target activation capability, and two structurally different real services for each remaining capability where the action is safe and authorized. GitHub now supplies the first normal-Chrome real-service pass for exact-target activation.
+- Validate two structurally different real services for each remaining capability where the action is safe and authorized. GitHub and Python documentation now supply two structurally different normal-Chrome real-service passes for safe exact-target activation.
 
 Day 15 and the original upload/send certification remain blocked until this matrix is complete.

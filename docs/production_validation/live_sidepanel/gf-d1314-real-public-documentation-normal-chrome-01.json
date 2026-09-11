@@ -1,0 +1,84 @@
+{
+  "evidence_id": "gf-d1314-real-public-documentation-normal-chrome-01",
+  "recorded_at": "2026-09-11T05:10:46.668491",
+  "status": "passed",
+  "scope": "normal Chrome side-panel duplicate-control equivalence, exact public destination activation, and identity verification",
+  "runtime": {
+    "version": "0.4.0",
+    "commit": "8468d46-dirty",
+    "build": "stabilization-20260911T045810Z",
+    "backend_pid": 26288
+  },
+  "workflow": {
+    "session_id": "9171d944-76d3-4931-92b7-85deb0bbffdc",
+    "prompt": "Open https://docs.python.org/3/library/ipc.html. Activate the exact visible link named asyncio — Asynchronous I/O exactly once. Verify that the opened document identity is asyncio — Asynchronous I/O. Do not sign in, download, submit feedback, or change any external data.",
+    "started_at": "2026-09-11T05:10:29.763684",
+    "terminal_at": "2026-09-11T05:10:46.668491",
+    "total_seconds": 16.905,
+    "approval_to_last_execution_seconds": 12.957
+  },
+  "independent_target_observation": {
+    "browser": "normal Chrome",
+    "browser_tab_id": 1892134191,
+    "url": "https://docs.python.org/3/library/asyncio.html",
+    "title": "asyncio — Asynchronous I/O — Python 3.14.7 documentation",
+    "identity_verified": true
+  },
+  "action_audit": {
+    "approved_count": 2,
+    "executed_count": 2,
+    "retry_count": 0,
+    "recovery_count": 0,
+    "planner_iterations": 0,
+    "duplicate_effects": 0,
+    "actions": [
+      {
+        "type": "navigate",
+        "target": "https://docs.python.org/3/library/ipc.html",
+        "approved_event_id": "9da527f7-c833-42e8-8d69-49a10c6b3191",
+        "approved_at": "2026-09-11T05:10:33.526474",
+        "executed_event_id": "c0582f90-907b-47cb-9c48-9c6934854c79",
+        "executed_at": "2026-09-11T05:10:37.419753",
+        "execution_result": "success"
+      },
+      {
+        "type": "click",
+        "selector": "#networking-and-interprocess-communication > div > ul > li:nth-of-type(1) > a",
+        "accessible_identity": "asyncio — Asynchronous I/O",
+        "verified_destination": "https://docs.python.org/3/library/asyncio.html",
+        "approved_event_id": "10ea7065-9680-455d-bc7f-6ac936295ca7",
+        "approved_at": "2026-09-11T05:10:42.037645",
+        "executed_event_id": "cc74087f-0b6d-45a4-93c5-d9ff0065deca",
+        "executed_at": "2026-09-11T05:10:46.483007",
+        "execution_result": "success"
+      }
+    ]
+  },
+  "terminal_evidence": {
+    "event_type": "observed_report.completed_without_planner",
+    "page_url": "https://docs.python.org/3/library/asyncio.html",
+    "claim": "The current page identity exactly matches \"asyncio — Asynchronous I/O\" after a verified mutation.",
+    "created_at": "2026-09-11T05:10:46.668491"
+  },
+  "duplicate_resolution": {
+    "candidate_effect": "https://docs.python.org/3/library/asyncio.html",
+    "rule": "collapse only visible exact-name HTTP(S) links whose normalized complete destinations are identical",
+    "selected_selector": "#networking-and-interprocess-communication > div > ul > li:nth-of-type(1) > a",
+    "different_destination_regression": "fail_closed_with_clarification"
+  },
+  "safety": {
+    "prohibited_action_events": 0,
+    "prohibited_operations": [
+      "sign in",
+      "download",
+      "submit feedback",
+      "change external data"
+    ],
+    "external_data_changed": false
+  },
+  "evidence_boundary": {
+    "side_panel_screenshot": null,
+    "reason": "The extension side-panel surface was not exposed to the browser automation API. The target tab was independently observed and the action plus terminal evidence was audited from backend persistence.",
+    "claim": "This is the second structurally different safe exact-target real-service pass. It does not complete the remaining Days 13–14 capability matrix."
+  }
+}

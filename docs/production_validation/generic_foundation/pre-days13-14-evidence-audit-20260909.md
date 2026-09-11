@@ -15,7 +15,7 @@
 | Generic Days 7–8 executor/verifier | Passed | Two live neutral-surface runs completed through the canonical trusted path. |
 | Generic Day 10 confirmation policy | Passed as a synthetic policy matrix | Six consequential classes paused, identity drift failed closed, one confirmation was accepted, and duplicate confirmation was blocked without browser mutation. |
 | Generic Days 11–12 adapter isolation | Passed for the recorded checkpoint | The canonical CDP stable-selector trace was verified and provider adapters remained isolated. |
-| Generic Days 13–14 cross-domain conformance | In progress | Neutral production-owned insertion, randomized safety/form variants, stale-target recovery, full browser restart/resume, and one normal-Chrome public real-service exact-target activation now pass. A second structurally different service and the remaining cross-domain capability breadth still remain. |
+| Generic Days 13–14 cross-domain conformance | In progress | Neutral production-owned insertion, randomized safety/form variants, stale-target recovery, full browser restart/resume, and two structurally different normal-Chrome public real-service exact-target activations now pass. Remaining cross-domain capability breadth still remains. |
 | Day 15 release decision | Blocked | Cannot begin until the Days 13–14 matrix and the reopened original Day 4/5 gates are complete. |
 
 ## Raw-evidence reconciliation
@@ -27,6 +27,7 @@
 - Generic Days 13–14: public search, dynamic dialog, public read, authentication intervention, compound form, pagination, delayed collection (2/2), same-origin frame, tab lifecycle, and native download evidence all parse and match the progress report.
 - Native download was separately verified in normal Chrome: one server request, one 106-byte file, exact filename, `text/plain`, and SHA-256 `1FC13CB20F6590BD58EFADB4A17E46E0DE8B9ADD42DE56753583BB50870F4EE0`; no open/upload/share/delete action.
 - The normal-Chrome GitHub rerun independently verified the final `microsoft/playwright` URL and title. Backend persistence contains exactly two approved/executed mutations, zero retries/recoveries, a verified terminal identity event, and zero prohibited-action events.
+- The normal-Chrome Python documentation rerun independently verified the final `asyncio` URL and title. Backend persistence contains exactly one navigation and one exact-link click, selected from same-effect duplicates, zero retries/recoveries/planner iterations, and the terminal event `observed_report.completed_without_planner`.
 - Twenty-five local evidence links across the audited reports resolve; none are missing.
 
 ## Regression and infrastructure audit
@@ -57,7 +58,7 @@ The current production path is distinct: exact leaf filename extraction, exact t
 2. Unseen/randomized DOM variants for each mutation family. Randomized insertion and compound form now pass; remaining families are still pending.
 3. Restart/resume and stale-target variants with duplicate-effect accounting. **Completed on the generic fixture path:** the stale-target run produced one effect with no retry, and the browser-restart run restored one checkpoint across a changed tab ID using exact document identity, then committed one resume record. Real-service breadth remains part of the Days 13–14 gate.
 4. Prompt-injection, cross-origin leakage, account-confusion, and privileged-URL safety cases.
-5. Two structurally different real services for each safe, authorized capability.
+5. Two structurally different real services for each safe, authorized capability. Safe exact-target activation now meets this breadth requirement through GitHub and Python documentation; other capabilities remain pending.
 
 ## Work started after the audit
 
