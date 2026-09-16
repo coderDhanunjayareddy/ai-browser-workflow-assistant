@@ -1,0 +1,65 @@
+{
+  "schema_version": "extension_content_insertion_submission_reliability.v1",
+  "sequence_id": "content-insertion-reliability-1789554760891",
+  "requested_runs": 10,
+  "executed_runs": 10,
+  "passed_runs": 10,
+  "failed_runs": 0,
+  "status": "passed",
+  "scope": "local synthetic provider-neutral draft submission fixture",
+  "external_service_mutations": 0,
+  "harness_file_injection": false,
+  "runtime": {
+    "version": "v0.4.0",
+    "commit": "700da56-dirty",
+    "build": "stabilization-20260916T102849Z",
+    "pid": 29052,
+    "extension_dir": "C:\\Work\\AI_Browser_Assist\\extension\\certification-dist"
+  },
+  "duration_seconds": {
+    "total": 338.0,
+    "minimum": 32.4,
+    "average": 33.8,
+    "p95_linear": 36.22,
+    "maximum": 36.4
+  },
+  "verified_invariants": {
+    "fixture_state_before_restart": "fixture_state=draft_submitted_exactly_once",
+    "fixture_state_after_restart": "fixture_state=draft_submitted_exactly_once",
+    "draft_count_per_run": 1,
+    "file_selection_count_per_run": 1,
+    "submission_count_per_run": 1,
+    "discard_count_per_run": 0,
+    "durable_attempts_per_action": 1,
+    "typed_submission_records_per_run": 1,
+    "submission_attempted": true,
+    "delivery_verified": true,
+    "dispatch_uncertain": false,
+    "delivered_content_identity": "synthetic-day5.txt",
+    "delivered_destination_entity": "Synthetic Draft Workspace",
+    "duplicate_effects": 0,
+    "wrong_destinations": 0
+  },
+  "runs": [
+    {"index": 1, "report": "draft-preview-1789554761224.json", "status": "passed", "duration_s": 36.4},
+    {"index": 2, "report": "draft-preview-1789554805138.json", "status": "passed", "duration_s": 33.2},
+    {"index": 3, "report": "draft-preview-1789554844052.json", "status": "passed", "duration_s": 33.2},
+    {"index": 4, "report": "draft-preview-1789554883210.json", "status": "passed", "duration_s": 33.5},
+    {"index": 5, "report": "draft-preview-1789554921994.json", "status": "passed", "duration_s": 33.3},
+    {"index": 6, "report": "draft-preview-1789554960341.json", "status": "passed", "duration_s": 32.9},
+    {"index": 7, "report": "draft-preview-1789554998620.json", "status": "passed", "duration_s": 36.0},
+    {"index": 8, "report": "draft-preview-1789555040429.json", "status": "passed", "duration_s": 32.9},
+    {"index": 9, "report": "draft-preview-1789555078766.json", "status": "passed", "duration_s": 34.2},
+    {"index": 10, "report": "draft-preview-1789555119343.json", "status": "passed", "duration_s": 32.4}
+  ],
+  "interrupted_next_start": {
+    "run_id": "draft-preview-1789555157808",
+    "counted": false,
+    "report_created": false,
+    "profile_created": true,
+    "profile_contains_sequence_subject": false,
+    "profile_contains_test_filename": false,
+    "note": "The wrapper began initializing the next isolated profile before the reduced limit was received. It was interrupted immediately and is excluded from certification."
+  },
+  "release_gate_note": "This is the user-requested 10-run checkpoint. It does not satisfy any separate acceptance criterion that explicitly requires 20 consecutive runs."
+}

@@ -69,3 +69,22 @@ Aggregate evidence: `extension_e2e/content-insertion-reliability-1789127792432.j
 The application-owned attachment-preview reliability gate therefore passed. Consequential exactly-once submission remains a separate gate and still requires an explicit confirmation immediately before any real external send.
 
 No real Gmail draft, recipient, body, attachment, or send action was created by this checkpoint.
+
+## Synthetic exactly-once submission checkpoint — 2026-09-16
+
+The user reduced this execution from twenty runs to ten. The sequence was stopped after exactly ten completed results; the next isolated profile had begun initializing but produced no report and contained neither the sequence subject nor the synthetic filename, so it is excluded.
+
+Aggregate evidence: `extension_e2e/content-insertion-submission-reliability-1789554760891-10-run.json`
+
+- completed runs: `10/10` passed;
+- fixture only: `Synthetic Draft Workspace` on loopback;
+- external-service mutations: `0`;
+- exact file: `synthetic-day5.txt` in every run;
+- exact destination: `Synthetic Draft Workspace` in every run;
+- verified submissions: `1` per run before and after browser restart;
+- duplicate effects, wrong destinations, uncertain dispatches, and discards: `0`;
+- durable attempts: `1` for every action;
+- harness file injection: disabled;
+- workflow latency: `32.4s` minimum, `33.8s` average, `36.22s` linear p95, `36.4s` maximum.
+
+This certifies only the requested ten-run local synthetic checkpoint. It does not satisfy a separate release criterion that explicitly requires twenty consecutive runs, and it does not certify a real external provider.

@@ -100,3 +100,11 @@ The Day 5 exit criterion is **not yet passed**. No real message or attachment wa
 4. retained screenshots/traces proving exact delivered attachment, destination, and zero duplicates for every run.
 
 The browser-control connection was restored on recheck, but the connected profile exposed no user-opened tabs and browser safety correctly blocked automation from opening the privileged `chrome-extension://` page. A user must open the compiled certification extension tab once; this setup requirement is not a passed product result.
+
+## Provider-neutral synthetic submission checkpoint — 2026-09-16
+
+After correcting destination identity propagation, injected-function closure safety, and typed submission-evidence export, the built extension completed `10/10` consecutive local synthetic exactly-once submissions. Every run independently verified one draft, one exact file selection, one submission, exact delivered content `synthetic-day5.txt`, exact destination `Synthetic Draft Workspace`, persistence after browser restart, and zero duplicate effects or uncertain dispatches. No Gmail, WhatsApp, or other external-service mutation occurred.
+
+Machine-readable evidence: `../generic_foundation/extension_e2e/content-insertion-submission-reliability-1789554760891-10-run.json`.
+
+This is deliberately recorded as a ten-run synthetic checkpoint because the user reduced the run count. The original Day 5 exit criterion requiring twenty consecutive real-service sends remains open.
