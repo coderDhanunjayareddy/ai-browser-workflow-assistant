@@ -48,3 +48,16 @@ def test_final_completion_snapshot_wins_timeout_boundary_race() -> None:
     )
     assert MODULE._reconcile_terminal_status("timeout", text) == "completed"
     assert MODULE._reconcile_terminal_status("failed", text) == "failed"
+
+
+def test_durable_evidence_projection_retains_typed_submission_outcome() -> None:
+    source = SCRIPT.read_text(encoding="utf-8")
+    for field in (
+        "submission_attempted",
+        "submission_duplicate_prevented",
+        "delivery_verified",
+        "delivered_content_identity",
+        "delivered_destination_entity",
+        "dispatch_uncertain",
+    ):
+        assert f"{field}: record.result.{field}" in source
