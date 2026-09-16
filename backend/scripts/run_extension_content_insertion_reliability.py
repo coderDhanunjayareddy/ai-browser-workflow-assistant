@@ -21,6 +21,7 @@ def main() -> int:
     parser.add_argument("--repeat", type=int, default=20)
     parser.add_argument("--timeout-s", type=int, default=240)
     parser.add_argument("--filename", default="synthetic-day5.txt")
+    parser.add_argument("--extension-dir", default=str(ROOT / "extension" / "dist"))
     parser.add_argument("--confirm-synthetic-submit", action="store_true")
     args = parser.parse_args()
     if args.repeat < 1 or args.repeat > 100:
@@ -42,6 +43,8 @@ def main() -> int:
             args.filename,
             "--subject",
             f"Synthetic cross-domain attachment preview {sequence_id} run {index:02d}",
+            "--extension-dir",
+            str(Path(args.extension_dir).resolve()),
         ]
         if args.confirm_synthetic_submit:
             command.append("--confirm-synthetic-submit")
@@ -69,6 +72,39 @@ def main() -> int:
         before = dict(detail.get("before_restart") or {})
         after = dict(detail.get("after_restart") or {})
         durable = list(workflow.get("durable_executions") or [])
+        submission_results = [
+            dict(item.get("result") or {})
+            for item in durable
+            if isinstance(item, dict)
+            and isinstance(item.get("result"), dict)
+            and item["result"].get("submission_attempted") is True
+        ]
+        certification_failures = list(detail.get("failures") or parsed.get("failures") or [])
+        if args.confirm_synthetic_submit:
+            if len(submission_results) != 1:
+                certification_failures.append(
+                    f"typed submission evidence: expected exactly 1 attempted submission, observed {len(submission_results)}"
+                )
+            else:
+                submission = submission_results[0]
+                expected_submission = {
+                    "submission_operation": "send",
+                    "delivery_verified": True,
+                    "submission_duplicate_prevented": False,
+                    "dispatch_uncertain": False,
+                    "delivered_content_identity": args.filename,
+                    "delivered_destination_entity": "Synthetic Draft Workspace",
+                }
+                for key, expected in expected_submission.items():
+                    if submission.get(key) != expected:
+                        certification_failures.append(
+                            f"typed submission evidence {key}: expected {expected!r}, observed {submission.get(key)!r}"
+                        )
+            attempts = [item.get("attempts") for item in durable if isinstance(item, dict)]
+            if not attempts or any(attempt != 1 for attempt in attempts):
+                certification_failures.append(
+                    f"durable execution attempts: expected every action exactly once, observed {attempts!r}"
+                )
         record = {
             "index": index,
             "status": detail.get("status") or parsed.get("status") or "failed",
@@ -80,9 +116,12 @@ def main() -> int:
             "after_restart": after,
             "durable_action_count": len(durable),
             "durable_attempts": [item.get("attempts") for item in durable if isinstance(item, dict)],
-            "failures": detail.get("failures") or parsed.get("failures") or [],
+            "submission_evidence": submission_results,
+            "failures": certification_failures,
             "stderr": completed.stderr[-2000:],
         }
+        if certification_failures:
+            record["status"] = "failed"
         results.append(record)
         print(
             f"[reliability] run {index}/{args.repeat}: {record['status']} "
