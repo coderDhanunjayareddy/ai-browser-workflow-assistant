@@ -275,6 +275,21 @@ test('consequential submission reserves once before trusted input and settles de
   assert.match(worker, /It will not be retried automatically/)
 })
 
+test('consequential page inspector is self-contained for chrome scripting serialization', () => {
+  const source = fs.readFileSync(
+    path.join(root, 'src', 'content', 'consequential_submission_evidence.ts'),
+    'utf8',
+  )
+  const start = source.indexOf('export function inspectConsequentialSubmission(')
+  const end = source.indexOf('\nexport function verifyConsequentialDelivery', start)
+  assert.ok(start >= 0)
+  assert.ok(end > start)
+  const injectedFunction = source.slice(start, end)
+  assert.match(injectedFunction, /const normalized =/)
+  assert.match(injectedFunction, /const visible =/)
+  assert.doesNotMatch(source.slice(0, start), /function normalized|function visible/)
+})
+
 test('confirmation UI displays exact consequential destination and content immediately before approval', () => {
   const app = fs.readFileSync(path.join(root, 'src', 'sidepanel', 'App.tsx'), 'utf8')
   assert.match(app, /Exact destination:/)

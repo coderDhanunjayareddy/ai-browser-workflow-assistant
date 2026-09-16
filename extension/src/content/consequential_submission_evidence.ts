@@ -10,25 +10,25 @@ export type SubmissionPageEvidence = {
   evidence_source: 'explicit_adapter' | 'semantic_dom'
 }
 
-function normalized(value: unknown): string {
-  return String(value ?? '').replace(/\s+/g, ' ').trim().toLocaleLowerCase()
-}
-
-function visible(element: Element): boolean {
-  const node = element as HTMLElement
-  const style = window.getComputedStyle(node)
-  const rect = node.getBoundingClientRect()
-  return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
-}
-
 /**
  * Runs inside the target page. Provider adapters can expose stable data
  * attributes; otherwise the broker uses bounded semantic DOM evidence. No
- * provider name or URL is part of the control flow.
+ * provider name or URL is part of the control flow. Keep every dependency
+ * inside this function: chrome.scripting.executeScript serializes `func`
+ * without its module closure.
  */
 export function inspectConsequentialSubmission(
   declaration: ConsequentialSubmissionDeclaration,
 ): SubmissionPageEvidence {
+  const normalized = (value: unknown): string => (
+    String(value ?? '').replace(/\s+/g, ' ').trim().toLocaleLowerCase()
+  )
+  const visible = (element: Element): boolean => {
+    const node = element as HTMLElement
+    const style = window.getComputedStyle(node)
+    const rect = node.getBoundingClientRect()
+    return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+  }
   const destination = normalized(declaration.destination_entity)
   const content = normalized(declaration.content_identity)
   const explicitDestination = Array.from(document.querySelectorAll('[data-submission-destination]'))
