@@ -18,6 +18,9 @@ _DATE_CONTROL = re.compile(r"\b(?:departure|depart|outbound|check.?in|travel.?da
 _RESULT_ACTION = re.compile(r"\b(?:cheapest|lowest|least expensive|best fare|select.+result|choose.+result)\b", re.IGNORECASE)
 _DATE_ACTION = re.compile(r"\b(?:departure|depart|calendar|date)\b", re.IGNORECASE)
 _PRICE = re.compile(r"(?:₹|\$|€|£|\bRs\.?\s*)\s*\d[\d,]*(?:\.\d{2})?", re.IGNORECASE)
+_ORIGIN_FIELD = re.compile(r"(?:^|[^a-z])(?:srcinput|source|origin|fromcity|from|pickup)(?:$|[^a-z])", re.IGNORECASE)
+_DESTINATION_FIELD = re.compile(r"(?:^|[^a-z])(?:destinput|destination|destcity|tocity|arrival|dropoff)(?:$|[^a-z])", re.IGNORECASE)
+_SEARCH_CONTROL = re.compile(r"\b(?:search|find)\b", re.IGNORECASE)
 
 
 def requested_date(task: str) -> date | None:
@@ -63,8 +66,12 @@ def _conflicting_route_link(task: str, page_context: Any, action: SuggestedActio
 
 def _observed_date(value: str) -> date | None:
     value = " ".join(str(value or "").replace("'", " ").split())
-    for fmt in ("%a, %b %d, %Y", "%a, %B %d, %Y", "%b %d, %Y", "%B %d, %Y",
-                "%d %b %Y", "%d %B %Y", "%Y-%m-%d"):
+    for fmt in ("%a, %b %d, %Y", "%a, %B %d, %Y", "%A, %b %d, %Y",
+                "%A, %B %d, %Y", "%a, %d %b %Y", "%a, %d %B %Y",
+                "%A, %d %b %Y", "%A, %d %B %Y",
+                "%a %b %d %Y", "%A %B %d %Y",
+                "%b %d, %Y", "%B %d, %Y", "%d %b %Y", "%d %B %Y",
+                "%Y-%m-%d"):
         try:
             return datetime.strptime(value, fmt).date()
         except ValueError:
@@ -90,6 +97,63 @@ def observed_date_controls(page_context: Any) -> list[tuple[dict[str, Any], date
     return controls
 
 
+def observed_route_prerequisite_response(
+    *, session_id: str, task: str, page_context: Any,
+) -> AnalyzeResponse | None:
+    """Fill uniquely identified route fields on an observed public search form."""
+    match = _ROUTE_IN_TASK.search(affirmative_task_text(task))
+    if not match:
+        return None
+    original_match = _ROUTE_IN_TASK.search(task)
+    if original_match and tuple(part.casefold() for part in original_match.groups()) == tuple(
+        part.casefold() for part in match.groups()
+    ):
+        match = original_match
+    controls = [item.model_dump() if hasattr(item, "model_dump") else dict(item)
+                for item in getattr(page_context, "interactive_elements", []) or []]
+    if not any(item.get("visible") and _SEARCH_CONTROL.search(
+        str(item.get("accessibility_name") or item.get("aria_label") or item.get("text") or ""))
+        and str(item.get("role") or "").lower() in {"button", "link"}
+        for item in controls):
+        return None
+    fields: dict[str, list[dict[str, Any]]] = {"origin": [], "destination": []}
+    for item in controls:
+        if not item.get("visible") or not item.get("selector"):
+            continue
+        if str(item.get("role") or "").lower() not in {"textbox", "combobox", "searchbox"}:
+            continue
+        if str(item.get("input_type") or "").lower() in {"password", "email", "tel", "file"}:
+            continue
+        identity = " ".join(str(item.get(key) or "") for key in
+                            ("selector", "placeholder", "aria_label", "accessibility_name"))
+        origin = bool(_ORIGIN_FIELD.search(identity))
+        destination = bool(_DESTINATION_FIELD.search(identity))
+        if origin != destination:
+            fields["origin" if origin else "destination"].append(item)
+    if len(fields["origin"]) != 1 or len(fields["destination"]) != 1:
+        return None
+    for kind, city in zip(("origin", "destination"), match.groups()):
+        item = fields[kind][0]
+        city = " ".join(city.split())
+        observed = " ".join(str((item.get("state") or {}).get("value") or "").split())
+        if observed.casefold() == city.casefold():
+            continue
+        selector = str(item["selector"])
+        action = SuggestedAction(
+            action_id=f"observed_route_{kind}_{city.casefold().replace(' ', '_')}",
+            action_type="fill", target_selector=selector, value=city,
+            description=f"Fill the observed {kind} field with {city}",
+            reasoning=f"The requested {kind} is not selected in this observed route form; fill this exact field and re-observe.",
+            confidence=0.9, safety_level="safe",
+            grounding={"source": "dom_snapshot", "selector_id": selector,
+                       "accessibility_name": str(item.get("accessibility_name") or ""),
+                       "role": item.get("role"), "frame_id": item.get("frame_id") or "top"},
+        )
+        return AnalyzeResponse(session_id=session_id, outcome_kind="act",
+                               analysis=action.reasoning, suggested_actions=[action])
+    return None
+
+
 def _priced_result_blocks(page_context: Any) -> int:
     selectors = set()
     for item in getattr(page_context, "content_blocks", []) or []:
@@ -108,6 +172,9 @@ def _exact_date_option(page_context: Any, goal_date: date) -> dict[str, Any] | N
         if not element.get("visible") or not element.get("selector"):
             continue
         if str(element.get("role") or "").lower() not in {"button", "gridcell", "option"} and str(element.get("type") or "").lower() != "button":
+            continue
+        state = dict(element.get("state") or {})
+        if state.get("disabled") or state.get("aria_disabled"):
             continue
         name = str(element.get("accessibility_name") or element.get("aria_label") or element.get("text") or "")
         if _observed_date(name) == goal_date:

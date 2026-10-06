@@ -595,6 +595,21 @@ def _run_task(
     if capture_analyze_observations:
         sidepanel.on('request', capture_analyze_request)
 
+    def capture_pause_snapshot(kind: str) -> None:
+        if not capture_analyze_observations:
+            return
+        (REPORT_DIR / f"{safe_id}-pause.json").write_text(
+            json.dumps({
+                "task_id": task_id,
+                "kind": kind,
+                "observations": analyze_observations,
+            }, indent=2), encoding="utf-8",
+        )
+        try:
+            sidepanel.screenshot(path=str(REPORT_DIR / f"{safe_id}-pause.png"), full_page=True)
+        except Exception:
+            pass
+
     def provide_approved_file(chooser) -> None:
         if approved_file is None or not approved_file.is_file():
             file_chooser_events.append("chooser_opened_without_valid_approved_file")
@@ -636,6 +651,7 @@ def _run_task(
                 time.sleep(0.7)
                 continue
             if hold_on_human and human_pause_count < 10:
+                capture_pause_snapshot("critical approval")
                 pause_started = time.time()
                 human_pause_count += 1
                 if _wait_for_human_step(sidepanel, target, task_id, "critical approval"):
@@ -678,6 +694,7 @@ def _run_task(
             break
         if "need information" in lowered or "waiting for info" in lowered:
             if hold_on_human and human_pause_count < 10:
+                capture_pause_snapshot("missing information")
                 pause_started = time.time()
                 human_pause_count += 1
                 if _wait_for_human_step(sidepanel, target, task_id, "missing information"):
@@ -688,6 +705,7 @@ def _run_task(
             break
         if "human step required" in lowered or "waiting for you" in lowered:
             if hold_on_human and human_pause_count < 10:
+                capture_pause_snapshot("human intervention")
                 pause_started = time.time()
                 human_pause_count += 1
                 if _wait_for_human_step(sidepanel, target, task_id, "human intervention"):

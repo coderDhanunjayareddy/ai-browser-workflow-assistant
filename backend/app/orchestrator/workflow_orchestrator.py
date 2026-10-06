@@ -1064,7 +1064,30 @@ class WorkflowOrchestrator:
                 },
             )
             return observed_control
-        from app.orchestrator.search_prerequisites import observed_date_prerequisite_response
+        from app.orchestrator.search_prerequisites import (
+            observed_date_prerequisite_response, observed_route_prerequisite_response,
+        )
+
+        route_prerequisite = observed_route_prerequisite_response(
+            session_id=self.session_id, task=task, page_context=page_context,
+        )
+        if route_prerequisite is not None:
+            self._route_legacy_browser_actions_through_mission_ledger(
+                result=route_prerequisite,
+                task=task,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+                runtime_state_snapshot=runtime_state_snapshot,
+                browser_intelligence_artifact=browser_intelligence_artifact,
+                knowledge_snapshot=knowledge_snapshot,
+                mission_completion_snapshot=mission_completion_snapshot,
+                orchestrator_snapshot=orchestrator_snapshot,
+                kernel_snapshot=None,
+            )
+            return _enforce_authoritative_semantic_grounding(
+                session_id=self.session_id, result=route_prerequisite,
+                page_context=page_context,
+            )
 
         date_prerequisite = observed_date_prerequisite_response(
             session_id=self.session_id, task=task, page_context=page_context,

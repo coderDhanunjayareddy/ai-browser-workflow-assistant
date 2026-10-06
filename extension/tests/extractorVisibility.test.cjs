@@ -63,7 +63,8 @@ test('extractor_v2 records generic ARIA and native disabled state', () => {
 test('bounded extraction reserves visible form and goal controls before the page-wide cap', () => {
   const extractor = fs.readFileSync(path.join(root, 'src/content/extractor_v2.ts'), 'utf8')
   const worker = fs.readFileSync(path.join(root, 'src/background/service-worker.ts'), 'utf8')
-  assert.match(extractor, /\.\.\.formControls, \.\.\.goalControls, \.\.\.candidates/)
+  assert.match(extractor, /'\[role="gridcell"\]'/)
+  assert.match(extractor, /\.\.\.formControls, \.\.\.goalControls, \.\.\.gridCells, \.\.\.candidates/)
   assert.match(extractor, /\.slice\(0, MAX_ELEMENTS\)/)
   assert.match(worker, /mergeInteractiveElementLists\(\s*v2Context\.interactive_elements,\s*v1Context\.interactive_elements/)
 })

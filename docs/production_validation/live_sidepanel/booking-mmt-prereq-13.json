@@ -1,0 +1,3926 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_booking_prereq_13",
+  "results": [
+    {
+      "task_id": "BOOKING-MMT-PREREQ-13",
+      "status": "needs_info",
+      "duration_s": 81.7,
+      "phase": "Waiting for info",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 41f7ae3-dirty \u00b7 stabilization-20261006T075136Z \u00b7 pid 2880\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nWaiting for info\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAuto mode: safe steps run automatically\n\u25a0 Stop\n\nAI ANALYSIS\n\nThe requested date is not selected in the current observed control. No result was chosen.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen https://www.makemytrip.com/\nMakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flight\u2026\nhttps://www.makemytrip.com/\nVerification: verified\nTime: 3.8s\nNavigating to: https://www.makemytrip.com/\n\u26a1\nStep 2\nCLICK\nDismiss observed optional authentication overlay\nMakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flight\u2026\nhttps://www.makemytrip.com/\nVerification: verified\nTime: 964ms\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 3\nCLICK\nClick the link for Hyderabad to Delhi flight\nHyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 O\u2026\nhttps://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.\u2026\nVerification: verified\nTime: 18.0s\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 4\nCLICK\nClick the observed date control \"Wed, Oct 07, 2026\" to choose 2026-10-20\nHyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 O\u2026\nhttps://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.\u2026\nVerification: verified\nTime: 444ms\nCDP click dispatched via stable_selector grounding.\n\nNEED INFORMATION\n\nThe date picker has no unique observed option for the requested date. Please expose the intended option, then resume this task.\n\nContinue",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-13.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-13-target.png",
+      "target_controls": [
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "previous",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "next",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 1 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 9 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 17 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 25 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 33 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 41 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 49 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 57 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 65 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 73 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 81 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "slide 89 bullet",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "canonical_adapter_traces": [
+        {
+          "action_id": "optional_overlay_873c06402ad3",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 895,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 7,
+          "cdp_target_count": 0,
+          "dispatch_id": "optional_overlay_873c06402ad3:1791273157175",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_f849ead237544cf28d93c063e44e8420",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": null,
+          "target_selector_preserved": true,
+          "timestamp": "2026-10-06T07:52:38.190Z",
+          "verified": true
+        },
+        {
+          "action_id": "step-id",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 7802,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 8,
+          "cdp_target_count": 0,
+          "dispatch_id": "step-id:1791273170783",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_ae7631900583419182b7a466a299be54",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": "Hyderabad to Delhi flight",
+          "target_selector_preserved": true,
+          "timestamp": "2026-10-06T07:53:08.766Z",
+          "verified": true
+        },
+        {
+          "action_id": "observed_date_2026-10-20_control",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 382,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 7,
+          "cdp_target_count": 0,
+          "dispatch_id": "observed_date_2026-10-20_control:1791273192947",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_5912436e1ece4e8b81d5258fd7117e26",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": "Wed, Oct 07, 2026",
+          "target_selector_preserved": true,
+          "timestamp": "2026-10-06T07:53:13.409Z",
+          "verified": true
+        }
+      ],
+      "durable_executions": [
+        {
+          "key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_03ef999dd8204a478f988aa6254e8d9c",
+          "actionId": "destination-e5cfb42690b2da60",
+          "actionType": "navigate",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Navigating to: https://www.makemytrip.com/",
+            "dispatch_id": "destination-e5cfb42690b2da60:1791273144068",
+            "dispatch_path": "service_worker>policy>chrome.tabs.update",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_03ef999dd8204a478f988aa6254e8d9c",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|List Your PropertyGrow your business!Introducing myBizBusiness Travel SolutionMy",
+                "checkboxStates": [
+                  "input=unchecked"
+                ],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/|MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday|23467|410|0|0||input=unchecked|",
+                "expandedStates": [],
+                "interactiveCount": 410,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+                "url": "https://www.makemytrip.com/",
+                "visibleTextLength": 23467
+              },
+              "before_state": {
+                "activeElementSignature": null,
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "chrome://newtab/|New Tab",
+                "expandedStates": [],
+                "interactiveCount": 0,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "New Tab",
+                "url": "chrome://newtab/",
+                "visibleTextLength": 0
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "navigate",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": true,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 3791,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Open https://www.makemytrip.com/",
+                "expected_effect_kind": "url_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": null,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": true,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_5912436e1ece4e8b81d5258fd7117e26",
+          "actionId": "observed_date_2026-10-20_control",
+          "actionType": "click",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "CDP click dispatched via stable_selector grounding.",
+            "dispatch_id": "observed_date_2026-10-20_control:1791273192947",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_5912436e1ece4e8b81d5258fd7117e26",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|Flights Flights Hotels Hotels Villas & Homestays Villas & Homestays Holiday Pack",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html|Hyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 OFF | MakeMyTrip India|29431|489|0|0|||{\"exists\":true,\"selector\":\"#departure\",\"tagName\":\"input\",\"ariaExpanded\":null,\"visible\":true,\"inputType\":\"text\",\"checked\":null,\"filled\":true,\"value\":\"Wed, Oct 07, 2026\"}",
+                "expandedStates": [],
+                "interactiveCount": 489,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "checked": null,
+                  "exists": true,
+                  "filled": true,
+                  "inputType": "text",
+                  "selector": "#departure",
+                  "tagName": "input",
+                  "value": "Wed, Oct 07, 2026",
+                  "visible": true
+                },
+                "title": "Hyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 OFF | MakeMyTrip India",
+                "url": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html",
+                "visibleTextLength": 29431
+              },
+              "before_state": {
+                "activeElementSignature": "body|Flights Flights Hotels Hotels Villas & Homestays Villas & Homestays Holiday Pack",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html|Hyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 OFF | MakeMyTrip India|30007|491|0|0|||{\"exists\":true,\"selector\":\"#departure\",\"tagName\":\"input\",\"ariaExpanded\":null,\"visible\":true,\"inputType\":\"text\",\"checked\":null,\"filled\":true,\"value\":\"Wed, Oct 07, 2026\"}",
+                "expandedStates": [],
+                "interactiveCount": 491,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "checked": null,
+                  "exists": true,
+                  "filled": true,
+                  "inputType": "text",
+                  "selector": "#departure",
+                  "tagName": "input",
+                  "value": "Wed, Oct 07, 2026",
+                  "visible": true
+                },
+                "title": "Hyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 OFF | MakeMyTrip India",
+                "url": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html",
+                "visibleTextLength": 30007
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 7,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 444,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Click the observed date control \"Wed, Oct 07, 2026\" to choose 2026-10-20",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": false,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": true,
+                "target_expanded_changed": false,
+                "target_filled_after": true,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_ae7631900583419182b7a466a299be54",
+          "actionId": "step-id",
+          "actionType": "click",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "CDP click dispatched via stable_selector grounding.",
+            "dispatch_id": "step-id:1791273170783",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_ae7631900583419182b7a466a299be54",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|Flights Flights Hotels Hotels Villas & Homestays Villas & Homestays Holiday Pack",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html|Hyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 OFF | MakeMyTrip India|30007|491|0|0|||{\"exists\":false,\"selector\":\"[data-cy=\\\"anchor-hyderabad-to-delhi-flight-312\\\"]\"}",
+                "expandedStates": [],
+                "interactiveCount": 491,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "exists": false,
+                  "selector": "[data-cy=\"anchor-hyderabad-to-delhi-flight-312\"]"
+                },
+                "title": "Hyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 OFF | MakeMyTrip India",
+                "url": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html",
+                "visibleTextLength": 30007
+              },
+              "before_state": {
+                "activeElementSignature": "body|List Your PropertyGrow your business!Introducing myBizBusiness Travel SolutionMy",
+                "checkboxStates": [
+                  "input=unchecked"
+                ],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/|MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday|23481|410|0|0||input=unchecked|{\"exists\":true,\"selector\":\"[data-cy=\\\"anchor-hyderabad-to-delhi-flight-312\\\"]\",\"tagName\":\"a\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 410,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "[data-cy=\"anchor-hyderabad-to-delhi-flight-312\"]",
+                  "tagName": "a",
+                  "visible": true
+                },
+                "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+                "url": "https://www.makemytrip.com/",
+                "visibleTextLength": 23481
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 8,
+                "checkbox_state_changed": true,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 17965,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Click the link for Hyderabad to Delhi flight",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": false,
+                "target_expanded_changed": true,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": true,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_f849ead237544cf28d93c063e44e8420",
+          "actionId": "optional_overlay_873c06402ad3",
+          "actionType": "click",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "CDP click dispatched via stable_selector grounding.",
+            "dispatch_id": "optional_overlay_873c06402ad3:1791273157175",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "345f11b5-45fa-4f37-9966-6cd70c908680:1153248728:intent_f849ead237544cf28d93c063e44e8420",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|List Your PropertyGrow your business!Introducing myBizBusiness Travel SolutionMy",
+                "checkboxStates": [
+                  "input=unchecked"
+                ],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/|MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday|23483|410|0|0||input=unchecked|{\"exists\":false,\"selector\":\"[data-cy=\\\"closeModal\\\"]\"}",
+                "expandedStates": [],
+                "interactiveCount": 410,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "exists": false,
+                  "selector": "[data-cy=\"closeModal\"]"
+                },
+                "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+                "url": "https://www.makemytrip.com/",
+                "visibleTextLength": 23483
+              },
+              "before_state": {
+                "activeElementSignature": "input",
+                "checkboxStates": [
+                  "input=unchecked"
+                ],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/|MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday|23644|414|1|0||input=unchecked|{\"exists\":true,\"selector\":\"[data-cy=\\\"closeModal\\\"]\",\"tagName\":\"span\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 414,
+                "modalCount": 1,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "[data-cy=\"closeModal\"]",
+                  "tagName": "span",
+                  "visible": true
+                },
+                "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+                "url": "https://www.makemytrip.com/",
+                "visibleTextLength": 23644
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 7,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 964,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Dismiss observed optional authentication overlay",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": true,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": false,
+                "target_expanded_changed": true,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-13-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html",
+          "title": "Hyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 OFF | MakeMyTrip India",
+          "body_text": "roups of 9 or more passengers travelling together, MakeMyTrip offers dedicated group booking support. Popular use cases include:\n\nPharmaceutical company site visits\nIT company offsites\nGovernment delegations\nFamily travel\nConference and event related group travel\nFrequently Asked Questions:\n\nQ: What is the cheapest Hyderabad to Delhi flight fare available?\n\nA: Hyderabad to Delhi flight fares currently start from \u20b9 8352, although prices vary based on demand and travel dates.\n\nQ: How early should this route be booked?\n\nA: Booking in advance generally helps secure better fares.\n\nQ: Are direct Hyderabad to Delhi flights available?\n\nA: Yes. Multiple airlines operate direct Hyderabad to Delhi flights daily.\n\nQ: How long does a Hyderabad to Delhi flight take?\n\nA: Most direct flights take 2 hrs 10 mins .\n\nQ: Which airlines operate Hyderabad to Delhi flights?\n\nA: Air India, Akasa Air, IndiGo, SpiceJet operate flights on this route.\n\nQ: Are Hyderabad to Delhi flights expensive during festivals?\n\nA: Yes, fares rise during Bonalu, Dussehra, Diwali, and the wedding season.\n\nQ: Can last minute Hyderabad to Delhi flight deals be found?\n\nA: Availability depends on demand, but last minute fares are generally higher than advance bookings.\n\nQ: Is round trip booking cheaper?\n\nA: In many cases, round trip Hyderabad to Delhi flight bookings offer better value.\n\nQ: Are there discounts available on Hyderabad to Delhi flights?\n\nA: Yes. Travellers can use promo codes, airline offers, and bank discounts while booking.\n\nQ: How many Hyderabad to Delhi flights operate daily?\n\nA: Approximately 12 flights operate daily on this route.\n\nQ: What is the aerial distance between Hyderabad and Delhi?\n\nA: Approximately 1,270 km.\n\nQ: Which airport serves Hyderabad?\n\nA: Rajiv Gandhi International Airport (HYD).\n\nQ: Which airport serves Delhi?\n\nA: Indira Gandhi International Airport (DEL).\n\nQ: What baggage allowance is included on Hyderabad to Delhi flights?\n\nA: Most airlines provide 7 kg cabin baggage and 15 kg check in baggage.\n\nQ: Can extra baggage be purchased?\n\nA: Yes. Additional baggage can be purchased online before departure.\n\nQ: Are connecting Hyderabad to Delhi flights available?\n\nA: Yes, through cities such as Mumbai, Bangalore, and Nagpur, though most travellers prefer the direct option.\n\nQ: Which Hyderabad to Delhi flights are usually cheapest?\n\nA: Early morning and off peak weekday departures often offer better fares.\n\nQ: How early should passengers reach Hyderabad Airport?\n\nA: At least 2 hours before departure.\n\nQ: Is web check-in available?\n\nA: Yes. Most airlines offer web check-in facilities.\n\nQ: What documents are required for domestic travel?\n\nA: A valid government issued photo ID is required.\n\nQ: Can meals be pre booked?\n\nA: Yes, depending on the airline and fare category.\n\nQ: How can Hyderabad to Delhi flight status be checked?\n\nA: Flight status can be checked through MakeMyTrip's Flight Status tool.\n\nQ: What happens if a Hyderabad to Delhi flight is delayed?\n\nA: Passengers receive updates through SMS, email, and airline notifications.\n\nQ: Are airport taxis available at Delhi Airport?\n\nA: Yes. Taxis, the Metro, and app based cab services are all available.\n\nQ: Can a Hyderabad to Delhi flight be changed after booking?\n\nA: Yes, subject to airline fare rules and applicable charges.\n\nQ: Is Delhi a useful transit point for onward travel?\n\nA: Yes. Delhi offers extensive domestic and international connectivity for travellers continuing beyond the city.\n\nCustomer Reviews\nV\n\u2606\u2606\u2606\u2606\u2606\nVARUN KASHYAP\nCustomer says the website is convenient to use.\nM\n\u2606\u2606\u2606\u2606\u2606\nMd akbar\nPartial payment is good in MMT which is possible now.\nS\n\u2606\u2606\u2606\u2606\u2606\nSANJAY MAHENDRA\nI like the deals on flights.\nR\n\u2606\u2606\u2606\u2606\u2606\nRAKTIM DAS\nCustomer was satisfied with MMT website its very fast at the time of payments .\nN\n\u2606\u2606\u2606\u2606\u2606\nNAGANJANEYULU SOMEPALLI\nI like the website options\nOur Partner Top Routes\nDelhi to Goa Flight\nDelhi to Mumbai Flight\nMumbai to Delhi Flight\nDelhi to Patna Flight\nBangalore to Delhi Flight\nDelhi to Bangalore Flight\nPatna to Delhi Flight\nPune to Delhi Flight\nDelhi to Kolkata Flight\nKolkata to Delhi Flight\nDelhi to Pune Flight\nDelhi to Srinagar Flight\nHyderabad to Delhi Flight\nMumbai to Bangalore Flight\nMumbai to Kolkata Flight\nMumbai to Varanasi Flight\nAhmedabad to Goa Flight\nBangalore to Mumbai Flight\nDelhi to Chennai Flight\nDelhi to Hyderabad Flight\nAirport Information\nRajiv Gandhi Intl Airport - Shamshabad Airport in Hyderabad\nIndira Gandhi International Airport in Delhi\nHide \nMore Deals For You!\n\nMore discounts for your flight\n\nUp to\n\nRs.2000 Off\n\nMMTSUPER\n\nGrab Up to Rs.2000 OFF\n\n\n\nCOPY CODE\n\nFlat\n\n12% Off\n\nWELCOMEMMT\n\nUpto Rs.2100 OFF on your first flight booking\n\n\n\nCOPY CODE\nProduct Offering\nFlights\u00a0\nInternational Flights\u00a0\nUAE Hotels\u00a0\nUAE Flights\u00a0\nHolidays in India\u00a0\nInternational Holidays\u00a0\nAirlines\u00a0\nFlight Status\u00a0\n\t\nTop Domestic routes\nChennai to Madurai Flights\nBangalore to Pune flights\nMumbai to Chennai flights\nBangalore to Hyderabad flights\nHyderabad to Mumbai flights\nChennai to Bangalore flight\nChennai to Hyderabad flights\nPune to Chennai flights\nHyderabad to Goa Flights\nPune to Srinagar flights\nPune to Delhi flights\nBangalore to Vadodara flights\nKolkata to Mumbai flights\nAhmedabad to Mumbai flights\nAhmedabad to Bangalore flights\nChennai to Goa flights\nKolkata to Delhi flights\nDelhi to Bangalore flights\nGoa to Kolkata Flight\nMumbai to Coimbatore Flight\nCoimbatore to Kolkata Flight\nKolkata to Patna Flight\nIndore to Mumbai Flight\nAurangabad to Mumbai Flight\nIndore to Pune Flight\nKolkata to Bagdogra Flight\nMumbai to Leh Flight\n\t\nNew Routes\nHyderabad to Kadapa flights\nHyderabad to Nanded flights\nNanded to Hyderabad flights\nKandla to Mumbai Flights\nHyderabad to Pondicherry Flights\nPondicherry to Hyderabad Flights\nMumbai to Shirdi Flights\nShirdi to Mumbai Flights\nJaipur to Agra Flights\nAgra to Jaipur Flights\nKolkata to Indore Flight\nKolkata to Dibrugarh Flight\nTirupati to Mumbai Flight\nLeh to Delhi Flight\nAhmedabad to Patna Flight\nKolkata to Aizawl Flight\nDelhi to Gorakhpur Flight\nChennai to Kurnool Flight\nKurnool to Chennai flight\nKochi to Agatti island flight\nGwalior to Ahmedabad Flight\nJammu to Chandigarh Flight\nGwalior to Jaipur Flight\nJabalpur to Surat Flight\nAhmedabad to Gwalior Flight\n\t\nMore Links\nDomestic Airlines\nArmed Forces Flight Booking\nIndigo Airlines\nAir Asia\nSpiceJet\nAir India\nPune to Bhopal Flight\nDelhi to Mumbai Flights\nMumbai to Delhi Flights\nMumbai to Goa Flights\nBangalore to Goa Flights\nLucknow to Mumbai Flights\nJaipur to Bangalore Flights\nPatna to Pune Flights\nDelhi to Goa Flights\nPune to Ranchi Flights\nDelhi to Kolkata Flights\nMumbai to Aurangabad Flight\nPune to Jaipur Flight\nBhopal to Bangalore Flight\nSurat to Mumbai Flight\nNagpur to Kolkata Flight\nDelhi to Leh Flight\nAhmedabad to Chennai Flight\nMumbai to Jabalpur Flight\nChandigarh to Pune Flight\nPatna to Chennai Flight\nDelhi to Ayodhya Flight\nAyodhya to Delhi Flight\nAyodhya to Ahmedabad Flight\nAhmedabad to Ayodhya Flight\nMumbai to Ayodhya Flight\nAyodhya to Mumbai Flight\nKolkatta to Ayodhya Flight\nDelhi to Aurangabad Flight\nKolkata to Ranchi Flight\nSenior Citizens Flight Booking\n\t\nImportant Links\nUdaipur to Mumbai Flight\nBhopal to Patna Flight\nLucknow to Goa Flight\nJaipur to Goa Flight\nGoa to Hyderabad Flight\nKolkata to Goa Flight\nDelhi to Khajuraho Flight\nVisakhapatnam to Hyderabad Flight\nMumbai to Jammu Flight\nDelhi to Kozhikode Flight\nMumbai to Bhuj Flight\nPune to Varanasi Flight\nKolkata to Varanasi Flight\nDelhi to Tirupati Flight\nDelhi to Varanasi Flight\nMumbai to Allahabad Flight\nNagpur to Goa Flight\nPune to Ranchi Flight\nMumbai to Diu Flight\nMumbai to Delhi Flight\nVijayawada to Bangalore Flight\nAhmedabad to Srinagar Flight\nAhmedabad to Lucknow Flight\nVijaywada to Delhi Flight\nPune to Hyderabad Flight\nCoimbatore to Bangalore Flight\nMumbai to Jamnagar Flight\nDelhi to Darbhanga Flight\nMumbai to Darbhanga Flight\nDelhi to Bareilly Flight\nBilaspur to Prayagraj Flight\nKolkata to Rupsi Flight\nShillong to Pasighat Flight\nStudent Flight Offers",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-13-page-2.png"
+        }
+      ],
+      "analyze_observations": [
+        {
+          "url": "chrome://newtab/",
+          "title": "New Tab",
+          "visible_text_length": 135,
+          "controls": []
+        },
+        {
+          "url": "https://www.makemytrip.com/",
+          "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+          "visible_text_length": 1000,
+          "controls": [
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "[data-cy=\"closeModal\"]",
+              "text": "Close overlay",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "form > input:nth-of-type(1)",
+              "text": "usr",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "password",
+              "role": "textbox",
+              "selector": "input:nth-of-type(2)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "[data-cy=\"userName\"]",
+              "text": "Enter Mobile Number",
+              "aria_label": "",
+              "accessibility_name": "Enter Mobile Number",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#fromCity",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#toCity",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "[data-cy=\"desktopCard_43\"]",
+              "text": "Enter Mobile number ",
+              "aria_label": "",
+              "accessibility_name": "Enter Mobile number ",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-hyderabad-to-delhi-flight-312\"]",
+              "text": "Hyderabad to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-hyderabad-flight-92\"]",
+              "text": "Delhi to Hyderabad flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Hyderabad flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-hyderabad-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-goa-flight-30\"]",
+              "text": "Delhi to Goa flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Goa flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-mumbai-flight-31\"]",
+              "text": "Delhi to Mumbai flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Mumbai flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mumbai-to-delhi-flight-32\"]",
+              "text": "Mumbai to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Mumbai to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/mumbai-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-patna-flight-33\"]",
+              "text": "Delhi to Patna flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Patna flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-patna-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-bangalore-to-delhi-flight-35\"]",
+              "text": "Bangalore to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Bangalore to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/bangalore-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-bangalore-flight-36\"]",
+              "text": "Delhi to Bangalore flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Bangalore flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-bangalore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-pune-to-delhi-flight-37\"]",
+              "text": "Pune to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Pune to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/pune-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-patna-to-delhi-flight-38\"]",
+              "text": "Patna to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Patna to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/patna-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-kolkata-flight-39\"]",
+              "text": "Delhi to Kolkata flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Kolkata flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-kolkata-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-kolkata-to-delhi-flight-310\"]",
+              "text": "Kolkata to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Kolkata to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/kolkata-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-pune-flight-314\"]",
+              "text": "Delhi to Pune flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Pune flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-pune-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-srinagar-flight-315\"]",
+              "text": "Delhi to Srinagar flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Srinagar flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-srinagar-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-corporate-flight-booking-55\"]",
+              "text": "Corporate Flight Booking",
+              "aria_label": "",
+              "accessibility_name": "Corporate Flight Booking",
+              "href": "https://mybiz.makemytrip.com/corporate/corporate-flight-booking.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-one-way-cab-646\"]",
+              "text": "One Way Cab",
+              "aria_label": "",
+              "accessibility_name": "One Way Cab",
+              "href": "https://www.makemytrip.com/car-rental/one-way-cab.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-dubai-flight-80\"]",
+              "text": "Delhi to Dubai flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Dubai flight",
+              "href": "https://www.makemytrip.com/international-flights/delhi-dubai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-bali-flight-83\"]",
+              "text": "Delhi to Bali flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Bali flight",
+              "href": "https://www.makemytrip.com/international-flights/delhi-denpasar_bali-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-london-flight-84\"]",
+              "text": "Delhi to London flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to London flight",
+              "href": "https://www.makemytrip.com/international-flights/delhi-london-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-bangkok-flight-85\"]",
+              "text": "Delhi to Bangkok flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Bangkok flight",
+              "href": "https://www.makemytrip.com/international-flights/delhi-bangkok-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(1) > span > a",
+              "text": "Flights  Flights",
+              "aria_label": "",
+              "accessibility_name": "Flights Flights",
+              "href": "https://www.makemytrip.com/flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(2) > span > a",
+              "text": "Hotels  Hotels",
+              "aria_label": "",
+              "accessibility_name": "Hotels Hotels",
+              "href": "https://www.makemytrip.com/hotels/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(3) > span > a",
+              "text": "Villas & Homestays  Villas & Homestays",
+              "aria_label": "",
+              "accessibility_name": "Villas & Homestays Villas & Homestays",
+              "href": "https://www.makemytrip.com/homestays/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(4) > span > a",
+              "text": "Holiday Packages  Holiday Packages",
+              "aria_label": "",
+              "accessibility_name": "Holiday Packages Holiday Packages",
+              "href": "https://www.makemytrip.com/holidays-india/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(5) > span > a",
+              "text": "Trains  Trains",
+              "aria_label": "",
+              "accessibility_name": "Trains Trains",
+              "href": "https://www.makemytrip.com/railways/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(6) > span > a",
+              "text": "Buses  Buses",
+              "aria_label": "",
+              "accessibility_name": "Buses Buses",
+              "href": "https://www.makemytrip.com/bus-tickets/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(7) > span > a",
+              "text": "Cabs  Cabs",
+              "aria_label": "",
+              "accessibility_name": "Cabs Cabs",
+              "href": "https://www.makemytrip.com/cabs/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(8) > span > a",
+              "text": "Tours & Attractions  Tours & Attractions",
+              "aria_label": "",
+              "accessibility_name": "Tours & Attractions Tours & Attractions",
+              "href": "https://www.makemytrip.com/activities/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(9) > span > a",
+              "text": "Visa  Visa",
+              "aria_label": "",
+              "accessibility_name": "Visa Visa",
+              "href": "https://visa.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(10) > span > a",
+              "text": "Forex Card & Currency  Forex Card & Currency",
+              "aria_label": "",
+              "accessibility_name": "Forex Card & Currency Forex Card & Currency",
+              "href": "https://www.makemytrip.com/forex/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(11) > span > a",
+              "text": "Travel Insurance  Travel Insurance",
+              "aria_label": "",
+              "accessibility_name": "Travel Insurance Travel Insurance",
+              "href": "https://www.makemytrip.com/travel-insurance/"
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "[data-cy=\"continueBtn\"]",
+              "text": "Continue",
+              "aria_label": "",
+              "accessibility_name": "Continue",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div > div > div > div:nth-of-type(1) > div:nth-of-type(1) > div > p > a:nth-of-type(1)",
+              "text": "International",
+              "aria_label": "",
+              "accessibility_name": "International",
+              "href": "https://www.makemytrip.com/international-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > p > a:nth-of-type(2)",
+              "text": "Domestic Flights",
+              "aria_label": "",
+              "accessibility_name": "Domestic Flights",
+              "href": "https://www.makemytrip.com/flights/"
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#Offers_Listing > div:nth-of-type(2) > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#Offers_Listing > div:nth-of-type(2) > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#PROMOTIONS > div > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#PROMOTIONS > div > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "[data-testid=\"submitBtnWrapper\"]",
+              "text": "GET APP LINK",
+              "aria_label": "",
+              "accessibility_name": "GET APP LINK",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(8) > div:nth-of-type(2) > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(8) > div:nth-of-type(2) > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(9) > div:nth-of-type(2) > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(9) > div:nth-of-type(2) > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-about-us-00\"]",
+              "text": "About Us",
+              "aria_label": "",
+              "accessibility_name": "About Us",
+              "href": "https://www.makemytrip.com/about-us/company_profile.php"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-investor-relations-01\"]",
+              "text": "Investor Relations",
+              "aria_label": "",
+              "accessibility_name": "Investor Relations",
+              "href": "https://investors.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-careers-02\"]",
+              "text": "Careers",
+              "aria_label": "",
+              "accessibility_name": "Careers",
+              "href": "https://www.makemytrip.com/about-us/jobs.php"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-sustainability-03\"]",
+              "text": "Sustainability",
+              "aria_label": "",
+              "accessibility_name": "Sustainability",
+              "href": "https://sustainability.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mmt-foundation-04\"]",
+              "text": "MMT Foundation",
+              "aria_label": "",
+              "accessibility_name": "MMT Foundation",
+              "href": "https://www.makemytrip.com/csr/mmt_foundation.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-legal-notices-05\"]",
+              "text": "Legal Notices",
+              "aria_label": "",
+              "accessibility_name": "Legal Notices",
+              "href": "https://www.makemytrip.com/legal/notice_privacy_policy.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-csr-policy-06\"]",
+              "text": "CSR Policy & Committee",
+              "aria_label": "",
+              "accessibility_name": "CSR Policy & Committee",
+              "href": "https://www.makemytrip.com/csr/csr_policy.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mybiz-for-corporate-travel-07\"]",
+              "text": "myBiz for Corporate Travel",
+              "aria_label": "",
+              "accessibility_name": "myBiz for Corporate Travel",
+              "href": "https://mybiz.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mypartner---travel-agent-portal-08\"]",
+              "text": "myPartner - Travel Agent Portal",
+              "aria_label": "",
+              "accessibility_name": "myPartner - Travel Agent Portal",
+              "href": "https://mypartner.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-list-your-hotel-09\"]",
+              "text": "List your hotel",
+              "aria_label": "",
+              "accessibility_name": "List your hotel",
+              "href": "https://www.makemytrip.com/hotels/hotelier-register.htm"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-010\"]",
+              "text": "Partners- Redbus",
+              "aria_label": "",
+              "accessibility_name": "Partners- Redbus",
+              "href": "https://www.redbus.in/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-goibibo-011\"]",
+              "text": "Partners- Goibibo",
+              "aria_label": "",
+              "accessibility_name": "Partners- Goibibo",
+              "href": "https://www.goibibo.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-adv-with-us-012\"]",
+              "text": "Advertise with Us",
+              "aria_label": "",
+              "accessibility_name": "Advertise with Us",
+              "href": "https://advertising.makemytrip.com/ad/solutions/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-holiday-franchise-013\"]",
+              "text": "Holiday-Franchise",
+              "aria_label": "",
+              "accessibility_name": "Holiday-Franchise",
+              "href": "https://www.makemytrip.com/franchise"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-bookMyForex-014\"]",
+              "text": "Partners- BookMyForex",
+              "aria_label": "",
+              "accessibility_name": "Partners- BookMyForex",
+              "href": "https://www.bookmyforex.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-ferry-malaysia-015\"]",
+              "text": "RedBus Ferry Malaysia",
+              "aria_label": "",
+              "accessibility_name": "RedBus Ferry Malaysia",
+              "href": "https://www.redbus.my/ferry"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-ferry-singapore-016\"]",
+              "text": "RedBus Ferry Singapore",
+              "aria_label": "",
+              "accessibility_name": "RedBus Ferry Singapore",
+              "href": "https://www.redbus.sg/ferry"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-vietnam-017\"]",
+              "text": "redBus Vietnam",
+              "aria_label": "",
+              "accessibility_name": "redBus Vietnam",
+              "href": "https://www.redbus.vn/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-cambodia-018\"]",
+              "text": "redBus Cambodia",
+              "aria_label": "",
+              "accessibility_name": "redBus Cambodia",
+              "href": "https://www.redbus.com.kh/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-columbia-019\"]",
+              "text": "redBus Columbia",
+              "aria_label": "",
+              "accessibility_name": "redBus Columbia",
+              "href": "https://www.redbus.co/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-peru-020\"]",
+              "text": "redBus Peru",
+              "aria_label": "",
+              "accessibility_name": "redBus Peru",
+              "href": "https://www.redbus.pe/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-indonesia-021\"]",
+              "text": "redBus Indonesia",
+              "aria_label": "",
+              "accessibility_name": "redBus Indonesia",
+              "href": "https://www.redbus.id/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-things-to-do-in-malaysia-022\"]",
+              "text": "Things to Do in Malaysia",
+              "aria_label": "",
+              "accessibility_name": "Things to Do in Malaysia",
+              "href": "https://www.redbus.my/things-to-do/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-things-to-do-in-singapore-023\"]",
+              "text": "Things to Do in Singapore",
+              "aria_label": "",
+              "accessibility_name": "Things to Do in Singapore",
+              "href": "https://www.redbus.sg/things-to-do/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-chennai-flights-10\"]",
+              "text": "Delhi Chennai Flights",
+              "aria_label": "",
+              "accessibility_name": "Delhi Chennai Flights",
+              "href": "https://www.makemytrip.com/flights/new_delhi-chennai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-mumbai-flights-11\"]",
+              "text": "Delhi Mumbai Flights",
+              "aria_label": "",
+              "accessibility_name": "Delhi Mumbai Flights",
+              "href": "https://www.makemytrip.com/flights/new_delhi-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-goa-flights-12\"]",
+              "text": "Delhi Goa Flights",
+              "aria_label": "",
+              "accessibility_name": "Delhi Goa Flights",
+              "href": "https://www.makemytrip.com/flights/new_delhi-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-chennai-mumbai-flights-13\"]",
+              "text": "Chennai Mumbai flights",
+              "aria_label": "",
+              "accessibility_name": "Chennai Mumbai flights",
+              "href": "https://www.makemytrip.com/flights/chennai-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mumbai-hyderabad-flights-14\"]",
+              "text": "Mumbai Hyderabad flights",
+              "aria_label": "",
+              "accessibility_name": "Mumbai Hyderabad flights",
+              "href": "https://www.makemytrip.com/flights/mumbai-hyderabad-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-kolkata-rupsi-flights-15\"]",
+              "text": "Kolkata to Rupsi Flights",
+              "aria_label": "",
+              "accessibility_name": "Kolkata to Rupsi Flights",
+              "href": "https://www.makemytrip.com/flights/kolkata-rupsi-cheap-airtickets.html"
+            }
+          ]
+        },
+        {
+          "url": "https://www.makemytrip.com/",
+          "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+          "visible_text_length": 1000,
+          "controls": [
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#fromCity",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#toCity",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "[data-cy=\"desktopCard_43\"]",
+              "text": "Enter Mobile number ",
+              "aria_label": "",
+              "accessibility_name": "Enter Mobile number ",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-hyderabad-to-delhi-flight-312\"]",
+              "text": "Hyderabad to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-hyderabad-flight-92\"]",
+              "text": "Delhi to Hyderabad flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Hyderabad flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-hyderabad-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-goa-flight-30\"]",
+              "text": "Delhi to Goa flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Goa flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-mumbai-flight-31\"]",
+              "text": "Delhi to Mumbai flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Mumbai flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mumbai-to-delhi-flight-32\"]",
+              "text": "Mumbai to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Mumbai to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/mumbai-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-patna-flight-33\"]",
+              "text": "Delhi to Patna flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Patna flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-patna-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-bangalore-to-delhi-flight-35\"]",
+              "text": "Bangalore to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Bangalore to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/bangalore-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-bangalore-flight-36\"]",
+              "text": "Delhi to Bangalore flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Bangalore flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-bangalore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-pune-to-delhi-flight-37\"]",
+              "text": "Pune to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Pune to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/pune-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-patna-to-delhi-flight-38\"]",
+              "text": "Patna to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Patna to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/patna-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-kolkata-flight-39\"]",
+              "text": "Delhi to Kolkata flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Kolkata flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-kolkata-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-kolkata-to-delhi-flight-310\"]",
+              "text": "Kolkata to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Kolkata to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/kolkata-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-pune-flight-314\"]",
+              "text": "Delhi to Pune flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Pune flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-pune-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-srinagar-flight-315\"]",
+              "text": "Delhi to Srinagar flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Srinagar flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-srinagar-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-corporate-flight-booking-55\"]",
+              "text": "Corporate Flight Booking",
+              "aria_label": "",
+              "accessibility_name": "Corporate Flight Booking",
+              "href": "https://mybiz.makemytrip.com/corporate/corporate-flight-booking.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-one-way-cab-646\"]",
+              "text": "One Way Cab",
+              "aria_label": "",
+              "accessibility_name": "One Way Cab",
+              "href": "https://www.makemytrip.com/car-rental/one-way-cab.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-dubai-flight-80\"]",
+              "text": "Delhi to Dubai flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Dubai flight",
+              "href": "https://www.makemytrip.com/international-flights/delhi-dubai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-bali-flight-83\"]",
+              "text": "Delhi to Bali flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Bali flight",
+              "href": "https://www.makemytrip.com/international-flights/delhi-denpasar_bali-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-london-flight-84\"]",
+              "text": "Delhi to London flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to London flight",
+              "href": "https://www.makemytrip.com/international-flights/delhi-london-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-bangkok-flight-85\"]",
+              "text": "Delhi to Bangkok flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Bangkok flight",
+              "href": "https://www.makemytrip.com/international-flights/delhi-bangkok-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(1) > span > a",
+              "text": "Flights  Flights",
+              "aria_label": "",
+              "accessibility_name": "Flights Flights",
+              "href": "https://www.makemytrip.com/flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(2) > span > a",
+              "text": "Hotels  Hotels",
+              "aria_label": "",
+              "accessibility_name": "Hotels Hotels",
+              "href": "https://www.makemytrip.com/hotels/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(3) > span > a",
+              "text": "Villas & Homestays  Villas & Homestays",
+              "aria_label": "",
+              "accessibility_name": "Villas & Homestays Villas & Homestays",
+              "href": "https://www.makemytrip.com/homestays/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(4) > span > a",
+              "text": "Holiday Packages  Holiday Packages",
+              "aria_label": "",
+              "accessibility_name": "Holiday Packages Holiday Packages",
+              "href": "https://www.makemytrip.com/holidays-india/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(5) > span > a",
+              "text": "Trains  Trains",
+              "aria_label": "",
+              "accessibility_name": "Trains Trains",
+              "href": "https://www.makemytrip.com/railways/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(6) > span > a",
+              "text": "Buses  Buses",
+              "aria_label": "",
+              "accessibility_name": "Buses Buses",
+              "href": "https://www.makemytrip.com/bus-tickets/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(7) > span > a",
+              "text": "Cabs  Cabs",
+              "aria_label": "",
+              "accessibility_name": "Cabs Cabs",
+              "href": "https://www.makemytrip.com/cabs/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(8) > span > a",
+              "text": "Tours & Attractions  Tours & Attractions",
+              "aria_label": "",
+              "accessibility_name": "Tours & Attractions Tours & Attractions",
+              "href": "https://www.makemytrip.com/activities/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(9) > span > a",
+              "text": "Visa  Visa",
+              "aria_label": "",
+              "accessibility_name": "Visa Visa",
+              "href": "https://visa.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(10) > span > a",
+              "text": "Forex Card & Currency  Forex Card & Currency",
+              "aria_label": "",
+              "accessibility_name": "Forex Card & Currency Forex Card & Currency",
+              "href": "https://www.makemytrip.com/forex/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(11) > span > a",
+              "text": "Travel Insurance  Travel Insurance",
+              "aria_label": "",
+              "accessibility_name": "Travel Insurance Travel Insurance",
+              "href": "https://www.makemytrip.com/travel-insurance/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div > div > div > div:nth-of-type(1) > div:nth-of-type(1) > div > p > a:nth-of-type(1)",
+              "text": "International",
+              "aria_label": "",
+              "accessibility_name": "International",
+              "href": "https://www.makemytrip.com/international-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "p > a:nth-of-type(2)",
+              "text": "Domestic Flights",
+              "aria_label": "",
+              "accessibility_name": "Domestic Flights",
+              "href": "https://www.makemytrip.com/flights/"
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#Offers_Listing > div:nth-of-type(2) > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#Offers_Listing > div:nth-of-type(2) > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#PROMOTIONS > div > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#PROMOTIONS > div > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "[data-testid=\"submitBtnWrapper\"]",
+              "text": "GET APP LINK",
+              "aria_label": "",
+              "accessibility_name": "GET APP LINK",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(8) > div:nth-of-type(2) > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(8) > div:nth-of-type(2) > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(9) > div:nth-of-type(2) > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(9) > div:nth-of-type(2) > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-about-us-00\"]",
+              "text": "About Us",
+              "aria_label": "",
+              "accessibility_name": "About Us",
+              "href": "https://www.makemytrip.com/about-us/company_profile.php"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-investor-relations-01\"]",
+              "text": "Investor Relations",
+              "aria_label": "",
+              "accessibility_name": "Investor Relations",
+              "href": "https://investors.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-careers-02\"]",
+              "text": "Careers",
+              "aria_label": "",
+              "accessibility_name": "Careers",
+              "href": "https://www.makemytrip.com/about-us/jobs.php"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-sustainability-03\"]",
+              "text": "Sustainability",
+              "aria_label": "",
+              "accessibility_name": "Sustainability",
+              "href": "https://sustainability.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mmt-foundation-04\"]",
+              "text": "MMT Foundation",
+              "aria_label": "",
+              "accessibility_name": "MMT Foundation",
+              "href": "https://www.makemytrip.com/csr/mmt_foundation.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-legal-notices-05\"]",
+              "text": "Legal Notices",
+              "aria_label": "",
+              "accessibility_name": "Legal Notices",
+              "href": "https://www.makemytrip.com/legal/notice_privacy_policy.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-csr-policy-06\"]",
+              "text": "CSR Policy & Committee",
+              "aria_label": "",
+              "accessibility_name": "CSR Policy & Committee",
+              "href": "https://www.makemytrip.com/csr/csr_policy.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mybiz-for-corporate-travel-07\"]",
+              "text": "myBiz for Corporate Travel",
+              "aria_label": "",
+              "accessibility_name": "myBiz for Corporate Travel",
+              "href": "https://mybiz.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mypartner---travel-agent-portal-08\"]",
+              "text": "myPartner - Travel Agent Portal",
+              "aria_label": "",
+              "accessibility_name": "myPartner - Travel Agent Portal",
+              "href": "https://mypartner.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-list-your-hotel-09\"]",
+              "text": "List your hotel",
+              "aria_label": "",
+              "accessibility_name": "List your hotel",
+              "href": "https://www.makemytrip.com/hotels/hotelier-register.htm"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-010\"]",
+              "text": "Partners- Redbus",
+              "aria_label": "",
+              "accessibility_name": "Partners- Redbus",
+              "href": "https://www.redbus.in/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-goibibo-011\"]",
+              "text": "Partners- Goibibo",
+              "aria_label": "",
+              "accessibility_name": "Partners- Goibibo",
+              "href": "https://www.goibibo.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-adv-with-us-012\"]",
+              "text": "Advertise with Us",
+              "aria_label": "",
+              "accessibility_name": "Advertise with Us",
+              "href": "https://advertising.makemytrip.com/ad/solutions/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-holiday-franchise-013\"]",
+              "text": "Holiday-Franchise",
+              "aria_label": "",
+              "accessibility_name": "Holiday-Franchise",
+              "href": "https://www.makemytrip.com/franchise"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-bookMyForex-014\"]",
+              "text": "Partners- BookMyForex",
+              "aria_label": "",
+              "accessibility_name": "Partners- BookMyForex",
+              "href": "https://www.bookmyforex.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-ferry-malaysia-015\"]",
+              "text": "RedBus Ferry Malaysia",
+              "aria_label": "",
+              "accessibility_name": "RedBus Ferry Malaysia",
+              "href": "https://www.redbus.my/ferry"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-ferry-singapore-016\"]",
+              "text": "RedBus Ferry Singapore",
+              "aria_label": "",
+              "accessibility_name": "RedBus Ferry Singapore",
+              "href": "https://www.redbus.sg/ferry"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-vietnam-017\"]",
+              "text": "redBus Vietnam",
+              "aria_label": "",
+              "accessibility_name": "redBus Vietnam",
+              "href": "https://www.redbus.vn/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-cambodia-018\"]",
+              "text": "redBus Cambodia",
+              "aria_label": "",
+              "accessibility_name": "redBus Cambodia",
+              "href": "https://www.redbus.com.kh/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-columbia-019\"]",
+              "text": "redBus Columbia",
+              "aria_label": "",
+              "accessibility_name": "redBus Columbia",
+              "href": "https://www.redbus.co/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-peru-020\"]",
+              "text": "redBus Peru",
+              "aria_label": "",
+              "accessibility_name": "redBus Peru",
+              "href": "https://www.redbus.pe/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-redbus-indonesia-021\"]",
+              "text": "redBus Indonesia",
+              "aria_label": "",
+              "accessibility_name": "redBus Indonesia",
+              "href": "https://www.redbus.id/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-things-to-do-in-malaysia-022\"]",
+              "text": "Things to Do in Malaysia",
+              "aria_label": "",
+              "accessibility_name": "Things to Do in Malaysia",
+              "href": "https://www.redbus.my/things-to-do/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-things-to-do-in-singapore-023\"]",
+              "text": "Things to Do in Singapore",
+              "aria_label": "",
+              "accessibility_name": "Things to Do in Singapore",
+              "href": "https://www.redbus.sg/things-to-do/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-chennai-flights-10\"]",
+              "text": "Delhi Chennai Flights",
+              "aria_label": "",
+              "accessibility_name": "Delhi Chennai Flights",
+              "href": "https://www.makemytrip.com/flights/new_delhi-chennai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-mumbai-flights-11\"]",
+              "text": "Delhi Mumbai Flights",
+              "aria_label": "",
+              "accessibility_name": "Delhi Mumbai Flights",
+              "href": "https://www.makemytrip.com/flights/new_delhi-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-goa-flights-12\"]",
+              "text": "Delhi Goa Flights",
+              "aria_label": "",
+              "accessibility_name": "Delhi Goa Flights",
+              "href": "https://www.makemytrip.com/flights/new_delhi-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-chennai-mumbai-flights-13\"]",
+              "text": "Chennai Mumbai flights",
+              "aria_label": "",
+              "accessibility_name": "Chennai Mumbai flights",
+              "href": "https://www.makemytrip.com/flights/chennai-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mumbai-hyderabad-flights-14\"]",
+              "text": "Mumbai Hyderabad flights",
+              "aria_label": "",
+              "accessibility_name": "Mumbai Hyderabad flights",
+              "href": "https://www.makemytrip.com/flights/mumbai-hyderabad-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-kolkata-rupsi-flights-15\"]",
+              "text": "Kolkata to Rupsi Flights",
+              "aria_label": "",
+              "accessibility_name": "Kolkata to Rupsi Flights",
+              "href": "https://www.makemytrip.com/flights/kolkata-rupsi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-rupsi-guwahati-flights-16\"]",
+              "text": "Rupsi to Guwahati Flights",
+              "aria_label": "",
+              "accessibility_name": "Rupsi to Guwahati Flights",
+              "href": "https://www.makemytrip.com/flights/rupsi-guwahati-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-pasighat-guwahati-flights-17\"]",
+              "text": "Pasighat to Guwahati Flights",
+              "aria_label": "",
+              "accessibility_name": "Pasighat to Guwahati Flights",
+              "href": "https://www.makemytrip.com/flights/pasighat-guwahati-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-khajuraho-flights-18\"]",
+              "text": "Delhi to Khajuraho Flights",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Khajuraho Flights",
+              "href": "https://www.makemytrip.com/flights/new_delhi-khajuraho-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-cochin-agatti-island-flights-19\"]",
+              "text": "Cochin to Agatti Island Flights",
+              "aria_label": "",
+              "accessibility_name": "Cochin to Agatti Island Flights",
+              "href": "https://www.makemytrip.com/flights/kochi-agatti_island-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-hotels-110\"]",
+              "text": "Hotels in Delhi",
+              "aria_label": "",
+              "accessibility_name": "Hotels in Delhi",
+              "href": "https://www.makemytrip.com/hotels/delhi-hotels.html"
+            }
+          ]
+        },
+        {
+          "url": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html",
+          "title": "Hyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 OFF | MakeMyTrip India",
+          "visible_text_length": 1000,
+          "controls": [
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#fromCity",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#toCity",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#departure",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "Wed, Oct 07, 2026",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#return",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#travellerAndClass",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "p:nth-of-type(2) > a",
+              "text": "https://www.goibibo.com/flights/hyderabad-to-delhi-flights/",
+              "aria_label": "",
+              "accessibility_name": "https://www.goibibo.com/flights/hyderabad-to-delhi-flights/",
+              "href": "https://www.goibibo.com/flights/hyderabad-to-delhi-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(13) > a",
+              "text": "Hyderabad to Delhi Flight",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad to Delhi Flight",
+              "href": "https://www.goibibo.com/flights/hyderabad-to-delhi-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(20) > a",
+              "text": "Delhi to Hyderabad Flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Hyderabad Flight",
+              "href": "https://www.goibibo.com/flights/delhi-to-hyderabad-flights/"
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Thursday, 1 October 2026\"]",
+              "text": "1",
+              "aria_label": "Thursday, 1 October 2026",
+              "accessibility_name": "Thursday, 1 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Friday, 2 October 2026\"]",
+              "text": "2",
+              "aria_label": "Friday, 2 October 2026",
+              "accessibility_name": "Friday, 2 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Saturday, 3 October 2026\"]",
+              "text": "3",
+              "aria_label": "Saturday, 3 October 2026",
+              "accessibility_name": "Saturday, 3 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Sunday, 4 October 2026\"]",
+              "text": "4",
+              "aria_label": "Sunday, 4 October 2026",
+              "accessibility_name": "Sunday, 4 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Monday, 5 October 2026\"]",
+              "text": "5",
+              "aria_label": "Monday, 5 October 2026",
+              "accessibility_name": "Monday, 5 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Tuesday, 6 October 2026\"]",
+              "text": "68,647",
+              "aria_label": "Tuesday, 6 October 2026",
+              "accessibility_name": "Tuesday, 6 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Wednesday, 7 October 2026\"]",
+              "text": "78,499",
+              "aria_label": "Wednesday, 7 October 2026",
+              "accessibility_name": "Wednesday, 7 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Thursday, 8 October 2026\"]",
+              "text": "88,848",
+              "aria_label": "Thursday, 8 October 2026",
+              "accessibility_name": "Thursday, 8 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Friday, 9 October 2026\"]",
+              "text": "911,798",
+              "aria_label": "Friday, 9 October 2026",
+              "accessibility_name": "Friday, 9 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Saturday, 10 October 2026\"]",
+              "text": "1012,009",
+              "aria_label": "Saturday, 10 October 2026",
+              "accessibility_name": "Saturday, 10 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Sunday, 11 October 2026\"]",
+              "text": "1111,808",
+              "aria_label": "Sunday, 11 October 2026",
+              "accessibility_name": "Sunday, 11 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Monday, 12 October 2026\"]",
+              "text": "128,710",
+              "aria_label": "Monday, 12 October 2026",
+              "accessibility_name": "Monday, 12 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Tuesday, 13 October 2026\"]",
+              "text": "138,647",
+              "aria_label": "Tuesday, 13 October 2026",
+              "accessibility_name": "Tuesday, 13 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Wednesday, 14 October 2026\"]",
+              "text": "148,647",
+              "aria_label": "Wednesday, 14 October 2026",
+              "accessibility_name": "Wednesday, 14 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Thursday, 15 October 2026\"]",
+              "text": "158,647",
+              "aria_label": "Thursday, 15 October 2026",
+              "accessibility_name": "Thursday, 15 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Friday, 16 October 2026\"]",
+              "text": "169,922",
+              "aria_label": "Friday, 16 October 2026",
+              "accessibility_name": "Friday, 16 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Saturday, 17 October 2026\"]",
+              "text": "178,708",
+              "aria_label": "Saturday, 17 October 2026",
+              "accessibility_name": "Saturday, 17 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Sunday, 18 October 2026\"]",
+              "text": "188,710",
+              "aria_label": "Sunday, 18 October 2026",
+              "accessibility_name": "Sunday, 18 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Monday, 19 October 2026\"]",
+              "text": "198,647",
+              "aria_label": "Monday, 19 October 2026",
+              "accessibility_name": "Monday, 19 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Tuesday, 20 October 2026\"]",
+              "text": "208,647",
+              "aria_label": "Tuesday, 20 October 2026",
+              "accessibility_name": "Tuesday, 20 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Wednesday, 21 October 2026\"]",
+              "text": "218,710",
+              "aria_label": "Wednesday, 21 October 2026",
+              "accessibility_name": "Wednesday, 21 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Thursday, 22 October 2026\"]",
+              "text": "229,183",
+              "aria_label": "Thursday, 22 October 2026",
+              "accessibility_name": "Thursday, 22 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Friday, 23 October 2026\"]",
+              "text": "239,688",
+              "aria_label": "Friday, 23 October 2026",
+              "accessibility_name": "Friday, 23 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Saturday, 24 October 2026\"]",
+              "text": "248,493",
+              "aria_label": "Saturday, 24 October 2026",
+              "accessibility_name": "Saturday, 24 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Sunday, 25 October 2026\"]",
+              "text": "259,183",
+              "aria_label": "Sunday, 25 October 2026",
+              "accessibility_name": "Sunday, 25 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Monday, 26 October 2026\"]",
+              "text": "269,593",
+              "aria_label": "Monday, 26 October 2026",
+              "accessibility_name": "Monday, 26 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Tuesday, 27 October 2026\"]",
+              "text": "278,647",
+              "aria_label": "Tuesday, 27 October 2026",
+              "accessibility_name": "Tuesday, 27 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Wednesday, 28 October 2026\"]",
+              "text": "288,822",
+              "aria_label": "Wednesday, 28 October 2026",
+              "accessibility_name": "Wednesday, 28 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Thursday, 29 October 2026\"]",
+              "text": "298,084",
+              "aria_label": "Thursday, 29 October 2026",
+              "accessibility_name": "Thursday, 29 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Friday, 30 October 2026\"]",
+              "text": "309,033",
+              "aria_label": "Friday, 30 October 2026",
+              "accessibility_name": "Friday, 30 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Saturday, 31 October 2026\"]",
+              "text": "319,138",
+              "aria_label": "Saturday, 31 October 2026",
+              "accessibility_name": "Saturday, 31 October 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Sunday, 1 November 2026\"]",
+              "text": "18,822",
+              "aria_label": "Sunday, 1 November 2026",
+              "accessibility_name": "Sunday, 1 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Monday, 2 November 2026\"]",
+              "text": "29,439",
+              "aria_label": "Monday, 2 November 2026",
+              "accessibility_name": "Monday, 2 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Tuesday, 3 November 2026\"]",
+              "text": "39,348",
+              "aria_label": "Tuesday, 3 November 2026",
+              "accessibility_name": "Tuesday, 3 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Wednesday, 4 November 2026\"]",
+              "text": "410,189",
+              "aria_label": "Wednesday, 4 November 2026",
+              "accessibility_name": "Wednesday, 4 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Thursday, 5 November 2026\"]",
+              "text": "510,584",
+              "aria_label": "Thursday, 5 November 2026",
+              "accessibility_name": "Thursday, 5 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Friday, 6 November 2026\"]",
+              "text": "610,041",
+              "aria_label": "Friday, 6 November 2026",
+              "accessibility_name": "Friday, 6 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Saturday, 7 November 2026\"]",
+              "text": "79,697",
+              "aria_label": "Saturday, 7 November 2026",
+              "accessibility_name": "Saturday, 7 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Sunday, 8 November 2026\"]",
+              "text": "88,067",
+              "aria_label": "Sunday, 8 November 2026",
+              "accessibility_name": "Sunday, 8 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Monday, 9 November 2026\"]",
+              "text": "98,396",
+              "aria_label": "Monday, 9 November 2026",
+              "accessibility_name": "Monday, 9 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Tuesday, 10 November 2026\"]",
+              "text": "108,396",
+              "aria_label": "Tuesday, 10 November 2026",
+              "accessibility_name": "Tuesday, 10 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Wednesday, 11 November 2026\"]",
+              "text": "118,396",
+              "aria_label": "Wednesday, 11 November 2026",
+              "accessibility_name": "Wednesday, 11 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Thursday, 12 November 2026\"]",
+              "text": "128,499",
+              "aria_label": "Thursday, 12 November 2026",
+              "accessibility_name": "Thursday, 12 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Friday, 13 November 2026\"]",
+              "text": "138,954",
+              "aria_label": "Friday, 13 November 2026",
+              "accessibility_name": "Friday, 13 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Saturday, 14 November 2026\"]",
+              "text": "149,112",
+              "aria_label": "Saturday, 14 November 2026",
+              "accessibility_name": "Saturday, 14 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Sunday, 15 November 2026\"]",
+              "text": "158,822",
+              "aria_label": "Sunday, 15 November 2026",
+              "accessibility_name": "Sunday, 15 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Monday, 16 November 2026\"]",
+              "text": "168,352",
+              "aria_label": "Monday, 16 November 2026",
+              "accessibility_name": "Monday, 16 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Tuesday, 17 November 2026\"]",
+              "text": "178,800",
+              "aria_label": "Tuesday, 17 November 2026",
+              "accessibility_name": "Tuesday, 17 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Wednesday, 18 November 2026\"]",
+              "text": "188,396",
+              "aria_label": "Wednesday, 18 November 2026",
+              "accessibility_name": "Wednesday, 18 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Thursday, 19 November 2026\"]",
+              "text": "198,352",
+              "aria_label": "Thursday, 19 November 2026",
+              "accessibility_name": "Thursday, 19 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Friday, 20 November 2026\"]",
+              "text": "208,278",
+              "aria_label": "Friday, 20 November 2026",
+              "accessibility_name": "Friday, 20 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Saturday, 21 November 2026\"]",
+              "text": "217,872",
+              "aria_label": "Saturday, 21 November 2026",
+              "accessibility_name": "Saturday, 21 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Sunday, 22 November 2026\"]",
+              "text": "228,278",
+              "aria_label": "Sunday, 22 November 2026",
+              "accessibility_name": "Sunday, 22 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Monday, 23 November 2026\"]",
+              "text": "237,872",
+              "aria_label": "Monday, 23 November 2026",
+              "accessibility_name": "Monday, 23 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Tuesday, 24 November 2026\"]",
+              "text": "247,872",
+              "aria_label": "Tuesday, 24 November 2026",
+              "accessibility_name": "Tuesday, 24 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Wednesday, 25 November 2026\"]",
+              "text": "258,278",
+              "aria_label": "Wednesday, 25 November 2026",
+              "accessibility_name": "Wednesday, 25 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Thursday, 26 November 2026\"]",
+              "text": "267,872",
+              "aria_label": "Thursday, 26 November 2026",
+              "accessibility_name": "Thursday, 26 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Friday, 27 November 2026\"]",
+              "text": "277,872",
+              "aria_label": "Friday, 27 November 2026",
+              "accessibility_name": "Friday, 27 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Saturday, 28 November 2026\"]",
+              "text": "288,278",
+              "aria_label": "Saturday, 28 November 2026",
+              "accessibility_name": "Saturday, 28 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Sunday, 29 November 2026\"]",
+              "text": "298,278",
+              "aria_label": "Sunday, 29 November 2026",
+              "accessibility_name": "Sunday, 29 November 2026",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "gridcell",
+              "selector": "div[aria-label=\"Monday, 30 November 2026\"]",
+              "text": "307,872",
+              "aria_label": "Monday, 30 November 2026",
+              "accessibility_name": "Monday, 30 November 2026",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(1) > span > a",
+              "text": "Flights  Flights",
+              "aria_label": "",
+              "accessibility_name": "Flights Flights",
+              "href": "https://www.makemytrip.com/flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(2) > span > a",
+              "text": "Hotels  Hotels",
+              "aria_label": "",
+              "accessibility_name": "Hotels Hotels",
+              "href": "https://www.makemytrip.com/hotels/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(3) > span > a",
+              "text": "Villas & Homestays  Villas & Homestays",
+              "aria_label": "",
+              "accessibility_name": "Villas & Homestays Villas & Homestays",
+              "href": "https://www.makemytrip.com/homestays/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(4) > span > a",
+              "text": "Holiday Packages  Holiday Packages",
+              "aria_label": "",
+              "accessibility_name": "Holiday Packages Holiday Packages",
+              "href": "https://www.makemytrip.com/holidays-india/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(5) > span > a",
+              "text": "Trains  Trains",
+              "aria_label": "",
+              "accessibility_name": "Trains Trains",
+              "href": "https://www.makemytrip.com/railways/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(6) > span > a",
+              "text": "Buses  Buses",
+              "aria_label": "",
+              "accessibility_name": "Buses Buses",
+              "href": "https://www.makemytrip.com/bus-tickets/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(7) > span > a",
+              "text": "Cabs  Cabs",
+              "aria_label": "",
+              "accessibility_name": "Cabs Cabs",
+              "href": "https://www.makemytrip.com/cabs/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(8) > span > a",
+              "text": "Forex Card & Currency  Forex Card & Currency",
+              "aria_label": "",
+              "accessibility_name": "Forex Card & Currency Forex Card & Currency",
+              "href": "https://www.makemytrip.com/forex/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(9) > span > a",
+              "text": "Travel Insurance  Travel Insurance",
+              "aria_label": "",
+              "accessibility_name": "Travel Insurance Travel Insurance",
+              "href": "https://www.makemytrip.com/insurance/"
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "button",
+              "selector": "span[aria-label=\"Next Month\"]",
+              "text": "",
+              "aria_label": "Next Month",
+              "accessibility_name": "Next Month",
+              "href": ""
+            },
+            {
+              "type": "div",
+              "input_type": "",
+              "role": "row",
+              "selector": "div[role=\"grid\"]:nth-of-type(1) > div[role=\"rowgroup\"]:nth-of-type(2) > div[role=\"row\"]",
+              "text": "SuMoTuWeThFrSa",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            }
+          ]
+        },
+        {
+          "url": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html",
+          "title": "Hyderabad to Delhi Flights, Fares @ \u20b9 7412 + Upto \u20b9800 OFF | MakeMyTrip India",
+          "visible_text_length": 1000,
+          "controls": [
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#fromCity",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#toCity",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#departure",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "Wed, Oct 07, 2026",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#return",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "input",
+              "input_type": "text",
+              "role": "textbox",
+              "selector": "#travellerAndClass",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "p:nth-of-type(2) > a",
+              "text": "https://www.goibibo.com/flights/hyderabad-to-delhi-flights/",
+              "aria_label": "",
+              "accessibility_name": "https://www.goibibo.com/flights/hyderabad-to-delhi-flights/",
+              "href": "https://www.goibibo.com/flights/hyderabad-to-delhi-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(13) > a",
+              "text": "Hyderabad to Delhi Flight",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad to Delhi Flight",
+              "href": "https://www.goibibo.com/flights/hyderabad-to-delhi-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(20) > a",
+              "text": "Delhi to Hyderabad Flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Hyderabad Flight",
+              "href": "https://www.goibibo.com/flights/delhi-to-hyderabad-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "section:nth-of-type(2) > ul > li:nth-of-type(1) > a",
+              "text": "Hyderabad Delhi Air India Flights",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad Delhi Air India Flights",
+              "href": "https://www.makemytrip.com/flights/hyderabad-new_delhi-air_india-tickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "section:nth-of-type(2) > ul > li:nth-of-type(2) > a",
+              "text": "Hyderabad Delhi Indigo Flights",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad Delhi Indigo Flights",
+              "href": "https://www.makemytrip.com/flights/hyderabad-new_delhi-indigo-tickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "section:nth-of-type(2) > ul > li:nth-of-type(3) > a",
+              "text": "Hyderabad Delhi Spicejet Flights",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad Delhi Spicejet Flights",
+              "href": "https://www.makemytrip.com/flights/hyderabad-new_delhi-spicejet-tickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "section:nth-of-type(2) > ul > li:nth-of-type(4) > a",
+              "text": "Hyderabad Delhi AirAsia Flights",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad Delhi AirAsia Flights",
+              "href": "https://www.makemytrip.com/flights/hyderabad-new_delhi-air_asia-tickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "section:nth-of-type(2) > ul > li:nth-of-type(5) > a",
+              "text": "Hyderabad Delhi Air India Express Flights",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad Delhi Air India Express Flights",
+              "href": "https://www.makemytrip.com/flights/hyderabad-new_delhi-air_india_express-tickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[title=\"Hyderabad Delhi Distance\"]",
+              "text": "Hyderabad Delhi Distance",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad Delhi Distance",
+              "href": "https://www.makemytrip.com/flights/hyderabad-new_delhi-distance.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "#contentMiddleBlocks > div > div:nth-of-type(2) > ul > li:nth-of-type(2) > a",
+              "text": "Flight Booking",
+              "aria_label": "",
+              "accessibility_name": "Flight Booking",
+              "href": "https://www.makemytrip.com/flights/"
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "span[title=\"Flight Booking\"]",
+              "text": "Flight Booking",
+              "aria_label": "",
+              "accessibility_name": "Flight Booking",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "span[title=\"Hyderabad to Delhi Flights\"]",
+              "text": "Hyderabad to Delhi Flights",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad to Delhi Flights",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(1) > a",
+              "text": "Delhi to Goa Flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Goa Flight",
+              "href": "https://www.goibibo.com/flights/delhi-to-goa-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(2) > a",
+              "text": "Delhi to Mumbai Flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Mumbai Flight",
+              "href": "https://www.goibibo.com/flights/delhi-to-mumbai-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(3) > a",
+              "text": "Mumbai to Delhi Flight",
+              "aria_label": "",
+              "accessibility_name": "Mumbai to Delhi Flight",
+              "href": "https://www.goibibo.com/flights/mumbai-to-delhi-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(4) > a",
+              "text": "Delhi to Patna Flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Patna Flight",
+              "href": "https://www.goibibo.com/flights/delhi-to-patna-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(5) > a",
+              "text": "Bangalore to Delhi Flight",
+              "aria_label": "",
+              "accessibility_name": "Bangalore to Delhi Flight",
+              "href": "https://www.goibibo.com/flights/bangalore-to-delhi-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(6) > a",
+              "text": "Delhi to Bangalore Flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Bangalore Flight",
+              "href": "https://www.goibibo.com/flights/delhi-to-bangalore-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(7) > a",
+              "text": "Patna to Delhi Flight",
+              "aria_label": "",
+              "accessibility_name": "Patna to Delhi Flight",
+              "href": "https://www.goibibo.com/flights/patna-to-delhi-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(8) > div > ul > li:nth-of-type(8) > a",
+              "text": "Pune to Delhi Flight",
+              "aria_label": "",
+              "accessibility_name": "Pune to Delhi Flight",
+              "href": "https://www.goibibo.com/flights/pune-to-delhi-flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(1) > span > a",
+              "text": "Flights  Flights",
+              "aria_label": "",
+              "accessibility_name": "Flights Flights",
+              "href": "https://www.makemytrip.com/flights/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(2) > span > a",
+              "text": "Hotels  Hotels",
+              "aria_label": "",
+              "accessibility_name": "Hotels Hotels",
+              "href": "https://www.makemytrip.com/hotels/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(3) > span > a",
+              "text": "Villas & Homestays  Villas & Homestays",
+              "aria_label": "",
+              "accessibility_name": "Villas & Homestays Villas & Homestays",
+              "href": "https://www.makemytrip.com/homestays/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(4) > span > a",
+              "text": "Holiday Packages  Holiday Packages",
+              "aria_label": "",
+              "accessibility_name": "Holiday Packages Holiday Packages",
+              "href": "https://www.makemytrip.com/holidays-india/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(5) > span > a",
+              "text": "Trains  Trains",
+              "aria_label": "",
+              "accessibility_name": "Trains Trains",
+              "href": "https://www.makemytrip.com/railways/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(6) > span > a",
+              "text": "Buses  Buses",
+              "aria_label": "",
+              "accessibility_name": "Buses Buses",
+              "href": "https://www.makemytrip.com/bus-tickets/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(7) > span > a",
+              "text": "Cabs  Cabs",
+              "aria_label": "",
+              "accessibility_name": "Cabs Cabs",
+              "href": "https://www.makemytrip.com/cabs/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(8) > span > a",
+              "text": "Forex Card & Currency  Forex Card & Currency",
+              "aria_label": "",
+              "accessibility_name": "Forex Card & Currency Forex Card & Currency",
+              "href": "https://www.makemytrip.com/forex/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "li:nth-of-type(9) > span > a",
+              "text": "Travel Insurance  Travel Insurance",
+              "aria_label": "",
+              "accessibility_name": "Travel Insurance Travel Insurance",
+              "href": "https://www.makemytrip.com/insurance/"
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#search-widget > div > button",
+              "text": "SEARCH",
+              "aria_label": "",
+              "accessibility_name": "SEARCH",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div > label:nth-of-type(1) > div > span:nth-of-type(2) > span",
+              "text": "Non Stop",
+              "aria_label": "",
+              "accessibility_name": "Non Stop",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div > label:nth-of-type(2) > div > span:nth-of-type(2) > span",
+              "text": "IndiGo",
+              "aria_label": "",
+              "accessibility_name": "IndiGo",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div > label:nth-of-type(3) > div > span:nth-of-type(2) > span",
+              "text": "Air India",
+              "aria_label": "",
+              "accessibility_name": "Air India",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div > label:nth-of-type(4) > div > span:nth-of-type(2) > span",
+              "text": "SpiceJet",
+              "aria_label": "",
+              "accessibility_name": "SpiceJet",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "span[title=\"Indira Gandhi International Airport\"]",
+              "text": "Indira Gandhi International Airport",
+              "aria_label": "",
+              "accessibility_name": "Indira Gandhi International Airport",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "span[title=\"Noida International Airport (71Km)\"]",
+              "text": "Noida International Airport (71Km)",
+              "aria_label": "",
+              "accessibility_name": "Noida International Airport (71Km)",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "div:nth-of-type(4) > div > label > div > span:nth-of-type(2) > span",
+              "text": "Non Stop",
+              "aria_label": "",
+              "accessibility_name": "Non Stop",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "div:nth-of-type(7) > div > label:nth-of-type(1) > div > span:nth-of-type(2) > span",
+              "text": "Air India",
+              "aria_label": "",
+              "accessibility_name": "Air India",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "div:nth-of-type(7) > div > label:nth-of-type(2) > div > span:nth-of-type(2) > span",
+              "text": "Akasa Air",
+              "aria_label": "",
+              "accessibility_name": "Akasa Air",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "div:nth-of-type(7) > div > label:nth-of-type(3) > div > span:nth-of-type(2) > span",
+              "text": "IndiGo",
+              "aria_label": "",
+              "accessibility_name": "IndiGo",
+              "href": ""
+            },
+            {
+              "type": "span",
+              "input_type": "",
+              "role": "generic",
+              "selector": "div:nth-of-type(7) > div > label:nth-of-type(4) > div > span:nth-of-type(2) > span",
+              "text": "SpiceJet",
+              "aria_label": "",
+              "accessibility_name": "SpiceJet",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(1) > a",
+              "text": "Delhi To Mumbai FlightsLowest Fare \u20b96,343",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Mumbai FlightsLowest Fare \u20b96,343",
+              "href": "https://www.makemytrip.com/flights/new_delhi-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(2) > a",
+              "text": "Delhi To Bangalore FlightsLowest Fare \u20b97,561",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Bangalore FlightsLowest Fare \u20b97,561",
+              "href": "https://www.makemytrip.com/flights/new_delhi-bangalore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(3) > a",
+              "text": "Delhi To Pune FlightsLowest Fare \u20b96,578",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Pune FlightsLowest Fare \u20b96,578",
+              "href": "https://www.makemytrip.com/flights/new_delhi-pune-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(4) > a",
+              "text": "Delhi To Kolkata FlightsLowest Fare \u20b96,039",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Kolkata FlightsLowest Fare \u20b96,039",
+              "href": "https://www.makemytrip.com/flights/new_delhi-kolkata-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(5) > a",
+              "text": "Delhi To Chennai FlightsLowest Fare \u20b98,814",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Chennai FlightsLowest Fare \u20b98,814",
+              "href": "https://www.makemytrip.com/flights/new_delhi-chennai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(6) > a",
+              "text": "Delhi To Patna FlightsLowest Fare \u20b96,338",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Patna FlightsLowest Fare \u20b96,338",
+              "href": "https://www.makemytrip.com/flights/new_delhi-patna-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(7) > a",
+              "text": "Delhi To Ahmedabad FlightsLowest Fare \u20b95,225",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Ahmedabad FlightsLowest Fare \u20b95,225",
+              "href": "https://www.makemytrip.com/flights/new_delhi-ahmedabad-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(8) > a",
+              "text": "Delhi To Guwahati FlightsLowest Fare \u20b98,207",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Guwahati FlightsLowest Fare \u20b98,207",
+              "href": "https://www.makemytrip.com/flights/new_delhi-guwahati-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(9) > a",
+              "text": "Delhi To Bagdogra FlightsLowest Fare \u20b95,488",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Bagdogra FlightsLowest Fare \u20b95,488",
+              "href": "https://www.makemytrip.com/flights/new_delhi-bagdogra-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(10) > a",
+              "text": "Delhi To Lucknow FlightsLowest Fare \u20b93,325",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Lucknow FlightsLowest Fare \u20b93,325",
+              "href": "https://www.makemytrip.com/flights/new_delhi-lucknow-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(11) > a",
+              "text": "Delhi To Ranchi FlightsLowest Fare \u20b96,998",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Ranchi FlightsLowest Fare \u20b96,998",
+              "href": "https://www.makemytrip.com/flights/new_delhi-ranchi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(12) > a",
+              "text": "Delhi To Bhubaneswar FlightsLowest Fare \u20b99,249",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Bhubaneswar FlightsLowest Fare \u20b99,249",
+              "href": "https://www.makemytrip.com/flights/new_delhi-bhubaneswar-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(13) > a",
+              "text": "Delhi To Cochin FlightsLowest Fare \u20b910,452",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Cochin FlightsLowest Fare \u20b910,452",
+              "href": "https://www.makemytrip.com/flights/new_delhi-kochi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(14) > a",
+              "text": "Delhi To Srinagar FlightsLowest Fare \u20b95,944",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Srinagar FlightsLowest Fare \u20b95,944",
+              "href": "https://www.makemytrip.com/flights/new_delhi-srinagar-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(15) > a",
+              "text": "Delhi To Indore FlightsLowest Fare \u20b96,424",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Indore FlightsLowest Fare \u20b96,424",
+              "href": "https://www.makemytrip.com/flights/new_delhi-indore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(16) > a",
+              "text": "Delhi To Raipur FlightsLowest Fare \u20b97,065",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Raipur FlightsLowest Fare \u20b97,065",
+              "href": "https://www.makemytrip.com/flights/new_delhi-raipur-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(17) > a",
+              "text": "Delhi To Goa FlightsLowest Fare \u20b96,923",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Goa FlightsLowest Fare \u20b96,923",
+              "href": "https://www.makemytrip.com/flights/new_delhi-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(18) > a",
+              "text": "Delhi To Varanasi FlightsLowest Fare \u20b95,232",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Varanasi FlightsLowest Fare \u20b95,232",
+              "href": "https://www.makemytrip.com/flights/new_delhi-varanasi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(19) > a",
+              "text": "Delhi To Imphal FlightsLowest Fare \u20b98,297",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Imphal FlightsLowest Fare \u20b98,297",
+              "href": "https://www.makemytrip.com/flights/new_delhi-imphal-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(20) > a",
+              "text": "Delhi To Leh FlightsLowest Fare \u20b94,947",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Leh FlightsLowest Fare \u20b94,947",
+              "href": "https://www.makemytrip.com/flights/new_delhi-leh-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(21) > a",
+              "text": "Delhi To Nagpur FlightsLowest Fare \u20b96,216",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Nagpur FlightsLowest Fare \u20b96,216",
+              "href": "https://www.makemytrip.com/flights/new_delhi-nagpur-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(22) > a",
+              "text": "Delhi To Bhopal FlightsLowest Fare \u20b95,094",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Bhopal FlightsLowest Fare \u20b95,094",
+              "href": "https://www.makemytrip.com/flights/new_delhi-bhopal-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(23) > a",
+              "text": "Delhi To Surat FlightsLowest Fare \u20b95,710",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Surat FlightsLowest Fare \u20b95,710",
+              "href": "https://www.makemytrip.com/flights/new_delhi-surat-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(1) > div > div:nth-of-type(24) > a",
+              "text": "Delhi To Dibrugarh FlightsLowest Fare \u20b96,453",
+              "aria_label": "",
+              "accessibility_name": "Delhi To Dibrugarh FlightsLowest Fare \u20b96,453",
+              "href": "https://www.makemytrip.com/flights/new_delhi-dibrugarh-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(1) > a",
+              "text": "Hyderabad To Bangalore FlightsLowest Fare \u20b94,426",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Bangalore FlightsLowest Fare \u20b94,426",
+              "href": "https://www.makemytrip.com/flights/hyderabad-bangalore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(2) > a",
+              "text": "Hyderabad To Mumbai FlightsLowest Fare \u20b95,097",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Mumbai FlightsLowest Fare \u20b95,097",
+              "href": "https://www.makemytrip.com/flights/hyderabad-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(3) > a",
+              "text": "Hyderabad To Visakhapatnam FlightsLowest Fare \u20b94,843",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Visakhapatnam FlightsLowest Fare \u20b94,843",
+              "href": "https://www.makemytrip.com/flights/hyderabad-visakhapatnam-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(4) > a",
+              "text": "Hyderabad To Kolkata FlightsLowest Fare \u20b96,304",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Kolkata FlightsLowest Fare \u20b96,304",
+              "href": "https://www.makemytrip.com/flights/hyderabad-kolkata-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(5) > a",
+              "text": "Hyderabad To Chennai FlightsLowest Fare \u20b95,013",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Chennai FlightsLowest Fare \u20b95,013",
+              "href": "https://www.makemytrip.com/flights/hyderabad-chennai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(6) > a",
+              "text": "Hyderabad To Vijayawada FlightsLowest Fare \u20b92,900",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Vijayawada FlightsLowest Fare \u20b92,900",
+              "href": "https://www.makemytrip.com/flights/hyderabad-vijayawada-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(7) > a",
+              "text": "Hyderabad To Pune FlightsLowest Fare \u20b94,811",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Pune FlightsLowest Fare \u20b94,811",
+              "href": "https://www.makemytrip.com/flights/hyderabad-pune-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(8) > a",
+              "text": "Hyderabad To Ahmedabad FlightsLowest Fare \u20b95,601",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Ahmedabad FlightsLowest Fare \u20b95,601",
+              "href": "https://www.makemytrip.com/flights/hyderabad-ahmedabad-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(9) > a",
+              "text": "Hyderabad To Cochin FlightsLowest Fare \u20b95,779",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Cochin FlightsLowest Fare \u20b95,779",
+              "href": "https://www.makemytrip.com/flights/hyderabad-kochi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "div:nth-of-type(2) > div > div:nth-of-type(10) > a",
+              "text": "Hyderabad To Bhubaneswar FlightsLowest Fare \u20b96,036",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad To Bhubaneswar FlightsLowest Fare \u20b96,036",
+              "href": "https://www.makemytrip.com/flights/hyderabad-bhubaneswar-cheap-airtickets.html"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

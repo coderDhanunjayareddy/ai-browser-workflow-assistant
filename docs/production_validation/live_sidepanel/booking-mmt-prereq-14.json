@@ -1,23 +1,23 @@
 {
   "mode": "extension_sidepanel_playwright",
   "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
-  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_booking_prereq_16",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_booking_prereq_14",
   "results": [
     {
-      "task_id": "BOOKING-MMT-PREREQ-16",
+      "task_id": "BOOKING-MMT-PREREQ-14",
       "status": "failed",
-      "duration_s": 56.4,
+      "duration_s": 70.7,
       "phase": "failed",
       "error": "The destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.",
-      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 41f7ae3-dirty \u00b7 stabilization-20261006T075506Z \u00b7 pid 14296\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nResume safely\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\n\nThe destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\nAI ANALYSIS\n\nThe destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen https://www.makemytrip.com/\nNew Tab\nchrome://newtab/\nVerification: verified\nTime: 3.2s\nNavigating to: https://www.makemytrip.com/",
-      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-16.png",
-      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-16-target.png",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 41f7ae3-dirty \u00b7 stabilization-20261006T075506Z \u00b7 pid 14296\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nResume safely\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\n\nThe destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\nAI ANALYSIS\n\nThe destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen https://www.makemytrip.com/\nNew Tab\nchrome://newtab/\nVerification: verified\nTime: 9.8s\nNavigating to: https://www.makemytrip.com/",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-14.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-14-target.png",
       "target_controls": [],
       "canonical_adapter_traces": [],
       "durable_executions": [
         {
-          "key": "d2fbd3f6-ecb4-495f-b157-2c7b1d264a60:1943331719:intent_6893f7ec4de8452dae4d85a2b2d35e3f",
-          "actionId": "destination-5b42b9510172c1b7",
+          "key": "44c22cd4-04cb-47cd-b8ec-a9bb32d61be5:249721017:intent_2abd426757554a1abf4358310cace8ec",
+          "actionId": "destination-d481e4e841d2b4f3",
           "actionType": "navigate",
           "status": "succeeded",
           "attempts": 1,
@@ -25,10 +25,10 @@
           "result": {
             "success": true,
             "message": "Navigating to: https://www.makemytrip.com/",
-            "dispatch_id": "destination-5b42b9510172c1b7:1791273593335",
+            "dispatch_id": "destination-d481e4e841d2b4f3:1791273352571",
             "dispatch_path": "service_worker>policy>chrome.tabs.update",
             "contract_schema_version": "1.0",
-            "contract_idempotency_key": "d2fbd3f6-ecb4-495f-b157-2c7b1d264a60:1943331719:intent_6893f7ec4de8452dae4d85a2b2d35e3f",
+            "contract_idempotency_key": "44c22cd4-04cb-47cd-b8ec-a9bb32d61be5:249721017:intent_2abd426757554a1abf4358310cace8ec",
             "submission_id": null,
             "submission_operation": null,
             "submission_attempted": null,
@@ -75,7 +75,7 @@
                 "dom_changed": true,
                 "download_completed": null,
                 "download_detected": null,
-                "execution_duration_ms": 3210,
+                "execution_duration_ms": 9809,
                 "execution_success": true,
                 "expanded_state_changed": false,
                 "expected_effect_description": "Open https://www.makemytrip.com/",
@@ -118,7 +118,7 @@
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-16-page-1.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-14-page-1.png"
         },
         {
           "index": 2,
@@ -128,7 +128,7 @@
           "video": {
             "exists": false
           },
-          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-16-page-2.png"
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-14-page-2.png"
         }
       ],
       "analyze_observations": [

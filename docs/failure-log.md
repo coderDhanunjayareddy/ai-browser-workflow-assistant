@@ -151,3 +151,75 @@ The `BOOKING-MMT-01` validation driver closed Chromium when the extension return
 | Fix or safe workaround | Run the canonical backend with outbound access for live tests; no application patch. |
 | Regression test | Health handshake plus a real side-panel analysis request. |
 | Real side-panel rerun result | Passed planner startup in `BOOKING-BASELINE-02`; the workflow then failed at destination discovery. |
+
+## 2026-10-06 — calendar day absent from bounded observation
+
+| Field | Record |
+|---|---|
+| Date/time and runtime build | 2026-10-06; `stabilization-20261006T070842Z` |
+| Website and environment | MakeMyTrip public route page in the real extension side panel. |
+| User task | Hyderabad to Delhi, 20 October 2026, one adult; stop before login, personal data, payment, or final submission. |
+| Expected final result | Select and verify the requested date, then compare actual results. |
+| Actual result | `BOOKING-MMT-PREREQ-12` opened `#departure` once and correctly refused to pick a result. The calendar rows appeared in the app observation, but individual day cells did not. |
+| First failed action and step number | After verified Step 4 date-control click, no unique exact date option was observed. |
+| Page state before / after | Correct route URL; date value stayed `Wed, Oct 07, 2026`; calendar was open. |
+| Screenshot or trace path | `docs/production_validation/live_sidepanel/booking-mmt-prereq-12.json` and `booking-mmt-prereq-12-target.png`. |
+| Failure class | Observation coverage. |
+| Root cause and evidence | The extractor included `[role="row"]` but omitted `[role="gridcell"]`; dense navigation could also consume its bounded control list. |
+| Fix or safe workaround | Include and prioritize visible grid cells within a grid. Only a uniquely named full date may be clicked. |
+| Regression test | Backend exact-date and disabled-cell tests, 256 extension tests, type-check, and build passed. |
+| Real side-panel rerun result | `PREREQ-13` observed the exact `Tuesday, 20 October 2026` grid cell; selection remained blocked by a separate date-parser gap. |
+
+## 2026-10-06 — observed calendar date format not parsed
+
+| Field | Record |
+|---|---|
+| Date/time and runtime build | 2026-10-06; `stabilization-20261006T075136Z` |
+| Website and environment | Same real extension and public route page. |
+| User task | Same diagnostic. |
+| Expected final result | Click the uniquely observed requested day and verify the selected control value. |
+| Actual result | `PREREQ-13` observed a unique grid cell named `Tuesday, 20 October 2026`, then paused without selecting it. |
+| First failed action and step number | After Step 4, exact-option parsing rejected the observed day-month-year label. |
+| Page state before / after | Correct route and open calendar; `#departure` still showed 7 October 2026. |
+| Screenshot or trace path | `docs/production_validation/live_sidepanel/booking-mmt-prereq-13.json` and `booking-mmt-prereq-13-target.png`. |
+| Failure class | Date interpretation. |
+| Root cause and evidence | Parser supported month-day-year labels but not weekday, day-month-year labels. |
+| Fix or safe workaround | Added the observed full-date format; ambiguous or disabled options remain blocked. |
+| Regression test | 14 focused backend date tests passed; extension type-check, 256 tests, and build passed. |
+| Real side-panel rerun result | Pending. `PREREQ-14` to `PREREQ-16` stopped before reaching the calendar due to a Chrome `ERR_HTTP2_PROTOCOL_ERROR` on initial navigation. |
+
+## 2026-10-06 — MakeMyTrip initial navigation protocol error
+
+| Field | Record |
+|---|---|
+| Date/time and runtime build | 2026-10-06; `stabilization-20261006T075506Z` |
+| Website and environment | Fresh Chromium profiles with the real unpacked extension. |
+| User task | Same diagnostic, starting from a new tab. |
+| Expected final result | Reach the public site and continue the search. |
+| Actual result | `PREREQ-14`, `PREREQ-15`, and `PREREQ-16` each stopped after one navigation attempt. Chromium displayed “This site can’t be reached” and `ERR_HTTP2_PROTOCOL_ERROR`. No application search action occurred. |
+| First failed action and step number | Step 1 navigation to the URL supplied in the task. |
+| Page state before / after | New tab to Chrome browser error page; no target-site controls. |
+| Screenshot or trace path | `docs/production_validation/live_sidepanel/booking-mmt-prereq-16.json` and `booking-mmt-prereq-16-target.png`; analogous records for 14 and 15. |
+| Failure class | Website or test-network environment; exact cause unconfirmed. |
+| Root cause and evidence | Browser-level HTTP/2 protocol failure on the target URL. A separate read-only request reached the site's Akamai edge and received HTTP 403. The app correctly stopped after one attempt; exact browser failure cause remains unconfirmed. |
+| Fix or safe workaround | Investigate the test browser connection before another live run; do not treat a controlled fixture as completion proof. |
+| Regression test | None for the external site condition. |
+| Real side-panel rerun result | Pending once the public site is reachable. |
+
+## 2026-10-06 — bus diagnostic paused after reaching public homepage
+
+| Field | Record |
+|---|---|
+| Date/time and runtime build | 2026-10-06; `stabilization-20261006T075506Z` |
+| Website and environment | redBus public homepage in the real unpacked extension, interactive test driver and browser still open. |
+| User task | Hyderabad to Bengaluru bus on 20 October 2026 for one adult; stop before login, personal data, payment, or final submission. |
+| Expected final result | Continue search and verify date, party size, and priced results. |
+| Actual result | The application reached `https://www.redbus.in/` and paused at `Waiting for info` before a search action. No bus or booking was selected. |
+| First failed action and step number | After Step 1 navigation, planner returned `ask` with zero actions; exact side-panel question remains to be captured from the held session. |
+| Page state before / after | New Tab to redBus homepage. |
+| Screenshot or trace path | Live session `BOOKING-BUS-PREREQ-17`; report is pending while the browser remains open. Backend run ledger `127ce34e-006e-4239-8ba6-874402b411c3`. |
+| Failure class | Planning or missing-information classification; not yet final. |
+| Root cause and evidence | Ledger classifies the objective as `research` with a `form_filling` phase and records no executable browser intent after the homepage observation. Exact reason for `ask` is unconfirmed. |
+| Fix or safe workaround | Preserve this browser and workflow; capture the app's exact question before changing runtime behavior. |
+| Regression test | Pending. |
+| Real side-panel rerun result | Pending; session held. |
