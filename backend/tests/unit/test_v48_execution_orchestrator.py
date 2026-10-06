@@ -341,7 +341,25 @@ def test_unfamiliar_control_task_requires_verified_mutation_after_navigation(mon
         prior_steps=[opened, verified_click],
     )
 
-    assert after_click.active_phase.name == "REPORT"
+    assert after_click.active_phase.name == "VALIDATE"
+
+
+def test_intermediate_login_success_does_not_complete_creation_workflow(monkeypatch):
+    monkeypatch.setattr(settings, "v48_execution_orchestrator", "active")
+    engine = ExecutionOrchestrator()
+    snapshot = engine.build_snapshot(
+        session_id="compound-interaction",
+        task="Open https://workspace.example/, click Login, sign in, then create a folder named Review.",
+        page_context=_page("https://workspace.example/dashboard"),
+        prior_steps=[PriorStep(
+            action_type="click",
+            description="Sign in",
+            execution_result="dashboard loaded\nVerification: verified",
+            page_url="https://workspace.example/dashboard",
+        )],
+    )
+    assert snapshot.active_phase.name == "VALIDATE"
+    assert engine.postprocess_response(_planner_action("click"), snapshot).outcome_kind == "act"
 
 
 def test_prepositioned_single_page_extraction_advances_to_read() -> None:

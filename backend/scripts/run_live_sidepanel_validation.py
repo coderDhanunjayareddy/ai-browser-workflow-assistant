@@ -458,6 +458,29 @@ def _looks_like_critical_approval(text: str) -> bool:
     return approval_visible and (typed_consequential or send_like or account_like)
 
 
+def _wait_for_human_step(sidepanel, target, task_id: str, kind: str) -> bool:
+    """Keep the same browser and workflow alive while the owner acts in the UI."""
+    target.bring_to_front()
+    print(
+        f"[live-sidepanel] {task_id} paused for {kind}; browser and workflow remain open. "
+        "Complete the step in the browser, then send 'resume' here; send 'stop' to end this run.",
+        flush=True,
+    )
+    try:
+        command = input().strip().casefold()
+    except EOFError:
+        return False
+    if command != "resume":
+        return False
+    if kind == "human intervention":
+        # This is the application's own resume control. The driver never fills
+        # credentials or performs the website step on the owner's behalf.
+        sidepanel.get_by_role(
+            "button", name=re.compile(r"I completed it.*verify and resume", re.I)
+        ).click(timeout=10_000)
+    return True
+
+
 def _open_workflow_panel(sidepanel) -> None:
     workflow_tab = sidepanel.get_by_role("button", name=re.compile(r"^Workflow$", re.I))
     workflow_tab.click(timeout=10_000)
@@ -524,6 +547,7 @@ def _run_task(
     initial_url: str = "about:blank",
     legacy_harness_file_selection: bool = False,
     capture_analyze_observations: bool = False,
+    hold_on_human: bool = False,
 ) -> TaskRun:
     started = time.time()
     safe_id = task_id.lower()
@@ -595,23 +619,29 @@ def _run_task(
 
     terminal_status = "timeout"
     deadline = time.time() + timeout_s
+    human_pause_count = 0
     while time.time() < deadline:
         text = _sidepanel_text(sidepanel)
         lowered = text.lower()
         # Read terminal evidence before trying to keep Auto mode enabled. The
         # running-only banner disappears on completion; toggling at that point
         # can mutate presentation state and race the final classification.
-        if "✓ done" in lowered or "done —" in lowered or "no actions needed" in lowered:
-            terminal_status = "completed"
-            break
-        if "complete" in lowered and ("report answer:" in lowered or "mission result is ready" in lowered):
-            terminal_status = "completed"
+        terminal_outcome = _terminal_outcome_from_text(text)
+        if terminal_outcome is not None:
+            terminal_status = terminal_outcome
             break
         _ensure_auto_mode(sidepanel)
         if _looks_like_critical_approval(lowered):
             if allow_confirmed_critical and _approve_pending_action(sidepanel, timeout_ms=1200):
                 time.sleep(0.7)
                 continue
+            if hold_on_human and human_pause_count < 10:
+                pause_started = time.time()
+                human_pause_count += 1
+                if _wait_for_human_step(sidepanel, target, task_id, "critical approval"):
+                    deadline += time.time() - pause_started
+                    time.sleep(0.7)
+                    continue
             terminal_status = "needs_approval"
             break
         if _approve_pending_action(sidepanel, timeout_ms=1200):
@@ -647,9 +677,23 @@ def _run_task(
             terminal_status = "failed"
             break
         if "need information" in lowered or "waiting for info" in lowered:
+            if hold_on_human and human_pause_count < 10:
+                pause_started = time.time()
+                human_pause_count += 1
+                if _wait_for_human_step(sidepanel, target, task_id, "missing information"):
+                    deadline += time.time() - pause_started
+                    time.sleep(0.7)
+                    continue
             terminal_status = "needs_info"
             break
         if "human step required" in lowered or "waiting for you" in lowered:
+            if hold_on_human and human_pause_count < 10:
+                pause_started = time.time()
+                human_pause_count += 1
+                if _wait_for_human_step(sidepanel, target, task_id, "human intervention"):
+                    deadline += time.time() - pause_started
+                    time.sleep(0.7)
+                    continue
             terminal_status = "needs_intervention"
             break
         time.sleep(1)
@@ -737,16 +781,30 @@ def _reported_phase(text: str, terminal_status: str) -> str:
     return phase
 
 
+def _terminal_outcome_from_text(text: str) -> str | None:
+    lowered = text.lower()
+    counts = re.search(r"done\s*[—-]\s*(\d+)\s+of\s+(\d+)\s+steps?\s+succeeded", lowered)
+    answer = re.search(r"report answer:\s*([^\n]+)", lowered)
+    incomplete_answer = bool(answer and re.search(
+        r"\b(?:i could not|unable to|not verified|not completed|stopped without|did not complete)\b",
+        answer.group(1),
+    ))
+    if counts:
+        succeeded, total = int(counts.group(1)), int(counts.group(2))
+        return "failed" if succeeded < total or incomplete_answer else "completed"
+    if incomplete_answer and ("✓ done" in lowered or "complete" in lowered):
+        return "failed"
+    if "✓ done" in lowered or "no actions needed" in lowered:
+        return "completed"
+    if "complete" in lowered and (answer or "mission result is ready" in lowered):
+        return "completed"
+    return None
+
+
 def _reconcile_terminal_status(terminal_status: str, text: str) -> str:
     """Prefer an exact final completion snapshot over a stale timeout poll."""
-    lowered = text.lower()
-    completed = (
-        "✓ done" in lowered
-        or "done —" in lowered
-        or "no actions needed" in lowered
-        or ("complete" in lowered and ("report answer:" in lowered or "mission result is ready" in lowered))
-    )
-    return "completed" if terminal_status == "timeout" and completed else terminal_status
+    observed = _terminal_outcome_from_text(text)
+    return observed if terminal_status == "timeout" and observed is not None else terminal_status
 
 
 def _write_report(extension_id: str, profile_dir: Path, results: list[TaskRun]) -> None:
@@ -828,6 +886,15 @@ def main() -> int:
         "--allow-confirmed-critical",
         action="store_true",
         help="Consume visible side-panel approvals only after the operator has recorded explicit user confirmation.",
+    )
+    parser.add_argument(
+        "--hold-on-human",
+        action="store_true",
+        help=(
+            "Keep the same browser and workflow open at human intervention, missing information, "
+            "or critical approval. Wait for an operator 'resume' or 'stop' command on stdin. "
+            "Only the application's noncritical intervention-resume button is clicked by the driver."
+        ),
     )
     parser.add_argument(
         "--enable-advanced-control",
@@ -1037,6 +1104,7 @@ def main() -> int:
                 initial_url,
                 args.legacy_harness_file_selection,
                 args.capture_analyze_observations,
+                args.hold_on_human,
             )
             results.append(result)
             _write_report(extension_id, profile_dir, results)

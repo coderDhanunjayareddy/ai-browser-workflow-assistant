@@ -364,6 +364,7 @@ def test_active_kernel_replaces_unregistered_selector_with_observed_exact_identi
     monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
     engine = SemanticExecutionKernel()
     response = _response("click", selector="#invented")
+    response.suggested_actions[0].description = "Click the visible Save button"
 
     result = engine.postprocess_response(
         result=response,
@@ -376,6 +377,31 @@ def test_active_kernel_replaces_unregistered_selector_with_observed_exact_identi
     assert result.outcome_kind == "act"
     assert result.suggested_actions[0].target_selector == "#save"
     assert result.suggested_actions[0].target_selector != "#invented"
+
+
+def test_kernel_does_not_repair_date_action_to_unrelated_link(monkeypatch):
+    monkeypatch.setattr(settings, "v47_semantic_execution_kernel", "active")
+    page = PageContext(
+        url="https://travel.example.test/flights/route",
+        title="Flight search",
+        interactive_elements=[InteractiveElement(
+            type="a", selector="#other-route", text="Ahmedabad to Goa flight",
+            accessibility_name="Ahmedabad to Goa flight", visible=True,
+            href="https://travel.example.test/flights/other-route",
+        )],
+        selected_text="", visible_text="Ahmedabad to Goa flight",
+    )
+    response = AnalyzeResponse(session_id="date-repair", analysis="", suggested_actions=[SuggestedAction(
+        action_id="date", action_type="click", target_selector="#missing-date",
+        description="Click the departure date field to select the flight date",
+        reasoning="Open the calendar", confidence=0.9, safety_level="safe",
+    )])
+    result = SemanticExecutionKernel().postprocess_response(
+        result=response, session_id="date-repair",
+        task="Find a flight from Hyderabad to Delhi on 20 October 2026",
+        page_context=page, prior_steps=[],
+    )
+    assert all(action.target_selector != "#other-route" for action in result.suggested_actions)
 
 
 def test_unfamiliar_click_is_repaired_to_enabled_exact_accessible_identity(monkeypatch):

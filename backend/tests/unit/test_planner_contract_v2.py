@@ -58,6 +58,24 @@ def test_parse_response_act_outcome_unchanged():
     assert resp.suggested_actions[0].action_type == "click"
 
 
+@pytest.mark.parametrize("canonical", [None, "#canonical"])
+def test_selector_alias_preserves_target_in_action_and_dispatch(canonical):
+    result = ai_service.parse_response(_raw(suggested_actions=[{
+        "action_type": "click", "selector": "#workspace-option",
+        "target_selector": canonical, "description": "Open Workspace",
+    }]), "selector-alias")
+    expected = canonical or "#workspace-option"
+    assert result.suggested_actions[0].target_selector == expected
+    assert result.intent_dispatch.payload["target_selector"] == expected
+
+
+def test_compact_provider_prompt_includes_the_action_contract():
+    prompt = ai_service._system_prompt_for_provider("openrouter")
+    for key in ("action_type", "target_selector", "value", "description", "reasoning", "confidence", "safety_level"):
+        assert f'"{key}"' in prompt
+    assert "next unfinished step" in prompt
+
+
 def test_system_prompt_includes_production_capability_guidance():
     prompt = ai_service.SYSTEM_PROMPT
 
@@ -197,6 +215,9 @@ def test_planner_contract_top_level_schema_unchanged():
         "intent_dispatch",
         "intent_execution",
         "execution_orchestrator",
+        "human_intervention",
+        "capability_contracts",
+        "capability_contract_violations",
     }
 
 

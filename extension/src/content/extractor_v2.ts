@@ -1,6 +1,6 @@
 import type { PageContext } from '../types'
 
-export function extractPageContextV2(): PageContext {
+export function extractPageContextV2(goalHint = ''): PageContext {
   const INTERACTIVE_SELECTOR = [
     'button',
     'a[href]',
@@ -13,11 +13,14 @@ export function extractPageContextV2(): PageContext {
     '[role="button"]:not(button)',
     '[role="listitem"]',
     '[role="option"]',
+    '[role="gridcell"]',
     '[role="menuitem"]',
     '[role="row"]',
     '[role="tab"]',
     'span[title]:not([title=""])',
     'summary',
+    '[data-cy*="close" i]',
+    '[class*="close" i]',
   ].join(', ')
 
   const MAX_ELEMENTS = 150
@@ -59,6 +62,11 @@ export function extractPageContextV2(): PageContext {
     const testId = el.getAttribute('data-testid')
     if (testId) {
       const sel = `[data-testid="${testId}"]`
+      if (isUnique(sel)) return sel
+    }
+    const dataCy = el.getAttribute('data-cy')
+    if (dataCy) {
+      const sel = `[data-cy="${dataCy}"]`
       if (isUnique(sel)) return sel
     }
     const ariaLabel = el.getAttribute('aria-label')
@@ -166,6 +174,20 @@ export function extractPageContextV2(): PageContext {
     const placeholder = el.getAttribute('placeholder')
     if (placeholder) return placeholder
     return ''
+  }
+
+  function isOverlayDismissControl(el: Element): boolean {
+    const identity = [el.getAttribute('data-cy'), el.getAttribute('data-testid'),
+      el.getAttribute('aria-label'), el.getAttribute('title'), el.getAttribute('class')]
+      .filter(Boolean).join(' ').toLowerCase()
+    if (!/(?:close|dismiss)/.test(identity)) return false
+    if (!el.closest('[role="dialog"], dialog, [aria-modal="true"], [class*="modal" i], [class*="popup" i], [class*="overlay" i]')) return false
+    const rect = el.getBoundingClientRect()
+    if (rect.width < 8 || rect.height < 8 || rect.width > 80 || rect.height > 80) return false
+    const center = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    if (!center || (center !== el && !el.contains(center))) return false
+    const style = getComputedStyle(el)
+    return style.cursor === 'pointer' || el.getAttribute('role') === 'button' || el.tagName === 'BUTTON'
   }
 
   function getAccessibilityState(el: Element): Record<string, string | boolean> {
@@ -293,8 +315,38 @@ export function extractPageContextV2(): PageContext {
     return metadata
   }
 
-  const elements = Array.from(document.querySelectorAll(INTERACTIVE_SELECTOR))
+  const candidates = Array.from(document.querySelectorAll(INTERACTIVE_SELECTOR))
     .filter(isVisible)
+    .filter((el) => !el.matches('[data-cy*="close" i], [class*="close" i]') ||
+      el.matches('button, [role="button"]') || isOverlayDismissControl(el))
+  const dismissControls = candidates.filter(isOverlayDismissControl)
+  // Reserve a small part of the bounded observation for controls that match
+  // several distinctive words in the user's goal. Dense pages can otherwise
+  // fill the first 150 slots with unrelated navigation and footer links.
+  const common = new Set(['the', 'and', 'for', 'from', 'with', 'this', 'that', 'your', 'find', 'choose', 'click', 'open', 'before', 'after', 'report', 'stop', 'information', 'available'])
+  const goalTokens = new Set((goalHint.toLowerCase().match(/[a-z0-9]{3,}/g) || [])
+    .filter((token) => !common.has(token)))
+  const affinity = (el: Element) => {
+    const identity = [getAccessibilityName(el), el.textContent || '', el.getAttribute('title') || '']
+      .join(' ').toLowerCase()
+    const tokens = new Set(identity.match(/[a-z0-9]{3,}/g) || [])
+    return [...tokens].filter((token) => goalTokens.has(token)).length
+  }
+  const goalControls = goalTokens.size > 0
+    ? candidates.map((el, index) => ({ el, index, score: affinity(el) }))
+      .filter((item) => item.score >= 2)
+      .sort((a, b) => b.score - a.score || a.index - b.index)
+      .slice(0, 20).map((item) => item.el)
+    : []
+  const formControls = candidates.filter((el) =>
+    el.matches('input, select, textarea, [role="textbox"], [role="searchbox"], [role="combobox"]'))
+    .slice(0, 40)
+  // Calendar days are often grid cells rather than buttons. Keep visible cells
+  // inside an open grid before dense site navigation consumes the observation.
+  const gridCells = candidates.filter((el) =>
+    el.matches('[role="gridcell"]') && Boolean(el.closest('[role="grid"]')))
+    .slice(0, 70)
+  const elements = [...new Set([...dismissControls, ...formControls, ...goalControls, ...gridCells, ...candidates])]
     .slice(0, MAX_ELEMENTS)
     .map((el, index) => {
       const rect = el.getBoundingClientRect()
@@ -303,7 +355,8 @@ export function extractPageContextV2(): PageContext {
       const item: any = {
         element_id: groundedId,
         type: el.tagName.toLowerCase(),
-        text: sanitizeText((el.textContent || '').trim().slice(0, 100)),
+        text: sanitizeText((el.textContent || '').trim().slice(0, 100)) ||
+          (isOverlayDismissControl(el) ? 'Close overlay' : ''),
         selector: buildSelector(el),
         visible: true,
         role: getAccessibilityRole(el),
@@ -329,6 +382,7 @@ export function extractPageContextV2(): PageContext {
           item.download_filename = el.download || decodeURIComponent(new URL(el.href, window.location.href).pathname.split('/').pop() || '') || null
         }
       }
+      if (isOverlayDismissControl(el)) item.semantic_kind = 'overlay_dismiss'
 
       return item
     })

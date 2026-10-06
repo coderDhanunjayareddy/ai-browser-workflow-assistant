@@ -301,7 +301,7 @@ export function meaningfulWorkflowFailure(
   if (/no[_ ]effect|unchanged|did not change|could not verify page progress/.test(text)) {
     return { category: 'no_effect', userMessage: `The page did not show the expected result after${subject || ' the attempted action'}. I recorded the no-effect result and stopped repeating the same step.`, retryable: true }
   }
-  if (/target.*not found|selector|not grounded|exact.*not.*found|could not find/.test(text)) {
+  if (/target.*not found|selector|not grounded|could not ground|exact.*not.*found|could not find/.test(text)) {
     return { category: 'target_not_found', userMessage: `I could not find one verified page control for${subject || ' the requested step'}. I did not click a substitute or guess a target.`, retryable: true }
   }
   return { category: 'unexpected', userMessage: `I could not complete${subject || ` the ${stage} step`}. I stopped safely, recorded the failure, and did not claim success.`, retryable: false }
@@ -737,7 +737,15 @@ function buildExecutionResultForPlanner(
   includeFeedback: boolean,
 ): string {
   const message = sanitizeExecutionMessageForPlanner(result.message)
-  if (!includeFeedback) return message
+  if (!includeFeedback) {
+    // Keep authoritative outcome markers when older steps lose verbose feedback.
+    // Adapter messages alone can describe dispatch without its verified effect.
+    const outcome = [`Execution: ${result.success ? 'success' : 'failed'}`]
+    if (result.verification) {
+      outcome.push(`Verification: ${result.verification.verified ? 'verified' : result.verification.reason}`)
+    }
+    return [message, ...outcome].filter(Boolean).join('\n')
+  }
   const feedback = buildExecutionFeedback(action, result)
   return [message, feedback].filter(Boolean).join('\n\n')
 }
@@ -1744,6 +1752,7 @@ export function useWorkflow() {
         const res = await sendToBackground<{ context?: PageContext; error?: string }>({
           type: 'EXTRACT_CONTEXT',
           tab_id: preferredTabId,
+          task_hint: task.slice(0, 1000),
         })
         if (res.context) {
           bestContext = selectRicherPageContext(bestContext, res.context)
@@ -2129,6 +2138,7 @@ export function useWorkflow() {
             sendToBackground<{ context?: PageContext; error?: string }>({
               type: 'EXTRACT_CONTEXT',
               tab_id: result.opened_tab_id,
+              task_hint: task.slice(0, 1000),
             }),
             POST_ACTION_TIMEOUT_MS,
             'opened tab context extraction',
@@ -2179,6 +2189,7 @@ export function useWorkflow() {
             const res = await withTimeout(
               sendToBackground<{ context?: PageContext; error?: string }>({
                 type: 'EXTRACT_CONTEXT',
+                task_hint: task.slice(0, 1000),
               }),
               POST_ACTION_TIMEOUT_MS,
               'post-action context extraction',
@@ -2451,6 +2462,7 @@ export function useWorkflow() {
         const response = await sendToBackground<{ context?: PageContext; error?: string }>({
           type: 'EXTRACT_CONTEXT',
           tab_id: checkpoint.expectedTabId,
+          task_hint: task.slice(0, 1000),
         })
         if (!response.context) throw new Error(response.error || 'The intervention tab could not be observed.')
         const observed = observeInterventionResume(checkpoint, response.context)

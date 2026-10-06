@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     openrouter_site_url: str = "http://localhost:8000"
     openrouter_app_name: str = "AI Browser Assist"
     openrouter_max_tokens: int = 320
-    openrouter_planner_context_char_budget: int = 500
+    openrouter_planner_context_char_budget: int = 5_500
 
     # Real browser-agent missions run observe/plan/act/verify loops across
     # several pages. Keep these configurable so validation and production can

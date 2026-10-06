@@ -1,0 +1,144 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_booking_prereq_05",
+  "results": [
+    {
+      "task_id": "BOOKING-MMT-PREREQ-05",
+      "status": "failed",
+      "duration_s": 51.6,
+      "phase": "failed",
+      "error": "The destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 713d680-dirty \u00b7 stabilization-20261006T063145Z \u00b7 pid 5064\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nResume safely\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\n\nThe destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\nAI ANALYSIS\n\nThe destination for the requested navigation returned a browser error page. I stopped after one attempt and did not repeat the navigation.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen https://www.makemytrip.com/\nNew Tab\nchrome://newtab/\nVerification: verified\nTime: 1.9s\nNavigating to: https://www.makemytrip.com/",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-05.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-05-target.png",
+      "target_controls": [],
+      "canonical_adapter_traces": [],
+      "durable_executions": [
+        {
+          "key": "9ad342b6-afa3-46a5-a3d1-096de779906c:1727810426:intent_8c0ea15edccb4775a3cf1a85e0607e8f",
+          "actionId": "destination-f7cafdb7850d1efe",
+          "actionType": "navigate",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Navigating to: https://www.makemytrip.com/",
+            "dispatch_id": "destination-f7cafdb7850d1efe:1791268338997",
+            "dispatch_path": "service_worker>policy>chrome.tabs.update",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "9ad342b6-afa3-46a5-a3d1-096de779906c:1727810426:intent_8c0ea15edccb4775a3cf1a85e0607e8f",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": null,
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/|www.makemytrip.com",
+                "expandedStates": [],
+                "interactiveCount": 0,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "www.makemytrip.com",
+                "url": "https://www.makemytrip.com/",
+                "visibleTextLength": 0
+              },
+              "before_state": {
+                "activeElementSignature": null,
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "chrome://newtab/|New Tab",
+                "expandedStates": [],
+                "interactiveCount": 0,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "New Tab",
+                "url": "chrome://newtab/",
+                "visibleTextLength": 0
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "navigate",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 1893,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Open https://www.makemytrip.com/",
+                "expected_effect_kind": "url_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": false,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": null,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": true,
+                "visible_text_length_changed": false,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-05-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "chrome-error://chromewebdata/",
+          "title": "www.makemytrip.com",
+          "body_text": "This site can\u2019t be reached\n\nThe webpage at https://www.makemytrip.com/ might be temporarily down or it may have moved permanently to a new web address.\n\nERR_HTTP2_PROTOCOL_ERROR",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-prereq-05-page-2.png"
+        }
+      ],
+      "analyze_observations": [
+        {
+          "url": "chrome://newtab/",
+          "title": "New Tab",
+          "visible_text_length": 135,
+          "controls": []
+        }
+      ]
+    }
+  ]
+}

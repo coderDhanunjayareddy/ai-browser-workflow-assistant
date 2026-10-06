@@ -1,0 +1,1215 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "fcmfkdpdhhpdhkofapnolaknoolinpon",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\playwright-profile-spectropy-repro10",
+  "results": [
+    {
+      "task_id": "spectropy-repro10",
+      "status": "failed",
+      "duration_s": 79.4,
+      "phase": "failed",
+      "error": "",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 spectropy-debug \u00b7 isolated-spectropy \u00b7 pid 29728\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nAnalyze\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\nAdvanced control enabled: DOM first, trusted CDP fallback on verified failure\n\nAI ANALYSIS\n\nThe next step is to click the Login button to open the Quick access dropdown.\n\nSemantic Execution Kernel rejected the proposal before browser execution.\n\nReplan reason: loop_detected. Recovery strategy: skip_entity (proposal repeats previous progress).\n\n\u26a1\nStep 1\nNAVIGATE\nOpen https://www.spectropy.com/\nSpectropy LMS\nhttps://www.spectropy.com/\nVerification: verified\nTime: 2.7s\nNavigating to: https://www.spectropy.com/\n\u26a1\nStep 2\nCLICK\nClick the Login button\nSpectropy LMS\nhttps://www.spectropy.com/\nVerification: verified\nTime: 379ms\nCDP click dispatched via stable_selector grounding.\n\u26a1\nStep 3\nCLICK\nClick the Login button to access the login options.\nSpectropy LMS\nhttps://www.spectropy.com/\nVerification: verified\nTime: 355ms\nCDP click dispatched via stable_selector grounding.\n\nPLANNER REQUESTED REPLAN\n\nloop_detected. Recovery strategy: skip_entity (proposal repeats previous progress).",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\scratch\\authorized-workflow-evidence\\spectropy-repro10.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\scratch\\authorized-workflow-evidence\\spectropy-repro10-target.png",
+      "target_controls": [
+        {
+          "tag": "button",
+          "role": "",
+          "aria_label": "Open navigation menu",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "canonical_adapter_traces": [
+        {
+          "action_id": "step-id",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 332,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 6,
+          "cdp_target_count": 0,
+          "dispatch_id": "step-id:1790402231143",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "4bbaa660-6c06-4597-8c8e-45cab4b26e92:412312896:intent_0a1431eb683a464f8d5d45500ebf35ca",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": "Login",
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-26T05:57:11.562Z",
+          "verified": true
+        },
+        {
+          "action_id": "step-id",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 313,
+          "cdp_fallback_reason": null,
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:selected_unique_exact",
+          "cdp_grounding_source": "stable_selector",
+          "cdp_navigation_signal_count": 6,
+          "cdp_target_count": 0,
+          "dispatch_id": "step-id:1790402239184",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "4bbaa660-6c06-4597-8c8e-45cab4b26e92:412312896:intent_fd94c38d857f43ddaec9c0436bed27aa",
+          "reason": "verified",
+          "safety_class": "safe",
+          "target_name": "Login",
+          "target_selector_preserved": true,
+          "timestamp": "2026-09-26T05:57:19.572Z",
+          "verified": true
+        }
+      ],
+      "durable_executions": [
+        {
+          "key": "4bbaa660-6c06-4597-8c8e-45cab4b26e92:412312896:intent_0a1431eb683a464f8d5d45500ebf35ca",
+          "actionId": "step-id",
+          "actionType": "click",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "CDP click dispatched via stable_selector grounding.",
+            "dispatch_id": "step-id:1790402231143",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "4bbaa660-6c06-4597-8c8e-45cab4b26e92:412312896:intent_0a1431eb683a464f8d5d45500ebf35ca",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "button|Login",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.spectropy.com/|Spectropy LMS|5454|29|0|0|||{\"exists\":true,\"selector\":\"header > div > nav > div > button\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 29,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "header > div > nav > div > button",
+                  "tagName": "button",
+                  "visible": true
+                },
+                "title": "Spectropy LMS",
+                "url": "https://www.spectropy.com/",
+                "visibleTextLength": 5454
+              },
+              "before_state": {
+                "activeElementSignature": "body|HomeCoursesWhy FoundationHappy ClientsAwards/RewardsClient ServicesContactLoginB",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.spectropy.com/|Spectropy LMS|5202|26|0|0|||{\"exists\":true,\"selector\":\"header > div > nav > div > button\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 26,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "header > div > nav > div > button",
+                  "tagName": "button",
+                  "visible": true
+                },
+                "title": "Spectropy LMS",
+                "url": "https://www.spectropy.com/",
+                "visibleTextLength": 5202
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 6,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 379,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Click the Login button",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": true,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "4bbaa660-6c06-4597-8c8e-45cab4b26e92:412312896:intent_57c6a6088a2a41e4b94a9f8cdb4a057a",
+          "actionId": "destination-ff12e5bbece954a8",
+          "actionType": "navigate",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Navigating to: https://www.spectropy.com/",
+            "dispatch_id": "destination-ff12e5bbece954a8:1790402190143",
+            "dispatch_path": "service_worker>policy>chrome.tabs.update",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "4bbaa660-6c06-4597-8c8e-45cab4b26e92:412312896:intent_57c6a6088a2a41e4b94a9f8cdb4a057a",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|HomeCoursesWhy FoundationHappy ClientsAwards/RewardsClient ServicesContactLoginB",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.spectropy.com/|Spectropy LMS|2714|26|0|0|||",
+                "expandedStates": [],
+                "interactiveCount": 26,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "Spectropy LMS",
+                "url": "https://www.spectropy.com/",
+                "visibleTextLength": 2714
+              },
+              "before_state": {
+                "activeElementSignature": null,
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "chrome://newtab/|New Tab",
+                "expandedStates": [],
+                "interactiveCount": 0,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "New Tab",
+                "url": "chrome://newtab/",
+                "visibleTextLength": 0
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "navigate",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 2672,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Open https://www.spectropy.com/",
+                "expected_effect_kind": "url_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": null,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": true,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "4bbaa660-6c06-4597-8c8e-45cab4b26e92:412312896:intent_fd94c38d857f43ddaec9c0436bed27aa",
+          "actionId": "step-id",
+          "actionType": "click",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "CDP click dispatched via stable_selector grounding.",
+            "dispatch_id": "step-id:1790402239184",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "4bbaa660-6c06-4597-8c8e-45cab4b26e92:412312896:intent_fd94c38d857f43ddaec9c0436bed27aa",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "button|Login",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.spectropy.com/|Spectropy LMS|5173|26|0|0|||{\"exists\":true,\"selector\":\"header > div > nav > div > button\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 26,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "header > div > nav > div > button",
+                  "tagName": "button",
+                  "visible": true
+                },
+                "title": "Spectropy LMS",
+                "url": "https://www.spectropy.com/",
+                "visibleTextLength": 5173
+              },
+              "before_state": {
+                "activeElementSignature": "button|Login",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.spectropy.com/|Spectropy LMS|5425|29|0|0|||{\"exists\":true,\"selector\":\"header > div > nav > div > button\",\"tagName\":\"button\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 29,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "header > div > nav > div > button",
+                  "tagName": "button",
+                  "visible": true
+                },
+                "title": "Spectropy LMS",
+                "url": "https://www.spectropy.com/",
+                "visibleTextLength": 5425
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 6,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 355,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Click the Login button to access the login options.",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": false,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": true,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\scratch\\authorized-workflow-evidence\\spectropy-repro10-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "https://www.spectropy.com/",
+          "title": "Spectropy LMS",
+          "body_text": "Home\nCourses\nWhy Foundation\nHappy Clients\nAwards/Rewards\nClient Services\nContact\nLogin\nBuilding the Foundation of the Future\nTHE PURPOSE\n\nStrengthen academic foundation in formative years. We bridge the critical gap between classroom learning and competitive successful.\n\nExplore Courses\nWhy Foundation Matters\nTHE PROBLEM (THE GAP)\n\ud83c\udfeb\nClassroom\nDeep Conceptual Gaps\n\u26a1\nBridging the Gap\n\ud83c\udfc6\nCompetitive\nExams\n\nWeak fundamentals lead to exponential struggle in higher classes.\n\n\ud83d\ude80\nTHE VISION: FUTURE-READY STEM CAMPUS\n\nA movement for India's next generation.\nEvery child learns with confidence .\n\nTHE PROBLEM\n\u26a0\ufe0f\nCore Challenges in Today's Learning\n\nCurriculum is theoretical, conceptual gaps increase over time, and schools often lack diagnostic Tracking.\n\nMore Info\nTHE SOLUTION\n\ud83d\udca1\nSpectropy IIT Foundation & STEM Solution\n\nA comprehensive model with Structured Curriculum, AI Diagnostics, and Skill Development Ecosystem.\n\nMore Info\nOur Solution \u2013 The Future Foundation Ecosystem\n\nA Comprehensive Ecosystem, Not Just a Class\n\nCOMPREHENSIVE\nBLUEPRINT\nECOSYSTEM\nFOUNDATION\n\nNCERT/SCERT Aligned + Synopsis\n\nConceptual Synopsis\nBoard Aligned Content\nPEDAGOGY\n\nBloom's Taxonomy (Remember to Create)\n\nCognitive Growth\nSkill Ladder\nASSESSMENT\n\nOffline OMR + Online Tab\n\nHigh-Performance Arch.\nHybrid Testing\nANALYTICS\n\nRA Dashboard (AI-Driven)\n\nAI Diagnostics\nPersonalized Path\nThe Future Foundation Vision\n\nRedefining academic excellence through a scientifically designed, integrated ecosystem.\n\nTHE VISION\nBuilding Thinkers, Not Just Test Takers\n\nWe bridge the critical divide between standard school curriculum and competitive readiness (JEE/NEET). Our integrated model ensures students excel in board exams while building a rock-solid foundation for the future.\n\nBRIDGING THE GAP\nPrograms Designed for Excellence\n\nTailored academic architectures for every student's potential.\n\nFuture Foundation\n\nAcademic Core & Goals\n\nComprehensive blueprint bridging school curriculum with competitive excellence.\n\nMore Info\nCatalyst Program\n\nBridge to Competitive\n\n80% Foundation + 20% Advanced.Targeting NEET, EAPCET, Olympiads.\n\nMore Info\nMaestro Program\n\nHolistic Excellence\n\nVertical Expansion & Advanced Curriculum for JEE Main & Advanced.\n\nMore Info\nPioneer Program\n\nElite Academic Program\n\nLevel 5 Mastery (Rank Decider) questions for top tier successful.\n\nMore Info\nOur Happy Clients\n\nTrusted by 100+ future-ready institutions\n\nSri Greenwood High School\n\nMANAIR HIGH SCHOOL CBSE\n\nsri ragavendra\n\nAll Saints Modal school\n\nVASAVI SPAES SCHOOL\n\nLITTLE SCHOLARS HIGH SCHOOL\n\nKRISHNAVENI TALENT SCHOOL\n\nMontessori English Medium High School\n\nVijaya High School\n\nKorutla Public School\n\nVaagdeevi High School\n\nNiveditha high school\n\nMary Matha High School\n\nSri Saraswathi Shishu Mandir\n\nMANJEERA VIDYALAYAM HIGH SCHOOL\n\nVISVASAANTHI HIGH SCHOOL\n\nTiny Toys High School\n\nVIJETHA HIGH SCHOOL\n\nVASAVI HIGH SCHOOL\n\nSLATE HIGH SCHOOL\n\nKerala High school\n\nGeetha Shri High School\n\nNew Success School\n\nDelhi High School\n\nLittle Scholars Techno school\n\nSt Mary High School\n\nSurya Chandra Palace School\n\nBRINDAVAN ACADEMY\n\nGeethanjali High School\n\nSRI BHARATHI VIDYANIKETHAN HIGH SCHOOL\n\nSri Greenwood High School\n\nMANAIR HIGH SCHOOL CBSE\n\nsri ragavendra\n\nAll Saints Modal school\n\nVASAVI SPAES SCHOOL\n\nLITTLE SCHOLARS HIGH SCHOOL\n\nKRISHNAVENI TALENT SCHOOL\n\nMontessori English Medium High School\n\nVijaya High School\n\nKorutla Public School\n\nVaagdeevi High School\n\nNiveditha high school\n\nMary Matha High School\n\nSri Saraswathi Shishu Mandir\n\nMANJEERA VIDYALAYAM HIGH SCHOOL\n\nVISVASAANTHI HIGH SCHOOL\n\nTiny Toys High School\n\nVIJETHA HIGH SCHOOL\n\nVASAVI HIGH SCHOOL\n\nSLATE HIGH SCHOOL\n\nKerala High school\n\nGeetha Shri High School\n\nNew Success School\n\nDelhi High School\n\nLittle Scholars Techno school\n\nSt Mary High School\n\nSurya Chandra Palace School\n\nBRINDAVAN ACADEMY\n\nGeethanjali High School\n\nSRI BHARATHI VIDYANIKETHAN HIGH SCHOOL\n\nSri Greenwood High School\n\nMANAIR HIGH SCHOOL CBSE\n\nsri ragavendra\n\nAll Saints Modal school\n\nVASAVI SPAES SCHOOL\n\nLITTLE SCHOLARS HIGH SCHOOL\n\nKRISHNAVENI TALENT SCHOOL\n\nMontessori English Medium High School\n\nVijaya High School\n\nKorutla Public School\n\nVaagdeevi High School\n\nNiveditha high school\n\nMary Matha High School\n\nSri Saraswathi Shishu Mandir\n\nMANJEERA VIDYALAYAM HIGH SCHOOL\n\nVISVASAANTHI HIGH SCHOOL\n\nTiny Toys High School\n\nVIJETHA HIGH SCHOOL\n\nVASAVI HIGH SCHOOL\n\nSLATE HIGH SCHOOL\n\nKerala High school\n\nGeetha Shri High School\n\nNew Success School\n\nDelhi High School\n\nLittle Scholars Techno school\n\nSt Mary High School\n\nSurya Chandra Palace School\n\nBRINDAVAN ACADEMY\n\nGeethanjali High School\n\nSRI BHARATHI VIDYANIKETHAN HIGH SCHOOL\n\nKerala High school\n\nGeetha Shri High School\n\nNew Success School\n\nDelhi High School\n\nLittle Scholars Techno school\n\nSt Mary High School\n\nSurya Chandra Palace School\n\nBRINDAVAN ACADEMY\n\nKRISHNAVENI TALENT SCHOOL\n\nMontessori English Medium High School\n\nTRUSTED BY FORWARD-THINKING CAMPUSES\n\nCITY SCHOOL\nGLOBAL ACADEMY\nSTEM HIGH\nFUTURE FOUNDATION\nReady to Build a\nFuture-Ready School?\n\nJoin the partner network transforming academic ecosystems. Let's discuss your school's vision today.\n\nHEADQUARTERS\n\nG94H+MJP, Beside Guru Global School,\nHyderabad, Telangana 500085\n\nCALL US\n\n+91 90143 41237\n\nWHATSAPP\n\nChat with +91 90143 41237\n\nEMAIL\n\ncontact@spectropy.com",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\scratch\\authorized-workflow-evidence\\spectropy-repro10-page-2.png"
+        }
+      ],
+      "analyze_observations": [
+        {
+          "url": "chrome://newtab/",
+          "title": "New Tab",
+          "visible_text_length": 135,
+          "controls": []
+        },
+        {
+          "url": "https://www.spectropy.com/",
+          "title": "Spectropy LMS",
+          "visible_text_length": 996,
+          "controls": [
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(1)",
+              "text": "Home",
+              "aria_label": "",
+              "accessibility_name": "Home",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(2)",
+              "text": "Courses",
+              "aria_label": "",
+              "accessibility_name": "Courses",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(3)",
+              "text": "Why Foundation",
+              "aria_label": "",
+              "accessibility_name": "Why Foundation",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(4)",
+              "text": "Happy Clients",
+              "aria_label": "",
+              "accessibility_name": "Happy Clients",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(5)",
+              "text": "Awards/Rewards",
+              "aria_label": "",
+              "accessibility_name": "Awards/Rewards",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(6)",
+              "text": "Client Services",
+              "aria_label": "",
+              "accessibility_name": "Client Services",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(7)",
+              "text": "Contact",
+              "aria_label": "",
+              "accessibility_name": "Contact",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "header > div > nav > div > button",
+              "text": "Login",
+              "aria_label": "",
+              "accessibility_name": "Login",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#home > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "Explore Courses",
+              "aria_label": "",
+              "accessibility_name": "Explore Courses",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#home > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "Why Foundation Matters",
+              "aria_label": "",
+              "accessibility_name": "Why Foundation Matters",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Chat on WhatsApp with +91 90143 41237\"]",
+              "text": "Chat on WhatsApp with +91 90143 41237",
+              "aria_label": "Chat on WhatsApp with +91 90143 41237",
+              "accessibility_name": "Chat on WhatsApp with +91 90143 41237",
+              "href": "https://wa.me/919014341237"
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(3) > div > div:nth-of-type(1) > div:nth-of-type(2) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > section:nth-of-type(3) > div > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > section:nth-of-type(3) > div > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(3)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(4)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(5)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(6)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(1) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(2) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(3) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(4) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            }
+          ]
+        },
+        {
+          "url": "https://www.spectropy.com/",
+          "title": "Spectropy LMS",
+          "visible_text_length": 997,
+          "controls": [
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "header > div > nav > div > button",
+              "text": "Login",
+              "aria_label": "",
+              "accessibility_name": "Login",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "nav > div > div > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "Spectropy OSCentral operating system for Spectropy products and intelligence wor",
+              "aria_label": "",
+              "accessibility_name": "Spectropy OSCentral operating system for Spectropy products and intelligence workflows.",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(1)",
+              "text": "Home",
+              "aria_label": "",
+              "accessibility_name": "Home",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(2)",
+              "text": "Courses",
+              "aria_label": "",
+              "accessibility_name": "Courses",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(3)",
+              "text": "Why Foundation",
+              "aria_label": "",
+              "accessibility_name": "Why Foundation",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(4)",
+              "text": "Happy Clients",
+              "aria_label": "",
+              "accessibility_name": "Happy Clients",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(5)",
+              "text": "Awards/Rewards",
+              "aria_label": "",
+              "accessibility_name": "Awards/Rewards",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(6)",
+              "text": "Client Services",
+              "aria_label": "",
+              "accessibility_name": "Client Services",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(7)",
+              "text": "Contact",
+              "aria_label": "",
+              "accessibility_name": "Contact",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "nav > div > div > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "RA PortalResults and analysis portal for institution-level visibility.",
+              "aria_label": "",
+              "accessibility_name": "RA PortalResults and analysis portal for institution-level visibility.",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "nav > div > div > div:nth-of-type(2) > button:nth-of-type(3)",
+              "text": "ERPEnterprise resource planning workspace for operations and administration.",
+              "aria_label": "",
+              "accessibility_name": "ERPEnterprise resource planning workspace for operations and administration.",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#home > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "Explore Courses",
+              "aria_label": "",
+              "accessibility_name": "Explore Courses",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#home > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "Why Foundation Matters",
+              "aria_label": "",
+              "accessibility_name": "Why Foundation Matters",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Chat on WhatsApp with +91 90143 41237\"]",
+              "text": "Chat on WhatsApp with +91 90143 41237",
+              "aria_label": "Chat on WhatsApp with +91 90143 41237",
+              "accessibility_name": "Chat on WhatsApp with +91 90143 41237",
+              "href": "https://wa.me/919014341237"
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(3) > div > div:nth-of-type(1) > div:nth-of-type(2) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > section:nth-of-type(3) > div > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > section:nth-of-type(3) > div > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(3)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(4)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(5)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(6)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(1) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(2) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(3) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(4) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            }
+          ]
+        },
+        {
+          "url": "https://www.spectropy.com/",
+          "title": "Spectropy LMS",
+          "visible_text_length": 996,
+          "controls": [
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "header > div > nav > div > button",
+              "text": "Login",
+              "aria_label": "",
+              "accessibility_name": "Login",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(1)",
+              "text": "Home",
+              "aria_label": "",
+              "accessibility_name": "Home",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(2)",
+              "text": "Courses",
+              "aria_label": "",
+              "accessibility_name": "Courses",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(3)",
+              "text": "Why Foundation",
+              "aria_label": "",
+              "accessibility_name": "Why Foundation",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(4)",
+              "text": "Happy Clients",
+              "aria_label": "",
+              "accessibility_name": "Happy Clients",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(5)",
+              "text": "Awards/Rewards",
+              "aria_label": "",
+              "accessibility_name": "Awards/Rewards",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(6)",
+              "text": "Client Services",
+              "aria_label": "",
+              "accessibility_name": "Client Services",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > header > div > nav > button:nth-of-type(7)",
+              "text": "Contact",
+              "aria_label": "",
+              "accessibility_name": "Contact",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#home > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "Explore Courses",
+              "aria_label": "",
+              "accessibility_name": "Explore Courses",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#home > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "Why Foundation Matters",
+              "aria_label": "",
+              "accessibility_name": "Why Foundation Matters",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "a[aria-label=\"Chat on WhatsApp with +91 90143 41237\"]",
+              "text": "Chat on WhatsApp with +91 90143 41237",
+              "aria_label": "Chat on WhatsApp with +91 90143 41237",
+              "accessibility_name": "Chat on WhatsApp with +91 90143 41237",
+              "href": "https://wa.me/919014341237"
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(3) > div > div:nth-of-type(1) > div:nth-of-type(2) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > section:nth-of-type(3) > div > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "div:nth-of-type(2) > section:nth-of-type(3) > div > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(1)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(2)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(3)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(4)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(5)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "section:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(6)",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(1) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(2) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(3) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#courses > div > div:nth-of-type(2) > div:nth-of-type(4) > button",
+              "text": "More Info",
+              "aria_label": "",
+              "accessibility_name": "More Info",
+              "href": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

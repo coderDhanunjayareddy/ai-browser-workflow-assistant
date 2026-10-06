@@ -1,0 +1,1163 @@
+{
+  "mode": "extension_sidepanel_playwright",
+  "extension_id": "mieicpkoomimedeijmffoepmjgdoelec",
+  "started_profile": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\profile_booking_overlay_01",
+  "results": [
+    {
+      "task_id": "BOOKING-MMT-OVERLAY-01",
+      "status": "failed",
+      "duration_s": 68.8,
+      "phase": "failed",
+      "error": "I could not complete \u201cClick the 'Flights' link\u201d. I stopped safely, recorded the failure, and did not claim success.",
+      "evidence": "AI Browser Assistant\nRuntime OK \u00b7 panel/worker/api \u00b7 v0.4.0 \u00b7 713d680-dirty \u00b7 stabilization-20261006T025055Z \u00b7 pid 3420\nProduct\nWorkflow\nHistory\nAnalytics\nAssist\n\ud83c\udfa4\nResume safely\nClear\nAuto (Browser)\n\ud83c\uddee\ud83c\uddf3 Telugu\n\ud83c\uddee\ud83c\uddf3 Hindi\n\ud83c\uddee\ud83c\uddf3 Tamil\n\ud83c\uddee\ud83c\uddf3 Kannada\n\ud83c\uddee\ud83c\uddf3 Malayalam\n\ud83c\uddee\ud83c\uddf3 Bengali\n\ud83c\uddee\ud83c\uddf3 Marathi\n\ud83c\uddee\ud83c\uddf3 Gujarati\n\ud83c\uddee\ud83c\uddf3 Punjabi\n\ud83c\uddfa\ud83c\uddf8 English (US)\n\ud83c\uddec\ud83c\udde7 English (UK)\n\ud83c\uddea\ud83c\uddf8 Spanish\n\ud83c\uddeb\ud83c\uddf7 French\n\ud83c\udde9\ud83c\uddea German\n\ud83c\uddee\ud83c\uddf9 Italian\n\ud83c\udde7\ud83c\uddf7 Portuguese\n\ud83c\uddf7\ud83c\uddfa Russian\n\ud83c\uddef\ud83c\uddf5 Japanese\n\ud83c\uddf0\ud83c\uddf7 Korean\n\ud83c\udde8\ud83c\uddf3 Chinese (Simplified)\n\ud83c\uddf9\ud83c\uddfc Chinese (Traditional)\n\ud83c\uddf8\ud83c\udde6 Arabic\n\ud83c\uddf9\ud83c\uddf7 Turkish\n\ud83c\uddfb\ud83c\uddf3 Vietnamese\n\ud83c\uddf9\ud83c\udded Thai\n\ud83c\uddee\ud83c\udde9 Indonesian\n\ud83c\uddf2\ud83c\uddfe Malay\n\ud83c\uddf3\ud83c\uddf1 Dutch\n\ud83c\uddf5\ud83c\uddf1 Polish\n\ud83c\uddf8\ud83c\uddea Swedish\n\ud83c\uddfa\ud83c\udde6 Ukrainian\n\ud83e\udd16 Auto\nAdvanced\n\nI could not complete \u201cClick the 'Flights' link\u201d. I stopped safely, recorded the failure, and did not claim success.\n\nAI ANALYSIS\n\nThe next step is to click on the 'Flights' link to access the flight search page.\n\nI could not complete \u201cClick the 'Flights' link\u201d. I stopped safely, recorded the failure, and did not claim success.\n\n\u26a1\nStep 1\nNAVIGATE\nOpen https://www.makemytrip.com/\nMakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flight\u2026\nhttps://www.makemytrip.com/\nVerification: verified\nTime: 12.6s\nNavigating to: https://www.makemytrip.com/\n\u2717\nStep 2\nCLICK\nClick the 'Flights' link\nMakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flight\u2026\nhttps://www.makemytrip.com/\nVerification: execution_failed\nTime: 475ms\nCDP could not ground the requested target without changing its identity.\nCDP could not ground the requested target without changing its identity.",
+      "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-overlay-01.png",
+      "target_screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-overlay-01-target.png",
+      "target_controls": [
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "Enter Mobile Number",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "",
+          "contenteditable": "",
+          "testid": ""
+        },
+        {
+          "tag": "input",
+          "role": "",
+          "aria_label": "",
+          "placeholder": "Enter Mobile number ",
+          "contenteditable": "",
+          "testid": ""
+        }
+      ],
+      "canonical_adapter_traces": [
+        {
+          "action_id": "step-id",
+          "action_type": "click",
+          "canonical_contract": true,
+          "cdp_duration_ms": 447,
+          "cdp_fallback_reason": "stable_selector:rejected:selector_ambiguous;accessibility_name:rejected:no_unique_exact_box",
+          "cdp_frame_count": 1,
+          "cdp_grounding_attempts": "stable_selector:rejected:selector_ambiguous|accessibility_name:rejected:no_unique_exact_box|verified_screenshot:unavailable_or_unverified",
+          "cdp_grounding_source": null,
+          "cdp_navigation_signal_count": 6,
+          "cdp_target_count": 0,
+          "dispatch_id": "step-id:1791255139507",
+          "dispatch_path": "service_worker>policy>canonical_cdp_click",
+          "execution_adapter": "cdp",
+          "expected_effect": "target_state_change",
+          "frame_id": "top",
+          "idempotency_key": "92645781-b5d1-43e3-a133-5d3915fe451c:1608032707:intent_ecac6fbb4af747be9ea7f8c3d9e78156",
+          "reason": "execution_failed",
+          "safety_class": "safe",
+          "target_name": "Flights  Flights",
+          "target_selector_preserved": true,
+          "timestamp": "2026-10-06T02:52:19.995Z",
+          "verified": false
+        }
+      ],
+      "durable_executions": [
+        {
+          "key": "92645781-b5d1-43e3-a133-5d3915fe451c:1608032707:intent_18897a330bad4403a8c9458e235e0ef6",
+          "actionId": "destination-44444f8a5a5984e9",
+          "actionType": "navigate",
+          "status": "succeeded",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": true,
+            "message": "Navigating to: https://www.makemytrip.com/",
+            "dispatch_id": "destination-44444f8a5a5984e9:1791255086473",
+            "dispatch_path": "service_worker>policy>chrome.tabs.update",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "92645781-b5d1-43e3-a133-5d3915fe451c:1608032707:intent_18897a330bad4403a8c9458e235e0ef6",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "body|List Your PropertyGrow your business!Introducing myBizBusiness Travel SolutionMy",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/|MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday|10077|396|0|0|||",
+                "expandedStates": [],
+                "interactiveCount": 396,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+                "url": "https://www.makemytrip.com/",
+                "visibleTextLength": 10077
+              },
+              "before_state": {
+                "activeElementSignature": null,
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "chrome://newtab/|New Tab",
+                "expandedStates": [],
+                "interactiveCount": 0,
+                "modalCount": 0,
+                "scrollX": 0,
+                "scrollY": 0,
+                "title": "New Tab",
+                "url": "chrome://newtab/",
+                "visibleTextLength": 0
+              },
+              "reason": "verified",
+              "signals": {
+                "action_type": "navigate",
+                "cdp_navigation_signal_count": 0,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": true,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 12647,
+                "execution_success": true,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Open https://www.makemytrip.com/",
+                "expected_effect_kind": "url_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": true,
+                "interactive_count_changed": true,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": null,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": true,
+                "visible_text_length_changed": true,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": true
+            }
+          }
+        },
+        {
+          "key": "92645781-b5d1-43e3-a133-5d3915fe451c:1608032707:intent_ecac6fbb4af747be9ea7f8c3d9e78156",
+          "actionId": "step-id",
+          "actionType": "click",
+          "status": "failed",
+          "attempts": 1,
+          "retryable": false,
+          "result": {
+            "success": false,
+            "message": "CDP could not ground the requested target without changing its identity.",
+            "dispatch_id": "step-id:1791255139507",
+            "dispatch_path": "service_worker>policy>canonical_cdp_click",
+            "contract_schema_version": "1.0",
+            "contract_idempotency_key": "92645781-b5d1-43e3-a133-5d3915fe451c:1608032707:intent_ecac6fbb4af747be9ea7f8c3d9e78156",
+            "submission_id": null,
+            "submission_operation": null,
+            "submission_attempted": null,
+            "submission_duplicate_prevented": null,
+            "delivery_verified": null,
+            "delivered_content_identity": null,
+            "delivered_destination_entity": null,
+            "dispatch_uncertain": null,
+            "verification": {
+              "after_state": {
+                "activeElementSignature": "input",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/|MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday|22757|406|1|0|||{\"exists\":true,\"selector\":\"a[href=\\\"https://www.makemytrip.com/flights/\\\"]\",\"tagName\":\"a\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 406,
+                "modalCount": 1,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "a[href=\"https://www.makemytrip.com/flights/\"]",
+                  "tagName": "a",
+                  "visible": true
+                },
+                "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+                "url": "https://www.makemytrip.com/",
+                "visibleTextLength": 22757
+              },
+              "before_state": {
+                "activeElementSignature": "input",
+                "checkboxStates": [],
+                "dialogCount": 0,
+                "domSignature": "https://www.makemytrip.com/|MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday|22757|406|1|0|||{\"exists\":true,\"selector\":\"a[href=\\\"https://www.makemytrip.com/flights/\\\"]\",\"tagName\":\"a\",\"ariaExpanded\":null,\"visible\":true}",
+                "expandedStates": [],
+                "interactiveCount": 406,
+                "modalCount": 1,
+                "scrollX": 0,
+                "scrollY": 0,
+                "target": {
+                  "ariaExpanded": null,
+                  "exists": true,
+                  "selector": "a[href=\"https://www.makemytrip.com/flights/\"]",
+                  "tagName": "a",
+                  "visible": true
+                },
+                "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+                "url": "https://www.makemytrip.com/",
+                "visibleTextLength": 22757
+              },
+              "reason": "execution_failed",
+              "signals": {
+                "action_type": "click",
+                "cdp_navigation_signal_count": 6,
+                "checkbox_state_changed": false,
+                "dialog_count_changed": false,
+                "dom_changed": false,
+                "download_completed": null,
+                "download_detected": null,
+                "execution_duration_ms": 475,
+                "execution_success": false,
+                "expanded_state_changed": false,
+                "expected_effect_description": "Click the 'Flights' link",
+                "expected_effect_kind": "target_state_change",
+                "expected_url_path": null,
+                "expected_url_path_matched": null,
+                "focus_changed": false,
+                "interactive_count_changed": false,
+                "modal_count_changed": false,
+                "rich_text_validated": null,
+                "scroll_position_changed": false,
+                "tab_switch_verified": null,
+                "target_checked_changed": false,
+                "target_exists_after": true,
+                "target_expanded_changed": false,
+                "target_filled_after": null,
+                "target_selected_changed": false,
+                "target_value_changed": false,
+                "url_changed": false,
+                "visible_text_length_changed": false,
+                "wave2_capability": null,
+                "wave2_validated": null,
+                "wave3_capability": null,
+                "wave3_validated": null,
+                "wave4_capability": null,
+                "wave4_validated": null
+              },
+              "verified": false
+            }
+          }
+        }
+      ],
+      "initial_url": "chrome://newtab/",
+      "browser_pages": [
+        {
+          "index": 1,
+          "url": "about:blank",
+          "title": "",
+          "body_text": "",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-overlay-01-page-1.png"
+        },
+        {
+          "index": 2,
+          "url": "https://www.makemytrip.com/",
+          "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+          "body_text": "mbai flight\n\nIMPORTANT LINKS\n\nCheap Flights,\u00a0Flight Status,\u00a0Kumbh Mela,\u00a0Domestic Airlines,\u00a0International Airlines,\u00a0Indigo,\u00a0Spicejet,\u00a0Air Asia,\u00a0Air India,\u00a0Indian Railways,\u00a0Trip Ideas,\u00a0Beaches,\u00a0Honeymoon Destinations,\u00a0Romantic Destinations,\u00a0Popular Destinations,\u00a0Resorts In Udaipur,\u00a0Resorts In Munnar,\u00a0Villas In Lonavala,\u00a0Hotels in Thailand,\u00a0Villas In Goa,\u00a0Domestic Flight Offers,\u00a0International Flight Offers,\u00a0UAE Flight Offers,\u00a0USA,\u00a0UAE,\u00a0Saudi Arabia,\u00a0UK,\u00a0Oman\n\nCORPORATE TRAVEL\n\nBusiness Travel,\u00a0Corporate Travel,\u00a0Corporate Travel Management,\u00a0Corporate Travel Solution,\u00a0Corporate Hotel Booking,\u00a0Corporate Flight Booking,\u00a0Expense Management,\u00a0Corporate Expense Management,\u00a0GST on Hotel Rooms,\u00a0GST on Flight Tickets,\u00a0Business Travel for SME,\u00a0GST Invoice for International flights,\u00a0GST Invoice for Bus,\u00a0GST on Train Tickets,\u00a0T&E (Travel & Expense),\u00a0myBiz - Best Business Travel Platform,\u00a0GST Invoice for Corporate Travel,\u00a0myBiz for Small Business,\u00a0Free cancellation on International Flights\n\nPRODUCT OFFERING\n\nFlights,\u00a0International Flights,\u00a0Charter Flights,\u00a0Hotels,\u00a0International Hotels,\u00a0Apply Visa Online,\u00a0Homestays and Villas,\u00a0Activities,\u00a0Holidays In India,\u00a0International Holidays,\u00a0Book Hotels From UAE,\u00a0Book Online Cabs,\u00a0Book Bus Tickets,\u00a0Book Train Tickets,\u00a0Cheap Tickets to India,\u00a0Book Flights From US,\u00a0Book Flights From UAE,\u00a0Trip Planner,\u00a0Forex Card,\u00a0Buy Foreign Currency,\u00a0Travel Insurance,\u00a0Travel Insurance Thailand,\u00a0Travel Insurance For UAE,\u00a0Travel Insurance For Indonesia,\u00a0Travel Insurance For Vietnam,\u00a0Travel Insurance For Europe,\u00a0Travel Insurance For USA,\u00a0Travel Insurance for Singapore,\u00a0Travel Insurance for Malaysia,\u00a0Travel Insurance for Sri Lanka,\u00a0Travel Insurance for United Kingdom,\u00a0Travel Insurance for Canada,\u00a0Gift Cards,\u00a0Gift,\u00a0Wedding Gift,\u00a0Anniversary Gift,\u00a0Birthday Gift,\u00a0Diwali Gift,\u00a0Valentines Gift,\u00a0Farewell Gift,\u00a0Christmas Gift,\u00a0New Year Gift,\u00a0Trip Ideas,\u00a0Travel Blog,\u00a0PNR Status,\u00a0MakeMyTrip Advertising Solutions,\u00a0One Way Cab,\u00a0Travel Credit Card\n\nTOP HOTELS IN INDIA\n\nFairmont Jaipur,\u00a0St Regis Goa,\u00a0Six Senses Fort Barwara,\u00a0W Goa,\u00a0Grand Hyatt Goa,\u00a0Shangri-La Bangalore,\u00a0The St Regis Mumbai,\u00a0Taj Rishikesh,\u00a0Grand Hyatt Mumbai,\u00a0Le Meridien Delhi,\u00a0Rambagh Palace Jaipur,\u00a0Leela Palace Chennai,\u00a0The Leela Palace Udaipur,\u00a0Taj Lake Palace Udaipur,\u00a0Jw Marriott Chandigarh,\u00a0Alila Diwa Goa,\u00a0Le Meridien Goa,\u00a0Taj Lands End Mumbai,\u00a0Itc Grand Chola Chennai,\u00a0Itc Maratha Mumbai,\u00a0Oberoi Udaivilas,\u00a0Jai Mahal Palace Jaipur,\u00a0Taj Mahal Tower Mumbai,\u00a0Marriott Suites Pune,\u00a0Park Hyatt Chennai,\u00a0The Leela Palace Jaipur,\u00a0Jw Marriott Mumbai Sahar,\u00a0Jw Marriott Mumbai Juhu,\u00a0The Ritz Carlton Bengaluru,\u00a0The Oberoi New Delhi,\u00a0Taj Resort & Convention Centre Goa,\u00a0Taj Bengal Kolkata,\u00a0Taj Coromandel Chennai,\u00a0The Oberoi Gurgaon,\u00a0The Westin Goa,\u00a0Jw Marriott Hotel Pune,\u00a0The Leela Palace New Delhi,\u00a0Taj West End Bengaluru,\u00a0The Taj Mahal Palace Mumbai,\u00a0Best Hotels in India\n\nINTERNATIONAL ROUTES\n\nDelhi to Dubai flight,\u00a0Mumbai to Dubai Flight,\u00a0Ahmedabad to London flight,\u00a0Delhi to Bali flight,\u00a0Delhi to London flight,\u00a0Delhi to Bangkok flight,\u00a0Delhi to kathmandu flight,\u00a0Delhi to Singapore flight,\u00a0Mumbai to London flight,\u00a0Mumbai to Bali flight,\u00a0Mumbai to Bangkok flight,\u00a0Ahmedabad to Dubai Flight,\u00a0Bangalore to Dubai flight,\u00a0Chennai to Dubai flight,\u00a0Delhi to Phuket flight\n\nPOPULAR DOMESTIC ROUTES\n\nDelhi to Chennai flight,\u00a0Kolkata to Bangalore flight,\u00a0Delhi to Hyderabad flight,\u00a0Delhi to Ahmedabad flight,\u00a0Kolkata to Bagdogra flight,\u00a0Srinagar to Delhi flight,\u00a0Hyderabad to Goa flight,\u00a0Mumbai to Chennai flight,\u00a0Ahmedabad to Mumbai flight,\u00a0Delhi to Bagdogra flight,\u00a0Goa to Delhi flight,\u00a0Goa to Mumbai flight,\u00a0Hyderabad to Bangalore flight,\u00a0Mumbai to Hyderabad flight,\u00a0Delhi to Leh flight,\u00a0Pune to Bangalore flight,\u00a0Kolkata to Goa flight,\u00a0Bangalore to Pune flight,\u00a0Hyderabad to Mumbai flight\n\nTOP INTERNATIONAL HOTELS\n\nAdaaran Club Rannalhi,\u00a0Marina Bay Sands Singapore,\u00a0Coco Bodu Hithi,\u00a0Taj Dubai,\u00a0Atlantis Hotel Dubai,\u00a0Amari Phuket,\u00a0Jw Marriott Dubai,\u00a0Armani Hotel Dubai,\u00a0Grand Hyatt Dubai,\u00a0Saii Lagoon Maldives,\u00a0Gevora Hotel Dubai,\u00a0Hyatt Regency Dubai,\u00a0Pan Pacific Singapore,\u00a0The Palm Dubai,\u00a0Caesars Palace,\u00a0Baiyoke Sky Hotel,\u00a0Centara Pattaya Hotel,\u00a0Embudu Village,\u00a0Orchard Hotel Singapore,\u00a0Reethi Beach Resort,\u00a0Ambassador Hotel Bangkok,\u00a0Dusit Thani Pattaya,\u00a0Shangri La Singapore,\u00a0Sunbeam Hotel Pattaya,\u00a0Taj Samudra Colombo,\u00a0Bangkok Palace Hotel,\u00a0Hilton Pattaya,\u00a0Novotel Phuket Resort,\u00a0Taj Exotica Resort Maldives,\u00a0Village Hotel Bugis,\u00a0Avani Atrium Bangkok,\u00a0The Plaza New York,\u00a0Village Hotel Albert Court,\u00a0Amari Pattaya\n\nVISA OFFERINGS\n\nAustralia Visa,\u00a0Austria Visa,\u00a0Azerbaijan Visa,\u00a0Bangladesh Visa,\u00a0Bahrain Visa,\u00a0Cambodia Visa,\u00a0China Visa,\u00a0Czech Republic Visa,\u00a0Dubai - UAE Visa,\u00a0Egypt Visa,\u00a0Finland Visa,\u00a0France Visa,\u00a0Georgia Visa,\u00a0Germany Visa,\u00a0Greece Visa,\u00a0Hong Kong Visa,\u00a0Iceland Visa,\u00a0Indonesia Visa,\u00a0Ireland Visa,\u00a0Italy Visa,\u00a0Japan Visa,\u00a0Kenya Visa,\u00a0Malaysia Visa,\u00a0Morocco Visa,\u00a0Netherlands Visa,\u00a0New Zealand Visa,\u00a0Norway Visa,\u00a0Portugal Visa,\u00a0Qatar Visa,\u00a0Russia Visa,\u00a0Singapore Visa,\u00a0South Africa Visa,\u00a0South Korea Visa,\u00a0Spain Visa,\u00a0Sri Lanka Visa,\u00a0Sweden Visa,\u00a0Switzerland Visa,\u00a0Thailand Visa,\u00a0United Kingdom - UK Visa,\u00a0Uzbekistan Visa,\u00a0Vietnam Visa,\u00a0Mongolia Visa,\u00a0Zambia Visa\n\nPOPULAR INTERNATIONAL ROUTES\n\nHyderabad to Dubai flight,\u00a0Chennai to Singapore flight,\u00a0Mumbai to Singapore flight,\u00a0Delhi to Toronto flight,\u00a0Bangalore to Bangkok flight,\u00a0Delhi to New York flight,\u00a0Bangalore to Bali flight,\u00a0Bangalore to Singapore flight,\u00a0Delhi to Hong Kong flight,\u00a0Delhi to Maldives flight,\u00a0Delhi to Paris flight,\u00a0Dubai to Delhi Flight,\u00a0Kochi to Dubai Flight,\u00a0Delhi to Tokyo flight,\u00a0Dubai to Mumbai Flight,\u00a0Mumbai to New York flight,\u00a0Amritsar to Dubai Flight,\u00a0Chennai to Colombo flight,\u00a0Mumbai to Tokyo flight,\u00a0Delhi to Colombo flight,\u00a0Mumbai to Colombo flight,\u00a0Delhi to Seoul flight,\u00a0Flight Status\n\nBOOK HOTELS IN INDIA FROM TOP DESTINATIONS\n\nHotels in Jaipur,\u00a0Hotels in Goa,\u00a0Hotels in Delhi,\u00a0Hotels in Udaipur,\u00a0Hotels in Gurgaon,\u00a0Hotels in Mumbai,\u00a0Hotels in Bangalore,\u00a0Hotels in Rishikesh,\u00a0Hotels in Agra,\u00a0Hotels in Chennai,\u00a0Hotels in Kasauli,\u00a0Hotels in Kolkata,\u00a0Hotels in Pune,\u00a0Hotels in Manali,\u00a0Hotels in Lonavala,\u00a0Hotels in Shimla,\u00a0Hotels in Munnar,\u00a0Hotels in Ayodhya,\u00a0Hotels in Gulmarg,\u00a0Hotels in Leh,\u00a0Hotels in Hyderabad\nWhy MakeMyTrip?\nEstablished in 2000, MakeMyTrip has since positioned itself as one of the leading companies, providing great offers, competitive airfares, exclusive discounts, and a seamless online booking experience to many of its customers. The experience of booking your flight tickets, hotel stay, and holiday package through our desktop site or mobile app can be done with complete ease and no hassles at all. We also deliver amazing offers, such as Instant Discounts, Fare Calendar, MyRewardsProgram, MyWallet, and many more while updating them from time to time to better suit our customers\u2019 evolving needs and demands.\nBooking Flights with MakeMyTrip\nAt MakeMyTrip, you can find the best of deals and cheap air tickets to any place you want by booking your tickets on our website or app. Being India\u2019s leading website for hotel, flight, and holiday bookings, MakeMyTrip helps you book flight tickets that are affordable and customized to your convenience. With customer satisfaction being our ultimate goal, we also have a 24/7 dedicated helpline to cater to our customer\u2019s queries and concerns. Serving over 5 million happy customers, we at MakeMyTrip are glad to fulfill the dreams of folks who need a quick and easy means to find air tickets. You can get a hold of the cheapest flight of your choice today while also enjoying the other available options for your travel needs with us.\nDomestic Flights with MakeMyTrip\nMakeMyTrip is India's leading player for flight bookings. With the cheapest fare guarantee, experience great value at the lowest price. Instant notifications ensure current flight status, instant fare drops, amazing discounts, instant refunds and rebook options, price comparisons and many more interesting features.\n\n\u00a9 2026 MakeMyTrip (India) Limited",
+          "video": {
+            "exists": false
+          },
+          "screenshot": "C:\\Work\\AI_Browser_Assist\\docs\\production_validation\\live_sidepanel\\booking-mmt-overlay-01-page-2.png"
+        }
+      ],
+      "analyze_observations": [
+        {
+          "url": "chrome://newtab/",
+          "title": "New Tab",
+          "visible_text_length": 135,
+          "controls": []
+        },
+        {
+          "url": "https://www.makemytrip.com/",
+          "title": "MakeMyTrip - #1 Travel Website 50% OFF on Hotels, Flights & Holiday",
+          "visible_text_length": 1000,
+          "controls": [
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#Offers_Listing > div:nth-of-type(2) > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#Offers_Listing > div:nth-of-type(2) > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#PROMOTIONS > div > div > button:nth-of-type(1)",
+              "text": "Previous",
+              "aria_label": "",
+              "accessibility_name": "Previous",
+              "href": ""
+            },
+            {
+              "type": "button",
+              "input_type": "",
+              "role": "button",
+              "selector": "#PROMOTIONS > div > div > button:nth-of-type(2)",
+              "text": "Next",
+              "aria_label": "",
+              "accessibility_name": "Next",
+              "href": ""
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "a[href=\"#\"]",
+              "text": "",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/#"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-corporate-hotel-booking-54\"]",
+              "text": "Corporate Hotel Booking",
+              "aria_label": "",
+              "accessibility_name": "Corporate Hotel Booking",
+              "href": "https://mybiz.makemytrip.com/corporate/corporate-hotel-booking.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-corporate-flight-booking-55\"]",
+              "text": "Corporate Flight Booking",
+              "aria_label": "",
+              "accessibility_name": "Corporate Flight Booking",
+              "href": "https://mybiz.makemytrip.com/corporate/corporate-flight-booking.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-buy-foreign-currency-619\"]",
+              "text": "Buy Foreign Currency",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/tripmoney/currency"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "a[href=\"https://www.makemytrip.com/activities/\"]",
+              "text": "Tours & Attractions  Tours & Attractions",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/activities/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-investor-relations-01\"]",
+              "text": "Investor Relations",
+              "aria_label": "",
+              "accessibility_name": "Investor Relations",
+              "href": "https://investors.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-things-to-do-in-malaysia-022\"]",
+              "text": "Things to Do in Malaysia",
+              "aria_label": "",
+              "accessibility_name": "Things to Do in Malaysia",
+              "href": "https://www.redbus.my/things-to-do/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-things-to-do-in-singapore-023\"]",
+              "text": "Things to Do in Singapore",
+              "aria_label": "",
+              "accessibility_name": "Things to Do in Singapore",
+              "href": "https://www.redbus.sg/things-to-do/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-kolkata-rupsi-flights-15\"]",
+              "text": "Kolkata to Rupsi Flights",
+              "aria_label": "",
+              "accessibility_name": "Kolkata to Rupsi Flights",
+              "href": "https://www.makemytrip.com/flights/kolkata-rupsi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-rupsi-guwahati-flights-16\"]",
+              "text": "Rupsi to Guwahati Flights",
+              "aria_label": "",
+              "accessibility_name": "Rupsi to Guwahati Flights",
+              "href": "https://www.makemytrip.com/flights/rupsi-guwahati-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-pasighat-guwahati-flights-17\"]",
+              "text": "Pasighat to Guwahati Flights",
+              "aria_label": "",
+              "accessibility_name": "Pasighat to Guwahati Flights",
+              "href": "https://www.makemytrip.com/flights/pasighat-guwahati-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-khajuraho-flights-18\"]",
+              "text": "Delhi to Khajuraho Flights",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Khajuraho Flights",
+              "href": "https://www.makemytrip.com/flights/new_delhi-khajuraho-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-cochin-agatti-island-flights-19\"]",
+              "text": "Cochin to Agatti Island Flights",
+              "aria_label": "",
+              "accessibility_name": "Cochin to Agatti Island Flights",
+              "href": "https://www.makemytrip.com/flights/kochi-agatti_island-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-thailand-packages-124\"]",
+              "text": "Thailand Packages",
+              "aria_label": "",
+              "accessibility_name": "Thailand Packages",
+              "href": "https://www.makemytrip.com/holidays-international/thailand-vacation-tour-packages.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-customer-support-20\"]",
+              "text": "Customer Support",
+              "aria_label": "",
+              "accessibility_name": "Customer Support",
+              "href": "https://supportz.makemytrip.com/Mima/CustomerHelpAndSupport/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-terms-of-service-25\"]",
+              "text": "Terms of Service",
+              "aria_label": "",
+              "accessibility_name": "Terms of Service",
+              "href": "https://www.makemytrip.com/legal/in/eng/user_agreement.html#tos"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-goa-flight-30\"]",
+              "text": "Delhi to Goa flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Goa flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-mumbai-flight-31\"]",
+              "text": "Delhi to Mumbai flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Mumbai flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mumbai-to-delhi-flight-32\"]",
+              "text": "Mumbai to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Mumbai to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/mumbai-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-patna-flight-33\"]",
+              "text": "Delhi to Patna flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Patna flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-patna-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mumbai-to-goa-flight-34\"]",
+              "text": "Mumbai to Goa flight",
+              "aria_label": "",
+              "accessibility_name": "Mumbai to Goa flight",
+              "href": "https://www.makemytrip.com/flights/mumbai-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-bangalore-to-delhi-flight-35\"]",
+              "text": "Bangalore to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Bangalore to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/bangalore-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-bangalore-flight-36\"]",
+              "text": "Delhi to Bangalore flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Bangalore flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-bangalore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-pune-to-delhi-flight-37\"]",
+              "text": "Pune to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Pune to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/pune-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-patna-to-delhi-flight-38\"]",
+              "text": "Patna to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Patna to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/patna-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-kolkata-flight-39\"]",
+              "text": "Delhi to Kolkata flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Kolkata flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-kolkata-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-kolkata-to-delhi-flight-310\"]",
+              "text": "Kolkata to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Kolkata to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/kolkata-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-bangalore-to-goa-flight-311\"]",
+              "text": "Bangalore to Goa flight",
+              "aria_label": "",
+              "accessibility_name": "Bangalore to Goa flight",
+              "href": "https://www.makemytrip.com/flights/bangalore-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-hyderabad-to-delhi-flight-312\"]",
+              "text": "Hyderabad to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "Hyderabad to Delhi flight",
+              "href": "https://www.makemytrip.com/flights/hyderabad-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mumbai-to-kolkata-flight-313\"]",
+              "text": "Mumbai to Kolkata flight",
+              "aria_label": "",
+              "accessibility_name": "Mumbai to Kolkata flight",
+              "href": "https://www.makemytrip.com/flights/mumbai-kolkata-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-pune-flight-314\"]",
+              "text": "Delhi to Pune flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Pune flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-pune-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-delhi-to-srinagar-flight-315\"]",
+              "text": "Delhi to Srinagar flight",
+              "aria_label": "",
+              "accessibility_name": "Delhi to Srinagar flight",
+              "href": "https://www.makemytrip.com/flights/new_delhi-srinagar-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-mumbai-to-bangalore-flight-316\"]",
+              "text": "Mumbai to Bangalore flight",
+              "aria_label": "",
+              "accessibility_name": "Mumbai to Bangalore flight",
+              "href": "https://www.makemytrip.com/flights/mumbai-bangalore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-ahmedabad-to-goa-flight-317\"]",
+              "text": "Ahmedabad to Goa flight",
+              "aria_label": "",
+              "accessibility_name": "Ahmedabad to Goa flight",
+              "href": "https://www.makemytrip.com/flights/ahmedabad-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "link",
+              "selector": "[data-cy=\"anchor-bangalore-to-mumbai-flight-318\"]",
+              "text": "Bangalore to Mumbai flight",
+              "aria_label": "",
+              "accessibility_name": "Bangalore to Mumbai flight",
+              "href": "https://www.makemytrip.com/flights/bangalore-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-visa-65\"]",
+              "text": "Apply Visa Online",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://visa.makemytrip.com/"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-cheap-tickets-to-india-614\"]",
+              "text": "Cheap Tickets to India",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/?ccde=us"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-taj-mahal-tower-mumbai-722\"]",
+              "text": "Taj Mahal Tower Mumbai",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/hotels/taj_mahal_tower_mumbai-details-mumbai.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-the-ritz-carlton-bengaluru-728\"]",
+              "text": "The Ritz Carlton Bengaluru",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/hotels/the_ritz_carlton-details-bangalore.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-dubai-flight-80\"]",
+              "text": "Delhi to Dubai flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/delhi-dubai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-mumbai-to-dubai-flight-81\"]",
+              "text": "Mumbai to Dubai Flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/mumbai-dubai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-ahmedabad-to-london-flight-82\"]",
+              "text": "Ahmedabad to London flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/ahmedabad-london-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-bali-flight-83\"]",
+              "text": "Delhi to Bali flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/delhi-denpasar_bali-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-london-flight-84\"]",
+              "text": "Delhi to London flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/delhi-london-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-bangkok-flight-85\"]",
+              "text": "Delhi to Bangkok flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/delhi-bangkok-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-kathmandu-flight-86\"]",
+              "text": "Delhi to kathmandu flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/delhi-kathmandu-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-singapore-flight-87\"]",
+              "text": "Delhi to Singapore flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/delhi-singapore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-mumbai-to-london-flight-88\"]",
+              "text": "Mumbai to London flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/mumbai-london-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-mumbai-to-bali-flight-89\"]",
+              "text": "Mumbai to Bali flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/mumbai-denpasar_bali-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-mumbai-to-bangkok-flight-810\"]",
+              "text": "Mumbai to Bangkok flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/mumbai-bangkok-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-ahmedabad-to-dubai-flight-811\"]",
+              "text": "Ahmedabad to Dubai Flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/ahmedabad-dubai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-bangalore-to-dubai-flight-812\"]",
+              "text": "Bangalore to Dubai flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/bangalore-dubai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-chennai-to-dubai-flight-813\"]",
+              "text": "Chennai to Dubai flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/chennai-dubai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-phuket-flight-814\"]",
+              "text": "Delhi to Phuket flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/delhi-phuket-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-chennai-flight-90\"]",
+              "text": "Delhi to Chennai flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/new_delhi-chennai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-kolkata-to-bangalore-flight-91\"]",
+              "text": "Kolkata to Bangalore flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/kolkata-bangalore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-hyderabad-flight-92\"]",
+              "text": "Delhi to Hyderabad flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/new_delhi-hyderabad-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-ahmedabad-flight-93\"]",
+              "text": "Delhi to Ahmedabad flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/new_delhi-ahmedabad-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-kolkata-to-bagdogra-flight-94\"]",
+              "text": "Kolkata to Bagdogra flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/kolkata-bagdogra-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-srinagar-to-delhi-flight-95\"]",
+              "text": "Srinagar to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/srinagar-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-hyderabad-to-goa-flight-96\"]",
+              "text": "Hyderabad to Goa flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/hyderabad-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-mumbai-to-chennai-flight-97\"]",
+              "text": "Mumbai to Chennai flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/mumbai-chennai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-ahmedabad-to-mumbai-flight-98\"]",
+              "text": "Ahmedabad to Mumbai flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/ahmedabad-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-bagdogra-flight-99\"]",
+              "text": "Delhi to Bagdogra flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/new_delhi-bagdogra-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-goa-to-delhi-flight-910\"]",
+              "text": "Goa to Delhi flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/goa-new_delhi-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-goa-to-mumbai-flight-911\"]",
+              "text": "Goa to Mumbai flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/goa-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-hyderabad-to-bangalore-flight-912\"]",
+              "text": "Hyderabad to Bangalore flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/hyderabad-bangalore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-mumbai-to-hyderabad-flight-913\"]",
+              "text": "Mumbai to Hyderabad flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/mumbai-hyderabad-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-delhi-to-leh-flight-914\"]",
+              "text": "Delhi to Leh flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/new_delhi-leh-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-pune-to-bangalore-flight-915\"]",
+              "text": "Pune to Bangalore flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/pune-bangalore-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-kolkata-to-goa-flight-916\"]",
+              "text": "Kolkata to Goa flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/kolkata-goa-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-bangalore-to-pune-flight-917\"]",
+              "text": "Bangalore to Pune flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/bangalore-pune-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-hyderabad-to-mumbai-flight-918\"]",
+              "text": "Hyderabad to Mumbai flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/flights/hyderabad-mumbai-cheap-airtickets.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-saii-lagoon-maldives-109\"]",
+              "text": "Saii Lagoon Maldives",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/hotels-international/maldives/maldives-hotels/saii_lagoon_maldives_curio_collection_by_hilton-details.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-hilton-pattaya-1026\"]",
+              "text": "Hilton Pattaya",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/hotels-international/thailand/pattaya-hotels/hilton_pattaya-details.html"
+            },
+            {
+              "type": "a",
+              "input_type": "",
+              "role": "",
+              "selector": "[data-cy=\"anchor-hyderabad-to-dubai-flight-120\"]",
+              "text": "Hyderabad to Dubai flight",
+              "aria_label": "",
+              "accessibility_name": "",
+              "href": "https://www.makemytrip.com/international-flights/hyderabad-dubai-cheap-airtickets.html"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

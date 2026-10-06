@@ -1166,7 +1166,10 @@ def resolve_destination(
             description=(
                 f"Search for the official destination of {decision.objective.entity_name}"
                 if decision.kind == "search"
-                else f"Open the resolved destination for {decision.objective.text}"
+                # Describe this navigation, not the whole multi-step mission.
+                # Later instructions may contain sensitive inputs or unrelated
+                # mutations and must not leak into this action's policy text.
+                else f"Open {decision.url}"
             ),
             reasoning=decision.message,
             confidence=0.92 if decision.kind == "navigate" else 0.85,

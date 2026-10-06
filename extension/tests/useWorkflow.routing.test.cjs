@@ -333,6 +333,9 @@ test('raw workflow failures become meaningful bounded user outcomes', () => {
   const target = meaningfulWorkflowFailure('Selector target not found', 'execution', 'Open exact chat')
   assert.equal(target.category, 'target_not_found')
   assert.match(target.userMessage, /did not click a substitute/i)
+  const staleTarget = meaningfulWorkflowFailure('CDP could not ground the requested target without changing its identity.', 'execution', 'Open exact control')
+  assert.equal(staleTarget.category, 'target_not_found')
+  assert.equal(staleTarget.retryable, true)
 
   const errorPage = meaningfulWorkflowFailure(
     'Could not verify page progress after navigate: Extraction failed: Frame with ID 0 is showing error page',

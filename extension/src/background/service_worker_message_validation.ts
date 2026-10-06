@@ -315,6 +315,9 @@ export function validateServiceWorkerMessage(
     if (message.tab_id !== undefined && (!Number.isInteger(message.tab_id) || Number(message.tab_id) < 0)) {
       return 'Context message has an invalid tab binding.'
     }
+    if (message.task_hint !== undefined && !isBoundedString(message.task_hint, 1000)) {
+      return 'Context message has an invalid bounded task hint.'
+    }
   } else if (message.type === 'START_VOICE_CAPTURE') {
     if (message.language !== undefined && (!isBoundedString(message.language, 32) || !/^[A-Za-z0-9-]*$/.test(String(message.language)))) {
       return 'Voice message has an invalid language code.'

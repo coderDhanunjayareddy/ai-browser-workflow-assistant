@@ -180,6 +180,66 @@ def test_stale_selector_with_duplicate_identity_is_blocked_before_browser_handof
     assert "No browser mutation was dispatched" in grounded.analysis
 
 
+def test_observed_selector_cannot_override_named_action_identity():
+    page = _page([
+        InteractiveElement(type="a", role="link", text="Ahmedabad to Goa flight",
+                           accessibility_name="Ahmedabad to Goa flight", selector="#wrong-route", visible=True),
+        InteractiveElement(type="a", role="link", text="Hyderabad to Delhi flight",
+                           accessibility_name="Hyderabad to Delhi flight", selector="#right-route", visible=True),
+    ])
+    response = AnalyzeResponse(session_id="wrong-route", analysis="", suggested_actions=[SuggestedAction(
+        action_id="route", action_type="click", target_selector="#wrong-route",
+        description="Click the link for Hyderabad to Delhi flight",
+        reasoning="Use the requested route", confidence=0.9, safety_level="safe",
+    )])
+    grounded = _enforce_authoritative_semantic_grounding(session_id="wrong-route", result=response, page_context=page)
+    assert grounded.outcome_kind == "ask"
+    assert grounded.suggested_actions == []
+
+
+def test_named_route_rejects_link_sharing_only_destination_and_type():
+    page = _page([
+        InteractiveElement(type="a", role="link", text="Delhi to Pune flight",
+                           accessibility_name="Delhi to Pune flight", selector="#near-route", visible=True),
+    ])
+    response = AnalyzeResponse(session_id="near-route", analysis="", suggested_actions=[SuggestedAction(
+        action_id="route", action_type="click", target_selector="#near-route",
+        description="Click the link for Hyderabad to Delhi flight",
+        reasoning="Use the requested route", confidence=0.9, safety_level="safe",
+    )])
+    grounded = _enforce_authoritative_semantic_grounding(session_id="near-route", result=response, page_context=page)
+    assert grounded.outcome_kind == "ask"
+    assert grounded.suggested_actions == []
+
+
+def test_date_action_cannot_be_grounded_to_unrelated_link():
+    page = _page([
+        InteractiveElement(type="a", role="link", text="Agartala to Goa flight",
+                           accessibility_name="Agartala to Goa flight", selector="#unrelated-link", visible=True),
+        _button("Departure date", "#date"),
+    ])
+    response = AnalyzeResponse(session_id="wrong-date", analysis="", suggested_actions=[SuggestedAction(
+        action_id="date", action_type="click", target_selector="#unrelated-link",
+        description="Click to select the departure date",
+        reasoning="Open the calendar", confidence=0.9, safety_level="safe",
+    )])
+    grounded = _enforce_authoritative_semantic_grounding(session_id="wrong-date", result=response, page_context=page)
+    assert grounded.outcome_kind == "ask"
+    assert grounded.suggested_actions == []
+
+
+def test_date_action_purpose_clause_does_not_conflict_with_exact_date_control():
+    page = _page([_button("Departure date", "#date")])
+    response = AnalyzeResponse(session_id="right-date", analysis="", suggested_actions=[SuggestedAction(
+        action_id="date", action_type="click", target_selector="#date",
+        description="Click the departure date field to select the flight date",
+        reasoning="Open the calendar", confidence=0.9, safety_level="safe",
+    )])
+    grounded = _enforce_authoritative_semantic_grounding(session_id="right-date", result=response, page_context=page)
+    assert grounded.outcome_kind == "act"
+    assert grounded.suggested_actions[0].target_selector == "#date"
+
+
 def test_observation_identity_changes_with_frame_geometry_and_state():
     baseline = _page([_button("Continue", "#continue")])
     moved = _page([_button("Continue", "#continue", bounding_box={"x": 200, "y": 10, "width": 80, "height": 30})])

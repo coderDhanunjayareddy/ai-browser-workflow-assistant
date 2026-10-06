@@ -91,13 +91,12 @@ def _planner_context_char_budget() -> int:
     if provider == "openrouter":
         default_budget = min(
             default_budget,
-            int(getattr(settings, "openrouter_planner_context_char_budget", 1200) or 1200),
+            int(getattr(settings, "openrouter_planner_context_char_budget", 5500) or 5500),
         )
-        min_budget = 200
     try:
-        return max(min_budget, int(raw)) if raw else default_budget
+        return max(min_budget, int(raw)) if raw else max(min_budget, default_budget)
     except ValueError:
-        return default_budget
+        return max(min_budget, default_budget)
 
 
 def _truncate_text(value: str, limit: int) -> str:
@@ -121,6 +120,8 @@ def _budget_context_value(value: Any, *, key: str = "", depth: int = 0, string_s
             for item in value[:limit]
         ]
     if isinstance(value, str):
+        if key in {"active_goal", "selector", "target_selector", "selector_id", "url", "href", "canonical_url"}:
+            return value
         base_limit = _STRING_LIMITS_BY_KEY.get(key, 1_500)
         return _truncate_text(value, max(120, int(base_limit * string_scale)))
     return value
@@ -197,23 +198,66 @@ def budget_compressed_planner_context(context: Dict[str, Any], *, char_budget: O
                     "title": _truncate_text(str(item.get("title") or ""), 160),
                     "url": item.get("url"),
                 })
-    return {
-        "active_goal": _truncate_text(str(context.get("active_goal", "")), 600),
-        "browser_intelligence": {"search_results": compact_results},
-        "recent_actions": [
-            _budget_context_value(item, string_scale=0.15)
-            for item in (
-                projected.get("recent_actions", [])[-2:]
-                if isinstance(projected.get("recent_actions"), list)
-                else []
-            )
-        ],
+    # Preserve executable identities, not bulky per-element telemetry. The
+    # former last resort dropped every DOM control and silently cut the goal,
+    # forcing interactive planners to invent selectors or repeat earlier steps.
+    compact = {
+        "active_goal": context.get("active_goal", ""),
+        "relevant_elements": [],
+        "browser_intelligence": {"search_results": []},
+        "recent_actions": [],
+        "verified_facts": {},
         "budget_notice": {
             "original_chars": len(json.dumps(context, ensure_ascii=False)),
             "budget_chars": budget,
             "projection": "compact_minimal",
         },
     }
+
+    def append_within_budget(target: list, item: dict) -> bool:
+        target.append(item)
+        if len(json.dumps(compact, ensure_ascii=False)) <= budget:
+            return True
+        target.pop()
+        return False
+
+    if len(json.dumps(compact, ensure_ascii=False)) > budget:
+        raise ValueError("Planner context budget cannot preserve the complete active goal")
+    facts = context.get("verified_facts") or {}
+    if isinstance(facts, dict):
+        visible = [
+            {"text": _truncate_text(str(item.get("text") or ""), 180)}
+            for item in list(facts.get("relevant_visible_content") or [])[:3]
+            if isinstance(item, dict)
+        ]
+        if visible:
+            compact["verified_facts"] = {"relevant_visible_content": visible}
+            if len(json.dumps(compact, ensure_ascii=False)) > budget:
+                compact["verified_facts"] = {}
+    for item in list(context.get("recent_actions") or [])[-3:]:
+        if isinstance(item, dict):
+            append_within_budget(compact["recent_actions"], {
+                key: item[key] for key in ("action_type", "selector", "description", "page_changed")
+                if key in item
+            })
+    controls = []
+    for item in list(context.get("relevant_elements") or []):
+        if not isinstance(item, dict) or not item.get("selector"):
+            continue
+        control = {key: item[key] for key in ("selector", "type", "role", "input_type", "href") if item.get(key)}
+        control["text"] = _truncate_text(str(item.get("accessibility_name") or item.get("aria_label") or item.get("text") or item.get("placeholder") or ""), 180)
+        state = item.get("state") or {}
+        if isinstance(state, dict):
+            control.update({key: state[key] for key in ("disabled", "readonly", "expanded", "checked") if key in state})
+        controls.append(control)
+    for index in range(max(len(controls), len(compact_results))):
+        if index < len(controls):
+            append_within_budget(compact["relevant_elements"], controls[index])
+        if index < len(compact_results):
+            append_within_budget(compact["browser_intelligence"]["search_results"], compact_results[index])
+    if controls and not compact["relevant_elements"]:
+        raise ValueError("Planner context budget cannot preserve an observed control")
+    return compact
 
 
 def download_image(url: str) -> tuple[str, bytes, str] | None:
@@ -351,8 +395,10 @@ SYSTEM_PROMPT = """You are an AI browser workflow assistant. Decide the NEXT out
 
 
 COMPACT_SYSTEM_PROMPT = """Return one JSON object only:
-{"analysis":"mode+evidence","outcome_kind":"act|report|wait|ask|replan","clarification_question":null,"report":null,"replan":null,"suggested_actions":[]}
-Use only provided context. One step. Valid actions: click,fill,scroll,navigate,wait,select_option,choose_date,hover,keyboard_shortcut,open_new_tab,switch_tab,close_tab,focus_existing_tab. Selectors/URLs must come from context. Research modes are SEARCH,COLLECT,EXTRACT,VERIFY,REPORT; do not put modes in action_type. Report only with evidence."""
+{"analysis":"Explain the next step using current evidence","outcome_kind":"act","clarification_question":null,"report":null,"replan":null,"suggested_actions":[{"action_id":"step-id","action_type":"click","target_selector":"exact selector from current context","value":null,"description":"Click the named control","reasoning":"Why this is the next unfinished step","confidence":0.9,"safety_level":"safe"}]}
+Use only provided context. Follow the user's steps in order, one next unfinished step per turn. Current page state is authoritative; use prior actions to track progress, never restart a completed menu-opening step when its destination is now visible.
+Valid actions: click,fill,scroll,navigate,wait,select_option,choose_date,hover,keyboard_shortcut,open_new_tab,switch_tab,close_tab,focus_existing_tab. Every action must include action_type, target_selector, value, description, reasoning, confidence, safety_level. Copy target_selector exactly from the intended current element and describe that element, not the whole task. Never substitute a similarly named control. For navigation use an observed or user-supplied URL in value; fill uses the supplied field text in value. Selectors/URLs must come from context.
+outcome_kind is act,report,wait,ask,or replan. For report/ask/replan use an empty suggested_actions list and supply respectively report {answer,claim}, clarification_question, or replan {reason}. Report only when current evidence satisfies the final requested outcome, not merely an intermediate click/login. Use wait only for a pending page transition. Research modes SEARCH,COLLECT,EXTRACT,VERIFY,REPORT are not action_type values."""
 
 
 def _system_prompt_for_provider(provider: str) -> str:
@@ -767,6 +813,8 @@ _ACTION_ALIASES = {
 
 def _canonicalize_planner_action_item(item: dict[str, Any]) -> dict[str, Any]:
     """Repair common schema drift while preserving the dispatcher as authority."""
+    if not item.get("target_selector") and isinstance(item.get("selector"), str):
+        item = {**item, "target_selector": item["selector"]}
     action_text = str(item.get("action_type", "") or "").strip()
     if not action_text:
         return item

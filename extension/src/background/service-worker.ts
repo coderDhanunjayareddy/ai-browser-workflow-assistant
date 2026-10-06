@@ -398,7 +398,8 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
   }
   const validMessage = message as Record<string, any>
   if (validMessage.type === 'EXTRACT_CONTEXT') {
-    handleExtractContext(sendResponse, typeof validMessage.tab_id === 'number' ? validMessage.tab_id : undefined)
+    handleExtractContext(sendResponse, typeof validMessage.tab_id === 'number' ? validMessage.tab_id : undefined,
+      typeof validMessage.task_hint === 'string' ? validMessage.task_hint : '')
     return true
   }
   if (validMessage.type === 'EXECUTE_ACTION') {
@@ -435,13 +436,13 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
 
 // ── Context extraction ────────────────────────────────────────────────────────
 
-async function handleExtractContext(sendResponse: (response: unknown) => void, tabId?: number) {
+async function handleExtractContext(sendResponse: (response: unknown) => void, tabId?: number, goalHint = '') {
   try {
     const requestedTab = typeof tabId === 'number'
       ? await chrome.tabs.get(tabId).catch(() => undefined)
       : undefined
     const tab = requestedTab ?? await getTargetTab()
-    const context = await extractContextWithRetry(tab?.id)
+    const context = await extractContextWithRetry(tab?.id, goalHint)
     if (!context) {
       sendResponse({ error: 'Extraction returned empty. Try reloading the page.' })
       return
@@ -579,7 +580,7 @@ function logExtractionDiagnostics(boundary: string, context: any) {
   })
 }
 
-async function extractContextWithRetry(tabId?: number) {
+async function extractContextWithRetry(tabId?: number, goalHint = '') {
   let lastError = ''
 
   const tab = typeof tabId === 'number'
@@ -604,6 +605,7 @@ async function extractContextWithRetry(tabId?: number) {
           chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: extractPageContextV2,
+            args: [goalHint],
           }),
           chrome.scripting.executeScript({
             target: { tabId: tab.id, allFrames: true },
@@ -637,8 +639,8 @@ async function extractContextWithRetry(tabId?: number) {
             })),
           )
           const mergedTopInteractive = mergeInteractiveElementLists(
-            v1Context.interactive_elements,
             v2Context.interactive_elements,
+            v1Context.interactive_elements,
             150,
             aliases[0]?.result || {},
           ).map((item) => ({ ...item, frame_id: 'top' }))

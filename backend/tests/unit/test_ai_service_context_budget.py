@@ -1,6 +1,32 @@
 import json
+import pytest
 
 from app.services.ai_service import budget_compressed_planner_context
+
+
+def test_compact_fallback_keeps_complete_goal_progress_and_exact_controls():
+    goal = "Open the workspace. " + "Follow the requested intermediate step. " * 20 + "Finally create Review."
+    selector = 'nav > div[data-label="' + "nested-control-" * 24 + '"] > button'
+    context = {
+        "active_goal": goal,
+        "verified_facts": {"visible_text": "x" * 10000},
+        "relevant_elements": [
+            {"selector": selector, "accessibility_name": "Workspace", "type": "button", "metadata": "x" * 8000},
+            *[{"selector": f"#other-{i}", "text": "other " * 500} for i in range(40)],
+        ],
+        "recent_actions": [{"action_type": "click", "selector": "#menu", "description": "Open menu"}],
+    }
+    result = budget_compressed_planner_context(context, char_budget=3000)
+    assert len(json.dumps(result, ensure_ascii=False)) <= 3000
+    assert result["active_goal"] == goal
+    assert result["recent_actions"][0]["selector"] == "#menu"
+    assert result["relevant_elements"][0]["selector"] == selector
+    assert result["relevant_elements"][0]["text"] == "Workspace"
+
+
+def test_impossible_budget_does_not_silently_cut_the_users_goal():
+    with pytest.raises(ValueError, match="complete active goal"):
+        budget_compressed_planner_context({"active_goal": "step " * 1000}, char_budget=1000)
 
 
 def test_budget_compressed_planner_context_preserves_high_value_search_results():

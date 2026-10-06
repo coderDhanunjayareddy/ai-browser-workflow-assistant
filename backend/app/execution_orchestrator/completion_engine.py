@@ -19,17 +19,6 @@ GENERIC_BROWSER_MUTATION_TERMS = (
     "disable",
 )
 
-GENERIC_BROWSER_MUTATION_ACTIONS = {
-    "click",
-    "fill",
-    "select_option",
-    "choose_date",
-    "hover",
-    "keyboard_shortcut",
-    "media_control",
-}
-
-
 def build_progress_ledger(
     task: str,
     artifacts: ArtifactRegistry,
@@ -219,7 +208,11 @@ def _validate_complete(task: str, artifacts: ArtifactRegistry, prior_steps: list
     if "downloads" in targets:
         return len(artifacts.downloads) >= targets["downloads"]
     if _is_interactive_task(text) or _is_simple_search_interaction(text):
-        return _target_state_reached(prior_steps)
+        # A verified browser action proves only its local effect. In a
+        # multi-step workflow even a successful login is an intermediate
+        # milestone. Keep observation/mutation available until a task report
+        # is recorded; report outcomes already pass through the phase gate.
+        return bool(artifacts.reports)
     if "form" in text:
         return bool(artifacts.forms)
     return bool(artifacts.extracted_records or artifacts.opened_pages)
@@ -276,34 +269,3 @@ def _is_interactive_task(text: str) -> bool:
         )
     )
 
-
-def _target_state_reached(prior_steps: list[Any]) -> bool:
-    for step in prior_steps:
-        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
-        result = str(data.get("execution_result") or "").lower()
-        description = str(data.get("description") or "").lower()
-        evidence = str(data.get("page_analysis") or "").lower()
-        combined = " ".join((result, description, evidence))
-        action_type = str(data.get("action_type") or "").lower()
-        if (
-            action_type in GENERIC_BROWSER_MUTATION_ACTIONS
-            and "verification: verified" in result
-        ):
-            return True
-        if any(
-            marker in combined
-            for marker in (
-                "message sent",
-                "sent successfully",
-                "submitted successfully",
-                "saved successfully",
-                "dashboard loaded",
-                "welcome page",
-                "target state reached",
-                "media play completed",
-                "playback started",
-                "video playing",
-            )
-        ):
-            return True
-    return False

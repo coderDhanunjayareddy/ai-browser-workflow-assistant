@@ -9,6 +9,7 @@ from app.orchestrator.workflow_orchestrator import (
     _exact_identity_key,
     _deterministic_observed_control_response,
     _deterministic_observed_report_response,
+    _optional_auth_overlay_response,
     _find_observed_control,
     _messaging_recipient_from_task,
 )
@@ -28,6 +29,40 @@ def _page(url: str, elements: list[InteractiveElement]) -> PageContext:
         visible_text="",
         images=[],
     )
+
+
+def test_optional_auth_overlay_is_dismissed_only_once_over_public_controls() -> None:
+    page = _page("https://travel.example.test/search", [
+        InteractiveElement(type="span", selector='[data-cy="closeModal"]', text="Close overlay", visible=True,
+                           semantic_kind="overlay_dismiss"),
+        InteractiveElement(type="input", selector="#phone", text="Phone number", visible=True, role="textbox"),
+        InteractiveElement(type="button", selector="#sign-in", text="Sign in", visible=True, role="button"),
+        InteractiveElement(type="input", selector="#origin", text="From city", visible=True, role="combobox"),
+    ])
+    task = "Find a journey from one city to another. Stop before login or payment."
+    response = _optional_auth_overlay_response(session_id="overlay", task=task, page_context=page, prior_steps=[])
+    assert response is not None
+    assert response.outcome_kind == "act"
+    assert response.suggested_actions[0].target_selector == '[data-cy="closeModal"]'
+    assert response.suggested_actions[0].action_type == "click"
+    assert _optional_auth_overlay_response(session_id="overlay", task=task, page_context=page, prior_steps=[
+        PriorStep(action_type="click", description="Dismiss observed optional authentication overlay",
+                  target_selector='[data-cy="closeModal"]', execution_result="success")
+    ]) is None
+
+
+def test_standalone_auth_and_challenge_do_not_get_overlay_dismissal() -> None:
+    elements = [
+        InteractiveElement(type="span", selector="#close", text="Close overlay", visible=True,
+                           semantic_kind="overlay_dismiss"),
+        InteractiveElement(type="input", selector="#phone", text="Phone number", visible=True, role="textbox"),
+        InteractiveElement(type="button", selector="#sign-in", text="Sign in", visible=True, role="button"),
+    ]
+    page = _page("https://accounts.example.test/login", elements)
+    assert _optional_auth_overlay_response(session_id="auth", task="Find a journey", page_context=page, prior_steps=[]) is None
+    page.interactive_elements.append(InteractiveElement(type="input", selector="#origin", text="From city", visible=True))
+    page.interactive_elements.append(InteractiveElement(type="input", selector="#otp", text="Verification code", visible=True))
+    assert _optional_auth_overlay_response(session_id="challenge", task="Find a journey", page_context=page, prior_steps=[]) is None
 
 
 def test_whatsapp_recipient_stops_before_trailing_safety_sentence() -> None:
@@ -1437,6 +1472,22 @@ def test_login_controls_are_selected_in_fill_fill_submit_order() -> None:
     )
     assert submit is not None
     assert (submit.suggested_actions[0].action_type, submit.suggested_actions[0].target_selector) == ("click", "#login-btn")
+
+
+def test_login_menu_is_not_treated_as_a_credential_form() -> None:
+    page = _page(
+        "https://portal.example/",
+        [
+            InteractiveElement(type="button", selector="#login-menu", text="Login", visible=True, role="button"),
+            InteractiveElement(type="a", selector="#workspace", text="Workspace", visible=True, role="link"),
+        ],
+    )
+    assert _deterministic_observed_control_response(
+        session_id="login-menu",
+        task="Click Login, then Workspace, then sign in and create a folder.",
+        page_context=page,
+        prior_steps=[PriorStep(action_type="click", target_selector="#login-menu", description="Open Login menu", execution_result="success")],
+    ) is None
 
 
 def test_negative_login_constraint_never_selects_optional_login_control() -> None:

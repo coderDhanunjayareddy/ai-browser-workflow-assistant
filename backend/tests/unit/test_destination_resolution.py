@@ -104,6 +104,25 @@ def test_natural_language_known_application_resolves_without_supplied_url():
     assert result.suggested_actions[0].value == "https://www.youtube.com/"
 
 
+def test_navigation_policy_is_not_contaminated_by_later_sensitive_steps():
+    from app.policy.rules import classify_action_risk
+
+    result = resolve_destination(
+        session_id="multi-step-login",
+        task=(
+            "1. Open https://workspace.example/ 2. Click Login. "
+            "3. Enter sample-secret in Password. 4. Submit the form."
+        ),
+        page_context=page(),
+    )
+
+    assert result is not None
+    action = result.suggested_actions[0]
+    assert action.value == "https://workspace.example/"
+    assert "sample-secret" not in action.description
+    assert classify_action_risk(action)[0] == "safe"
+
+
 def test_explicit_privileged_url_stops_without_search_or_navigation_substitute():
     for unsafe in ("chrome://settings", "edge://extensions", "about:config", "file:///private.txt"):
         result = resolve_destination(

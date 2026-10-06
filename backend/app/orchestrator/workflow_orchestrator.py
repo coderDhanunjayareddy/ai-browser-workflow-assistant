@@ -965,6 +965,39 @@ class WorkflowOrchestrator:
                 },
             )
             return observed_report
+        optional_overlay = _optional_auth_overlay_response(
+            session_id=self.session_id,
+            task=task,
+            page_context=page_context,
+            prior_steps=planner_prior_steps,
+        )
+        if optional_overlay is not None:
+            self._route_legacy_browser_actions_through_mission_ledger(
+                result=optional_overlay,
+                task=task,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+                runtime_state_snapshot=runtime_state_snapshot,
+                browser_intelligence_artifact=browser_intelligence_artifact,
+                knowledge_snapshot=knowledge_snapshot,
+                mission_completion_snapshot=mission_completion_snapshot,
+                orchestrator_snapshot=orchestrator_snapshot,
+                kernel_snapshot=None,
+            )
+            optional_overlay = _enforce_authoritative_semantic_grounding(
+                session_id=self.session_id,
+                result=optional_overlay,
+                page_context=page_context,
+            )
+            self._record_v3_event(
+                "optional_auth_overlay.dismissal_selected",
+                {
+                    "page_url": str(getattr(page_context, "url", "") or ""),
+                    "outcome_kind": optional_overlay.outcome_kind,
+                    "target_selector": optional_overlay.suggested_actions[0].target_selector if optional_overlay.suggested_actions else None,
+                },
+            )
+            return optional_overlay
         human_intervention = _deterministic_human_intervention_response(
             session_id=self.session_id,
             task=task,
@@ -1031,6 +1064,30 @@ class WorkflowOrchestrator:
                 },
             )
             return observed_control
+        from app.orchestrator.search_prerequisites import observed_date_prerequisite_response
+
+        date_prerequisite = observed_date_prerequisite_response(
+            session_id=self.session_id, task=task, page_context=page_context,
+            prior_steps=planner_prior_steps,
+        )
+        if date_prerequisite is not None:
+            self._route_legacy_browser_actions_through_mission_ledger(
+                result=date_prerequisite,
+                task=task,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+                runtime_state_snapshot=runtime_state_snapshot,
+                browser_intelligence_artifact=browser_intelligence_artifact,
+                knowledge_snapshot=knowledge_snapshot,
+                mission_completion_snapshot=mission_completion_snapshot,
+                orchestrator_snapshot=orchestrator_snapshot,
+                kernel_snapshot=None,
+            )
+            date_prerequisite = _enforce_authoritative_semantic_grounding(
+                session_id=self.session_id, result=date_prerequisite,
+                page_context=page_context,
+            )
+            return date_prerequisite
         from app.semantic_execution_kernel import (
             enrich_planner_context_with_kernel,
             observe_semantic_execution_kernel,
@@ -1176,6 +1233,11 @@ class WorkflowOrchestrator:
                 planner_response=result,
             )
             result = postprocess_with_runtime_state(result, runtime_state_snapshot)
+            from app.orchestrator.search_prerequisites import enforce_observed_date_before_result
+
+            result = enforce_observed_date_before_result(
+                task=task, page_context=page_context, prior_steps=planner_prior_steps, result=result,
+            )
             if result.intent_dispatch is not None:
                 from app.intent_runtime import ExecutionContext, execute_intent_queue
                 from app.services import mission_ledger_service
@@ -1262,6 +1324,10 @@ class WorkflowOrchestrator:
                 page_context=page_context,
                 prior_steps=planner_prior_steps,
             )
+            if result.intent_dispatch is None and result.intent_execution is None:
+                result = enforce_observed_date_before_result(
+                    task=task, page_context=page_context, prior_steps=planner_prior_steps, result=result,
+                )
             self._route_legacy_browser_actions_through_mission_ledger(
                 result=result,
                 task=task,
@@ -2416,6 +2482,72 @@ def _captcha_gate_observed(page_context: Any) -> bool:
         if re.search(r"\b(captcha|recaptcha|hcaptcha|verify you are human)\b", identity):
             return True
     return False
+
+
+def _optional_auth_overlay_response(
+    *,
+    session_id: str,
+    task: str,
+    page_context: Any,
+    prior_steps: list[Any],
+) -> AnalyzeResponse | None:
+    """Try one observed, reversible dismissal before treating optional login as required."""
+    if not _authentication_gate_observed(page_context) or _mfa_gate_observed(page_context) or _captcha_gate_observed(page_context):
+        return None
+    from app.schemas.response import SuggestedAction
+    from app.task_language import affirmative_task_text
+
+    requested_work = re.split(r"\b(?:stop before|ask for (?:my|user) confirmation before)\b", affirmative_task_text(task), maxsplit=1)[0]
+    if re.search(r"\b(?:sign[ -]?in|log[ -]?in|authenticate|create (?:an? )?account)\b", requested_work):
+        return None
+    elements = [
+        element.model_dump() if hasattr(element, "model_dump") else dict(element)
+        for element in list(getattr(page_context, "interactive_elements", []) or [])
+        if (element.get("visible", True) if isinstance(element, dict) else getattr(element, "visible", True))
+    ]
+    dismiss_controls = [
+        element for element in elements
+        if element.get("semantic_kind") == "overlay_dismiss" and str(element.get("selector") or "").strip()
+    ]
+    if len(dismiss_controls) != 1:
+        return None
+    # The public task must have a separate editable control. A standalone login
+    # screen with a close icon is not sufficient evidence of optional access.
+    has_public_control = any(
+        (str(element.get("role") or "").lower() in {"textbox", "searchbox", "combobox"}
+         or str(element.get("type") or "").lower() in {"input", "textarea", "select"})
+        and str(element.get("selector") or "") != str(dismiss_controls[0]["selector"])
+        and not re.search(
+            r"\b(?:email|e-mail|username|user name|phone|password|otp|verification|account|mobile)\b",
+            " ".join(str(element.get(key) or "") for key in ("text", "accessibility_name", "placeholder", "aria_label", "selector", "input_type")).lower(),
+        )
+        for element in elements
+    )
+    if not has_public_control:
+        return None
+    selector = str(dismiss_controls[0]["selector"])
+    if any(
+        str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("action_type") or "").lower() == "click"
+        and str((step.model_dump() if hasattr(step, "model_dump") else dict(step)).get("target_selector") or "") == selector
+        for step in prior_steps
+    ):
+        return None
+    action = SuggestedAction(
+        action_id="optional_overlay_" + hashlib.sha1(f"{session_id}|{selector}".encode("utf-8")).hexdigest()[:12],
+        action_type="click",
+        target_selector=selector,
+        description="Dismiss observed optional authentication overlay",
+        reasoning="A single visible close control covers a page with a separate public task control. Re-observe after one reversible dismissal.",
+        confidence=0.93,
+        safety_level="safe",
+        grounding={"source": "dom_snapshot", "selector_id": selector, "semantic_kind": "overlay_dismiss"},
+    )
+    return AnalyzeResponse(
+        session_id=session_id,
+        analysis="The authentication form appears in a dismissible overlay over public task controls. Dismiss it once and re-observe before deciding whether sign-in is required.",
+        outcome_kind="act",
+        suggested_actions=[action],
+    )
 
 
 def _deterministic_human_intervention_response(
@@ -3602,6 +3734,10 @@ def _deterministic_observed_control_response(
         username_control = _find_observed_control(elements, selector_terms=("username", "user", "email"), label_terms=("username", "email"))
         password_control = _find_observed_control(elements, selector_terms=("password", "passwd"), label_terms=("password",))
         submit_control = _find_observed_control(elements, label_terms=("sign in", "log in", "login", "submit"))
+        # A Login link/menu trigger is not a credential form. Let the planner
+        # follow the requested navigation instead of repeatedly toggling it.
+        if password_control is None or str(password_control.get("type") or "").lower() != "input":
+            return None
         if username_control is not None and str(username_control.get("selector") or "") not in completed_fills:
             selector = str(username_control.get("selector") or "")
             value = _quoted_task_value(task, "username")

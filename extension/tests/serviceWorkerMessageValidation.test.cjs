@@ -269,6 +269,8 @@ test('download completion contracts require exact same-origin resource identity'
 test('validates every non-execution message family and rejects unknown types', () => {
   assert.equal(validateServiceWorkerMessage({ type: 'EXTRACT_CONTEXT', tab_id: 2 }, sender, runtimeId), null)
   assert.match(validateServiceWorkerMessage({ type: 'EXTRACT_CONTEXT', tab_id: '2' }, sender, runtimeId), /invalid tab binding/)
+  assert.equal(validateServiceWorkerMessage({ type: 'EXTRACT_CONTEXT', task_hint: 'Find the exact route' }, sender, runtimeId), null)
+  assert.match(validateServiceWorkerMessage({ type: 'EXTRACT_CONTEXT', task_hint: 'x'.repeat(1001) }, sender, runtimeId), /invalid bounded task hint/)
   assert.equal(validateServiceWorkerMessage({ type: 'START_VOICE_CAPTURE', language: 'en-US' }, sender, runtimeId), null)
   assert.match(validateServiceWorkerMessage({ type: 'START_VOICE_CAPTURE', language: '../bad' }, sender, runtimeId), /invalid language/)
   assert.equal(validateServiceWorkerMessage({ type: 'WAIT_FOR_TAB_LOAD' }, sender, runtimeId), null)

@@ -50,6 +50,15 @@ def test_final_completion_snapshot_wins_timeout_boundary_race() -> None:
     assert MODULE._reconcile_terminal_status("failed", text) == "failed"
 
 
+def test_incomplete_report_does_not_count_as_completed_task() -> None:
+    text = (
+        "Report answer: I could not verify that the destination opened.\n"
+        "✓ Done — 0 of 1 step succeeded"
+    )
+    assert MODULE._terminal_outcome_from_text(text) == "failed"
+    assert MODULE._reconcile_terminal_status("timeout", text) == "failed"
+
+
 def test_durable_evidence_projection_retains_typed_submission_outcome() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
     for field in (

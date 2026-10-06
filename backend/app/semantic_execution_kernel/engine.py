@@ -7,6 +7,7 @@ from typing import Any
 
 from app.diagnostics.console import diagnostic_terminal_enabled, safe_print
 from app.feature_flags import is_active, is_shadow_or_active
+from app.grounding.resolver import action_identity_conflicts, explicit_action_identity_tokens
 from app.schemas.response import AnalyzeResponse, ReplanOutcome, SuggestedAction
 from app.semantic_execution_kernel.browser_context_registry import build_browser_context
 from app.semantic_execution_kernel.eligibility import check_eligibility
@@ -578,12 +579,25 @@ def _repair_ungrounded_interactive_action(
     if not _looks_like_interactive_browser_task(snapshot.mission_state.mission):
         return None
 
-    entity = _best_interactive_entity(snapshot)
+    original = result.suggested_actions[0]
+    observed_original = [
+        entity for entity in snapshot.entities
+        if original.target_selector
+        and entity.browser_bindings.selector == original.target_selector
+        and _entity_is_actionable(entity)
+    ]
+    if len(observed_original) == 1 and not action_identity_conflicts(original, observed_original[0].title):
+        return result
+    if snapshot.proposal.action_type == "CLICK_ENTITY" and not explicit_action_identity_tokens(original):
+        return None
+    entity = _best_interactive_entity(
+        snapshot,
+        action=original if snapshot.proposal.action_type == "CLICK_ENTITY" else None,
+    )
     selector = entity.browser_bindings.selector if entity else ""
     if not selector:
         return None
 
-    original = result.suggested_actions[0]
     repaired = SuggestedAction(
         action_id=f"{original.action_id or 'interactive'}_grounded",
         action_type=snapshot.proposal.source_action_type,  # type: ignore[arg-type]
@@ -611,7 +625,7 @@ def _repair_ungrounded_interactive_action(
     )
 
 
-def _best_interactive_entity(snapshot: KernelSnapshot):
+def _best_interactive_entity(snapshot: KernelSnapshot, *, action: SuggestedAction | None = None):
     proposal = snapshot.proposal
     if proposal is None:
         return None
@@ -621,6 +635,8 @@ def _best_interactive_entity(snapshot: KernelSnapshot):
         if not selector:
             continue
         if not _entity_is_actionable(entity):
+            continue
+        if action is not None and action_identity_conflicts(action, entity.title):
             continue
         if proposal.action_type == "FILL_FORM" and entity.semantic_type not in {"form", "message"}:
             continue

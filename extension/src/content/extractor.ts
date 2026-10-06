@@ -77,6 +77,8 @@ export function extractPageContext(): PageContext {
     '[role="row"]',                    // Threads and table-based list rows
     '[role="tab"]',                    // Tab panels
     'span[title]:not([title=""])',     // Titled identity spans
+    '[data-cy*="close" i]',            // Unlabelled dismiss controls on overlays
+    '[class*="close" i]',
   ].join(', ')
   const MAX_ELEMENTS = 120             // Keep the bounded observation payload manageable
   const MAX_CONTENT_BLOCKS = 36
@@ -102,6 +104,12 @@ export function extractPageContext(): PageContext {
 
     const testId = el.getAttribute('data-testid')
     if (testId) return `[data-testid="${testId}"]`
+
+    const dataCy = el.getAttribute('data-cy')
+    if (dataCy) {
+      const candidate = `[data-cy="${dataCy}"]`
+      if (document.querySelectorAll(candidate).length === 1) return candidate
+    }
 
     const ariaLabel = el.getAttribute('aria-label')
     if (ariaLabel) return `${el.tagName.toLowerCase()}[aria-label="${ariaLabel}"]`
@@ -182,6 +190,20 @@ export function extractPageContext(): PageContext {
       style.visibility !== 'hidden' &&
       style.opacity !== '0'
     )
+  }
+
+  function isOverlayDismissControl(el: Element): boolean {
+    const identity = [el.getAttribute('data-cy'), el.getAttribute('data-testid'),
+      el.getAttribute('aria-label'), el.getAttribute('title'), el.getAttribute('class')]
+      .filter(Boolean).join(' ').toLowerCase()
+    if (!/(?:close|dismiss)/.test(identity)) return false
+    if (!el.closest('[role="dialog"], dialog, [aria-modal="true"], [class*="modal" i], [class*="popup" i], [class*="overlay" i]')) return false
+    const rect = el.getBoundingClientRect()
+    if (rect.width < 8 || rect.height < 8 || rect.width > 80 || rect.height > 80) return false
+    const center = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    if (!center || (center !== el && !el.contains(center))) return false
+    const style = getComputedStyle(el)
+    return style.cursor === 'pointer' || el.getAttribute('role') === 'button' || el.tagName === 'BUTTON'
   }
 
   function getElementText(el: Element): string {
@@ -279,6 +301,7 @@ export function extractPageContext(): PageContext {
     ].join(' ').toLowerCase()
 
     if (document.activeElement === el) score += 100
+    if (isOverlayDismissControl(el)) score += 200
     if (el.closest('[role="dialog"], dialog, [aria-modal="true"]')) score += 80
     if (tag === 'input' || tag === 'textarea' || tag === 'select') score += 50
     if (role === 'textbox' || role === 'searchbox' || role === 'combobox') score += 50
@@ -463,6 +486,8 @@ export function extractPageContext(): PageContext {
   )
     .filter((el) => !isSensitiveElement(el))
     .filter(isVisible)
+    .filter((el) => !el.matches('[data-cy*="close" i], [class*="close" i]') ||
+      el.matches('button, [role="button"]') || isOverlayDismissControl(el))
     .map((el, index) => ({ el, index, score: scoreElement(el) }))
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .slice(0, MAX_ELEMENTS)
@@ -470,10 +495,11 @@ export function extractPageContext(): PageContext {
     .map((el): InteractiveElement => {
       const base: InteractiveElement = {
         type: el.tagName.toLowerCase(),
-        text: getElementText(el),
+        text: getElementText(el) || (isOverlayDismissControl(el) ? 'Close overlay' : ''),
         selector: buildSelector(el),
         visible: true,
       }
+      if (isOverlayDismissControl(el)) base.semantic_kind = 'overlay_dismiss'
       if (el instanceof HTMLAnchorElement) {
         base.href = el.href
         if (el.hasAttribute('download') || /\.(?:pdf|csv|tsv|txt|json|zip|docx?|xlsx?|pptx?|png|jpe?g|webp|mp3|mp4)(?:$|[?#])/i.test(el.href)) {

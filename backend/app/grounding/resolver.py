@@ -11,6 +11,12 @@ from app.semantic_page.graph import SemanticPageGraph, SemanticTarget
 
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
+_IDENTITY_FILLER = {
+    "a", "an", "and", "at", "button", "control", "current", "exact", "field",
+    "for", "from", "in", "item", "label", "link", "named", "observed", "of",
+    "on", "option", "page", "requested", "result", "row", "the", "this", "to",
+    "visible", "with",
+}
 
 
 class GroundingResolver:
@@ -51,6 +57,32 @@ class GroundingResolver:
             ),
             key=lambda item: (-item.confidence, item.target_id),
         )
+        selector_matches = [
+            target for target in graph.targets
+            if action.target_selector and action.target_selector in target.locator_candidates
+        ]
+        if selector_matches and any(action_identity_conflicts(action, target.label) for target in selector_matches):
+            result = GroundingResult(
+                run_id=run_id,
+                status="not_found",
+                planner_intent=intent,
+                action_type=action.action_type,
+                candidates=candidates[:5],
+                fallback_reason="selector_identity_conflict",
+                cache_hit=cache_hit,
+            )
+            result.replay_metadata = _replay_metadata(
+                graph=graph, packet=packet, candidate_count=len(candidates),
+                elapsed_ms=int((time.perf_counter() - started) * 1000),
+            )
+            return result
+        # If the planned selector still exists, a higher-scoring different
+        # control must not silently replace its action identity.
+        if selector_matches:
+            candidates = [
+                candidate for candidate in candidates
+                if action.target_selector in candidate.locator_candidates
+            ]
         relevant = [
             candidate for candidate in candidates
             if candidate.confidence >= self.confidence_threshold
@@ -224,6 +256,70 @@ def _is_ambiguous(
 
 def _normalized_identity(value: Any) -> str:
     return " ".join(str(value or "").split()).casefold()
+
+
+def action_identity_conflicts(action: SuggestedAction, observed_label: str) -> bool:
+    observed = _normalized_identity(observed_label)
+    requested_name = _normalized_identity(dict(action.grounding or {}).get("accessibility_name"))
+    if requested_name and requested_name != observed:
+        return True
+    described = explicit_action_identity_tokens(action)
+    if not described:
+        return False
+    observed_tokens = set(_identity_tokens(observed))
+    if _description_names_exact_target(str(action.description or "")):
+        return not set(described).issubset(observed_tokens)
+    return len(set(described) & observed_tokens) < (len(set(described)) + 1) // 2
+
+
+def explicit_action_identity_tokens(action: SuggestedAction) -> list[str]:
+    requested_name = _normalized_identity(dict(action.grounding or {}).get("accessibility_name"))
+    if requested_name:
+        return _identity_tokens(requested_name)
+    description = str(action.description or "")
+    # Extract only an explicitly named object. Generic instructions such as
+    # "activate the requested control" do not assert a particular label.
+    quoted = re.search(r"[\"'“‘]([^\"'”’]{2,120})[\"'”’]", description)
+    if quoted:
+        phrase = quoted.group(1)
+    else:
+        named = re.search(
+            r"\b(?:link|button|control|option|result|row|item|field)\s+"
+            r"(?:named|labelled|labeled|for)\s+(.+)$",
+            description, flags=re.IGNORECASE,
+        )
+        selected = re.search(
+            r"\b(?:click|select|choose|open|fill|activate)\s+"
+            r"(?:to\s+(?:select|choose|open|fill)\s+)?the\s+(.+)$",
+            description, flags=re.IGNORECASE,
+        )
+        direct = re.search(r"^(?:click|select|choose|open|fill|activate)\s+(.+)$", description, flags=re.IGNORECASE)
+        phrase = (named or selected or direct).group(1) if (named or selected or direct) else ""
+    phrase = re.split(
+        r"\s+(?:to|in order to)\s+(?:select|choose|open|fill|search|find|view|continue|submit)\b",
+        phrase, maxsplit=1, flags=re.IGNORECASE,
+    )[0]
+    tokens = _identity_tokens(phrase)
+    return tokens if any(token not in {"named", "requested", "observed", "visible", "current", "exact"} for token in tokens) else []
+
+
+def _description_names_exact_target(description: str) -> bool:
+    return bool(
+        re.search(r"[\"'“‘][^\"'”’]{2,120}[\"'”’]", description)
+        or re.search(
+            r"\b(?:link|button|control|option|result|row|item|field)\s+"
+            r"(?:named|labelled|labeled|for)\s+\S",
+            description, flags=re.IGNORECASE,
+        )
+    )
+
+
+def _identity_tokens(value: str) -> list[str]:
+    return [
+        token[:-1] if token.endswith("s") and len(token) > 4 else token
+        for token in _tokens(value)
+        if token not in _IDENTITY_FILLER
+    ]
 
 
 def _replay_metadata(
