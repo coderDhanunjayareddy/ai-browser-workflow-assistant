@@ -223,3 +223,39 @@ The `BOOKING-MMT-01` validation driver closed Chromium when the extension return
 | Fix or safe workaround | Preserve this browser and workflow; capture the app's exact question before changing runtime behavior. |
 | Regression test | Pending. |
 | Real side-panel rerun result | Pending; session held. |
+
+## 2026-10-06 — bus route setup advanced, then date remained wrong
+
+| Field | Record |
+|---|---|
+| Date/time and runtime build | 2026-10-06; `stabilization-20261006T092508Z` |
+| Website and environment | redBus public homepage and Hyderabad → Bengaluru results page in the real extension side panel. |
+| User task | Hyderabad to Bengaluru bus on 20 October 2026 for one adult; stop before login, personal data, payment, or final submission. |
+| Expected final result | Select both cities, select and verify 20 October, compare actual priced buses, then stop at a real human boundary. |
+| Actual result | `BOOKING-BUS-PREREQ-21` filled and selected both cities through observed suggestions. `PREREQ-22` reached the correct results route showing 251 buses, but the selected date was 06 October 2026. The app correctly did not claim a completed booking or choose a cheapest bus. |
+| First failed action and step number | `PREREQ-21` Step 7 tried a date field that CDP could not ground; Step 9 fill had no effect. The later route-link click could reach the correct route but still carried the wrong date. |
+| Page state before / after | From homepage with Hyderabad/Bengaluru values to a route page whose URL and heading identify the requested cities; date control reads `Edit journey date 06 Oct, 2026`. |
+| Screenshot or trace path | `docs/production_validation/live_sidepanel/booking-bus-prereq-21-pause.png`; `booking-bus-prereq-22-pause.json`; `booking-bus-prereq-22-target-pause.png`. |
+| Failure class | Dynamic route search and date-control interpretation. |
+| Root cause and evidence | City fill alone left autocomplete open. A verified suggestion click was required for each city. After both selections, the planner tried an ungrounded homepage date control and a footer route link. On the results page, the visible date is embedded in a button label that the date parser previously missed. |
+| Fix or safe workaround | Added observed city suggestion selection, a single observed search submission after both fields verify, and parsing of one date embedded in a control label. The route and date must still be verified after each action. |
+| Regression test | 126 focused backend tests and extension build passed; broader live gate pending. |
+| Real side-panel rerun result | `PREREQ-23` repeated the city selection but paused after the planner's homepage date attempts. `PREREQ-24` test browser closed unexpectedly before a usable terminal result. A paused session is available for same-page retry on the updated backend. |
+
+## 2026-10-06 — bus result date and ranking diagnostic
+
+| Field | Record |
+|---|---|
+| Date/time and runtime build | 2026-10-06; `stabilization-20261006T093726Z` for `PREREQ-25` to `PREREQ-27`, then rebuilt extension and local test backend for `PREREQ-28`. |
+| Website and environment | redBus public Hyderabad → Bengaluru results in the real unpacked extension side panel. The owner accidentally closed the earlier `PREREQ-23` browser; its waiting driver exited cleanly. |
+| User task | Find the cheapest bus on 20 October 2026 for one adult, proceed toward booking, and stop before login, personal or payment details, or final submission. |
+| Expected final result | A persistent requested date, comparable priced results in ascending order, a justified bus choice, and a verified stop at the permitted boundary. |
+| Actual result | `PREREQ-25` selected 20 October and displayed 247 priced buses, then falsely asked the owner to expose a control. `PREREQ-26` clicked a ₹899 bus while a ₹799 bus was visible; the page then reverted to 6 October, and the app stopped. `PREREQ-27` showed the Price sort is a visible `role=radio` control omitted by extraction. `PREREQ-28` committed the selected date, selected the Price radio, and reached a FlixBus seat map on 20 October; the page URL contained `onward=20-Oct-2026`. It then selected one ₹666 seat and stopped with a planning-service connection error. No booking was submitted. |
+| First failed action and step number | `PREREQ-25` after Step 8: next requested control failed semantic grounding. `PREREQ-26` Step 9: wrong price comparison and later date reset. `PREREQ-28` after Step 14: planning service failed after one seat was selected. |
+| Page state before / after | Correct route and requested day were observed before ranking. `PREREQ-28` had a 20 October result URL and an open seat map showing one selected seat and a `Select boarding & dropping points` control. |
+| Screenshot or trace path | `docs/production_validation/live_sidepanel/booking-bus-prereq-25-pause.png`, `booking-bus-prereq-26-target-pause.png`, `booking-bus-prereq-27-pause.json`, and `booking-bus-prereq-28.json` / `booking-bus-prereq-28-target.png`. |
+| Failure class | Incomplete dynamic control observation; selected date versus result URL mismatch; ranking verification gap; later external planning-service failure. |
+| Root cause and evidence | The Price control was a visible radio omitted from the 150-control extraction. After date selection, the page still had `onward=06-Oct-2026` until the observed Search control was clicked again. The Step 9 ₹899 selection in `PREREQ-26` contradicted the visible ₹799 option. The `PREREQ-28` seat map identified the chosen seat as male-only even though no passenger gender was provided; that restriction must not be silently accepted in a later booking task. The planning-service error occurred after the selected seat and is not evidence of booking completion. |
+| Fix or safe workaround | Extract and prioritize ARIA radio choices; commit a selected date once when an observed result URL disagrees; then select an observed Price radio and verify it. The workflow remains bounded, with no credential, payment, or booking submission. |
+| Regression test | 45 relevant backend tests, 256 extension tests, extension type-check and build passed. `PREREQ-28` verified route, date URL, Price sort, bus choice, and seat-map entry through the real side panel; the complete diagnostic remains failed. |
+| Real side-panel rerun result | `BOOKING-BUS-PREREQ-28`: failed after Step 14 with planning-service connection error. The next approved task must address exact seat eligibility and completion at the human boundary; do not claim a completed booking. |

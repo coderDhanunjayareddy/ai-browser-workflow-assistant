@@ -13,6 +13,7 @@ export function extractPageContextV2(goalHint = ''): PageContext {
     '[role="button"]:not(button)',
     '[role="listitem"]',
     '[role="option"]',
+    '[role="radio"]',
     '[role="gridcell"]',
     '[role="menuitem"]',
     '[role="row"]',
@@ -157,7 +158,7 @@ export function extractPageContextV2(goalHint = ''): PageContext {
     const role = (el.getAttribute('role') || '').toLowerCase()
     const nameFromContent = new Set([
       'button', 'a', 'summary', 'option',
-      'link', 'menuitem', 'tab',
+      'link', 'menuitem', 'tab', 'radio',
     ])
     if (nameFromContent.has(tag) || nameFromContent.has(role)) {
       const text = (el.textContent || '').replace(/\s+/g, ' ').trim()
@@ -341,12 +342,15 @@ export function extractPageContextV2(goalHint = ''): PageContext {
   const formControls = candidates.filter((el) =>
     el.matches('input, select, textarea, [role="textbox"], [role="searchbox"], [role="combobox"]'))
     .slice(0, 40)
+  const choiceControls = candidates.filter((el) =>
+    el.matches('[role="radio"]'))
+    .slice(0, 30)
   // Calendar days are often grid cells rather than buttons. Keep visible cells
   // inside an open grid before dense site navigation consumes the observation.
   const gridCells = candidates.filter((el) =>
     el.matches('[role="gridcell"]') && Boolean(el.closest('[role="grid"]')))
     .slice(0, 70)
-  const elements = [...new Set([...dismissControls, ...formControls, ...goalControls, ...gridCells, ...candidates])]
+  const elements = [...new Set([...dismissControls, ...formControls, ...choiceControls, ...goalControls, ...gridCells, ...candidates])]
     .slice(0, MAX_ELEMENTS)
     .map((el, index) => {
       const rect = el.getBoundingClientRect()

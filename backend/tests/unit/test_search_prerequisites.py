@@ -1,6 +1,6 @@
 from app.orchestrator.search_prerequisites import (
     enforce_observed_date_before_result, observed_date_prerequisite_response,
-    observed_route_prerequisite_response,
+    observed_result_prerequisite_response, observed_route_prerequisite_response,
 )
 from app.schemas.request import ContentBlock, InteractiveElement, PageContext, PriorStep
 from app.schemas.response import AnalyzeResponse, SuggestedAction
@@ -53,7 +53,99 @@ def test_observed_route_form_fills_source_then_destination_without_site_selector
     assert second.suggested_actions[0].target_selector == "#destinput"
     assert second.suggested_actions[0].value == "Bengaluru"
     observed.interactive_elements[1].state = {"value": "Bengaluru"}
-    assert observed_route_prerequisite_response(session_id="route", task=task, page_context=observed) is None
+    search = observed_route_prerequisite_response(session_id="route", task=task, page_context=observed)
+    assert search is not None
+    assert search.suggested_actions[0].target_selector == "#search"
+    assert search.suggested_actions[0].action_type == "click"
+
+
+def test_unlabelled_observed_route_field_passes_authoritative_grounding():
+    from app.orchestrator.workflow_orchestrator import _enforce_authoritative_semantic_grounding
+
+    observed = page(
+        InteractiveElement(type="input", input_type="text", role="combobox", text="",
+                           selector="#srcinput", visible=True, state={}),
+        InteractiveElement(type="input", input_type="text", role="combobox", text="",
+                           selector="#destinput", visible=True, state={}),
+        InteractiveElement(type="button", role="button", text="Search", selector="#search",
+                           visible=True, accessibility_name="Search"),
+    )
+    result = observed_route_prerequisite_response(session_id="route", task=TASK, page_context=observed)
+    assert result is not None
+    grounded = _enforce_authoritative_semantic_grounding(
+        session_id="route", result=result, page_context=observed,
+    )
+    assert grounded.outcome_kind == "act"
+    assert grounded.suggested_actions[0].target_selector == "#srcinput"
+
+
+def test_route_autocomplete_selects_observed_city_before_next_field():
+    observed = page(
+        InteractiveElement(type="input", input_type="text", role="combobox", text="",
+                           selector="#srcinput", visible=True, state={"value": "Hyderabad"}),
+        InteractiveElement(type="input", input_type="text", role="combobox", text="",
+                           selector="#destinput", visible=True, state={}),
+        InteractiveElement(type="button", role="button", text="Search", selector="#search",
+                           visible=True, accessibility_name="Search"),
+        InteractiveElement(type="div", role="button", text="Hyderabad",
+                           selector="#suggestion-0", visible=True,
+                           accessibility_name="Hyderabad, ,"),
+        InteractiveElement(type="div", role="button", text="Hyderabad",
+                           selector="#suggestion-14", visible=True,
+                           accessibility_name="Hyderabad, ,"),
+    )
+    filled = PriorStep(
+        action_type="fill", target_selector="#srcinput", value="Hyderabad",
+        description="Set requested origin in the uniquely observed route field",
+        execution_result="CDP fill dispatched.\nExecution: success\nVerification: verified",
+    )
+    task = "Find a bus from Hyderabad to Bengaluru on 20 October 2026 for one adult."
+    result = observed_route_prerequisite_response(
+        session_id="route", task=task, page_context=observed, prior_steps=[filled],
+    )
+    assert result is not None
+    assert result.suggested_actions[0].action_type == "click"
+    assert result.suggested_actions[0].target_selector == "#suggestion-0"
+    from app.orchestrator.workflow_orchestrator import _enforce_authoritative_semantic_grounding
+    grounded = _enforce_authoritative_semantic_grounding(
+        session_id="route", result=result, page_context=observed,
+    )
+    assert grounded.outcome_kind == "act"
+    selected = PriorStep(
+        action_type="click", target_selector="#suggestion-0", value=None,
+        description="Use observed city suggestion for origin",
+        execution_result="CDP click dispatched.\nExecution: success\nVerification: verified",
+    )
+    observed.interactive_elements = observed.interactive_elements[:3]
+    result = observed_route_prerequisite_response(
+        session_id="route", task=task, page_context=observed,
+        prior_steps=[filled, selected],
+    )
+    assert result is not None
+    assert result.suggested_actions[0].target_selector == "#destinput"
+
+
+def test_route_form_does_not_repeat_successful_fill_when_value_disappears():
+    observed = page(
+        InteractiveElement(type="input", input_type="text", role="combobox", text="",
+                           selector="#srcinput", visible=True, state={}),
+        InteractiveElement(type="input", input_type="text", role="combobox", text="",
+                           selector="#destinput", visible=True, state={}),
+        InteractiveElement(type="button", role="button", text="Search", selector="#search",
+                           visible=True, accessibility_name="Search"),
+    )
+    filled = PriorStep(
+        action_type="fill", target_selector="#srcinput", value="Hyderabad",
+        description="Set requested origin in the uniquely observed route field",
+        execution_result="CDP fill dispatched.\nExecution: success\nVerification: verified",
+    )
+    result = observed_route_prerequisite_response(
+        session_id="route", task="Find a bus from Hyderabad to Bengaluru on 20 October 2026.",
+        page_context=observed, prior_steps=[filled],
+    )
+    assert result is not None
+    assert result.outcome_kind == "ask"
+    assert result.suggested_actions == []
 
 
 def test_route_form_does_not_guess_ambiguous_or_unidentified_fields():
@@ -231,4 +323,70 @@ def test_calendar_gridcell_requires_full_date_and_skips_disabled_option():
 def test_observed_date_does_not_preempt_before_requested_route_is_current():
     assert observed_date_prerequisite_response(
         session_id="date", task=TASK, page_context=page(control()), prior_steps=[],
+    ) is None
+
+
+def test_route_results_date_button_with_embedded_date_is_opened_before_result_choice():
+    observed = page(InteractiveElement(
+        type="div", role="button", text="Date of journey06 Oct, 2026(Today)",
+        selector="#journey-date", visible=True,
+        accessibility_name="Edit journey date 06 Oct, 2026",
+    ), prices=True)
+    observed.url = "https://example.test/trips/hyderabad-to-bangalore?fromCityName=Hyderabad&toCityName=Bengaluru"
+    observed.title = "Hyderabad to Bengaluru buses"
+    task = "Find a bus from Hyderabad to Bengaluru on 20 October 2026 for one adult. Choose the cheapest."
+    result = observed_date_prerequisite_response(
+        session_id="date", task=task, page_context=observed, prior_steps=[],
+    )
+    assert result is not None
+    assert result.suggested_actions[0].target_selector == "#journey-date"
+
+
+def test_selected_date_is_committed_when_result_url_still_names_old_date():
+    observed = page(
+        InteractiveElement(type="div", role="button", text="Date of journey20 Oct, 2026",
+                           selector="#journey-date", visible=True,
+                           accessibility_name="Edit journey date 20 Oct, 2026"),
+        InteractiveElement(type="button", role="button", text="Search buses",
+                           selector="#search", visible=True, accessibility_name="Search buses"),
+        InteractiveElement(type="div", role="radio", text="Price", selector="#price",
+                           visible=True, accessibility_name="Price", state={"checked": False}),
+    )
+    observed.title = "Hyderabad to Bengaluru buses"
+    observed.url = "https://example.test/hyderabad-to-bengaluru?onward=06-Oct-2026"
+    task = "Find a bus from Hyderabad to Bengaluru on 20 October 2026. Choose the cheapest."
+    response = observed_result_prerequisite_response(
+        session_id="rank", task=task, page_context=observed, prior_steps=[],
+    )
+    assert response is not None
+    assert response.suggested_actions[0].target_selector == "#search"
+    assert "Commit the selected date" in response.suggested_actions[0].description
+    assert observed_result_prerequisite_response(
+        session_id="rank", task=task, page_context=observed,
+        prior_steps=[PriorStep(action_type="click", target_selector="#search",
+                              description="Commit the selected date with the observed search control",
+                              value=None, execution_result="Execution: success", page_analysis="",
+                              page_url=observed.url)],
+    ).outcome_kind == "ask"
+
+
+def test_price_radio_selected_only_after_date_and_url_agree():
+    observed = page(
+        InteractiveElement(type="div", role="button", text="Date of journey20 Oct, 2026",
+                           selector="#journey-date", visible=True,
+                           accessibility_name="Edit journey date 20 Oct, 2026"),
+        InteractiveElement(type="div", role="radio", text="Price", selector="#price",
+                           visible=True, accessibility_name="Price", state={"checked": False}),
+    )
+    observed.title = "Hyderabad to Bengaluru buses"
+    observed.url = "https://example.test/hyderabad-to-bengaluru?onward=20-Oct-2026"
+    task = "Find a bus from Hyderabad to Bengaluru on 20 October 2026. Choose the cheapest."
+    response = observed_result_prerequisite_response(
+        session_id="rank", task=task, page_context=observed, prior_steps=[],
+    )
+    assert response is not None
+    assert response.suggested_actions[0].target_selector == "#price"
+    observed.interactive_elements[1].state = {"checked": True}
+    assert observed_result_prerequisite_response(
+        session_id="rank", task=task, page_context=observed, prior_steps=[],
     ) is None

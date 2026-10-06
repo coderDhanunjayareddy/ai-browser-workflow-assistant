@@ -576,12 +576,13 @@ def _run_task(
             body = request.post_data_json or {}
             page = dict(body.get('page_context') or {})
             controls = []
-            for item in list(page.get('interactive_elements') or [])[:80]:
+            for item in list(page.get('interactive_elements') or [])[:150]:
                 data = dict(item or {})
                 controls.append({
                     key: str(data.get(key) or '')[:240]
                     for key in ('type', 'input_type', 'role', 'selector', 'text', 'aria_label', 'accessibility_name', 'href')
                 })
+                controls[-1]['has_value'] = bool((data.get('state') or {}).get('value'))
             analyze_observations.append({
                 'url': str(page.get('url') or '')[:500],
                 'title': str(page.get('title') or '')[:240],
@@ -598,15 +599,43 @@ def _run_task(
     def capture_pause_snapshot(kind: str) -> None:
         if not capture_analyze_observations:
             return
+        # Read-only diagnostic for ranking controls. This records structural
+        # metadata only; it does not click, focus, or change the target page.
+        ranking_controls = []
+        if "cheapest" in prompt.casefold() or "lowest" in prompt.casefold():
+            try:
+                ranking_controls = target.evaluate(r"""() => {
+                  const matches = [...document.querySelectorAll('body *')]
+                    .filter(el => /^(?:price|sort by|lowest fare|cheapest)$/i.test((el.textContent || '').replace(/\s+/g, ' ').trim()))
+                    .slice(0, 12);
+                  return matches.map(el => {
+                    const chain = [];
+                    for (let node = el, depth = 0; node && depth < 4; node = node.parentElement, depth++) {
+                      const rect = node.getBoundingClientRect();
+                      chain.push({tag: node.tagName.toLowerCase(), role: node.getAttribute('role') || '',
+                        class_name: String(node.className || '').slice(0, 160),
+                        cursor: getComputedStyle(node).cursor,
+                        visible: rect.width > 0 && rect.height > 0});
+                    }
+                    return {label: (el.textContent || '').trim().slice(0, 40), chain};
+                  });
+                }""")
+            except Exception as exc:
+                ranking_controls = [{"capture_error": str(exc)[:300]}]
         (REPORT_DIR / f"{safe_id}-pause.json").write_text(
             json.dumps({
                 "task_id": task_id,
                 "kind": kind,
                 "observations": analyze_observations,
+                "ranking_control_structure": ranking_controls,
             }, indent=2), encoding="utf-8",
         )
         try:
             sidepanel.screenshot(path=str(REPORT_DIR / f"{safe_id}-pause.png"), full_page=True)
+        except Exception:
+            pass
+        try:
+            target.screenshot(path=str(REPORT_DIR / f"{safe_id}-target-pause.png"))
         except Exception:
             pass
 
