@@ -267,7 +267,10 @@ def _is_actionable(element: InteractiveElement) -> bool:
 def _element_label(element: InteractiveElement) -> str:
     explicit = element.accessibility_name or element.aria_label or element.placeholder
     if explicit:
-        return normalize_text(explicit, max_length=120)
+        # Keep the observed accessible identity intact for exact browser
+        # grounding. Truncating it here makes a valid selector fail the final
+        # CDP name check when a control has a descriptive ARIA label.
+        return normalize_text(explicit, max_length=300)
     # Raw descendant text is page content, not automatically target identity.
     # Native/name-from-content controls are the bounded exception.
     element_type = str(element.type or "").lower()

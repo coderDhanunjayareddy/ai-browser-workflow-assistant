@@ -594,6 +594,16 @@ export function actionRequiresDomSettle(actionType: SuggestedAction['action_type
   )
 }
 
+export function actionRequiresFreshDecision(actionType: SuggestedAction['action_type']): boolean {
+  // A queued browser intent was planned against the prior observation. After
+  // any page mutation, the backend must see the new page before another intent
+  // can be considered for execution.
+  return actionRequiresDomSettle(actionType) ||
+    actionType === 'scroll' || actionType === 'hover' ||
+    actionType === 'focus_existing_tab' || actionType === 'switch_tab' ||
+    actionType === 'open_new_tab'
+}
+
 export function pageContextEvidenceScore(context: PageContext): number {
   return (
     context.interactive_elements.filter((element) => element.visible !== false).length * 10_000 +
@@ -2350,7 +2360,7 @@ export function useWorkflow() {
       return
     }
 
-    if (nextIntent) {
+    if (nextIntent && !actionRequiresFreshDecision(action.action_type)) {
       const nextAction = actionFromIntent(nextIntent)
       if (missionIntentHasRequiredExecutionTarget(nextAction)) {
         setState((s) => ({

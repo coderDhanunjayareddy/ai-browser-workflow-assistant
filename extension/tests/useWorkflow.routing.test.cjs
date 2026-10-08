@@ -41,6 +41,7 @@ const {
   appendValidationPriorStepOnce,
   applyClarificationAnswers,
   actionRequiresDomSettle,
+  actionRequiresFreshDecision,
   actionRequiresExplicitApproval,
   buildAnalyzeRequestBody,
   bindObservationGrounding,
@@ -364,6 +365,13 @@ test('mission tab intents require an explicit browser-resolvable target', () => 
     action_type: 'click',
     value: null,
   })), true)
+})
+
+test('a browser mutation requires a fresh decision before a queued intent runs', () => {
+  for (const type of ['click', 'fill', 'select_option', 'choose_date', 'navigate', 'scroll']) {
+    assert.equal(actionRequiresFreshDecision(type), true, `${type} must re-observe`)
+  }
+  assert.equal(actionRequiresFreshDecision('wait'), true)
 })
 
 test('semantic recovery is bounded and never replans consequential or uncertain actions', () => {

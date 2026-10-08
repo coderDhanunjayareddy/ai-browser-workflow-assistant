@@ -1134,6 +1134,29 @@ class WorkflowOrchestrator:
                 session_id=self.session_id, result=result_prerequisite,
                 page_context=page_context,
             )
+        from app.orchestrator.seat_eligibility import observed_seat_eligibility_response
+
+        seat_prerequisite = observed_seat_eligibility_response(
+            session_id=self.session_id, task=task, page_context=page_context,
+            prior_steps=planner_prior_steps,
+        )
+        if seat_prerequisite is not None:
+            self._route_legacy_browser_actions_through_mission_ledger(
+                result=seat_prerequisite,
+                task=task,
+                page_context=page_context,
+                prior_steps=planner_prior_steps,
+                runtime_state_snapshot=runtime_state_snapshot,
+                browser_intelligence_artifact=browser_intelligence_artifact,
+                knowledge_snapshot=knowledge_snapshot,
+                mission_completion_snapshot=mission_completion_snapshot,
+                orchestrator_snapshot=orchestrator_snapshot,
+                kernel_snapshot=None,
+            )
+            return _enforce_authoritative_semantic_grounding(
+                session_id=self.session_id, result=seat_prerequisite,
+                page_context=page_context,
+            )
         from app.semantic_execution_kernel import (
             enrich_planner_context_with_kernel,
             observe_semantic_execution_kernel,
@@ -1373,6 +1396,11 @@ class WorkflowOrchestrator:
             if result.intent_dispatch is None and result.intent_execution is None:
                 result = enforce_observed_date_before_result(
                     task=task, page_context=page_context, prior_steps=planner_prior_steps, result=result,
+                )
+                from app.orchestrator.seat_eligibility import enforce_seat_action_eligibility
+
+                result = enforce_seat_action_eligibility(
+                    task=task, page_context=page_context, result=result,
                 )
             self._route_legacy_browser_actions_through_mission_ledger(
                 result=result,
